@@ -1,0 +1,18 @@
+# Scala
+*.class
+*.log
+.bsp/
+.scala-build/
+.metals/
+.bloop/
+target/
+
+# iw-cli local state
+.iw/cache/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
