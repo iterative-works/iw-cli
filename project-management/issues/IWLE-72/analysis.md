@@ -38,20 +38,20 @@ All technical decisions have been resolved:
 ### Story 1: Initialize project with issue tracker configuration
 
 ```gherkin
-Funkce: Inicializace projektu s integrací issue trackeru
-  Jako vývojář
-  Chci nakonfigurovat iw-cli pro můj projekt
-  Aby nástroj věděl, odkud číst issues a jak vytvářet worktrees
+Feature: Initialize project with issue tracker integration
+  As a developer
+  I want to configure iw-cli for my project
+  So that the tool knows where to read issues and how to create worktrees
 
-Scénář: Úspěšná inicializace s Linear trackerem
-  Pokud jsem v kořenovém adresáři git repozitáře
-  A soubor .iw/config.conf neexistuje
-  Když spustím "./iw init"
-  A potvrdím navrhovaný issue tracker "Linear"
-  A potvrdím navrhovaný tým "IWLE"
-  Pak vidím zprávu "Configuration created successfully"
-  A vidím nápovědu "Set LINEAR_API_TOKEN environment variable"
-  A existuje soubor .iw/config.conf s konfigurací Linear
+Scenario: Successful initialization with Linear tracker
+  Given I am in the root directory of a git repository
+  And the file .iw/config.conf does not exist
+  When I run "./iw init"
+  And I confirm the suggested issue tracker "Linear"
+  And I confirm the suggested team "IWLE"
+  Then I see the message "Configuration created successfully"
+  And I see the hint "Set LINEAR_API_TOKEN environment variable"
+  And the file .iw/config.conf exists with Linear configuration
 ```
 
 **Estimated Effort:** 4-6h
@@ -72,38 +72,38 @@ Straightforward configuration setup with interactive prompts. Detects git remote
 ### Story 2: Validate environment and configuration
 
 ```gherkin
-Funkce: Kontrola prostředí a konfigurace
-  Jako vývojář
-  Chci ověřit, že mám správně nastavené prostředí
-  Aby iw-cli fungovalo správně
+Feature: Validate environment and configuration
+  As a developer
+  I want to verify that my environment is correctly set up
+  So that iw-cli works properly
 
-Scénář: Kompletní prostředí s validní konfigurací
-  Pokud existuje .iw/config.conf s Linear konfigurací
-  A tmux je nainstalovaný
-  A proměnná prostředí LINEAR_API_TOKEN je nastavena a validní
-  A git repozitář má vzdálený origin
-  Když spustím "./iw doctor"
-  Pak vidím "✓ Git repository found"
-  A vidím "✓ Configuration file exists"
-  A vidím "✓ LINEAR_API_TOKEN is set and valid"
-  A vidím "✓ tmux installed"
-  A vidím "✓ All checks passed"
+Scenario: Complete environment with valid configuration
+  Given .iw/config.conf exists with Linear configuration
+  And tmux is installed
+  And the environment variable LINEAR_API_TOKEN is set and valid
+  And the git repository has a remote origin
+  When I run "./iw doctor"
+  Then I see "✓ Git repository found"
+  And I see "✓ Configuration file exists"
+  And I see "✓ LINEAR_API_TOKEN is set and valid"
+  And I see "✓ tmux installed"
+  And I see "✓ All checks passed"
 
-Scénář: Chybějící API token
-  Pokud existuje .iw/config.conf s Linear konfigurací
-  A proměnná prostředí LINEAR_API_TOKEN není nastavena
-  Když spustím "./iw doctor"
-  Pak vidím "✗ LINEAR_API_TOKEN not set"
-  A vidím nápovědu "export LINEAR_API_TOKEN=your-token"
-  A příkaz vrátí chybový kód 1
+Scenario: Missing API token
+  Given .iw/config.conf exists with Linear configuration
+  And the environment variable LINEAR_API_TOKEN is not set
+  When I run "./iw doctor"
+  Then I see "✗ LINEAR_API_TOKEN not set"
+  And I see the hint "export LINEAR_API_TOKEN=your-token"
+  And the command returns exit code 1
 
-Scénář: Chybějící tmux
-  Pokud existuje .iw/config.conf
-  A tmux není nainstalovaný
-  Když spustím "./iw doctor"
-  Pak vidím "✗ tmux not found"
-  A vidím nápovědu k instalaci tmux
-  A příkaz vrátí chybový kód 1
+Scenario: Missing tmux
+  Given .iw/config.conf exists
+  And tmux is not installed
+  When I run "./iw doctor"
+  Then I see "✗ tmux not found"
+  And I see installation instructions for tmux
+  And the command returns exit code 1
 ```
 
 **Estimated Effort:** 4-6h
@@ -123,33 +123,33 @@ Simple validation checks with clear reporting. Each check is independent: git re
 ### Story 3: Create worktree for issue with tmux session
 
 ```gherkin
-Funkce: Vytvoření worktree pro issue
-  Jako vývojář
-  Chci vytvořit izolovaný worktree pro konkrétní issue
-  Aby můj kód pro různé issues nebyl smíchaný
+Feature: Create worktree for issue
+  As a developer
+  I want to create an isolated worktree for a specific issue
+  So that my code for different issues is not mixed
 
-Scénář: Úspěšné vytvoření worktree pro issue
-  Pokud jsem v hlavním worktree projektu "kanon"
-  A worktree "kanon-IWLE-123" neexistuje
-  Když spustím "./iw start IWLE-123"
-  Pak vidím "Creating worktree kanon-IWLE-123..."
-  A existuje adresář "../kanon-IWLE-123" jako sibling
-  A v "../kanon-IWLE-123" je git branch "IWLE-123"
-  A tmux session "kanon-IWLE-123" je vytvořena
-  A jsem připojen do tmux session s working directory "../kanon-IWLE-123"
+Scenario: Successfully create worktree for issue
+  Given I am in the main worktree of project "kanon"
+  And worktree "kanon-IWLE-123" does not exist
+  When I run "./iw start IWLE-123"
+  Then I see "Creating worktree kanon-IWLE-123..."
+  And the directory "../kanon-IWLE-123" exists as a sibling
+  And "../kanon-IWLE-123" has git branch "IWLE-123"
+  And tmux session "kanon-IWLE-123" is created
+  And I am attached to the tmux session with working directory "../kanon-IWLE-123"
 
-Scénář: Worktree již existuje
-  Pokud worktree "kanon-IWLE-123" již existuje
-  Když spustím "./iw start IWLE-123"
-  Pak vidím chybu "Worktree for IWLE-123 already exists"
-  A vidím nápovědu použít "./iw open IWLE-123"
-  A příkaz vrátí chybový kód 1
+Scenario: Worktree already exists
+  Given worktree "kanon-IWLE-123" already exists
+  When I run "./iw start IWLE-123"
+  Then I see the error "Worktree for IWLE-123 already exists"
+  And I see the hint to use "./iw open IWLE-123"
+  And the command returns exit code 1
 
-Scénář: Sibling adresář již existuje
-  Pokud adresář "../kanon-IWLE-123" již existuje (není worktree)
-  Když spustím "./iw start IWLE-123"
-  Pak vidím chybu "Directory kanon-IWLE-123 already exists"
-  A příkaz vrátí chybový kód 1
+Scenario: Sibling directory already exists
+  Given the directory "../kanon-IWLE-123" already exists (not a worktree)
+  When I run "./iw start IWLE-123"
+  Then I see the error "Directory kanon-IWLE-123 already exists"
+  And the command returns exit code 1
 ```
 
 **Estimated Effort:** 6-8h
@@ -170,31 +170,31 @@ Creates worktree and session from issue ID alone - no network required. Involves
 ### Story 4: Open existing worktree tmux session
 
 ```gherkin
-Funkce: Otevření existující tmux session
-  Jako vývojář
-  Chci se připojit k existující tmux session pro issue
-  Aby můj kontext z předchozí práce byl zachován
+Feature: Open existing worktree tmux session
+  As a developer
+  I want to attach to an existing tmux session for an issue
+  So that my context from previous work is preserved
 
-Scénář: Otevření session s explicitním issue ID
-  Pokud existuje worktree "kanon-IWLE-123"
-  A tmux session "kanon-IWLE-123" je spuštěná
-  Když spustím "./iw open IWLE-123"
-  Pak jsem připojen do tmux session "kanon-IWLE-123"
-  A working directory je "../kanon-IWLE-123"
+Scenario: Open session with explicit issue ID
+  Given worktree "kanon-IWLE-123" exists
+  And tmux session "kanon-IWLE-123" is running
+  When I run "./iw open IWLE-123"
+  Then I am attached to tmux session "kanon-IWLE-123"
+  And the working directory is "../kanon-IWLE-123"
 
-Scénář: Otevření session z aktuálního branch
-  Pokud jsem v worktree "kanon-IWLE-123"
-  A current branch je "IWLE-123"
-  A tmux session "kanon-IWLE-123" je spuštěná
-  Když spustím "./iw open" (bez parametru)
-  Pak jsem připojen do tmux session "kanon-IWLE-123"
+Scenario: Open session from current branch
+  Given I am in worktree "kanon-IWLE-123"
+  And current branch is "IWLE-123"
+  And tmux session "kanon-IWLE-123" is running
+  When I run "./iw open" (without parameter)
+  Then I am attached to tmux session "kanon-IWLE-123"
 
-Scénář: Session neexistuje, ale worktree ano
-  Pokud existuje worktree "kanon-IWLE-123"
-  A tmux session "kanon-IWLE-123" není spuštěná
-  Když spustím "./iw open IWLE-123"
-  Pak nová tmux session "kanon-IWLE-123" je vytvořena
-  A jsem připojen do této session
+Scenario: Session does not exist but worktree does
+  Given worktree "kanon-IWLE-123" exists
+  And tmux session "kanon-IWLE-123" is not running
+  When I run "./iw open IWLE-123"
+  Then a new tmux session "kanon-IWLE-123" is created
+  And I am attached to that session
 ```
 
 **Estimated Effort:** 4-6h
@@ -214,36 +214,36 @@ Medium complexity. Core challenge is detecting current branch to infer issue ID 
 ### Story 5: Fetch and display issue details
 
 ```gherkin
-Funkce: Zobrazení detailů issue
-  Jako vývojář
-  Chci vidět detaily issue z trackeru
-  Aby jsem měl kontext bez otevírání browseru
+Feature: Fetch and display issue details
+  As a developer
+  I want to see issue details from the tracker
+  So that I have context without opening a browser
 
-Scénář: Zobrazení issue z aktuálního branch
-  Pokud jsem v worktree "kanon-IWLE-123"
-  A current branch je "IWLE-123"
-  A Linear issue "IWLE-123" má:
-    | pole        | hodnota              |
+Scenario: Display issue from current branch
+  Given I am in worktree "kanon-IWLE-123"
+  And current branch is "IWLE-123"
+  And Linear issue "IWLE-123" has:
+    | field       | value                |
     | title       | Add user login       |
     | status      | In Progress          |
     | assignee    | Michal Příhoda       |
     | description | Users need to log in |
-  Když spustím "./iw issue"
-  Pak vidím "IWLE-123: Add user login"
-  A vidím "Status: In Progress"
-  A vidím "Assignee: Michal Příhoda"
-  A vidím popis "Users need to log in"
+  When I run "./iw issue"
+  Then I see "IWLE-123: Add user login"
+  And I see "Status: In Progress"
+  And I see "Assignee: Michal Příhoda"
+  And I see the description "Users need to log in"
 
-Scénář: Zobrazení konkrétního issue
-  Pokud jsem v hlavním worktree
-  Když spustím "./iw issue IWLE-456"
-  Pak vidím detaily issue IWLE-456 z Linear
+Scenario: Display specific issue
+  Given I am in the main worktree
+  When I run "./iw issue IWLE-456"
+  Then I see details for issue IWLE-456 from Linear
 
-Scénář: Issue nenalezen
-  Pokud jsem v hlavním worktree
-  Když spustím "./iw issue INVALID-999"
-  Pak vidím chybu "Issue INVALID-999 not found"
-  A příkaz vrátí chybový kód 1
+Scenario: Issue not found
+  Given I am in the main worktree
+  When I run "./iw issue INVALID-999"
+  Then I see the error "Issue INVALID-999 not found"
+  And the command returns exit code 1
 ```
 
 **Estimated Effort:** 8-10h
@@ -264,37 +264,37 @@ Requires implementing adapters for Linear and YouTrack. Each tracker has differe
 ### Story 6: Remove worktree and cleanup resources
 
 ```gherkin
-Funkce: Odstranění worktree a cleanup
-  Jako vývojář
-  Chci odstranit worktree, když už ho nepotřebuji
-  Aby můj filesystem nebyl zahlcený
+Feature: Remove worktree and cleanup resources
+  As a developer
+  I want to remove a worktree when I no longer need it
+  So that my filesystem is not cluttered
 
-Scénář: Odstranění worktree s tmux session
-  Pokud existuje worktree "kanon-IWLE-123"
-  A tmux session "kanon-IWLE-123" je spuštěná
-  A nejsem připojen do této session
-  Když spustím "./iw rm IWLE-123"
-  Pak vidím "Killing tmux session kanon-IWLE-123..."
-  A vidím "Removing worktree kanon-IWLE-123..."
-  A tmux session "kanon-IWLE-123" neexistuje
-  A adresář "../kanon-IWLE-123" neexistuje
-  A git branch "IWLE-123" stále existuje (není smazán)
+Scenario: Remove worktree with tmux session
+  Given worktree "kanon-IWLE-123" exists
+  And tmux session "kanon-IWLE-123" is running
+  And I am not attached to that session
+  When I run "./iw rm IWLE-123"
+  Then I see "Killing tmux session kanon-IWLE-123..."
+  And I see "Removing worktree kanon-IWLE-123..."
+  And tmux session "kanon-IWLE-123" does not exist
+  And the directory "../kanon-IWLE-123" does not exist
+  And git branch "IWLE-123" still exists (not deleted)
 
-Scénář: Ochrana před odstraněním aktivní session
-  Pokud existuje worktree "kanon-IWLE-123"
-  A jsem připojen do tmux session "kanon-IWLE-123"
-  Když spustím "./iw rm IWLE-123"
-  Pak vidím chybu "Cannot remove worktree - you are in its tmux session"
-  A vidím nápovědu "Detach from session first (Ctrl+B, D)"
-  A worktree stále existuje
+Scenario: Protect against removing active session
+  Given worktree "kanon-IWLE-123" exists
+  And I am attached to tmux session "kanon-IWLE-123"
+  When I run "./iw rm IWLE-123"
+  Then I see the error "Cannot remove worktree - you are in its tmux session"
+  And I see the hint "Detach from session first (Ctrl+B, D)"
+  And the worktree still exists
 
-Scénář: Uncommitted changes vyžadují potvrzení
-  Pokud existuje worktree "kanon-IWLE-123"
-  A worktree má necommitnuté změny
-  Když spustím "./iw rm IWLE-123"
-  Pak vidím varování "Worktree has uncommitted changes"
-  A vidím prompt "Continue? (y/N)"
-  A čekám na potvrzení před smazáním
+Scenario: Uncommitted changes require confirmation
+  Given worktree "kanon-IWLE-123" exists
+  And the worktree has uncommitted changes
+  When I run "./iw rm IWLE-123"
+  Then I see the warning "Worktree has uncommitted changes"
+  And I see the prompt "Continue? (y/N)"
+  And the command waits for confirmation before deleting
 ```
 
 **Estimated Effort:** 4-6h
@@ -316,30 +316,30 @@ Simpler than originally estimated - no branch deletion. Must kill tmux session a
 ### Story 7: Bootstrap script runs tool via scala-cli
 
 ```gherkin
-Funkce: Bootstrap script pro spuštění nástroje
-  Jako vývojář
-  Chci spustit "./iw" bez manuální instalace
-  Aby nástroj fungoval okamžitě po přidání do projektu
+Feature: Bootstrap script runs tool via scala-cli
+  As a developer
+  I want to run "./iw" without manual installation
+  So that the tool works immediately after being added to the project
 
-Scénář: První spuštění kompiluje nástroj
-  Pokud scala-cli je nainstalovaný
-  A spustím "./iw --version"
-  Pak vidím "Compiling iw-cli..." (pouze poprvé)
-  A vidím "iw-cli version 0.1.0"
+Scenario: First run compiles the tool
+  Given scala-cli is installed
+  When I run "./iw --version"
+  Then I see "Compiling iw-cli..." (only on first run)
+  And I see "iw-cli version 0.1.0"
 
-Scénář: Následující spuštění použije cache
-  Pokud scala-cli má zkompilovanou verzi v cache
-  Když spustím "./iw --version"
-  Pak nevidím "Compiling..."
-  A vidím "iw-cli version 0.1.0"
-  A spuštění je rychlé
+Scenario: Subsequent runs use cache
+  Given scala-cli has a compiled version in cache
+  When I run "./iw --version"
+  Then I do not see "Compiling..."
+  And I see "iw-cli version 0.1.0"
+  And the execution is fast
 
-Scénář: Chybějící scala-cli
-  Pokud scala-cli není nainstalovaný
-  Když spustím "./iw --version"
-  Pak vidím chybu "scala-cli not found"
-  A vidím nápovědu k instalaci scala-cli
-  A příkaz vrátí chybový kód 1
+Scenario: Missing scala-cli
+  Given scala-cli is not installed
+  When I run "./iw --version"
+  Then I see the error "scala-cli not found"
+  And I see installation instructions for scala-cli
+  And the command returns exit code 1
 ```
 
 **Estimated Effort:** 2-4h
