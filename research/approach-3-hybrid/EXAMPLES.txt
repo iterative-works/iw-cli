@@ -1,0 +1,64 @@
+# Example Outputs from the Prototype
+
+## 1. Help/Usage
+$ ./iw
+iw-cli - Issue Worktree CLI
+
+Usage: iw <command> [args...]
+       iw --list              List all commands
+       iw --describe <cmd>    Describe a command
+
+Run 'iw --list' to see available commands
+
+## 2. List Commands
+$ ./iw --list
+Available commands:
+
+Command: hello
+Purpose: Display a friendly greeting message
+Usage:   iw hello [name]
+
+Command: version
+Purpose: Display version information
+Usage:   iw version [--verbose]
+
+## 3. Describe a Command
+$ ./iw --describe version
+=== Command: version ===
+
+Purpose:
+Display version information
+
+Usage:
+iw version [--verbose]
+
+Arguments:
+--verbose: Show detailed version info including dependencies
+
+Examples:
+iw version
+iw version --verbose
+
+## 4. Execute Commands
+$ ./iw version
+iw-cli version 0.1.0-prototype
+
+$ ./iw version --verbose
+
+=== iw-cli Version Information ===
+Version              0.1.0-prototype
+Scala                3.3.1
+OS                   Linux
+Architecture         amd64
+Java                 21.0.7
+
+$ ./iw hello
+✓ Hello, World!
+
+$ ./iw hello Michal
+✓ Hello, Michal!
+
+## 5. Error Handling
+$ ./iw unknown
+Error: Command 'unknown' not found
+Run 'iw --list' to see available commands

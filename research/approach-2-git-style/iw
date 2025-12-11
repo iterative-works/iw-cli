@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# PURPOSE: Bootstrap script for git-style external commands
+# PURPOSE: Discovers and executes iw-* command directories
+
+set -e
+
+# Get the directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Function to list available commands
+list_commands() {
+    echo "Available commands:"
+    for dir in "$SCRIPT_DIR"/iw-*; do
+        if [ -d "$dir" ]; then
+            cmd_name=$(basename "$dir" | sed 's/^iw-//')
+            echo "  $cmd_name"
+        fi
+    done
+}
+
+# If no arguments, list commands
+if [ $# -eq 0 ]; then
+    list_commands
+    exit 0
+fi
+
+# Get the command name
+CMD_NAME="$1"
+shift
+
+# Look for command directory
+CMD_DIR="$SCRIPT_DIR/iw-$CMD_NAME"
+
+if [ ! -d "$CMD_DIR" ]; then
+    echo "Error: Unknown command '$CMD_NAME'" >&2
+    echo "" >&2
+    list_commands
+    exit 1
+fi
+
+# Run the command using scala-cli
+exec scala-cli run "$CMD_DIR" -- "$@"

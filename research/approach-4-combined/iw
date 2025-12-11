@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# PURPOSE: Bootstrap script for iw-cli command execution
+# PURPOSE: Combines script discovery with structured metadata parsing
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMANDS_DIR="$SCRIPT_DIR/commands"
+
+# Check if scala-cli is available
+if ! command -v scala-cli &> /dev/null; then
+    echo "Error: scala-cli not found. Please install scala-cli first." >&2
+    echo "Visit: https://scala-cli.virtuslab.org/install" >&2
+    exit 1
+fi
+
+# Parse command headers from a Scala file
+parse_command_header() {
+    local file="$1"
+    local field="$2"
+
+    case "$field" in
+        PURPOSE)
+            grep "^// PURPOSE:" "$file" | head -1 | sed 's|^// PURPOSE: *||'
+            ;;
+        USAGE)
+            grep "^// USAGE:" "$file" | head -1 | sed 's|^// USAGE: *||'
+            ;;
+        ARGS)
+            grep "^// ARGS:" "$file" -A 100 | tail -n +2 | grep "^//   " | sed 's|^//   *||' | grep -v "^EXAMPLE:" || true
+            ;;
+        EXAMPLES)
+            grep "^// EXAMPLE:" "$file" | sed 's|^// EXAMPLE: *||'
+            ;;
+    esac
+}
+
+# List all available commands with metadata
+list_commands() {
+    echo "Available commands:"
+    echo ""
+
+    for cmd_file in "$COMMANDS_DIR"/*.scala; do
+        if [ -f "$cmd_file" ]; then
+            local cmd_name=$(basename "$cmd_file" .scala)
+            local purpose=$(parse_command_header "$cmd_file" "PURPOSE")
+            local usage=$(parse_command_header "$cmd_file" "USAGE")
+
+            echo "Command: $cmd_name"
+            echo "Purpose: $purpose"
+            echo "Usage:   $usage"
+            echo ""
+        fi
+    done
+}
+
+# Describe a specific command in detail
+describe_command() {
+    local cmd_name="$1"
+    local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
+
+    if [ ! -f "$cmd_file" ]; then
+        echo "Error: Command '$cmd_name' not found" >&2
+        exit 1
+    fi
+
+    echo "=== Command: $cmd_name ==="
+    echo ""
+
+    echo "Purpose:"
+    parse_command_header "$cmd_file" "PURPOSE"
+    echo ""
+
+    echo "Usage:"
+    parse_command_header "$cmd_file" "USAGE"
+    echo ""
+
+    local args=$(parse_command_header "$cmd_file" "ARGS")
+    if [ -n "$args" ]; then
+        echo "Arguments:"
+        echo "$args"
+        echo ""
+    fi
+
+    local examples=$(parse_command_header "$cmd_file" "EXAMPLES")
+    if [ -n "$examples" ]; then
+        echo "Examples:"
+        echo "$examples"
+        echo ""
+    fi
+}
+
+# Execute a command using scala-cli
+execute_command() {
+    local cmd_name="$1"
+    shift
+    local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
+
+    if [ ! -f "$cmd_file" ]; then
+        echo "Error: Command '$cmd_name' not found" >&2
+        echo "Run 'iw --list' to see available commands" >&2
+        exit 1
+    fi
+
+    # Execute with scala-cli - command file declares its own dependencies via //> using file
+    exec scala-cli run "$cmd_file" -- "$@"
+}
+
+# Main entry point
+main() {
+    if [ $# -eq 0 ]; then
+        echo "iw-cli - Issue Worktree CLI"
+        echo ""
+        echo "Usage: iw <command> [args...]"
+        echo "       iw --list              List all commands"
+        echo "       iw --describe <cmd>    Describe a command"
+        echo ""
+        echo "Run 'iw --list' to see available commands"
+        exit 0
+    fi
+
+    case "$1" in
+        --list)
+            list_commands
+            ;;
+        --describe)
+            if [ $# -lt 2 ]; then
+                echo "Error: --describe requires a command name" >&2
+                exit 1
+            fi
+            describe_command "$2"
+            ;;
+        --help|-h)
+            main
+            ;;
+        *)
+            execute_command "$@"
+            ;;
+    esac
+}
+
+main "$@"
