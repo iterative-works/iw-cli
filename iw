@@ -57,6 +57,14 @@ list_commands() {
 # Describe a specific command in detail
 describe_command() {
     local cmd_name="$1"
+
+    # Validate command name - only alphanumeric, dash, underscore
+    if [[ ! "$cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid command name '$cmd_name'" >&2
+        echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+        exit 1
+    fi
+
     local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
 
     if [ ! -f "$cmd_file" ]; then
@@ -94,6 +102,14 @@ describe_command() {
 execute_command() {
     local cmd_name="$1"
     shift
+
+    # Validate command name - only alphanumeric, dash, underscore
+    if [[ ! "$cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid command name '$cmd_name'" >&2
+        echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+        exit 1
+    fi
+
     local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
 
     if [ ! -f "$cmd_file" ]; then

@@ -25,4 +25,4 @@ object VersionCommand:
       Output.keyValue("Architecture", System.getProperty("os.arch"))
       Output.keyValue("Java", System.getProperty("java.version"))
     else
-      println(s"iw-cli version $version")
+      Output.info(s"iw-cli version $version")
