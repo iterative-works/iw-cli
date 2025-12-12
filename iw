@@ -42,6 +42,12 @@ list_commands() {
 
     for cmd_file in "$COMMANDS_DIR"/*.scala; do
         if [ -f "$cmd_file" ]; then
+            local filename=$(basename "$cmd_file")
+            # Skip hook files (*.hook-*.scala)
+            if [[ "$filename" =~ \.hook- ]]; then
+                continue
+            fi
+
             local cmd_name=$(basename "$cmd_file" .scala)
             local purpose=$(parse_command_header "$cmd_file" "PURPOSE")
             local usage=$(parse_command_header "$cmd_file" "USAGE")
@@ -118,8 +124,14 @@ execute_command() {
         exit 1
     fi
 
-    # Execute with scala-cli - command file declares its own dependencies via //> using file
-    exec scala-cli run "$cmd_file" -- "$@"
+    # Find hook files for this command (e.g., *.hook-doctor.scala for 'doctor' command)
+    # shellcheck disable=SC2086
+    local hook_files
+    hook_files=$(find "$COMMANDS_DIR" -maxdepth 1 -name "*.hook-${cmd_name}.scala" 2>/dev/null || true)
+
+    # Execute with scala-cli, including any discovered hook files
+    # shellcheck disable=SC2086
+    exec scala-cli run "$cmd_file" $hook_files -- "$@"
 }
 
 # Main entry point
