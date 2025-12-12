@@ -64,7 +64,7 @@ graph TB
 
     subgraph "Domain Layer"
         GitRemote[GitRemote<br/>URL Value Object]
-        TrackerType[IssueTrackerType<br/>Linear | YouTrack]
+        TrackerType[IssueTrackerType<br/>Linear / YouTrack]
         Config[ProjectConfiguration<br/>Config Value Object]
         Detector[TrackerDetector<br/>Detection Logic]
         Serializer[ConfigSerializer<br/>HOCON Conversion]
