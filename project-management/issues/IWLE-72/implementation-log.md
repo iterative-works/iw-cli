@@ -59,3 +59,66 @@ A  .iw/commands/issue.scala
 ```
 
 ---
+
+## Phase 2: Initialize project with issue tracker configuration (2025-12-11)
+
+**What was built:**
+- Domain: `.iw/core/Config.scala` - GitRemote value object, IssueTrackerType enum, ProjectConfiguration case class, TrackerDetector, ConfigSerializer
+- Infrastructure: `.iw/core/Git.scala` - GitAdapter for reading git remote URLs and checking repo status
+- Infrastructure: `.iw/core/ConfigRepository.scala` - ConfigFileRepository for HOCON file I/O
+- Infrastructure: `.iw/core/Prompt.scala` - Interactive console prompts (ask, confirm)
+- Command: `.iw/commands/init.scala` - Full interactive init workflow with tracker detection
+
+**Decisions made:**
+- HOCON format for configuration (standard Scala ecosystem, supports comments)
+- No secrets in config file (API tokens in environment variables)
+- Tracker detection based on git remote host: github.com → Linear, gitlab.e-bs.cz → YouTrack
+- User can override suggested tracker if detection is wrong or host unknown
+- Project name auto-detected from current directory name
+- Fixed Output.scala to use System.out.println explicitly (test compatibility)
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: Pure domain logic in Config.scala, I/O at edges
+- Value Objects: GitRemote, ProjectConfiguration encapsulate domain concepts
+- Repository Pattern: ConfigFileRepository abstracts file persistence
+- Adapter Pattern: GitAdapter wraps git CLI commands
+
+**Testing:**
+- Unit tests: 19 tests (ConfigTest: 11, ConfigFileTest: 8)
+- Integration tests: 10 tests (ConfigRepositoryTest: 5, GitTest: 5)
+- E2E scenarios: 4 scenarios verified manually
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20251211.md
+- Major findings: 0 critical, 2 warnings (scala-cli directive warning, Prompt untested), 7 suggestions
+
+**Webapp verification:**
+- Status: Skipped (CLI tool, not web feature)
+
+**For next phases:**
+- Available utilities:
+  - `GitRemote(url)` - Parse git remote URLs and extract host
+  - `TrackerDetector.suggestTracker(remote)` - Detect tracker from git host
+  - `ConfigSerializer.toHocon/fromHocon` - HOCON serialization
+  - `ConfigFileRepository.read/write` - Config persistence
+  - `GitAdapter.getRemoteUrl/isGitRepository` - Git operations
+  - `Prompt.ask/confirm` - Interactive user input
+- Extension points: Add new tracker types to IssueTrackerType enum and TrackerDetector
+- Notes: Configuration file location is `.iw/config.conf`, auto-created by init command
+
+**Files changed:**
+```
+M  .iw/commands/init.scala
+A  .iw/core/Config.scala
+A  .iw/core/ConfigRepository.scala
+A  .iw/core/Git.scala
+A  .iw/core/Prompt.scala
+A  .iw/core/test/ConfigFileTest.scala
+A  .iw/core/test/ConfigRepositoryTest.scala
+A  .iw/core/test/ConfigTest.scala
+A  .iw/core/test/GitTest.scala
+M  .iw/core/Output.scala (fixed System.out.println for test compatibility)
+```
+
+---
