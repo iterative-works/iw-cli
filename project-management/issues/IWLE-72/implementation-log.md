@@ -122,3 +122,66 @@ M  .iw/core/Output.scala (fixed System.out.println for test compatibility)
 ```
 
 ---
+
+## Phase 3: Validate environment and configuration (2025-12-12)
+
+**What was built:**
+- Domain: `.iw/core/DoctorChecks.scala` - CheckResult enum (Success, Warning, Error, Skip) and DoctorChecksRegistry for extensible check registration
+- Infrastructure: `.iw/core/Process.scala` - ProcessAdapter with commandExists for checking CLI tools in PATH
+- Infrastructure: `.iw/core/LinearClient.scala` - Linear API client with token validation via GraphQL
+- Command: `.iw/commands/doctor.scala` - Full doctor command with base checks (git repo, config) and formatted output
+- Hook: `.iw/commands/issue.hook-doctor.scala` - Linear API token validation check
+- Hook: `.iw/commands/start.hook-doctor.scala` - tmux installation check
+- Bootstrap: `iw` - Updated with hook file discovery pattern (`*.hook-{command}.scala`)
+
+**Decisions made:**
+- Hook-based extensibility: Commands register their own checks via colocated `*.hook-doctor.scala` files
+- Bootstrap uses `find` for safe hook discovery (handles empty results gracefully)
+- Class.forName used to force hook object initialization (ensures registration code runs)
+- Pure check functions (`ProjectConfiguration => CheckResult`) enable isolated testing
+- Shell injection protection added via regex validation in ProcessAdapter (security fix during review)
+
+**Patterns applied:**
+- Plugin/Hook Pattern: Commands register checks dynamically without modifying doctor command
+- Registry Pattern: DoctorChecksRegistry collects checks for centralized execution
+- Adapter Pattern: ProcessAdapter and LinearClient wrap external system interactions
+- Functional Core: Pure check functions with side effects at edges
+
+**Testing:**
+- Unit tests: 15 tests (DoctorChecksTest: 7, ProcessTest: 9 including security tests)
+- Integration tests: 3 tests (LinearClientTest: token validation)
+- E2E tests: 7 BATS scenarios (doctor.bats)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20251212.md
+- Major findings: 1 critical (shell injection) - FIXED, 16 warnings (accepted, non-blocking), 13 suggestions (deferred)
+
+**Webapp verification:**
+- Status: Skipped (CLI tool, not web feature)
+
+**For next phases:**
+- Available utilities:
+  - `DoctorChecks.register(name)(check)` - Register new environment checks
+  - `ProcessAdapter.commandExists(cmd)` - Check if CLI tool is available
+  - `LinearClient.validateToken(token)` - Validate Linear API tokens
+  - `CheckResult` enum for structured check results
+- Extension points: Add new checks via `*.hook-doctor.scala` files in `.iw/commands/`
+- Notes: Hook pattern enables future hook types (e.g., `*.hook-worktree-init.scala`)
+
+**Files changed:**
+```
+M  iw (hook discovery pattern)
+M  .iw/commands/doctor.scala (full implementation)
+A  .iw/commands/issue.hook-doctor.scala (Linear token check)
+A  .iw/commands/start.hook-doctor.scala (tmux check)
+A  .iw/core/DoctorChecks.scala (registry and CheckResult)
+A  .iw/core/LinearClient.scala (API client)
+A  .iw/core/Process.scala (command checking)
+A  .iw/core/test/DoctorChecksTest.scala
+A  .iw/core/test/LinearClientTest.scala
+A  .iw/core/test/ProcessTest.scala
+A  .iw/test/doctor.bats (E2E tests)
+```
+
+---

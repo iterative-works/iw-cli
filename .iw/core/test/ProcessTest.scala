@@ -30,3 +30,30 @@ class ProcessTest extends FunSuite:
     // Should not cause shell injection or errors
     assertEquals(ProcessAdapter.commandExists("command-with-dash"), false)
     assertEquals(ProcessAdapter.commandExists("command_with_underscore"), false)
+
+  test("commandExists prevents shell injection with metacharacters"):
+    // All of these should return false due to input validation
+    assertEquals(ProcessAdapter.commandExists("command; rm -rf /"), false)
+    assertEquals(ProcessAdapter.commandExists("command && malicious"), false)
+    assertEquals(ProcessAdapter.commandExists("command | cat /etc/passwd"), false)
+    assertEquals(ProcessAdapter.commandExists("command`whoami`"), false)
+    assertEquals(ProcessAdapter.commandExists("command$(whoami)"), false)
+    assertEquals(ProcessAdapter.commandExists("command > /tmp/output"), false)
+    assertEquals(ProcessAdapter.commandExists("command < /etc/hosts"), false)
+    assertEquals(ProcessAdapter.commandExists("command & background"), false)
+
+  test("commandExists returns false for empty string"):
+    assertEquals(ProcessAdapter.commandExists(""), false)
+
+  test("commandExists returns false for commands with spaces"):
+    assertEquals(ProcessAdapter.commandExists("git status"), false)
+    assertEquals(ProcessAdapter.commandExists("my command"), false)
+
+  test("commandExists returns false for commands with quotes"):
+    assertEquals(ProcessAdapter.commandExists("'malicious'"), false)
+    assertEquals(ProcessAdapter.commandExists("\"malicious\""), false)
+
+  test("commandExists returns false for commands with path separators"):
+    assertEquals(ProcessAdapter.commandExists("/bin/sh"), false)
+    assertEquals(ProcessAdapter.commandExists("../bin/command"), false)
+    assertEquals(ProcessAdapter.commandExists("./local-command"), false)

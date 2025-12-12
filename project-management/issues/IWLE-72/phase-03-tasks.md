@@ -2,7 +2,7 @@
 
 **Issue:** IWLE-72
 **Phase:** 3 of 7
-**Status:** Ready for Implementation
+**Status:** Complete
 
 ---
 
@@ -29,7 +29,7 @@
 
 ## Bootstrap Script Update
 
-- [ ] [test] Write BATS tests for hook file discovery pattern
+- [x] [test] Write BATS tests for hook file discovery pattern
 - [x] [impl] Update `iw` bootstrap script with hook discovery
 
 ## Doctor Command
