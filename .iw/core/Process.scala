@@ -1,6 +1,8 @@
 // PURPOSE: Adapter for executing shell commands and process operations
 // PURPOSE: Provides commandExists to check if a command is available in PATH
 
+//> using scala 3.3.1
+
 package iw.core
 
 import scala.sys.process.*

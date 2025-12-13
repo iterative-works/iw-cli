@@ -14,85 +14,84 @@
 import iw.core.*
 import java.nio.file.{Path, Paths}
 
-object DoctorCommand:
-  // Register base doctor checks
-  private def registerBaseChecks(): Unit =
-    DoctorChecks.register("Git repository") { _ =>
-      val currentDir = Paths.get(System.getProperty("user.dir"))
-      if GitAdapter.isGitRepository(currentDir) then
-        CheckResult.Success("Found")
-      else
-        CheckResult.Error("Not found", Some("Initialize git repository: git init"))
+val ConfigPath = Paths.get(".iw/config.conf")
+
+// Register base doctor checks at file load time (val forces execution)
+val _gitCheck = DoctorChecks.register("Git repository") { _ =>
+  val currentDir = Paths.get(System.getProperty("user.dir"))
+  if GitAdapter.isGitRepository(currentDir) then
+    CheckResult.Success("Found")
+  else
+    CheckResult.Error("Not found", Some("Initialize git repository: git init"))
+}
+
+val _configCheck = DoctorChecks.register("Configuration") { _ =>
+  ConfigFileRepository.read(ConfigPath) match
+    case Some(_) =>
+      CheckResult.Success(".iw/config.conf valid")
+    case None =>
+      CheckResult.Error("Missing or invalid", Some("Run: iw init"))
+}
+
+// Initialize hook objects discovered by bootstrap script
+// IW_HOOK_CLASSES env var contains comma-separated list of hook class names
+private def initializeHooks(): Unit =
+  val hookClasses = sys.env.getOrElse("IW_HOOK_CLASSES", "")
+  if hookClasses.nonEmpty then
+    hookClasses.split(",").foreach { className =>
+      try Class.forName(s"$className$$") // Scala object class names end with $
+      catch case _: ClassNotFoundException => () // Hook not present, that's OK
     }
 
-    DoctorChecks.register("Configuration") { _ =>
-      val configPath = Paths.get(".iw/config.conf")
-      ConfigFileRepository.read(configPath) match
-        case Some(_) =>
-          CheckResult.Success(".iw/config.conf valid")
-        case None =>
-          CheckResult.Error("Missing or invalid", Some("Run: iw init"))
-    }
+@main def doctor(args: String*): Unit =
+  // Initialize discovered hooks (their registration runs when objects load)
+  initializeHooks()
 
-  def main(args: Array[String]): Unit =
-    // Register base checks first
-    registerBaseChecks()
+  // Load configuration (use default if not available for hook checks)
+  val config = ConfigFileRepository.read(ConfigPath).getOrElse(
+    ProjectConfiguration(IssueTrackerType.Linear, "UNKNOWN", "unknown")
+  )
 
-    // Force initialization of hook files (if they exist in classpath)
-    // This ensures their registration code runs
-    try {
-      Class.forName("IssueHookDoctor$")
-      Class.forName("StartHookDoctor$")
-    } catch {
-      case _: ClassNotFoundException => // Hooks not present, that's OK
-    }
+  System.out.println("Environment Check")
+  System.out.println()
 
-    // Load configuration (use default if not available)
-    val configPath = Paths.get(".iw/config.conf")
-    val config = ConfigFileRepository.read(configPath).getOrElse(
-      ProjectConfiguration(IssueTrackerType.Linear, "UNKNOWN", "unknown")
-    )
+  // Run all registered checks (base + hooks registered via top-level code)
+  val results = DoctorChecks.runAll(config)
 
-    System.out.println("Environment Check")
-    System.out.println()
+  var errorCount = 0
+  var warningCount = 0
 
-    // Run all registered checks (base + hooks)
-    val results = DoctorChecks.runAll(config)
+  // Display results
+  results.foreach { case (name, result) =>
+    result match
+      case CheckResult.Success(message) =>
+        System.out.println(f"  ✓ $name%-20s $message")
 
-    var errorCount = 0
-    var warningCount = 0
+      case CheckResult.Warning(message, hint) =>
+        warningCount += 1
+        System.out.println(f"  ⚠ $name%-20s $message")
+        hint.foreach(h => System.out.println(s"    → $h"))
 
-    // Display results
-    results.foreach { case (name, result) =>
-      result match
-        case CheckResult.Success(message) =>
-          System.out.println(f"  ✓ $name%-20s $message")
+      case CheckResult.Error(message, hint) =>
+        errorCount += 1
+        System.out.println(f"  ✗ $name%-20s $message")
+        hint.foreach(h => System.out.println(s"    → $h"))
 
-        case CheckResult.Warning(message, hint) =>
-          warningCount += 1
-          System.out.println(f"  ⚠ $name%-20s $message")
-          hint.foreach(h => System.out.println(s"    → $h"))
+      case CheckResult.Skip(reason) =>
+        System.out.println(f"  - $name%-20s Skipped ($reason)")
+  }
 
-        case CheckResult.Error(message, hint) =>
-          errorCount += 1
-          System.out.println(f"  ✗ $name%-20s $message")
-          hint.foreach(h => System.out.println(s"    → $h"))
+  System.out.println()
 
-        case CheckResult.Skip(reason) =>
-          System.out.println(f"  - $name%-20s Skipped ($reason)")
-    }
-
-    System.out.println()
-
-    // Summary
-    if errorCount == 0 && warningCount == 0 then
-      System.out.println("All checks passed")
-      sys.exit(0)
-    else if errorCount > 0 then
-      val plural = if errorCount == 1 then "check" else "checks"
-      System.out.println(s"$errorCount $plural failed")
-      sys.exit(1)
-    else
-      val plural = if warningCount == 1 then "warning" else "warnings"
-      System.out.println(s"$warningCount $plural")
-      sys.exit(0)
+  // Summary
+  if errorCount == 0 && warningCount == 0 then
+    System.out.println("All checks passed")
+    sys.exit(0)
+  else if errorCount > 0 then
+    val plural = if errorCount == 1 then "check" else "checks"
+    System.out.println(s"$errorCount $plural failed")
+    sys.exit(1)
+  else
+    val plural = if warningCount == 1 then "warning" else "warnings"
+    System.out.println(s"$warningCount $plural")
+    sys.exit(0)

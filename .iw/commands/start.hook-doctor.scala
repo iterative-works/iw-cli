@@ -15,8 +15,5 @@ object StartHookDoctor:
     else
       CheckResult.Error("Not found", Some("Install: sudo apt install tmux (Debian/Ubuntu) or brew install tmux (macOS)"))
 
-  // Registration happens when object is initialized
+  // Registration executes when object is initialized
   DoctorChecks.register("tmux")(checkTmux)
-
-// Force object initialization
-val _ = StartHookDoctor

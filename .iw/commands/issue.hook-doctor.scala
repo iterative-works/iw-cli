@@ -23,8 +23,5 @@ object IssueHookDoctor:
         else
           CheckResult.Error("Authentication failed", Some("Check token at linear.app/settings/api"))
 
-  // Registration happens when object is initialized
+  // Registration executes when object is initialized
   DoctorChecks.register("LINEAR_API_TOKEN")(checkLinearToken)
-
-// Force object initialization
-val _ = IssueHookDoctor

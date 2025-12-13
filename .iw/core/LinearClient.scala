@@ -1,6 +1,7 @@
 // PURPOSE: Linear API client for token validation and issue operations
 // PURPOSE: Provides validateToken to check if LINEAR_API_TOKEN is valid
 
+//> using scala 3.3.1
 //> using dep com.softwaremill.sttp.client4::core:4.0.0-M18
 
 package iw.core
