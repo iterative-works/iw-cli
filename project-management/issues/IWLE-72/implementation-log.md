@@ -185,3 +185,71 @@ A  .iw/test/doctor.bats (E2E tests)
 ```
 
 ---
+
+## Phase 4: Create worktree for issue with tmux session (2025-12-13)
+
+**What was built:**
+- Domain: `.iw/core/IssueId.scala` - Issue ID value object with validation (PROJECT-123 format, case normalization)
+- Domain: `.iw/core/WorktreePath.scala` - Worktree path calculation (sibling directory naming, session naming)
+- Infrastructure: `.iw/core/Tmux.scala` - TmuxAdapter for session management (create, attach, exists, kill)
+- Infrastructure: `.iw/core/GitWorktree.scala` - GitWorktreeAdapter for worktree operations (create, exists, branch checks)
+- Infrastructure: `.iw/core/Process.scala` - Extended with ProcessResult case class and run() method
+- Command: `.iw/commands/start.scala` - Full start command implementation orchestrating worktree creation and tmux session
+
+**Decisions made:**
+- Worktrees created as sibling directories named `{project}-{ISSUE-ID}` (e.g., `kanon-IWLE-123`)
+- Branch name matches issue ID exactly (e.g., `IWLE-123`)
+- Tmux session name matches directory name for consistency
+- Issue IDs normalized to uppercase (e.g., `iwle-123` → `IWLE-123`)
+- Existing branch reuse: If branch exists, use `git worktree add` without `-b` flag
+- Cleanup on failure: If tmux session creation fails after worktree creation, remove the worktree
+- Collision detection: Check for existing directory, worktree, and tmux session before creating
+
+**Patterns applied:**
+- Value Objects: IssueId and WorktreePath encapsulate domain validation and path logic
+- Adapter Pattern: TmuxAdapter and GitWorktreeAdapter wrap CLI interactions
+- Functional Core / Imperative Shell: Pure domain objects, effects only in adapters
+- Either for error handling: Operations return `Either[String, Unit]` for explicit error propagation
+
+**Testing:**
+- Unit tests: 19 tests (IssueIdTest: 11, WorktreePathTest: 8)
+- Integration tests: 16 tests (TmuxAdapterTest: 8, GitWorktreeAdapterTest: 8)
+- E2E tests: 14 tests (start.bats)
+- Total: 49 tests
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-04-20251213.md
+- Major findings: 1 critical (C1: integration tests bypassed adapters) - FIXED
+- Warnings: 7 (naming consistency, documentation, test logic) - noted for future
+- Suggestions: 8 (opaque types, typed errors, property tests) - deferred
+
+**Webapp verification:**
+- Status: Skipped (CLI tool, not web feature)
+
+**For next phases:**
+- Available utilities:
+  - `IssueId.parse(raw)` - Validate and normalize issue IDs
+  - `WorktreePath(project, issueId)` - Calculate worktree paths and session names
+  - `TmuxAdapter.sessionExists/createSession/attachSession/killSession` - Tmux operations
+  - `GitWorktreeAdapter.worktreeExists/branchExists/createWorktree/createWorktreeForBranch` - Git worktree operations
+  - `ProcessAdapter.run(command)` - Execute shell commands with result capture
+- Extension points: Add new adapters following the same pattern (return Either, use ProcessAdapter)
+- Notes: The open command (Phase 5) will reuse these adapters for attaching to existing worktrees
+
+**Files changed:**
+```
+A  .iw/core/IssueId.scala
+A  .iw/core/WorktreePath.scala
+A  .iw/core/Tmux.scala
+A  .iw/core/GitWorktree.scala
+M  .iw/core/Process.scala (added ProcessResult and run method)
+M  .iw/commands/start.scala (full implementation)
+A  .iw/core/test/IssueIdTest.scala
+A  .iw/core/test/WorktreePathTest.scala
+A  .iw/core/test/TmuxAdapterTest.scala
+A  .iw/core/test/GitWorktreeAdapterTest.scala
+A  .iw/test/start.bats
+```
+
+---

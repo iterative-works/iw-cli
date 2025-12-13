@@ -7,6 +7,8 @@ package iw.core
 
 import scala.sys.process.*
 
+case class ProcessResult(exitCode: Int, stdout: String, stderr: String)
+
 object ProcessAdapter:
   // Safe pattern: only alphanumeric, dash, underscore
   private val SafeCommandPattern = "^[a-zA-Z0-9_-]+$".r
@@ -23,3 +25,20 @@ object ProcessAdapter:
       exitCode == 0
     catch
       case _: Exception => false
+
+  def run(command: Seq[String]): ProcessResult =
+    val stdoutBuilder = new StringBuilder
+    val stderrBuilder = new StringBuilder
+
+    val logger = ProcessLogger(
+      line => stdoutBuilder.append(line).append("\n"),
+      line => stderrBuilder.append(line).append("\n")
+    )
+
+    val exitCode = command.!(logger)
+
+    ProcessResult(
+      exitCode = exitCode,
+      stdout = stdoutBuilder.toString.trim,
+      stderr = stderrBuilder.toString.trim
+    )
