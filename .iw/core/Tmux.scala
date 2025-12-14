@@ -32,3 +32,15 @@ object TmuxAdapter:
     val result = ProcessAdapter.run(Seq("tmux", "kill-session", "-t", name))
     if result.exitCode == 0 then Right(())
     else Left(s"Failed to kill session: ${result.stderr}")
+
+  /** Check if currently running inside a tmux session */
+  def isInsideTmux: Boolean =
+    sys.env.contains("TMUX")
+
+  /** Get current tmux session name if inside tmux */
+  def currentSessionName: Option[String] =
+    if !isInsideTmux then None
+    else
+      val result = ProcessAdapter.run(Seq("tmux", "display-message", "-p", "#S"))
+      if result.exitCode == 0 then Some(result.stdout.trim)
+      else None

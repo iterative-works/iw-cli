@@ -2,6 +2,7 @@
 // PURPOSE: Provides utilities to check git status and read remote URLs
 
 //> using file "Config.scala"
+//> using file "Process.scala"
 
 package iw.core
 
@@ -21,3 +22,10 @@ object GitAdapter:
     Try {
       Process(Seq("git", "rev-parse", "--git-dir"), dir.toFile).! == 0
     }.getOrElse(false)
+
+  def getCurrentBranch(dir: Path): Either[String, String] =
+    val result = ProcessAdapter.run(Seq("git", "-C", dir.toString, "rev-parse", "--abbrev-ref", "HEAD"))
+    if result.exitCode == 0 then
+      Right(result.stdout.trim)
+    else
+      Left(s"Failed to get current branch: ${result.stderr}")
