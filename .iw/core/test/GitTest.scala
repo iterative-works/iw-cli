@@ -5,6 +5,7 @@
 //> using dep org.scalameta::munit::1.0.0
 //> using file "../Git.scala"
 //> using file "../Config.scala"
+//> using file "../Process.scala"
 
 import iw.core.*
 import java.nio.file.Files
@@ -68,5 +69,58 @@ class GitTest extends munit.FunSuite:
 
       // Now it is a git repo
       assertEquals(GitAdapter.isGitRepository(dir), true)
+    finally
+      Files.walk(dir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
+
+  gitRepo.test("GitAdapter gets current branch name"):
+    repo =>
+      // Git init creates a default branch (usually 'main' or 'master')
+      // Let's create a commit to establish the branch
+      Files.writeString(repo.resolve("test.txt"), "test")
+      Process(Seq("git", "add", "test.txt"), repo.toFile).!
+      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toFile).!
+
+      val result = GitAdapter.getCurrentBranch(repo)
+      assert(result.isRight)
+      // Branch name should be either 'main' or 'master'
+      assert(result.exists(name => name == "main" || name == "master"))
+
+  gitRepo.test("GitAdapter gets current branch name on custom branch"):
+    repo =>
+      // Create initial commit
+      Files.writeString(repo.resolve("test.txt"), "test")
+      Process(Seq("git", "add", "test.txt"), repo.toFile).!
+      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toFile).!
+
+      // Create and checkout a new branch
+      Process(Seq("git", "checkout", "-b", "IWLE-123"), repo.toFile).!
+
+      val result = GitAdapter.getCurrentBranch(repo)
+      assert(result.isRight)
+      assertEquals(result, Right("IWLE-123"))
+
+  gitRepo.test("GitAdapter handles detached HEAD"):
+    repo =>
+      // Create initial commit
+      Files.writeString(repo.resolve("test.txt"), "test")
+      Process(Seq("git", "add", "test.txt"), repo.toFile).!
+      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toFile).!
+
+      // Get the commit hash
+      val hash = Process(Seq("git", "rev-parse", "HEAD"), repo.toFile).!!.trim
+
+      // Checkout the commit directly (detached HEAD)
+      Process(Seq("git", "checkout", hash), repo.toFile).!
+
+      val result = GitAdapter.getCurrentBranch(repo)
+      assert(result.isRight)
+      assertEquals(result, Right("HEAD"))
+
+  test("GitAdapter returns error for non-git directory when getting branch"):
+    val dir = Files.createTempDirectory("iw-non-git-branch-test")
+    try
+      val result = GitAdapter.getCurrentBranch(dir)
+      assert(result.isLeft)
+      assert(result.left.exists(_.contains("Failed to get current branch")))
     finally
       Files.walk(dir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
