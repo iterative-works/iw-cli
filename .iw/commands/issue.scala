@@ -9,7 +9,6 @@
 
 import iw.core.Output
 
-object IssueCommand:
-  def main(args: Array[String]): Unit =
-    Output.info("Not implemented yet")
-    Output.info("This command will fetch and display issue information")
+@main def issue(args: String*): Unit =
+  Output.info("Not implemented yet")
+  Output.info("This command will fetch and display issue information")
