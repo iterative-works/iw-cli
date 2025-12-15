@@ -60,18 +60,18 @@ This follows the Mill bootstrap model where a thin script downloads and caches t
 ```mermaid
 graph TB
     subgraph "User Project"
-        IW[iw-bootstrap<br/>thin script]
-        CONFIG[.iw/config.conf<br/>version = "0.1.0"]
+        IW["iw-bootstrap (thin script)"]
+        CONFIG[".iw/config.conf"]
     end
 
     subgraph "~/.local/share/iw/versions/"
-        V1[0.1.0/]
-        V2[0.2.0/]
-        LATEST[latest/]
+        V1["0.1.0/"]
+        V2["0.2.0/"]
+        LATEST["latest/"]
     end
 
     subgraph "GitHub Releases"
-        GH[iw-cli-X.Y.Z.tar.gz]
+        GH["iw-cli-X.Y.Z.tar.gz"]
     end
 
     IW -->|reads version| CONFIG
