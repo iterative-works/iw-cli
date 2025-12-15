@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # PURPOSE: Thin bootstrap script for iw-cli
 # PURPOSE: Downloads and caches versioned releases, delegates to iw-run
+#
+# Environment variables:
+#   IW_HOME - Use local development directory instead of cached version
+#             Example: IW_HOME=/path/to/iw-cli ./iw --list
 
 set -euo pipefail
 
@@ -52,6 +56,16 @@ download_release() {
 
 # Main execution
 main() {
+    # IW_HOME override for local development
+    if [ -n "${IW_HOME:-}" ]; then
+        local iw_run="$IW_HOME/iw-run"
+        if [ ! -f "$iw_run" ]; then
+            echo "Error: IW_HOME set but $iw_run not found" >&2
+            exit 1
+        fi
+        IW_PROJECT_DIR="$SCRIPT_DIR" exec "$iw_run" "$@"
+    fi
+
     local version=$(read_version)
     local version_dir="$CACHE_DIR/$version"
     local iw_run="$version_dir/iw-run"

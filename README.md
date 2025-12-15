@@ -87,6 +87,21 @@ cd iw-cli
 
 The local `iw` script runs commands from `.iw/commands/` without downloading anything - ideal for development.
 
+### Testing in Other Projects
+
+To test your local iw-cli changes in other projects, set `IW_HOME`:
+
+```bash
+# In any project using iw-bootstrap
+IW_HOME=/path/to/iw-cli ./iw --list
+
+# Or export for the session
+export IW_HOME=/path/to/iw-cli
+./iw start ISSUE-123
+```
+
+This bypasses version download and uses your local `iw-run` directly.
+
 ### Running Tests
 
 ```bash
