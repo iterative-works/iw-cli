@@ -73,6 +73,59 @@ Worktrees are created as sibling directories:
 ├── myproject-IW-456/       # worktree for issue IW-456
 ```
 
+## Development
+
+### Setup
+
+Clone the repository and use the local `iw` script directly:
+
+```bash
+git clone https://github.com/iterative-works/iw-cli.git
+cd iw-cli
+./iw --list
+```
+
+The local `iw` script runs commands from `.iw/commands/` without downloading anything - ideal for development.
+
+### Running Tests
+
+```bash
+# Unit tests (Scala)
+scala-cli test .iw/core/test/*.scala .iw/core/*.scala
+
+# Integration tests (Bats)
+bats .iw/test/
+
+# All tests
+scala-cli test .iw/core/test/*.scala .iw/core/*.scala && bats .iw/test/
+```
+
+### Project Structure
+
+```
+iw-cli/
+├── iw                    # Development launcher (runs locally)
+├── iw-bootstrap          # Distribution bootstrap (downloads releases)
+├── iw-run                # Distribution launcher (in release tarball)
+├── .iw/
+│   ├── commands/         # Command implementations (*.scala)
+│   ├── core/             # Shared library code
+│   │   ├── project.scala # Build configuration (deps, Scala version)
+│   │   └── test/         # Unit tests
+│   ├── scripts/          # Build/release scripts
+│   └── test/             # Integration tests (*.bats)
+└── RELEASE.md            # Release process documentation
+```
+
+### Creating a Release
+
+See [RELEASE.md](RELEASE.md) for the full release process. Quick version:
+
+```bash
+.iw/scripts/package-release.sh 0.1.0
+# Creates release/iw-cli-0.1.0.tar.gz
+```
+
 ## License
 
 MIT
