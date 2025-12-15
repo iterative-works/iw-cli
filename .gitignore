@@ -10,6 +10,9 @@ target/
 # iw-cli local state
 .iw/cache/
 
+# Release artifacts
+release/
+
 # IDE
 .idea/
 .vscode/

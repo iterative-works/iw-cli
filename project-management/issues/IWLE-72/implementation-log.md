@@ -451,3 +451,59 @@ M  iw (updated to include core/*.scala in scala-cli invocation)
 ```
 
 ---
+
+## Phase 8: Distribution and Versioning (2025-12-15)
+
+**What was built:**
+- Bootstrap: `iw-bootstrap` - Thin shell script (~70 lines) for projects to download and cache releases
+- Launcher: `iw-run` - Main launcher (~224 lines) with all command execution logic
+- Packaging: `.iw/scripts/package-release.sh` - Script to create release tarballs
+- Documentation: `RELEASE.md` - Complete release process documentation
+- Config: Version field added to `ProjectConfiguration` with "latest" default
+
+**Decisions made:**
+- Mill-inspired bootstrap model: thin project script downloads shared installation
+- Versions cached in `~/.local/share/iw/versions/{version}/`
+- `IW_PROJECT_DIR` environment variable passes project location to iw-run
+- Pre-compilation via `scala-cli compile --server=false` ensures offline capability
+- Original `iw` script preserved for backward compatibility (development use)
+- GitHub releases as distribution channel (manual initially, can automate later)
+
+**Patterns applied:**
+- Separation of Concerns: Bootstrap handles downloading, iw-run handles execution
+- Environment-based Context: IW_PROJECT_DIR passes project location cleanly
+- Shared Installation: Multiple projects share same version installation
+
+**Testing:**
+- Unit tests: 3 tests (ConfigRepositoryTest: version field serialization)
+- Integration tests: 4 tests (bootstrap.bats: release package structure, bootstrap, execution)
+- E2E tests: All 9 init.bats tests pass (backward compatibility verified)
+- Total: 7 new tests
+
+**Code review:**
+- Skipped (user requested fast-track to PR)
+
+**Webapp verification:**
+- Status: Skipped (CLI tool, not web feature)
+
+**For next phases:**
+- Available utilities:
+  - `iw-bootstrap` - Reference implementation for project bootstrap scripts
+  - `package-release.sh {version}` - Create release tarballs
+- Extension points: GitHub Actions can automate release workflow
+- Notes: This completes the MVP. Future enhancements: auto-update, multiple architectures
+
+**Files changed:**
+```
+A  iw-bootstrap
+A  iw-run
+A  .iw/scripts/package-release.sh
+A  .iw/test/bootstrap.bats
+A  RELEASE.md
+M  .iw/core/Config.scala (added version field)
+M  .iw/core/test/ConfigRepositoryTest.scala (version tests)
+M  README.md (installation instructions)
+M  .gitignore (release/ directory)
+```
+
+---

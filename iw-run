@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+# PURPOSE: Main launcher for iw-cli, runs commands from installation directory
+# PURPOSE: Handles command execution and pre-compilation bootstrapping
+
+set -euo pipefail
+
+# Directory where this script is located (the installation directory)
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMANDS_DIR="$INSTALL_DIR/commands"
+CORE_DIR="$INSTALL_DIR/core"
+
+# Project directory where iw was invoked (passed as IW_PROJECT_DIR or current dir)
+PROJECT_DIR="${IW_PROJECT_DIR:-$(pwd)}"
+
+# Check if scala-cli is available
+if ! command -v scala-cli &> /dev/null; then
+    echo "Error: scala-cli not found. Please install scala-cli first." >&2
+    echo "Visit: https://scala-cli.virtuslab.org/install" >&2
+    exit 1
+fi
+
+# Bootstrap: pre-compile all commands and dependencies
+bootstrap() {
+    echo "Bootstrapping iw-cli installation at $INSTALL_DIR..." >&2
+
+    # Compile a simple command to trigger dependency download and compilation
+    # This ensures subsequent runs work offline
+    scala-cli compile "$COMMANDS_DIR/version.scala" "$CORE_DIR"/*.scala --server=false > /dev/null 2>&1
+
+    echo "Bootstrap complete. iw-cli is ready for offline use." >&2
+}
+
+# Parse command headers from a Scala file
+parse_command_header() {
+    local file="$1"
+    local field="$2"
+
+    case "$field" in
+        PURPOSE)
+            grep "^// PURPOSE:" "$file" | head -1 | sed 's|^// PURPOSE: *||'
+            ;;
+        USAGE)
+            grep "^// USAGE:" "$file" | head -1 | sed 's|^// USAGE: *||'
+            ;;
+        ARGS)
+            grep "^// ARGS:" "$file" -A 100 | tail -n +2 | grep "^//   " | sed 's|^//   *||' | grep -v "^EXAMPLE:" || true
+            ;;
+        EXAMPLES)
+            grep "^// EXAMPLE:" "$file" | sed 's|^// EXAMPLE: *||'
+            ;;
+    esac
+}
+
+# List all available commands with metadata
+list_commands() {
+    echo "Available commands:"
+    echo ""
+
+    for cmd_file in "$COMMANDS_DIR"/*.scala; do
+        if [ -f "$cmd_file" ]; then
+            local filename=$(basename "$cmd_file")
+            # Skip hook files (*.hook-*.scala)
+            if [[ "$filename" =~ \.hook- ]]; then
+                continue
+            fi
+
+            local cmd_name=$(basename "$cmd_file" .scala)
+            local purpose=$(parse_command_header "$cmd_file" "PURPOSE")
+            local usage=$(parse_command_header "$cmd_file" "USAGE")
+
+            echo "Command: $cmd_name"
+            echo "Purpose: $purpose"
+            echo "Usage:   $usage"
+            echo ""
+        fi
+    done
+}
+
+# Describe a specific command in detail
+describe_command() {
+    local cmd_name="$1"
+
+    # Validate command name - only alphanumeric, dash, underscore
+    if [[ ! "$cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid command name '$cmd_name'" >&2
+        echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+        exit 1
+    fi
+
+    local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
+
+    if [ ! -f "$cmd_file" ]; then
+        echo "Error: Command '$cmd_name' not found" >&2
+        exit 1
+    fi
+
+    echo "=== Command: $cmd_name ==="
+    echo ""
+
+    echo "Purpose:"
+    parse_command_header "$cmd_file" "PURPOSE"
+    echo ""
+
+    echo "Usage:"
+    parse_command_header "$cmd_file" "USAGE"
+    echo ""
+
+    local args=$(parse_command_header "$cmd_file" "ARGS")
+    if [ -n "$args" ]; then
+        echo "Arguments:"
+        echo "$args"
+        echo ""
+    fi
+
+    local examples=$(parse_command_header "$cmd_file" "EXAMPLES")
+    if [ -n "$examples" ]; then
+        echo "Examples:"
+        echo "$examples"
+        echo ""
+    fi
+}
+
+# Extract hook object names from hook files
+# Pattern: 'object XyzHookDoctor' -> 'XyzHookDoctor'
+extract_hook_classes() {
+    local hook_files="$1"
+    local classes=""
+
+    for file in $hook_files; do
+        if [ -f "$file" ]; then
+            # Extract object name (e.g., "object IssueHookDoctor" -> "IssueHookDoctor")
+            local class_name
+            class_name=$(grep -oE 'object [A-Za-z]+HookDoctor' "$file" | head -1 | sed 's/object //')
+            if [ -n "$class_name" ]; then
+                if [ -n "$classes" ]; then
+                    classes="$classes,$class_name"
+                else
+                    classes="$class_name"
+                fi
+            fi
+        fi
+    done
+
+    echo "$classes"
+}
+
+# Execute a command using scala-cli
+execute_command() {
+    local cmd_name="$1"
+    shift
+
+    # Validate command name - only alphanumeric, dash, underscore
+    if [[ ! "$cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "Error: Invalid command name '$cmd_name'" >&2
+        echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+        exit 1
+    fi
+
+    local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
+
+    if [ ! -f "$cmd_file" ]; then
+        echo "Error: Command '$cmd_name' not found" >&2
+        echo "Run 'iw --list' to see available commands" >&2
+        exit 1
+    fi
+
+    # Find hook files for this command (e.g., *.hook-doctor.scala for 'doctor' command)
+    # shellcheck disable=SC2086
+    local hook_files
+    hook_files=$(find "$COMMANDS_DIR" -maxdepth 1 -name "*.hook-${cmd_name}.scala" 2>/dev/null || true)
+
+    # Extract hook class names and pass as environment variable
+    local hook_classes=""
+    if [ -n "$hook_files" ]; then
+        hook_classes=$(extract_hook_classes "$hook_files")
+    fi
+
+    # Change to project directory for command execution
+    cd "$PROJECT_DIR"
+
+    # Execute with scala-cli, including core library and any discovered hook files
+    # IW_HOOK_CLASSES tells the command which hook objects to initialize
+    # shellcheck disable=SC2086
+    IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
+}
+
+# Main entry point
+main() {
+    if [ $# -eq 0 ]; then
+        echo "iw-cli - Issue Worktree CLI"
+        echo ""
+        echo "Usage: iw <command> [args...]"
+        echo "       iw --list              List all commands"
+        echo "       iw --describe <cmd>    Describe a command"
+        echo "       iw --bootstrap         Pre-compile for offline use"
+        echo ""
+        echo "Run 'iw --list' to see available commands"
+        exit 0
+    fi
+
+    case "$1" in
+        --bootstrap)
+            bootstrap
+            ;;
+        --list)
+            list_commands
+            ;;
+        --describe)
+            if [ $# -lt 2 ]; then
+                echo "Error: --describe requires a command name" >&2
+                exit 1
+            fi
+            describe_command "$2"
+            ;;
+        --help|-h)
+            main
+            ;;
+        *)
+            execute_command "$@"
+            ;;
+    esac
+}
+
+main "$@"
