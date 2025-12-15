@@ -356,3 +356,63 @@ A  .iw/test/rm.bats (E2E tests)
 ```
 
 ---
+
+## Phase 7: Fetch and display issue details (2025-12-15)
+
+**What was built:**
+- Domain: `.iw/core/Issue.scala` - Issue entity (id, title, status, assignee, description) and IssueTracker trait
+- Infrastructure: `.iw/core/LinearClient.scala` - Extended with `fetchIssue()` method using GraphQL API
+- Infrastructure: `.iw/core/YouTrackClient.scala` - YouTrack REST API client with customFields parsing
+- Infrastructure: `.iw/core/IssueFormatter.scala` - Output formatter with Unicode borders
+- Command: `.iw/commands/issue.scala` - Full issue command with tracker selection and branch inference
+
+**Decisions made:**
+- Linear uses GraphQL API with issue identifier lookup (no "Bearer" prefix for token)
+- YouTrack uses REST API with custom fields for State and Assignee
+- Issue ID can be provided explicitly or inferred from current branch
+- Added upickle dependency for JSON parsing (both trackers return JSON)
+- Output format uses Unicode borders (━) for visual separation
+- Missing assignee shows "None", missing description omits the section
+
+**Patterns applied:**
+- Adapter Pattern: LinearClient and YouTrackClient implement similar fetchIssue() interface
+- Value Objects: Issue entity, reused IssueId from Phase 4
+- Functional Core / Imperative Shell: Pure domain model, HTTP at edges
+- Either for error handling: All operations return Either[String, Issue]
+
+**Testing:**
+- Unit tests: 24 tests (IssueTest: 4, IssueFormatterTest: 5, LinearIssueTrackerTest: 7, YouTrackIssueTrackerTest: 8)
+- E2E tests: 6 tests (issue.bats)
+- Total: 30 new tests
+
+**Code review:**
+- Iterations: 1
+- Review file: review-packet-phase-07.md
+- Major findings: No critical issues
+
+**Webapp verification:**
+- Status: Skipped (CLI tool, not web feature)
+
+**For next phases:**
+- Available utilities:
+  - `LinearClient.fetchIssue(issueId, token)` - Fetch issue from Linear GraphQL API
+  - `YouTrackClient.fetchIssue(issueId, baseUrl, token)` - Fetch issue from YouTrack REST API
+  - `IssueFormatter.format(issue)` - Format issue for console output
+- Extension points: Add more fields to Issue entity, add more trackers implementing IssueTracker trait
+- Notes: This completes the iw-cli tool - all 7 phases implemented
+
+**Files changed:**
+```
+A  .iw/core/Issue.scala
+A  .iw/core/IssueFormatter.scala
+A  .iw/core/YouTrackClient.scala
+M  .iw/core/LinearClient.scala (added fetchIssue)
+M  .iw/commands/issue.scala (full implementation)
+A  .iw/core/test/IssueTest.scala
+A  .iw/core/test/IssueFormatterTest.scala
+A  .iw/core/test/LinearIssueTrackerTest.scala
+A  .iw/core/test/YouTrackIssueTrackerTest.scala
+A  .iw/test/issue.bats
+```
+
+---

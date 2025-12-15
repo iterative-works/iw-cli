@@ -1,15 +1,70 @@
 // PURPOSE: Fetch and display issue information from the tracker
-// USAGE: iw issue <issue-id>
+// USAGE: iw issue [issue-id]
 // ARGS:
-//   <issue-id>: The issue identifier to fetch
+//   [issue-id]: Optional issue identifier to fetch. If not provided, infers from current branch
 // EXAMPLE: iw issue IWLE-123
 
 //> using scala 3.3.1
 //> using file "../core/Output.scala"
+//> using file "../core/IssueId.scala"
+//> using file "../core/Issue.scala"
+//> using file "../core/LinearClient.scala"
+//> using file "../core/YouTrackClient.scala"
+//> using file "../core/IssueFormatter.scala"
+//> using file "../core/Config.scala"
+//> using file "../core/ConfigRepository.scala"
+//> using file "../core/Git.scala"
+//> using file "../core/Process.scala"
 
-import iw.core.Output
+import iw.core.*
+import java.nio.file.{Path, Paths}
 
-object IssueCommand:
-  def main(args: Array[String]): Unit =
-    Output.info("Not implemented yet")
-    Output.info("This command will fetch and display issue information")
+@main def issue(args: String*): Unit =
+  val result = for {
+    issueId <- getIssueId(args)
+    config <- loadConfig()
+    issue <- fetchIssue(issueId, config)
+  } yield issue
+
+  result match
+    case Right(issue) =>
+      val formatted = IssueFormatter.format(issue)
+      println(formatted)
+    case Left(error) =>
+      Output.error(error)
+      sys.exit(1)
+
+def getIssueId(args: Seq[String]): Either[String, IssueId] =
+  if args.isEmpty then
+    // Infer from current branch
+    val currentDir = Paths.get(System.getProperty("user.dir"))
+    for {
+      branch <- GitAdapter.getCurrentBranch(currentDir)
+      issueId <- IssueId.fromBranch(branch)
+    } yield issueId
+  else
+    // Parse explicit issue ID
+    IssueId.parse(args.head)
+
+def loadConfig(): Either[String, ProjectConfiguration] =
+  val configPath = Paths.get(System.getProperty("user.dir"), ".iw", "config.conf")
+  ConfigFileRepository.read(configPath) match
+    case Some(config) => Right(config)
+    case None => Left("Configuration file not found. Run 'iw init' first.")
+
+def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, Issue] =
+  config.trackerType match
+    case IssueTrackerType.Linear =>
+      val token = sys.env.getOrElse("LINEAR_API_TOKEN", "")
+      if token.isEmpty then
+        Left("LINEAR_API_TOKEN environment variable is not set")
+      else
+        LinearClient.fetchIssue(issueId, token)
+
+    case IssueTrackerType.YouTrack =>
+      val token = sys.env.getOrElse("YOUTRACK_API_TOKEN", "")
+      if token.isEmpty then
+        Left("YOUTRACK_API_TOKEN environment variable is not set")
+      else
+        val baseUrl = "https://youtrack.e-bs.cz"
+        YouTrackClient.fetchIssue(issueId, baseUrl, token)
