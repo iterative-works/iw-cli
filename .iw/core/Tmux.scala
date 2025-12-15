@@ -44,3 +44,7 @@ object TmuxAdapter:
       val result = ProcessAdapter.run(Seq("tmux", "display-message", "-p", "#S"))
       if result.exitCode == 0 then Some(result.stdout.trim)
       else None
+
+  /** Check if the given session name matches the current session */
+  def isCurrentSession(sessionName: String): Boolean =
+    currentSessionName.contains(sessionName)

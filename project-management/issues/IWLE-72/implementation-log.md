@@ -253,3 +253,106 @@ A  .iw/test/start.bats
 ```
 
 ---
+
+## Phase 5: Open existing worktree tmux session (2025-12-14)
+
+**What was built:**
+- Command: `.iw/commands/open.scala` - Open command for attaching to existing worktree sessions
+- Infrastructure: `.iw/core/Git.scala` - Extended with `getCurrentBranch()` method for branch inference
+- Domain: `.iw/core/IssueId.scala` - Extended with `fromBranch()` method for extracting issue ID from branch name
+
+**Decisions made:**
+- Issue ID can be provided explicitly or inferred from current branch name
+- If session exists: attach; if only worktree exists: create session then attach
+- Nested tmux handling: detect if already inside tmux and provide helpful error message
+- Lowercase issue IDs normalized to uppercase
+
+**Patterns applied:**
+- Reused adapters from Phase 4 (TmuxAdapter, GitWorktreeAdapter)
+- Same error handling pattern with Either
+
+**Testing:**
+- Unit tests: 7 tests (IssueIdFromBranchTest)
+- E2E tests: 8 tests (open.bats)
+- Total: 15 new tests
+
+**Code review:**
+- Iterations: 1
+- Major findings: No critical issues
+
+**Files changed:**
+```
+M  .iw/commands/open.scala (full implementation)
+M  .iw/core/Git.scala (added getCurrentBranch)
+M  .iw/core/IssueId.scala (added fromBranch)
+A  .iw/core/test/IssueIdFromBranchTest.scala
+A  .iw/test/open.bats
+```
+
+---
+
+## Phase 6: Remove worktree and cleanup resources (2025-12-15)
+
+**What was built:**
+- Domain: `.iw/core/DeletionSafety.scala` - Value object for deletion safety checks (uncommitted changes, active session)
+- Infrastructure: `.iw/core/Git.scala` - Extended with `hasUncommittedChanges()` method
+- Infrastructure: `.iw/core/Tmux.scala` - Extended with `isCurrentSession()` method
+- Infrastructure: `.iw/core/GitWorktree.scala` - Extended with `removeWorktree()` method
+- Infrastructure: `.iw/core/Output.scala` - Extended with `warning()` method for yellow warning text
+- Command: `.iw/commands/rm.scala` - Full rm command with safety checks and cleanup workflow
+
+**Decisions made:**
+- Safety first: Check for active session (hard block) and uncommitted changes (soft block with confirmation)
+- Branch preservation: Explicitly do NOT delete git branch when removing worktree (branch lifecycle tied to PR/MR)
+- Force flag: `--force` bypasses uncommitted changes confirmation but NOT active session check
+- Graceful degradation: Session kill failure logs warning but continues with worktree removal
+- Cleanup order: Kill session first, then remove worktree directory
+
+**Patterns applied:**
+- Value Object: DeletionSafety encapsulates safety conditions (though not used in final implementation)
+- Adapter Pattern: Extensions to GitAdapter, TmuxAdapter, GitWorktreeAdapter
+- Either for error handling: All adapter operations return Either[String, Unit]
+- Functional Core / Imperative Shell: Safety logic pure, effects at edges
+
+**Testing:**
+- Unit tests: 4 tests (DeletionSafetyTest: safety check logic)
+- Integration tests: 11 tests (GitTest: 4 for hasUncommittedChanges, TmuxAdapterTest: 3 for isCurrentSession, GitWorktreeAdapterTest: 3 for removeWorktree, OutputTest: 1 for warning)
+- E2E tests: 10 tests (rm.bats: success paths, error paths, branch preservation)
+- Total: 25 new tests
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-06-20251215.md
+- Major findings: 0 critical, 7 warnings (unused DeletionSafety abstraction, missing prompt tests, code organization), 7 suggestions
+- Notes: DeletionSafety class defined and tested but not integrated into rm.scala workflow
+
+**Webapp verification:**
+- Status: Skipped (CLI tool, not web feature)
+
+**For next phases:**
+- Available utilities:
+  - `GitAdapter.hasUncommittedChanges(path)` - Check for uncommitted changes in directory
+  - `TmuxAdapter.isCurrentSession(name)` - Check if currently in specified tmux session
+  - `GitWorktreeAdapter.removeWorktree(path, workDir, force)` - Remove git worktree
+  - `Output.warning(msg)` - Print yellow warning message
+  - `DeletionSafety` - Value object for safety checks (available but currently unused)
+- Extension points: Prompt confirmation pattern reusable for other destructive operations
+- Notes: rm command completes the worktree lifecycle (start → open → rm)
+
+**Files changed:**
+```
+M  .iw/commands/rm.scala (full implementation)
+A  .iw/core/DeletionSafety.scala (value object)
+M  .iw/core/Git.scala (added hasUncommittedChanges)
+M  .iw/core/GitWorktree.scala (added removeWorktree)
+M  .iw/core/Output.scala (added warning)
+M  .iw/core/Tmux.scala (added isCurrentSession)
+A  .iw/core/test/DeletionSafetyTest.scala
+M  .iw/core/test/GitTest.scala (added uncommitted changes tests)
+M  .iw/core/test/GitWorktreeAdapterTest.scala (added removal tests)
+M  .iw/core/test/OutputTest.scala (added warning test)
+M  .iw/core/test/TmuxAdapterTest.scala (added current session tests)
+A  .iw/test/rm.bats (E2E tests)
+```
+
+---

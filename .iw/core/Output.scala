@@ -10,6 +10,9 @@ object Output:
   def error(message: String): Unit =
     System.err.println(s"Error: $message")
 
+  def warning(message: String): Unit =
+    System.out.println(s"Warning: $message")
+
   def success(message: String): Unit =
     System.out.println(s"✓ $message")
 

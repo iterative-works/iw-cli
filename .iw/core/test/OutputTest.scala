@@ -65,3 +65,8 @@ class OutputTest extends munit.FunSuite:
     assertEquals(lines.length, 1)
     assert(lines(0).startsWith("Version"))
     assert(lines(0).contains("1.0.0"))
+
+  test("warning prints message to stdout with Warning prefix"):
+    val output = captureStdout:
+      Output.warning("potential issue")
+    assertEquals(output.trim, "Warning: potential issue")

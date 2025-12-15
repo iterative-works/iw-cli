@@ -124,3 +124,51 @@ class GitTest extends munit.FunSuite:
       assert(result.left.exists(_.contains("Failed to get current branch")))
     finally
       Files.walk(dir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
+
+  gitRepo.test("hasUncommittedChanges returns false for clean worktree"):
+    repo =>
+      // Create initial commit
+      Files.writeString(repo.resolve("test.txt"), "test")
+      Process(Seq("git", "add", "test.txt"), repo.toFile).!
+      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toFile).!
+
+      val result = GitAdapter.hasUncommittedChanges(repo)
+      assert(result.isRight)
+      assertEquals(result, Right(false))
+
+  gitRepo.test("hasUncommittedChanges returns true for modified files"):
+    repo =>
+      // Create initial commit
+      Files.writeString(repo.resolve("test.txt"), "test")
+      Process(Seq("git", "add", "test.txt"), repo.toFile).!
+      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toFile).!
+
+      // Modify the file
+      Files.writeString(repo.resolve("test.txt"), "modified")
+
+      val result = GitAdapter.hasUncommittedChanges(repo)
+      assert(result.isRight)
+      assertEquals(result, Right(true))
+
+  gitRepo.test("hasUncommittedChanges returns true for untracked files"):
+    repo =>
+      // Create initial commit
+      Files.writeString(repo.resolve("test.txt"), "test")
+      Process(Seq("git", "add", "test.txt"), repo.toFile).!
+      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toFile).!
+
+      // Add untracked file
+      Files.writeString(repo.resolve("untracked.txt"), "untracked")
+
+      val result = GitAdapter.hasUncommittedChanges(repo)
+      assert(result.isRight)
+      assertEquals(result, Right(true))
+
+  test("hasUncommittedChanges returns error for non-git directory"):
+    val dir = Files.createTempDirectory("iw-non-git-status-test")
+    try
+      val result = GitAdapter.hasUncommittedChanges(dir)
+      assert(result.isLeft)
+      assert(result.left.exists(_.contains("Failed to check")))
+    finally
+      Files.walk(dir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
