@@ -29,3 +29,10 @@ object GitAdapter:
       Right(result.stdout.trim)
     else
       Left(s"Failed to get current branch: ${result.stderr}")
+
+  def hasUncommittedChanges(path: Path): Either[String, Boolean] =
+    val result = ProcessAdapter.run(Seq("git", "-C", path.toString, "status", "--porcelain"))
+    if result.exitCode == 0 then
+      Right(result.stdout.trim.nonEmpty)
+    else
+      Left(s"Failed to check for uncommitted changes: ${result.stderr}")

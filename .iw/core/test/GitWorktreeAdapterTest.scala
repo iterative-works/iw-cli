@@ -128,3 +128,42 @@ class GitWorktreeAdapterTest extends FunSuite:
     val result = GitWorktreeAdapter.createWorktreeForBranch(worktreePath, "non-existent", repoDir)
 
     assert(result.isLeft, "Should fail to create worktree for non-existent branch")
+
+  test("GitWorktreeAdapter.removeWorktree succeeds for clean worktree"):
+    val worktreePath = tempDir.resolve("remove-test")
+    val branchName = "remove-branch"
+
+    // Create worktree
+    GitWorktreeAdapter.createWorktree(worktreePath, branchName, repoDir)
+    assert(GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should exist before removal")
+
+    // Remove worktree
+    val result = GitWorktreeAdapter.removeWorktree(worktreePath, repoDir, force = false)
+    assert(result.isRight, s"Failed to remove worktree: $result")
+
+    // Verify worktree is gone
+    assert(!GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should not exist after removal")
+    assert(!Files.exists(worktreePath), "Worktree directory should be deleted")
+
+  test("GitWorktreeAdapter.removeWorktree with force succeeds even with uncommitted changes"):
+    val worktreePath = tempDir.resolve("remove-dirty")
+    val branchName = "remove-dirty-branch"
+
+    // Create worktree
+    GitWorktreeAdapter.createWorktree(worktreePath, branchName, repoDir)
+
+    // Add uncommitted changes
+    Files.write(worktreePath.resolve("test.txt"), "uncommitted".getBytes)
+
+    // Remove worktree with force
+    val result = GitWorktreeAdapter.removeWorktree(worktreePath, repoDir, force = true)
+    assert(result.isRight, s"Failed to remove worktree with force: $result")
+
+    // Verify worktree is gone
+    assert(!GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should not exist after removal")
+
+  test("GitWorktreeAdapter.removeWorktree fails for non-existent worktree"):
+    val worktreePath = tempDir.resolve("non-existent-worktree")
+
+    val result = GitWorktreeAdapter.removeWorktree(worktreePath, repoDir, force = false)
+    assert(result.isLeft, "Should fail to remove non-existent worktree")

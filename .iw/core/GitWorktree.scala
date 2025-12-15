@@ -36,3 +36,14 @@ object GitWorktreeAdapter:
     )
     if result.exitCode == 0 then Right(())
     else Left(s"Failed to create worktree: ${result.stderr}")
+
+  /** Remove an existing worktree */
+  def removeWorktree(path: Path, workDir: Path, force: Boolean): Either[String, Unit] =
+    val args = if force then
+      Seq("git", "-C", workDir.toString, "worktree", "remove", "--force", path.toString)
+    else
+      Seq("git", "-C", workDir.toString, "worktree", "remove", path.toString)
+
+    val result = ProcessAdapter.run(args)
+    if result.exitCode == 0 then Right(())
+    else Left(s"Failed to remove worktree: ${result.stderr}")

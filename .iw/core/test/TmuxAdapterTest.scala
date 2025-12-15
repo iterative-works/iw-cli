@@ -140,3 +140,23 @@ class TmuxAdapterTest extends FunSuite:
       assertEquals(TmuxAdapter.sessionExists(sessionName), true)
     finally
       TmuxAdapter.killSession(sessionName)
+
+  test("TmuxAdapter.isCurrentSession returns true when in matching session"):
+    // This test verifies the logic when we ARE inside tmux
+    // If we're in tmux, it should match the current session name
+    val currentSession = TmuxAdapter.currentSessionName
+    if currentSession.isDefined then
+      assertEquals(TmuxAdapter.isCurrentSession(currentSession.get), true)
+
+  test("TmuxAdapter.isCurrentSession returns false when in different session"):
+    // This test verifies the logic when we ARE inside tmux but checking a different session
+    val currentSession = TmuxAdapter.currentSessionName
+    if currentSession.isDefined then
+      val differentSession = uniqueSessionName()
+      assertEquals(TmuxAdapter.isCurrentSession(differentSession), false)
+
+  test("TmuxAdapter.isCurrentSession returns false when not in tmux"):
+    // This test can only verify behavior if we're not in tmux
+    if !sys.env.contains("TMUX") then
+      val sessionName = uniqueSessionName()
+      assertEquals(TmuxAdapter.isCurrentSession(sessionName), false)
