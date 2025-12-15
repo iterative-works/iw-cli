@@ -97,3 +97,61 @@ class ConfigRepositoryTest extends munit.FunSuite:
       assert(Files.exists(configPath))
       assert(Files.exists(configPath.getParent))
       assert(Files.exists(configPath.getParent.getParent))
+
+  tempDir.test("ConfigFileRepository writes config with version field"):
+    dir =>
+      val config = ProjectConfiguration(
+        trackerType = IssueTrackerType.Linear,
+        team = "IWLE",
+        projectName = "kanon",
+        version = Some("0.1.0")
+      )
+
+      val configPath = dir.resolve(".iw").resolve("config.conf")
+      ConfigFileRepository.write(configPath, config)
+
+      assert(Files.exists(configPath))
+      val content = Files.readString(configPath)
+      assert(content.contains("version = 0.1.0"))
+
+  tempDir.test("ConfigFileRepository reads config with version field"):
+    dir =>
+      val configPath = dir.resolve(".iw").resolve("config.conf")
+      Files.createDirectories(configPath.getParent)
+      Files.writeString(configPath, """
+        tracker {
+          type = linear
+          team = IWLE
+        }
+
+        project {
+          name = kanon
+        }
+
+        version = "0.2.0"
+      """)
+
+      val config = ConfigFileRepository.read(configPath)
+
+      assert(config.isDefined)
+      assertEquals(config.get.version, Some("0.2.0"))
+
+  tempDir.test("ConfigFileRepository defaults to 'latest' when version is missing"):
+    dir =>
+      val configPath = dir.resolve(".iw").resolve("config.conf")
+      Files.createDirectories(configPath.getParent)
+      Files.writeString(configPath, """
+        tracker {
+          type = linear
+          team = IWLE
+        }
+
+        project {
+          name = kanon
+        }
+      """)
+
+      val config = ConfigFileRepository.read(configPath)
+
+      assert(config.isDefined)
+      assertEquals(config.get.version, Some("latest"))

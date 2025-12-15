@@ -25,7 +25,8 @@ enum IssueTrackerType:
 case class ProjectConfiguration(
   trackerType: IssueTrackerType,
   team: String,
-  projectName: String
+  projectName: String,
+  version: Option[String] = Some("latest")
 )
 
 object TrackerDetector:
@@ -41,6 +42,8 @@ object ConfigSerializer:
       case IssueTrackerType.Linear => "linear"
       case IssueTrackerType.YouTrack => "youtrack"
 
+    val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
+
     s"""tracker {
        |  type = $trackerTypeStr
        |  team = ${config.team}
@@ -48,7 +51,7 @@ object ConfigSerializer:
        |
        |project {
        |  name = ${config.projectName}
-       |}
+       |}$versionLine
        |""".stripMargin
 
   def fromHocon(hocon: String): ProjectConfiguration =
@@ -63,4 +66,10 @@ object ConfigSerializer:
     val team = config.getString("tracker.team")
     val projectName = config.getString("project.name")
 
-    ProjectConfiguration(trackerType, team, projectName)
+    // Read version, default to "latest" if not present
+    val version = if config.hasPath("version") then
+      Some(config.getString("version"))
+    else
+      Some("latest")
+
+    ProjectConfiguration(trackerType, team, projectName, version)

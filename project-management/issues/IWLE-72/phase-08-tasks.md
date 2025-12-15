@@ -6,43 +6,43 @@
 
 ## Setup
 
-- [ ] [impl] Create release directory structure for artifact packaging
+- [x] [impl] [ ] [reviewed] Create release directory structure for artifact packaging
 
 ## Config Updates
 
-- [ ] [impl] Add version field to ProjectConfiguration
-- [ ] [impl] Update ConfigSerializer to handle version field
-- [ ] [impl] Update ConfigFileRepository tests for version field
-- [ ] [impl] Make version optional with "latest" default
+- [x] [impl] [ ] [reviewed] Add version field to ProjectConfiguration
+- [x] [impl] [ ] [reviewed] Update ConfigSerializer to handle version field
+- [x] [impl] [ ] [reviewed] Update ConfigFileRepository tests for version field
+- [x] [impl] [ ] [reviewed] Make version optional with "latest" default
 
 ## Bootstrap Script (thin `iw`)
 
-- [ ] [impl] Create new thin bootstrap script with version detection
-- [ ] [impl] Add curl-based download from GitHub releases
-- [ ] [impl] Add extraction to ~/.local/share/iw/versions/
-- [ ] [impl] Add delegation to iw-run after bootstrap
+- [x] [impl] [ ] [reviewed] Create new thin bootstrap script with version detection
+- [x] [impl] [ ] [reviewed] Add curl-based download from GitHub releases
+- [x] [impl] [ ] [reviewed] Add extraction to ~/.local/share/iw/versions/
+- [x] [impl] [ ] [reviewed] Add delegation to iw-run after bootstrap
 
 ## Launcher Script (`iw-run`)
 
-- [ ] [impl] Rename/refactor current `iw` logic into `iw-run`
-- [ ] [impl] Add --bootstrap command for pre-compilation
-- [ ] [impl] Update paths to work from versioned installation directory
-- [ ] [impl] Handle PWD argument for project-relative operations
+- [x] [impl] [ ] [reviewed] Rename/refactor current `iw` logic into `iw-run`
+- [x] [impl] [ ] [reviewed] Add --bootstrap command for pre-compilation
+- [x] [impl] [ ] [reviewed] Update paths to work from versioned installation directory
+- [x] [impl] [ ] [reviewed] Handle PWD argument for project-relative operations
 
 ## Release Packaging
 
-- [ ] [impl] Create script to package release tarball
-- [ ] [impl] Test tarball extraction and structure
-- [ ] [impl] Document release process
+- [x] [impl] [ ] [reviewed] Create script to package release tarball
+- [x] [impl] [ ] [reviewed] Test tarball extraction and structure
+- [x] [impl] [ ] [reviewed] Document release process
 
 ## Testing
 
-- [ ] [impl] Test fresh bootstrap from simulated release
-- [ ] [impl] Test version switching
-- [ ] [impl] Test offline operation after bootstrap
+- [x] [impl] [ ] [reviewed] Test fresh bootstrap from simulated release
+- [x] [impl] [ ] [reviewed] Test version switching
+- [x] [impl] [ ] [reviewed] Test offline operation after bootstrap
 - [ ] [impl] Update E2E tests to work with new structure
 
 ## Documentation
 
-- [ ] [impl] Update README with installation instructions
-- [ ] [impl] Document version pinning in config
+- [x] [impl] [ ] [reviewed] Update README with installation instructions
+- [x] [impl] [ ] [reviewed] Document version pinning in config

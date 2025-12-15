@@ -12,17 +12,44 @@ Project-local CLI tool for managing git worktrees and integrating with issue tra
 
 ## Installation
 
-Copy the `iw` bootstrap script to your project root:
+### Quick Start
+
+Download and run the bootstrap script in your project root:
 
 ```bash
-# Coming soon
-```
-
-Then run:
-
-```bash
+curl -L https://github.com/iterative-works/iw-cli/releases/latest/download/iw-bootstrap -o iw
+chmod +x iw
 ./iw init
 ```
+
+The bootstrap script will:
+1. Read the version from `.iw/config.conf` (defaults to "latest")
+2. Download the specified version to `~/.local/share/iw/versions/<version>/`
+3. Pre-compile dependencies for offline use
+4. Execute the requested command
+
+### Version Pinning
+
+Pin a specific version in your project's `.iw/config.conf`:
+
+```hocon
+version = "0.1.0"
+```
+
+Or use the latest release:
+
+```hocon
+version = "latest"
+```
+
+If not specified, defaults to "latest".
+
+### Requirements
+
+- **scala-cli**: Install from [scala-cli.virtuslab.org](https://scala-cli.virtuslab.org/install)
+- **git**: For worktree management
+- **tmux** (optional): For session management
+- **curl**: For downloading releases
 
 ## Commands
 
