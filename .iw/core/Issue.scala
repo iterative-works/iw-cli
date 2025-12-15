@@ -1,8 +1,6 @@
 // PURPOSE: Issue domain model and IssueTracker abstraction for fetching issues
 // PURPOSE: Defines Issue entity and IssueTracker trait for tracker implementations
 
-//> using scala 3.3.1
-
 package iw.core
 
 case class Issue(

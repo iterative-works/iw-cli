@@ -1,8 +1,6 @@
 // PURPOSE: Issue ID value object with validation for tracker issue identifiers
 // PURPOSE: Validates format PROJECT-123 and provides branch name conversion
 
-//> using scala 3.3.1
-
 package iw.core
 
 case class IssueId private (value: String):

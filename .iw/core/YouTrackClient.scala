@@ -1,10 +1,6 @@
 // PURPOSE: YouTrack REST API client for issue operations
 // PURPOSE: Provides fetchIssue to retrieve issue details from YouTrack
 
-//> using scala 3.3.1
-//> using dep com.softwaremill.sttp.client4::core:4.0.0-M18
-//> using dep com.lihaoyi::upickle:4.0.2
-
 package iw.core
 
 import sttp.client4.quick.*

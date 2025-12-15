@@ -1,8 +1,6 @@
 // PURPOSE: Configuration file repository for HOCON config persistence
 // PURPOSE: Handles reading and writing ProjectConfiguration to/from .iw/config.conf
 
-//> using file "Config.scala"
-
 package iw.core
 
 import java.nio.file.{Path, Files}

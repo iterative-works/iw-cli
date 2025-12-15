@@ -1,8 +1,6 @@
 // PURPOSE: Formatter for displaying issue details with Unicode borders
 // PURPOSE: Provides format method to create human-readable issue output
 
-//> using scala 3.3.1
-
 package iw.core
 
 object IssueFormatter:

@@ -1,9 +1,6 @@
 // PURPOSE: Configuration domain model for issue tracker integration
 // PURPOSE: Defines GitRemote, IssueTrackerType, and ProjectConfiguration value objects
 
-//> using scala 3.3.1
-//> using dep com.typesafe:config:1.4.3
-
 package iw.core
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}

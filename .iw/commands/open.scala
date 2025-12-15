@@ -1,17 +1,6 @@
 // PURPOSE: Opens an existing worktree tmux session, creating session if needed.
 // PURPOSE: Infers issue ID from current branch when no parameter given.
 
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/Process.scala"
-//> using file "../core/IssueId.scala"
-//> using file "../core/WorktreePath.scala"
-//> using file "../core/Tmux.scala"
-//> using file "../core/GitWorktree.scala"
-//> using file "../core/Git.scala"
-
 import iw.core.*
 import java.nio.file.{Files, Paths}
 

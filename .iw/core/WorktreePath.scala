@@ -1,9 +1,6 @@
 // PURPOSE: Worktree path value object for calculating sibling directory names
 // PURPOSE: Provides directory naming and path resolution for issue worktrees
 
-//> using scala 3.3.1
-//> using file "IssueId.scala"
-
 package iw.core
 
 import java.nio.file.Path

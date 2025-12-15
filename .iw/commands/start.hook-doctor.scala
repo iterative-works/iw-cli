@@ -1,10 +1,6 @@
 // PURPOSE: Doctor check for start command - validates tmux installation
 // PURPOSE: Registers check to verify tmux is available in PATH
 
-//> using file "../core/DoctorChecks.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/Process.scala"
-
 import iw.core.*
 
 object StartHookDoctor:

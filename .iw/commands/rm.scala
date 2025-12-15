@@ -1,19 +1,6 @@
 // PURPOSE: Remove a worktree for a completed issue
 // PURPOSE: Kills tmux session and removes worktree with safety checks
 
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/Process.scala"
-//> using file "../core/IssueId.scala"
-//> using file "../core/WorktreePath.scala"
-//> using file "../core/Tmux.scala"
-//> using file "../core/GitWorktree.scala"
-//> using file "../core/Git.scala"
-//> using file "../core/DeletionSafety.scala"
-//> using file "../core/Prompt.scala"
-
 import iw.core.*
 import java.nio.file.{Files, Paths}
 

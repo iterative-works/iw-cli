@@ -4,18 +4,6 @@
 //   [issue-id]: Optional issue identifier to fetch. If not provided, infers from current branch
 // EXAMPLE: iw issue IWLE-123
 
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/IssueId.scala"
-//> using file "../core/Issue.scala"
-//> using file "../core/LinearClient.scala"
-//> using file "../core/YouTrackClient.scala"
-//> using file "../core/IssueFormatter.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/Git.scala"
-//> using file "../core/Process.scala"
-
 import iw.core.*
 import java.nio.file.{Path, Paths}
 

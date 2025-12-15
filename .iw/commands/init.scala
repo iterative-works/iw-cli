@@ -7,15 +7,6 @@
 // EXAMPLE: iw init
 // EXAMPLE: iw init --tracker=linear --team=IWLE
 
-//> using scala 3.3.1
-//> using dep com.typesafe:config:1.4.3
-//> using file "../core/Output.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/Git.scala"
-//> using file "../core/Process.scala"
-//> using file "../core/Prompt.scala"
-
 import iw.core.*
 import java.nio.file.{Paths, Files}
 

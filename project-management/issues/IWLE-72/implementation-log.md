@@ -416,3 +416,38 @@ A  .iw/test/issue.bats
 ```
 
 ---
+
+## Post-Implementation: Build System Refactoring (2025-12-15)
+
+**What was built:**
+- Centralized build configuration in `.iw/core/project.scala`
+- Clean command output without scala-cli warnings
+
+**Problem solved:**
+- scala-cli was generating noisy warnings: "Chaining 'using file' directive is not supported", "Using directives detected in multiple files"
+- Commands were failing to compile when transitive dependencies weren't explicitly declared (e.g., doctor command couldn't find IssueId/Issue types)
+
+**Decisions made:**
+- Removed all `//> using file` and `//> using dep` directives from individual files
+- Single `core/project.scala` declares Scala version and all external dependencies
+- Bootstrap script includes all core files on command line: `scala-cli run <cmd>.scala <hooks> .iw/core/*.scala`
+- Updated dependencies to latest versions (config 1.4.5, sttp 4.0.13, upickle 4.4.1)
+
+**Architecture change:**
+- Before: Each file declared its own dependencies via directives (broken - chaining not supported)
+- After: Centralized deps in project.scala, bootstrap script handles file inclusion
+
+**Testing:**
+- All 55 E2E tests pass
+- All unit tests pass
+- Manual verification of all commands
+
+**Files changed:**
+```
+A  .iw/core/project.scala (shared build configuration)
+M  .iw/core/*.scala (removed //> using directives from 13 files)
+M  .iw/commands/*.scala (removed //> using directives from 9 files)
+M  iw (updated to include core/*.scala in scala-cli invocation)
+```
+
+---

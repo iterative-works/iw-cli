@@ -1,10 +1,6 @@
 // PURPOSE: Doctor check for issue command - validates Linear API token
 // PURPOSE: Registers check to verify LINEAR_API_TOKEN environment variable
 
-//> using file "../core/DoctorChecks.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/LinearClient.scala"
-
 import iw.core.*
 
 object IssueHookDoctor:

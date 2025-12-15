@@ -1,8 +1,6 @@
 // PURPOSE: Registry for extensible environment validation checks
 // PURPOSE: Provides CheckResult enum and DoctorChecks singleton for check registration
 
-//> using scala 3.3.1
-
 package iw.core
 
 enum CheckResult:

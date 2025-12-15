@@ -1,9 +1,6 @@
 // PURPOSE: Tmux adapter for session management operations
 // PURPOSE: Provides session creation, existence checks, and cleanup
 
-//> using scala 3.3.1
-//> using file "Process.scala"
-
 package iw.core
 
 import java.nio.file.Path

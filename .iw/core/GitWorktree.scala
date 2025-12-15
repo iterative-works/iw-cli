@@ -1,9 +1,6 @@
 // PURPOSE: Git worktree adapter for creating and managing worktrees
 // PURPOSE: Provides worktree operations including creation, existence checks, and branch handling
 
-//> using scala 3.3.1
-//> using file "Process.scala"
-
 package iw.core
 
 import java.nio.file.Path

@@ -4,13 +4,6 @@
 //   None
 // EXAMPLE: iw doctor
 
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/DoctorChecks.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/Git.scala"
-
 import iw.core.*
 import java.nio.file.{Path, Paths}
 

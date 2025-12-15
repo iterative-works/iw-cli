@@ -1,9 +1,6 @@
 // PURPOSE: Git infrastructure adapter for reading git repository information
 // PURPOSE: Provides utilities to check git status and read remote URLs
 
-//> using file "Config.scala"
-//> using file "Process.scala"
-
 package iw.core
 
 import java.nio.file.Path

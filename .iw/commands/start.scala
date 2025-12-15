@@ -1,17 +1,6 @@
 // PURPOSE: Creates an isolated worktree for a specific issue with a tmux session
 // USAGE: iw start <issue-id>
 
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/Process.scala"
-//> using file "../core/IssueId.scala"
-//> using file "../core/WorktreePath.scala"
-//> using file "../core/Tmux.scala"
-//> using file "../core/GitWorktree.scala"
-//> using file "../core/Git.scala"
-
 import iw.core.*
 import java.nio.file.{Files, Paths}
 

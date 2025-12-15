@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMANDS_DIR="$SCRIPT_DIR/.iw/commands"
+CORE_DIR="$SCRIPT_DIR/.iw/core"
 
 # Check if scala-cli is available
 if ! command -v scala-cli &> /dev/null; then
@@ -159,10 +160,10 @@ execute_command() {
         hook_classes=$(extract_hook_classes "$hook_files")
     fi
 
-    # Execute with scala-cli, including any discovered hook files
+    # Execute with scala-cli, including core library and any discovered hook files
     # IW_HOOK_CLASSES tells the command which hook objects to initialize
     # shellcheck disable=SC2086
-    IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files -- "$@"
+    IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
 }
 
 # Main entry point
