@@ -40,7 +40,7 @@
 - [x] [impl] [ ] [reviewed] Test fresh bootstrap from simulated release
 - [x] [impl] [ ] [reviewed] Test version switching
 - [x] [impl] [ ] [reviewed] Test offline operation after bootstrap
-- [ ] [impl] Update E2E tests to work with new structure
+- [x] [impl] [ ] [reviewed] Update E2E tests to work with new structure (verified existing tests pass with backward-compatible approach)
 
 ## Documentation
 
