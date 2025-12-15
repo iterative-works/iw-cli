@@ -63,8 +63,8 @@ teardown() {
     # Verify session doesn't exist yet
     ! tmux has-session -t "testproject-IWLE-123" 2>/dev/null
 
-    # Open should create session
-    run "$PROJECT_ROOT/iw" open IWLE-123
+    # Open should create session (unset TMUX to avoid nested session detection)
+    run env -u TMUX "$PROJECT_ROOT/iw" open IWLE-123
 
     # Session should be created (command will fail on attach in non-interactive mode, that's ok)
     tmux has-session -t "testproject-IWLE-123" 2>/dev/null
@@ -91,8 +91,8 @@ teardown() {
     mkdir -p .iw
     cp "$TEST_DIR/.iw/config.conf" .iw/
 
-    # Open without args should infer IWLE-789 from branch
-    run "$PROJECT_ROOT/iw" open
+    # Open without args should infer IWLE-789 from branch (unset TMUX to avoid nested session detection)
+    run env -u TMUX "$PROJECT_ROOT/iw" open
 
     # Session should be created with correct name
     tmux has-session -t "testproject-IWLE-789" 2>/dev/null
@@ -138,8 +138,8 @@ teardown() {
     # Create worktree with uppercase
     git worktree add -b IWLE-222 "../testproject-IWLE-222"
 
-    # Open with lowercase
-    run "$PROJECT_ROOT/iw" open iwle-222
+    # Open with lowercase (unset TMUX to avoid nested session detection)
+    run env -u TMUX "$PROJECT_ROOT/iw" open iwle-222
 
     # Should create session with uppercase name
     tmux has-session -t "testproject-IWLE-222" 2>/dev/null
@@ -149,7 +149,8 @@ teardown() {
     # Create worktree
     git worktree add -b IWLE-333 "../testproject-IWLE-333"
 
-    run "$PROJECT_ROOT/iw" open IWLE-333
+    # Unset TMUX to avoid nested session detection
+    run env -u TMUX "$PROJECT_ROOT/iw" open IWLE-333
 
     # Should show creating or attaching message
     [[ "$output" == *"Creating session"* ]] || [[ "$output" == *"Attaching"* ]]

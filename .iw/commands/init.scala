@@ -13,6 +13,7 @@
 //> using file "../core/Config.scala"
 //> using file "../core/ConfigRepository.scala"
 //> using file "../core/Git.scala"
+//> using file "../core/Process.scala"
 //> using file "../core/Prompt.scala"
 
 import iw.core.*
