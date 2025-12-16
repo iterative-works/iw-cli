@@ -51,7 +51,9 @@ class ConfigFileTest extends munit.FunSuite:
         }
       """
 
-      val config = ConfigSerializer.fromHocon(hocon)
+      val result = ConfigSerializer.fromHocon(hocon)
+      assert(result.isRight)
+      val Right(config) = result: @unchecked
 
       assertEquals(config.trackerType, IssueTrackerType.Linear)
       assertEquals(config.team, "IWLE")
@@ -66,7 +68,9 @@ class ConfigFileTest extends munit.FunSuite:
       )
 
       val hocon = ConfigSerializer.toHocon(original)
-      val restored = ConfigSerializer.fromHocon(hocon)
+      val result = ConfigSerializer.fromHocon(hocon)
+      assert(result.isRight)
+      val Right(restored) = result: @unchecked
 
       assertEquals(restored, original)
 
@@ -83,11 +87,13 @@ class ConfigFileTest extends munit.FunSuite:
         }
       """
 
-      val config = ConfigSerializer.fromHocon(hocon)
+      val result = ConfigSerializer.fromHocon(hocon)
+      assert(result.isRight)
+      val Right(config) = result: @unchecked
 
       assertEquals(config.trackerType, IssueTrackerType.YouTrack)
 
-  test("ConfigSerializer fails on invalid tracker type"):
+  test("ConfigSerializer returns Left with meaningful message for invalid tracker type"):
     val hocon = """
       tracker {
         type = invalid
@@ -99,10 +105,13 @@ class ConfigFileTest extends munit.FunSuite:
       }
     """
 
-    intercept[IllegalArgumentException]:
-      ConfigSerializer.fromHocon(hocon)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    val Left(errorMsg) = result: @unchecked
+    assert(errorMsg.contains("Unknown tracker type"))
+    assert(errorMsg.contains("invalid"))
 
-  test("ConfigSerializer fails on missing tracker type"):
+  test("ConfigSerializer returns Left with meaningful message for missing tracker type"):
     val hocon = """
       tracker {
         team = TEST
@@ -113,10 +122,12 @@ class ConfigFileTest extends munit.FunSuite:
       }
     """
 
-    intercept[com.typesafe.config.ConfigException]:
-      ConfigSerializer.fromHocon(hocon)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    val Left(errorMsg) = result: @unchecked
+    assert(errorMsg.contains("Failed to parse config"))
 
-  test("ConfigSerializer fails on missing tracker team"):
+  test("ConfigSerializer returns Left with meaningful message for missing tracker team"):
     val hocon = """
       tracker {
         type = linear
@@ -127,10 +138,12 @@ class ConfigFileTest extends munit.FunSuite:
       }
     """
 
-    intercept[com.typesafe.config.ConfigException]:
-      ConfigSerializer.fromHocon(hocon)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    val Left(errorMsg) = result: @unchecked
+    assert(errorMsg.contains("Failed to parse config"))
 
-  test("ConfigSerializer fails on missing project name"):
+  test("ConfigSerializer returns Left with meaningful message for missing project name"):
     val hocon = """
       tracker {
         type = linear
@@ -141,5 +154,7 @@ class ConfigFileTest extends munit.FunSuite:
       }
     """
 
-    intercept[com.typesafe.config.ConfigException]:
-      ConfigSerializer.fromHocon(hocon)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    val Left(errorMsg) = result: @unchecked
+    assert(errorMsg.contains("Failed to parse config"))
