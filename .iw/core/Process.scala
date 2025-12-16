@@ -5,7 +5,7 @@ package iw.core
 
 import scala.sys.process.*
 
-case class ProcessResult(exitCode: Int, stdout: String, stderr: String)
+case class ProcessResult(exitCode: Int, stdout: String, stderr: String, truncated: Boolean = false)
 
 object ProcessAdapter:
   // Safe pattern: only alphanumeric, dash, underscore
@@ -25,13 +25,31 @@ object ProcessAdapter:
     catch
       case _: Exception => false
 
-  def run(command: Seq[String]): ProcessResult =
+  def run(command: Seq[String], maxOutputBytes: Int = 1024 * 1024): ProcessResult =
     val stdoutBuilder = new StringBuilder
     val stderrBuilder = new StringBuilder
+    var stdoutBytes = 0
+    var stderrBytes = 0
+    var wasTruncated = false
 
     val logger = ProcessLogger(
-      line => stdoutBuilder.append(line).append("\n"),
-      line => stderrBuilder.append(line).append("\n")
+      line =>
+        val lineWithNewline = line + "\n"
+        val lineBytes = lineWithNewline.getBytes("UTF-8").length
+        if stdoutBytes + lineBytes <= maxOutputBytes then
+          stdoutBuilder.append(lineWithNewline)
+          stdoutBytes += lineBytes
+        else
+          wasTruncated = true
+      ,
+      line =>
+        val lineWithNewline = line + "\n"
+        val lineBytes = lineWithNewline.getBytes("UTF-8").length
+        if stderrBytes + lineBytes <= maxOutputBytes then
+          stderrBuilder.append(lineWithNewline)
+          stderrBytes += lineBytes
+        else
+          wasTruncated = true
     )
 
     val exitCode = command.!(logger)
@@ -39,5 +57,6 @@ object ProcessAdapter:
     ProcessResult(
       exitCode = exitCode,
       stdout = stdoutBuilder.toString.trim,
-      stderr = stderrBuilder.toString.trim
+      stderr = stderrBuilder.toString.trim,
+      truncated = wasTruncated
     )
