@@ -7,12 +7,12 @@
 import iw.core.*
 import java.nio.file.{Path, Paths}
 
-val ConfigPath = Paths.get(".iw/config.conf")
+val ConfigPath = Paths.get(Constants.Paths.ConfigFile)
 
 // Base checks defined as immutable values
 val baseChecks: List[Check] = List(
   Check("Git repository", { _ =>
-    val currentDir = Paths.get(System.getProperty("user.dir"))
+    val currentDir = Paths.get(System.getProperty(Constants.SystemProps.UserDir))
     if GitAdapter.isGitRepository(currentDir) then
       CheckResult.Success("Found")
     else
@@ -21,21 +21,20 @@ val baseChecks: List[Check] = List(
   Check("Configuration", { _ =>
     ConfigFileRepository.read(ConfigPath) match
       case Some(_) =>
-        CheckResult.Success(".iw/config.conf valid")
+        CheckResult.Success(s"${Constants.Paths.ConfigFile} valid")
       case None =>
         CheckResult.Error("Missing or invalid", Some("Run: iw init"))
   })
 )
 
 // Collect hook checks from discovered hook classes via reflection
-// IW_HOOK_CLASSES env var contains comma-separated list of hook class names
 private def collectHookChecks(): List[Check] =
-  val hookClasses = sys.env.getOrElse("IW_HOOK_CLASSES", "")
+  val hookClasses = sys.env.getOrElse(Constants.EnvVars.IwHookClasses, "")
   if hookClasses.isEmpty then Nil
   else hookClasses.split(",").toList.flatMap { className =>
     try
       val clazz = Class.forName(s"$className$$") // Scala object class names end with $
-      val instance = clazz.getField("MODULE$").get(null)
+      val instance = clazz.getField(Constants.ScalaReflection.ModuleField).get(null)
       val checkField = clazz.getMethod("check")
       Some(checkField.invoke(instance).asInstanceOf[Check])
     catch

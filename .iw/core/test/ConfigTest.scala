@@ -3,7 +3,9 @@
 
 //> using scala 3.3.1
 //> using dep org.scalameta::munit::1.0.0
+//> using dep com.typesafe:config:1.4.5
 //> using file "../Config.scala"
+//> using file "../Constants.scala"
 
 import iw.core.*
 

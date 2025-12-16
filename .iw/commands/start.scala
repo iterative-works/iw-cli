@@ -21,7 +21,7 @@ import java.nio.file.{Files, Paths}
       createWorktreeForIssue(issueId)
 
 def createWorktreeForIssue(issueId: IssueId): Unit =
-  val configPath = Paths.get(".iw/config.conf")
+  val configPath = Paths.get(Constants.Paths.ConfigFile)
 
   // Read project config to get project name
   ConfigFileRepository.read(configPath) match

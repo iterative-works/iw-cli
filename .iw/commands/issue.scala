@@ -25,7 +25,7 @@ import java.nio.file.{Path, Paths}
 def getIssueId(args: Seq[String]): Either[String, IssueId] =
   if args.isEmpty then
     // Infer from current branch
-    val currentDir = Paths.get(System.getProperty("user.dir"))
+    val currentDir = Paths.get(System.getProperty(Constants.SystemProps.UserDir))
     for {
       branch <- GitAdapter.getCurrentBranch(currentDir)
       issueId <- IssueId.fromBranch(branch)
@@ -35,7 +35,7 @@ def getIssueId(args: Seq[String]): Either[String, IssueId] =
     IssueId.parse(args.head)
 
 def loadConfig(): Either[String, ProjectConfiguration] =
-  val configPath = Paths.get(System.getProperty("user.dir"), ".iw", "config.conf")
+  val configPath = Paths.get(System.getProperty(Constants.SystemProps.UserDir), Constants.Paths.IwDir, "config.conf")
   ConfigFileRepository.read(configPath) match
     case Some(config) => Right(config)
     case None => Left("Configuration file not found. Run 'iw init' first.")
@@ -43,17 +43,17 @@ def loadConfig(): Either[String, ProjectConfiguration] =
 def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, Issue] =
   config.trackerType match
     case IssueTrackerType.Linear =>
-      val token = sys.env.getOrElse("LINEAR_API_TOKEN", "")
+      val token = sys.env.getOrElse(Constants.EnvVars.LinearApiToken, "")
       if token.isEmpty then
-        Left("LINEAR_API_TOKEN environment variable is not set")
+        Left(s"${Constants.EnvVars.LinearApiToken} environment variable is not set")
       else
         LinearClient.fetchIssue(issueId, token)
 
     case IssueTrackerType.YouTrack =>
-      val token = sys.env.getOrElse("YOUTRACK_API_TOKEN", "")
+      val token = sys.env.getOrElse(Constants.EnvVars.YouTrackApiToken, "")
       if token.isEmpty then
-        Left("YOUTRACK_API_TOKEN environment variable is not set")
+        Left(s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set")
       else
         config.youtrackBaseUrl match
           case Some(baseUrl) => YouTrackClient.fetchIssue(issueId, baseUrl, token)
-          case None => Left("YouTrack base URL not configured. Add 'baseUrl' to tracker section in .iw/config.conf")
+          case None => Left(s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}")

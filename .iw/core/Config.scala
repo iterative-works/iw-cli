@@ -49,8 +49,8 @@ object TrackerDetector:
 object ConfigSerializer:
   def toHocon(config: ProjectConfiguration): String =
     val trackerTypeStr = config.trackerType match
-      case IssueTrackerType.Linear => "linear"
-      case IssueTrackerType.YouTrack => "youtrack"
+      case IssueTrackerType.Linear => Constants.TrackerTypeValues.Linear
+      case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
     val youtrackUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
@@ -69,24 +69,24 @@ object ConfigSerializer:
     try
       val config = ConfigFactory.parseString(hocon)
 
-      val trackerTypeStr = config.getString("tracker.type")
+      val trackerTypeStr = config.getString(Constants.ConfigKeys.TrackerType)
       val trackerType = trackerTypeStr match
-        case "linear" => IssueTrackerType.Linear
-        case "youtrack" => IssueTrackerType.YouTrack
+        case Constants.TrackerTypeValues.Linear => IssueTrackerType.Linear
+        case Constants.TrackerTypeValues.YouTrack => IssueTrackerType.YouTrack
         case other => return Left(s"Unknown tracker type: $other")
 
-      val team = config.getString("tracker.team")
-      val projectName = config.getString("project.name")
+      val team = config.getString(Constants.ConfigKeys.TrackerTeam)
+      val projectName = config.getString(Constants.ConfigKeys.ProjectName)
 
       // Read version, default to "latest" if not present
-      val version = if config.hasPath("version") then
-        Some(config.getString("version"))
+      val version = if config.hasPath(Constants.ConfigKeys.Version) then
+        Some(config.getString(Constants.ConfigKeys.Version))
       else
         Some("latest")
 
       // Read YouTrack base URL if present
-      val youtrackBaseUrl = if config.hasPath("tracker.baseUrl") then
-        Some(config.getString("tracker.baseUrl"))
+      val youtrackBaseUrl = if config.hasPath(Constants.ConfigKeys.TrackerBaseUrl) then
+        Some(config.getString(Constants.ConfigKeys.TrackerBaseUrl))
       else
         None
 

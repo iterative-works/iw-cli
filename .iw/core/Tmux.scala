@@ -32,7 +32,7 @@ object TmuxAdapter:
 
   /** Check if currently running inside a tmux session */
   def isInsideTmux: Boolean =
-    sys.env.contains("TMUX")
+    sys.env.contains(Constants.EnvVars.Tmux)
 
   /** Get current tmux session name if inside tmux */
   def currentSessionName: Option[String] =

@@ -35,7 +35,7 @@ object ProcessAdapter:
     val logger = ProcessLogger(
       line =>
         val lineWithNewline = line + "\n"
-        val lineBytes = lineWithNewline.getBytes("UTF-8").length
+        val lineBytes = lineWithNewline.getBytes(Constants.Encoding.Utf8).length
         if stdoutBytes + lineBytes <= maxOutputBytes then
           stdoutBuilder.append(lineWithNewline)
           stdoutBytes += lineBytes
@@ -44,7 +44,7 @@ object ProcessAdapter:
       ,
       line =>
         val lineWithNewline = line + "\n"
-        val lineBytes = lineWithNewline.getBytes("UTF-8").length
+        val lineBytes = lineWithNewline.getBytes(Constants.Encoding.Utf8).length
         if stderrBytes + lineBytes <= maxOutputBytes then
           stderrBuilder.append(lineWithNewline)
           stderrBytes += lineBytes

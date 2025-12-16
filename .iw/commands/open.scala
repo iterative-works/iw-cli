@@ -22,7 +22,7 @@ def inferIssueFromBranch(): Either[String, IssueId] =
   GitAdapter.getCurrentBranch(currentDir).flatMap(IssueId.fromBranch)
 
 def openWorktreeSession(issueId: IssueId): Unit =
-  val configPath = Paths.get(".iw/config.conf")
+  val configPath = Paths.get(Constants.Paths.ConfigFile)
 
   // Read project config
   ConfigFileRepository.read(configPath) match

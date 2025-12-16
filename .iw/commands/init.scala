@@ -31,7 +31,7 @@ def askForTrackerType(): IssueTrackerType =
   val force = args.contains("--force")
   val trackerArg = parseArg(args, "--tracker=")
   val teamArg = parseArg(args, "--team=")
-  val currentDir = Paths.get(System.getProperty("user.dir"))
+  val currentDir = Paths.get(System.getProperty(Constants.SystemProps.UserDir))
 
   // Check if we're in a git repository
   if !GitAdapter.isGitRepository(currentDir) then
@@ -39,18 +39,18 @@ def askForTrackerType(): IssueTrackerType =
     System.exit(1)
 
   // Check if config already exists
-  val configPath = currentDir.resolve(".iw").resolve("config.conf")
+  val configPath = currentDir.resolve(Constants.Paths.IwDir).resolve("config.conf")
   if Files.exists(configPath) && !force then
-    Output.error("Configuration already exists at .iw/config.conf")
+    Output.error(s"Configuration already exists at ${Constants.Paths.ConfigFile}")
     Output.info("Use 'iw init --force' to overwrite")
     System.exit(1)
 
   // Determine tracker type from flag or interactively
   val trackerType = trackerArg match
-    case Some("linear") => IssueTrackerType.Linear
-    case Some("youtrack") => IssueTrackerType.YouTrack
+    case Some(Constants.TrackerTypeValues.Linear) => IssueTrackerType.Linear
+    case Some(Constants.TrackerTypeValues.YouTrack) => IssueTrackerType.YouTrack
     case Some(invalid) =>
-      Output.error(s"Invalid tracker type: $invalid. Use 'linear' or 'youtrack'.")
+      Output.error(s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}' or '${Constants.TrackerTypeValues.YouTrack}'.")
       System.exit(1)
       throw RuntimeException("unreachable") // for type checker
     case None =>
@@ -61,8 +61,8 @@ def askForTrackerType(): IssueTrackerType =
       suggestedTracker match
         case Some(suggested) =>
           val trackerName = suggested match
-            case IssueTrackerType.Linear => "linear"
-            case IssueTrackerType.YouTrack => "youtrack"
+            case IssueTrackerType.Linear => Constants.TrackerTypeValues.Linear
+            case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
 
           Output.info(s"Detected tracker: $trackerName (based on git remote)")
           val confirmed = Prompt.confirm(s"Use $trackerName?", default = true)
@@ -90,17 +90,17 @@ def askForTrackerType(): IssueTrackerType =
   // Write configuration
   ConfigFileRepository.write(configPath, config)
 
-  Output.success("Configuration created at .iw/config.conf")
+  Output.success(s"Configuration created at ${Constants.Paths.ConfigFile}")
   Output.section("Next steps")
 
   // Display environment variable instructions
   trackerType match
     case IssueTrackerType.Linear =>
       Output.info("Set your API token:")
-      Output.info("  export LINEAR_API_TOKEN=lin_api_...")
+      Output.info(s"  export ${Constants.EnvVars.LinearApiToken}=lin_api_...")
     case IssueTrackerType.YouTrack =>
       Output.info("Set your API token:")
-      Output.info("  export YOUTRACK_API_TOKEN=perm:...")
+      Output.info(s"  export ${Constants.EnvVars.YouTrackApiToken}=perm:...")
 
   Output.info("")
   Output.info("Run './iw doctor' to verify your setup.")

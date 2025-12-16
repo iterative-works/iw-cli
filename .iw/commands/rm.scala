@@ -27,7 +27,7 @@ def parseArgs(args: List[String]): (Option[String], Boolean) =
   (issueIdArg, forceFlag)
 
 def removeWorktree(issueId: IssueId, force: Boolean): Unit =
-  val configPath = Paths.get(".iw/config.conf")
+  val configPath = Paths.get(Constants.Paths.ConfigFile)
 
   // Read project config
   ConfigFileRepository.read(configPath) match
