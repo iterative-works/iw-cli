@@ -56,26 +56,44 @@ class IssueIdTest extends FunSuite:
   test("IssueId.parse rejects missing number"):
     val result = IssueId.parse("IWLE-")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects missing project"):
     val result = IssueId.parse("-123")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects empty string"):
     val result = IssueId.parse("")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects only whitespace"):
     val result = IssueId.parse("   ")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects non-numeric suffix"):
     val result = IssueId.parse("IWLE-ABC")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects numeric prefix"):
     val result = IssueId.parse("123-456")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects lowercase letters in project after trim"):
     // Should convert to uppercase, so this should pass
@@ -86,10 +104,16 @@ class IssueIdTest extends FunSuite:
   test("IssueId.parse rejects multiple dashes"):
     val result = IssueId.parse("IWLE-SUB-123")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.parse rejects special characters"):
     val result = IssueId.parse("IWLE@123")
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("expected")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("IssueId.toBranchName returns value unchanged"):
     val issueId = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse valid issue ID"))

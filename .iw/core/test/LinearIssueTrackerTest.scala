@@ -110,6 +110,9 @@ class LinearIssueTrackerTest extends FunSuite:
 
     val result = LinearClient.parseLinearResponse(json)
     assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Failed to parse") || msg.contains("parse")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("buildLinearQuery creates valid GraphQL query"):
     val issueId = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse issue ID"))
