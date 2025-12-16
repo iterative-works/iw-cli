@@ -9,7 +9,7 @@ object StartHookDoctor:
     if ProcessAdapter.commandExists("tmux") then
       CheckResult.Success("Installed")
     else
-      CheckResult.Error("Not found", Some("Install: sudo apt install tmux (Debian/Ubuntu) or brew install tmux (macOS)"))
+      CheckResult.Error("Not found", "Install: sudo apt install tmux (Debian/Ubuntu) or brew install tmux (macOS)")
 
   // Expose check as immutable value for discovery
   val check: Check = Check("tmux", checkTmux)

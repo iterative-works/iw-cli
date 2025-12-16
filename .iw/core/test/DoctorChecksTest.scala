@@ -3,8 +3,10 @@
 
 //> using scala 3.3.1
 //> using dep org.scalameta::munit::1.0.0
+//> using dep com.typesafe:config:1.4.5
 //> using file "../DoctorChecks.scala"
 //> using file "../Config.scala"
+//> using file "../Constants.scala"
 
 package iw.core.test
 
@@ -20,34 +22,27 @@ class DoctorChecksTest extends FunSuite:
       case CheckResult.Success(msg) => assertEquals(msg, "Found")
       case _ => fail("Expected Success")
 
-  test("CheckResult.Warning contains message and optional hint"):
-    val withHint = CheckResult.Warning("Slow", Some("Consider upgrading"))
-    withHint match
-      case CheckResult.Warning(msg, hint) =>
+  test("CheckResult.Warning with hint contains message and hint"):
+    val result = CheckResult.WarningWithHint("Slow", "Consider upgrading")
+    result match
+      case CheckResult.WarningWithHint(msg, hintText) =>
         assertEquals(msg, "Slow")
-        assertEquals(hint, Some("Consider upgrading"))
+        assertEquals(hintText, "Consider upgrading")
+      case _ => fail("Expected WarningWithHint")
+
+  test("CheckResult.Warning without hint contains only message"):
+    val result = CheckResult.Warning("Slow")
+    result match
+      case CheckResult.Warning(msg) =>
+        assertEquals(msg, "Slow")
       case _ => fail("Expected Warning")
 
-    val withoutHint = CheckResult.Warning("Slow", None)
-    withoutHint match
-      case CheckResult.Warning(msg, hint) =>
-        assertEquals(msg, "Slow")
-        assertEquals(hint, None)
-      case _ => fail("Expected Warning")
-
-  test("CheckResult.Error contains message and optional hint"):
-    val withHint = CheckResult.Error("Not found", Some("Install it"))
-    withHint match
-      case CheckResult.Error(msg, hint) =>
+  test("CheckResult.Error always contains message and hint"):
+    val result = CheckResult.Error("Not found", "Install it")
+    result match
+      case CheckResult.Error(msg, hintText) =>
         assertEquals(msg, "Not found")
-        assertEquals(hint, Some("Install it"))
-      case _ => fail("Expected Error")
-
-    val withoutHint = CheckResult.Error("Not found", None)
-    withoutHint match
-      case CheckResult.Error(msg, hint) =>
-        assertEquals(msg, "Not found")
-        assertEquals(hint, None)
+        assertEquals(hintText, "Install it")
       case _ => fail("Expected Error")
 
   test("CheckResult.Skip contains reason"):
@@ -55,6 +50,13 @@ class DoctorChecksTest extends FunSuite:
     result match
       case CheckResult.Skip(reason) => assertEquals(reason, "Not applicable")
       case _ => fail("Expected Skip")
+
+  test("CheckResult hint extraction helper works correctly"):
+    assertEquals(CheckResult.Success("OK").hint, None)
+    assertEquals(CheckResult.Warning("Warn").hint, None)
+    assertEquals(CheckResult.WarningWithHint("Warn", "Fix it").hint, Some("Fix it"))
+    assertEquals(CheckResult.Error("Err", "Fix it").hint, Some("Fix it"))
+    assertEquals(CheckResult.Skip("Skip").hint, None)
 
   // Test Check case class
   test("Check holds name and run function"):
@@ -65,7 +67,7 @@ class DoctorChecksTest extends FunSuite:
     val checks = List(
       Check("First", _ => CheckResult.Success("First done")),
       Check("Second", _ => CheckResult.Success("Second done")),
-      Check("Third", _ => CheckResult.Error("Third failed", None))
+      Check("Third", _ => CheckResult.Error("Third failed", "Check logs"))
     )
     val config = ProjectConfiguration(IssueTrackerType.Linear, "TEST", "test-project")
 
@@ -77,7 +79,7 @@ class DoctorChecksTest extends FunSuite:
     assertEquals(results(1)._1, "Second")
     assertEquals(results(1)._2, CheckResult.Success("Second done"))
     assertEquals(results(2)._1, "Third")
-    assertEquals(results(2)._2, CheckResult.Error("Third failed", None))
+    assertEquals(results(2)._2, CheckResult.Error("Third failed", "Check logs"))
 
   test("DoctorChecks.runAll passes config to check functions"):
     val checks = List(
@@ -85,7 +87,7 @@ class DoctorChecksTest extends FunSuite:
         if config.team == "EXPECTED" then
           CheckResult.Success("Correct team")
         else
-          CheckResult.Error("Wrong team", None)
+          CheckResult.Error("Wrong team", "Update config with correct team")
       )
     )
 
@@ -96,7 +98,7 @@ class DoctorChecksTest extends FunSuite:
     assertEquals(correctResults.head._2, CheckResult.Success("Correct team"))
 
     val wrongResults = DoctorChecks.runAll(checks, wrongConfig)
-    assertEquals(wrongResults.head._2, CheckResult.Error("Wrong team", None))
+    assertEquals(wrongResults.head._2, CheckResult.Error("Wrong team", "Update config with correct team"))
 
   test("DoctorChecks.runAll with empty list returns empty results"):
     val config = ProjectConfiguration(IssueTrackerType.Linear, "TEST", "test")

@@ -5,9 +5,17 @@ package iw.core
 
 enum CheckResult:
   case Success(message: String)
-  case Warning(message: String, hint: Option[String] = None)
-  case Error(message: String, hint: Option[String] = None)
+  case Warning(message: String)
+  case WarningWithHint(message: String, hintText: String)
+  case Error(message: String, hintText: String)
   case Skip(reason: String)
+
+  def hint: Option[String] = this match
+    case Success(_) => None
+    case Warning(_) => None
+    case WarningWithHint(_, h) => Some(h)
+    case Error(_, h) => Some(h)
+    case Skip(_) => None
 
 case class Check(name: String, run: ProjectConfiguration => CheckResult)
 

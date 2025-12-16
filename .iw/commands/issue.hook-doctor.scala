@@ -10,14 +10,14 @@ object IssueHookDoctor:
       CheckResult.Skip("Not using Linear")
     else sys.env.get(Constants.EnvVars.LinearApiToken) match
       case None =>
-        CheckResult.Error("Not set", Some(s"export ${Constants.EnvVars.LinearApiToken}=lin_api_..."))
+        CheckResult.Error("Not set", s"export ${Constants.EnvVars.LinearApiToken}=lin_api_...")
       case Some(token) if token.isEmpty =>
-        CheckResult.Error("Empty", Some(s"export ${Constants.EnvVars.LinearApiToken}=lin_api_..."))
+        CheckResult.Error("Empty", s"export ${Constants.EnvVars.LinearApiToken}=lin_api_...")
       case Some(token) =>
         if LinearClient.validateToken(token) then
           CheckResult.Success("Valid")
         else
-          CheckResult.Error("Authentication failed", Some("Check token at linear.app/settings/api"))
+          CheckResult.Error("Authentication failed", "Check token at linear.app/settings/api")
 
   // Expose check as immutable value for discovery
   val check: Check = Check(Constants.EnvVars.LinearApiToken, checkLinearToken)

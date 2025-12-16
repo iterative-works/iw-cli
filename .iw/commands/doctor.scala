@@ -16,14 +16,14 @@ val baseChecks: List[Check] = List(
     if GitAdapter.isGitRepository(currentDir) then
       CheckResult.Success("Found")
     else
-      CheckResult.Error("Not found", Some("Initialize git repository: git init"))
+      CheckResult.Error("Not found", "Initialize git repository: git init")
   }),
   Check("Configuration", { _ =>
     ConfigFileRepository.read(ConfigPath) match
       case Some(_) =>
         CheckResult.Success(s"${Constants.Paths.ConfigFile} valid")
       case None =>
-        CheckResult.Error("Missing or invalid", Some("Run: iw init"))
+        CheckResult.Error("Missing or invalid", "Run: iw init")
   })
 )
 
@@ -65,15 +65,19 @@ private def collectHookChecks(): List[Check] =
       case CheckResult.Success(message) =>
         System.out.println(f"  ✓ $name%-20s $message")
 
-      case CheckResult.Warning(message, hint) =>
+      case CheckResult.Warning(message) =>
         warningCount += 1
         System.out.println(f"  ⚠ $name%-20s $message")
-        hint.foreach(h => System.out.println(s"    → $h"))
 
-      case CheckResult.Error(message, hint) =>
+      case CheckResult.WarningWithHint(message, hintText) =>
+        warningCount += 1
+        System.out.println(f"  ⚠ $name%-20s $message")
+        System.out.println(s"    → $hintText")
+
+      case CheckResult.Error(message, hintText) =>
         errorCount += 1
         System.out.println(f"  ✗ $name%-20s $message")
-        hint.foreach(h => System.out.println(s"    → $h"))
+        System.out.println(s"    → $hintText")
 
       case CheckResult.Skip(reason) =>
         System.out.println(f"  - $name%-20s Skipped ($reason)")
