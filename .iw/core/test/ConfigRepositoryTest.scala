@@ -4,16 +4,7 @@ package iw.tests
 // PURPOSE: Verifies ConfigFileRepository can write and read HOCON config files
 import iw.core.*
 
-class ConfigRepositoryTest extends munit.FunSuite:
-
-  val tempDir = FunFixture[os.Path](
-    setup = { _ =>
-      os.Path(java.nio.file.Files.createTempDirectory("iw-config-repo-test"))
-    },
-    teardown = { dir =>
-      os.remove.all(dir)
-    }
-  )
+class ConfigRepositoryTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ConfigFileRepository writes config to file"):
     dir =>

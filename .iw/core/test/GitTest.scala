@@ -5,28 +5,12 @@ package iw.tests
 import iw.core.*
 import scala.sys.process.*
 
-class GitTest extends munit.FunSuite:
-
-  val gitRepo = FunFixture[os.Path](
-    setup = { _ =>
-      val dir = os.Path(java.nio.file.Files.createTempDirectory("iw-git-test"))
-      // Initialize git repo
-      Process(Seq("git", "init"), dir.toIO).!
-      Process(Seq("git", "config", "user.email", "test@example.com"), dir.toIO).!
-      Process(Seq("git", "config", "user.name", "Test User"), dir.toIO).!
-      // Add a remote
-      Process(Seq("git", "remote", "add", "origin", "https://github.com/iterative-works/kanon.git"), dir.toIO).!
-      dir
-    },
-    teardown = { dir =>
-      os.remove.all(dir)
-    }
-  )
+class GitTest extends munit.FunSuite, Fixtures:
 
   gitRepo.test("GitAdapter reads git remote URL"):
     repo =>
       val remote = GitAdapter.getRemoteUrl(repo)
-      assertEquals(remote, Some(GitRemote("https://github.com/iterative-works/kanon.git")))
+      assertEquals(remote, Some(GitRemote("https://github.com/iterative-works/test-repo.git")))
 
   gitRepo.test("GitAdapter extracts host from remote URL"):
     repo =>
@@ -34,13 +18,10 @@ class GitTest extends munit.FunSuite:
       assert(remote.isDefined)
       assertEquals(remote.get.host, Right("github.com"))
 
-  test("GitAdapter returns None for non-git directory"):
-    val dir = os.Path(java.nio.file.Files.createTempDirectory("iw-non-git-test"))
-    try
+  tempDir.test("GitAdapter returns None for non-git directory"):
+    dir =>
       val remote = GitAdapter.getRemoteUrl(dir)
       assertEquals(remote, None)
-    finally
-      os.remove.all(dir)
 
   gitRepo.test("GitAdapter returns None for git repo without remote"):
     repo =>
@@ -49,9 +30,8 @@ class GitTest extends munit.FunSuite:
       val remote = GitAdapter.getRemoteUrl(repo)
       assertEquals(remote, None)
 
-  test("GitAdapter checks if directory is in git repo"):
-    val dir = os.Path(java.nio.file.Files.createTempDirectory("iw-git-check-test"))
-    try
+  tempDir.test("GitAdapter checks if directory is in git repo"):
+    dir =>
       // Not a git repo
       assertEquals(GitAdapter.isGitRepository(dir), false)
 
@@ -62,17 +42,10 @@ class GitTest extends munit.FunSuite:
 
       // Now it is a git repo
       assertEquals(GitAdapter.isGitRepository(dir), true)
-    finally
-      os.remove.all(dir)
 
   gitRepo.test("GitAdapter gets current branch name"):
     repo =>
-      // Git init creates a default branch (usually 'main' or 'master')
-      // Let's create a commit to establish the branch
-      os.write(repo / "test.txt", "test")
-      Process(Seq("git", "add", "test.txt"), repo.toIO).!
-      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toIO).!
-
+      // Fixture has initial commit, branch is established
       val result = GitAdapter.getCurrentBranch(repo)
       assert(result.isRight)
       // Branch name should be either 'main' or 'master'
@@ -80,12 +53,7 @@ class GitTest extends munit.FunSuite:
 
   gitRepo.test("GitAdapter gets current branch name on custom branch"):
     repo =>
-      // Create initial commit
-      os.write(repo / "test.txt", "test")
-      Process(Seq("git", "add", "test.txt"), repo.toIO).!
-      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toIO).!
-
-      // Create and checkout a new branch
+      // Fixture has initial commit, create and checkout a new branch
       Process(Seq("git", "checkout", "-b", "IWLE-123"), repo.toIO).!
 
       val result = GitAdapter.getCurrentBranch(repo)
@@ -94,50 +62,31 @@ class GitTest extends munit.FunSuite:
 
   gitRepo.test("GitAdapter handles detached HEAD"):
     repo =>
-      // Create initial commit
-      os.write(repo / "test.txt", "test")
-      Process(Seq("git", "add", "test.txt"), repo.toIO).!
-      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toIO).!
-
-      // Get the commit hash
+      // Fixture has initial commit, get its hash and checkout detached
       val hash = Process(Seq("git", "rev-parse", "HEAD"), repo.toIO).!!.trim
-
-      // Checkout the commit directly (detached HEAD)
       Process(Seq("git", "checkout", hash), repo.toIO).!
 
       val result = GitAdapter.getCurrentBranch(repo)
       assert(result.isRight)
       assertEquals(result, Right("HEAD"))
 
-  test("GitAdapter returns error for non-git directory when getting branch"):
-    val dir = os.Path(java.nio.file.Files.createTempDirectory("iw-non-git-branch-test"))
-    try
+  tempDir.test("GitAdapter returns error for non-git directory when getting branch"):
+    dir =>
       val result = GitAdapter.getCurrentBranch(dir)
       assert(result.isLeft)
       assert(result.left.exists(_.contains("Failed to get current branch")))
-    finally
-      os.remove.all(dir)
 
   gitRepo.test("hasUncommittedChanges returns false for clean worktree"):
     repo =>
-      // Create initial commit
-      os.write(repo / "test.txt", "test")
-      Process(Seq("git", "add", "test.txt"), repo.toIO).!
-      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toIO).!
-
+      // Fixture already has initial commit, worktree is clean
       val result = GitAdapter.hasUncommittedChanges(repo)
       assert(result.isRight)
       assertEquals(result, Right(false))
 
   gitRepo.test("hasUncommittedChanges returns true for modified files"):
     repo =>
-      // Create initial commit
-      os.write(repo / "test.txt", "test")
-      Process(Seq("git", "add", "test.txt"), repo.toIO).!
-      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toIO).!
-
-      // Modify the file
-      os.write.over(repo / "test.txt", "modified")
+      // Fixture has README.md committed, modify it
+      os.write.over(repo / "README.md", "modified content")
 
       val result = GitAdapter.hasUncommittedChanges(repo)
       assert(result.isRight)
@@ -145,23 +94,15 @@ class GitTest extends munit.FunSuite:
 
   gitRepo.test("hasUncommittedChanges returns true for untracked files"):
     repo =>
-      // Create initial commit
-      os.write(repo / "test.txt", "test")
-      Process(Seq("git", "add", "test.txt"), repo.toIO).!
-      Process(Seq("git", "commit", "-m", "Initial commit"), repo.toIO).!
-
-      // Add untracked file
-      os.write(repo / "untracked.txt", "untracked")
+      // Fixture is clean, add untracked file
+      os.write(repo / "untracked.txt", "untracked content")
 
       val result = GitAdapter.hasUncommittedChanges(repo)
       assert(result.isRight)
       assertEquals(result, Right(true))
 
-  test("hasUncommittedChanges returns error for non-git directory"):
-    val dir = os.Path(java.nio.file.Files.createTempDirectory("iw-non-git-status-test"))
-    try
+  tempDir.test("hasUncommittedChanges returns error for non-git directory"):
+    dir =>
       val result = GitAdapter.hasUncommittedChanges(dir)
       assert(result.isLeft)
       assert(result.left.exists(_.contains("Failed to check")))
-    finally
-      os.remove.all(dir)

@@ -5,16 +5,7 @@ package iw.tests
 import iw.core.*
 import com.typesafe.config.ConfigFactory
 
-class ConfigFileTest extends munit.FunSuite:
-
-  val tempDir = FunFixture[os.Path](
-    setup = { _ =>
-      os.Path(java.nio.file.Files.createTempDirectory("iw-config-test"))
-    },
-    teardown = { dir =>
-      os.remove.all(dir)
-    }
-  )
+class ConfigFileTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ProjectConfiguration serializes to HOCON"):
     tempDir =>

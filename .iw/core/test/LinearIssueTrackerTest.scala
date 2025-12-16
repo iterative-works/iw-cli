@@ -6,21 +6,10 @@ import iw.core.*
 import munit.FunSuite
 
 class LinearIssueTrackerTest extends FunSuite:
+  import SampleJson.*
 
   test("parseLinearResponse extracts all fields from valid response"):
-    val json = """{
-      "data": {
-        "issue": {
-          "identifier": "IWLE-123",
-          "title": "Add user login",
-          "state": { "name": "In Progress" },
-          "assignee": { "displayName": "Michal Příhoda" },
-          "description": "Users need to log in"
-        }
-      }
-    }"""
-
-    val result = LinearClient.parseLinearResponse(json)
+    val result = LinearClient.parseLinearResponse(linearIssueResponse)
     assert(result.isRight)
 
     val issue = result.getOrElse(fail("Expected Right but got Left"))
@@ -31,19 +20,7 @@ class LinearIssueTrackerTest extends FunSuite:
     assertEquals(issue.description, Some("Users need to log in"))
 
   test("parseLinearResponse handles missing assignee"):
-    val json = """{
-      "data": {
-        "issue": {
-          "identifier": "IWLE-456",
-          "title": "Unassigned task",
-          "state": { "name": "Todo" },
-          "assignee": null,
-          "description": "Description here"
-        }
-      }
-    }"""
-
-    val result = LinearClient.parseLinearResponse(json)
+    val result = LinearClient.parseLinearResponse(linearIssueNoAssignee)
     assert(result.isRight)
 
     val issue = result.getOrElse(fail("Expected Right but got Left"))
@@ -88,13 +65,7 @@ class LinearIssueTrackerTest extends FunSuite:
     assertEquals(issue.description, None)
 
   test("parseLinearResponse returns error for issue not found"):
-    val json = """{
-      "data": {
-        "issue": null
-      }
-    }"""
-
-    val result = LinearClient.parseLinearResponse(json)
+    val result = LinearClient.parseLinearResponse(linearIssueNotFound)
     assert(result.isLeft)
     assert(result.left.exists(_.contains("not found")))
 
@@ -108,8 +79,7 @@ class LinearIssueTrackerTest extends FunSuite:
     ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
 
   test("buildLinearQuery creates valid GraphQL query"):
-    val issueId = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse issue ID"))
-    val query = LinearClient.buildLinearQuery(issueId)
+    val query = LinearClient.buildLinearQuery(SampleData.issueId)
 
     assert(query.contains("query"))
     assert(query.contains("issue"))
