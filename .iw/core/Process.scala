@@ -3,13 +3,18 @@
 
 package iw.core
 
-import scala.sys.process.*
-
-case class ProcessResult(exitCode: Int, stdout: String, stderr: String, truncated: Boolean = false)
+case class ProcessResult(
+  exitCode: Int,
+  stdout: String,
+  stderr: String,
+  truncated: Boolean = false,
+  timedOut: Boolean = false
+)
 
 object ProcessAdapter:
   // Safe pattern: only alphanumeric, dash, underscore
   private val SafeCommandPattern = "^[a-zA-Z0-9_-]+$".r
+  private val DefaultTimeoutMs = 5 * 60 * 1000 // 5 minutes
 
   def commandExists(command: String): Boolean =
     // Validate command name to prevent injection (defense in depth)
@@ -17,46 +22,59 @@ object ProcessAdapter:
       return false
 
     try
-      // Use 'which' via Process API - no shell invocation, command is passed as argument
-      // This avoids shell injection by not using string interpolation into a shell command
-      val process = Process(Seq("which", command))
-      val exitCode = process.!(ProcessLogger(_ => (), _ => ()))
-      exitCode == 0
+      val result = os.proc("which", command).call(
+        check = false,
+        stdout = os.Pipe,
+        stderr = os.Pipe
+      )
+      result.exitCode == 0
     catch
       case _: Exception => false
 
-  def run(command: Seq[String], maxOutputBytes: Int = 1024 * 1024): ProcessResult =
-    val stdoutBuilder = new StringBuilder
-    val stderrBuilder = new StringBuilder
-    var stdoutBytes = 0
-    var stderrBytes = 0
-    var wasTruncated = false
+  // SIGTERM exit code (128 + 15) indicates process was killed, likely by timeout
+  private val SigtermExitCode = 143
 
-    val logger = ProcessLogger(
-      line =>
-        val lineWithNewline = line + "\n"
-        val lineBytes = lineWithNewline.getBytes(Constants.Encoding.Utf8).length
-        if stdoutBytes + lineBytes <= maxOutputBytes then
-          stdoutBuilder.append(lineWithNewline)
-          stdoutBytes += lineBytes
-        else
-          wasTruncated = true
-      ,
-      line =>
-        val lineWithNewline = line + "\n"
-        val lineBytes = lineWithNewline.getBytes(Constants.Encoding.Utf8).length
-        if stderrBytes + lineBytes <= maxOutputBytes then
-          stderrBuilder.append(lineWithNewline)
-          stderrBytes += lineBytes
-        else
-          wasTruncated = true
+  def run(
+    command: Seq[String],
+    maxOutputBytes: Int = 1024 * 1024,
+    timeoutMs: Int = DefaultTimeoutMs
+  ): ProcessResult =
+    val result = os.proc(command).call(
+      check = false,
+      stdout = os.Pipe,
+      stderr = os.Pipe,
+      timeout = timeoutMs
     )
 
-    val exitCode = command.!(logger)
+    val (stdout, stdoutTruncated) = truncateOutput(result.out.text().trim, maxOutputBytes)
+    val (stderr, stderrTruncated) = truncateOutput(result.err.text().trim, maxOutputBytes)
+    val timedOut = result.exitCode == SigtermExitCode
 
     ProcessResult(
-      exitCode = exitCode,
-      stdout = stdoutBuilder.toString.trim,
-      stderr = stderrBuilder.toString.trim,
-      truncated = wasTruncated
+      exitCode = result.exitCode,
+      stdout = stdout,
+      stderr = stderr,
+      truncated = stdoutTruncated || stderrTruncated,
+      timedOut = timedOut
     )
+
+  def runStreaming(command: Seq[String], timeoutMs: Int = DefaultTimeoutMs): Int =
+    try
+      val result = os.proc(command).call(
+        check = false,
+        stdout = os.Inherit,
+        stderr = os.Inherit,
+        timeout = timeoutMs
+      )
+      result.exitCode
+    catch
+      case _: os.SubprocessException => -1
+
+  private def truncateOutput(output: String, maxBytes: Int): (String, Boolean) =
+    val bytes = output.getBytes(Constants.Encoding.Utf8)
+    if bytes.length <= maxBytes then
+      (output, false)
+    else
+      // Truncate at byte boundary, being careful with UTF-8
+      val truncated = new String(bytes.take(maxBytes), Constants.Encoding.Utf8)
+      (truncated, true)

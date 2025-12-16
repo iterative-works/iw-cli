@@ -62,17 +62,10 @@ def runUnitTests(): Boolean =
   Output.section("Running Unit Tests")
 
   // Pass directories to scala-cli so it properly recognizes test vs main sources
+  // Use streaming to show output in real-time
   val command = Seq("scala-cli", "test", testDir.toString, coreDir.toString)
-
-  val result = ProcessAdapter.run(command, maxOutputBytes = 10 * 1024 * 1024)
-
-  // Print output
-  if result.stdout.nonEmpty then
-    System.out.println(result.stdout)
-  if result.stderr.nonEmpty then
-    System.err.println(result.stderr)
-
-  result.exitCode == 0
+  val exitCode = ProcessAdapter.runStreaming(command)
+  exitCode == 0
 
 def runE2ETests(): Boolean =
   val projectDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
@@ -89,14 +82,7 @@ def runE2ETests(): Boolean =
 
   Output.section("Running E2E Tests")
 
+  // Use streaming to show output in real-time
   val command = Seq("bats", testDir.toString)
-
-  val result = ProcessAdapter.run(command, maxOutputBytes = 10 * 1024 * 1024)
-
-  // Print output
-  if result.stdout.nonEmpty then
-    System.out.println(result.stdout)
-  if result.stderr.nonEmpty then
-    System.err.println(result.stderr)
-
-  result.exitCode == 0
+  val exitCode = ProcessAdapter.runStreaming(command)
+  exitCode == 0

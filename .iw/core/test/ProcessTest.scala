@@ -102,3 +102,15 @@ class ProcessTest extends FunSuite:
     assert(result.stdout.length <= 100)
     assert(result.stderr.length <= 100)
     assertEquals(result.truncated, true)
+
+  test("run times out for long-running commands"):
+    // sleep 10 should be interrupted by 100ms timeout
+    val result = ProcessAdapter.run(Seq("sleep", "10"), timeoutMs = 100)
+    assertEquals(result.timedOut, true)
+    assert(result.exitCode != 0)
+
+  test("run completes within timeout for fast commands"):
+    val result = ProcessAdapter.run(Seq("echo", "fast"), timeoutMs = 5000)
+    assertEquals(result.timedOut, false)
+    assertEquals(result.exitCode, 0)
+    assertEquals(result.stdout, "fast")
