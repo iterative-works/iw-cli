@@ -1,12 +1,6 @@
 // PURPOSE: Unit tests for WorktreePath value object for directory naming
 // PURPOSE: Tests directory name calculation, path resolution, and session naming
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../IssueId.scala"
-//> using file "../WorktreePath.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

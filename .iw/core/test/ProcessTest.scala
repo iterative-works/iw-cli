@@ -1,12 +1,6 @@
 // PURPOSE: Unit tests for ProcessAdapter shell command operations
 // PURPOSE: Tests commandExists with both real and non-existent commands
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../Process.scala"
-//> using file "../Constants.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

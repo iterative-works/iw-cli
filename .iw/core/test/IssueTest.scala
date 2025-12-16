@@ -1,12 +1,6 @@
 // PURPOSE: Unit tests for Issue entity construction and validation
 // PURPOSE: Tests Issue case class creation with all field combinations
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../Issue.scala"
-//> using file "../IssueId.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

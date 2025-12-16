@@ -1,13 +1,6 @@
 // PURPOSE: Unit tests for YouTrack issue fetching and response parsing
 // PURPOSE: Tests YouTrackClient with various response scenarios including customFields
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../YouTrackClient.scala"
-//> using file "../Issue.scala"
-//> using file "../IssueId.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

@@ -8,11 +8,9 @@ object IssueHookDoctor:
   def checkLinearToken(config: ProjectConfiguration): CheckResult =
     if config.trackerType != IssueTrackerType.Linear then
       CheckResult.Skip("Not using Linear")
-    else sys.env.get(Constants.EnvVars.LinearApiToken) match
+    else ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
       case None =>
         CheckResult.Error("Not set", s"export ${Constants.EnvVars.LinearApiToken}=lin_api_...")
-      case Some(token) if token.isEmpty =>
-        CheckResult.Error("Empty", s"export ${Constants.EnvVars.LinearApiToken}=lin_api_...")
       case Some(token) =>
         if LinearClient.validateToken(token) then
           CheckResult.Success("Valid")

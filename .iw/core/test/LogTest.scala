@@ -1,10 +1,7 @@
 // PURPOSE: Tests for Log trait and logging functionality
+package iw.tests
+
 // PURPOSE: Verifies log level filtering and environment variable configuration
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.2.1
-//> using file "../Log.scala"
-
 import iw.core.{Log, LogLevel}
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream

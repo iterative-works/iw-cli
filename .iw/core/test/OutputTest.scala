@@ -1,10 +1,7 @@
 // PURPOSE: Tests for Output utility formatting functions
+package iw.tests
+
 // PURPOSE: Verifies correct formatting of info, error, success, section, and keyValue output
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../Output.scala"
-
 import iw.core.Output
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream

@@ -1,11 +1,6 @@
 // PURPOSE: Unit tests for IssueId.fromBranch branch name extraction
 // PURPOSE: Tests extraction from various branch naming patterns
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../IssueId.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

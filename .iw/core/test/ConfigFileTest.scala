@@ -1,11 +1,7 @@
 // PURPOSE: Tests for HOCON configuration file serialization and deserialization
+package iw.tests
+
 // PURPOSE: Verifies configuration can be written to and read from HOCON format
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using dep com.typesafe:config:1.4.3
-//> using file "../Config.scala"
-
 import iw.core.*
 import com.typesafe.config.ConfigFactory
 

@@ -1,11 +1,6 @@
 // PURPOSE: Unit tests for IssueId value object validation and parsing
 // PURPOSE: Tests valid/invalid formats and branch name conversion
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../IssueId.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

@@ -9,17 +9,14 @@ import sttp.model.StatusCode
 object LinearClient:
   private val apiUrl = "https://api.linear.app/graphql"
 
-  def validateToken(token: String): Boolean =
-    if token.isEmpty then
-      return false
-
+  def validateToken(token: ApiToken): Boolean =
     try
       // Simple GraphQL query to validate token - just fetch viewer info
       val query = """{"query":"{ viewer { id } }"}"""
 
       val response = quickRequest
         .post(uri"$apiUrl")
-        .header("Authorization", token)
+        .header("Authorization", token.value)
         .header("Content-Type", "application/json")
         .body(query)
         .send()
@@ -29,16 +26,13 @@ object LinearClient:
     catch
       case _: Exception => false
 
-  def fetchIssue(issueId: IssueId, token: String): Either[String, Issue] =
-    if token.isEmpty then
-      return Left("API token is empty")
-
+  def fetchIssue(issueId: IssueId, token: ApiToken): Either[String, Issue] =
     try
       val query = buildLinearQuery(issueId)
 
       val response = quickRequest
         .post(uri"$apiUrl")
-        .header("Authorization", token)
+        .header("Authorization", token.value)
         .header("Content-Type", "application/json")
         .body(query)
         .send()

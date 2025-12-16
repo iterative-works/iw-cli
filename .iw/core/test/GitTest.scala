@@ -1,12 +1,7 @@
 // PURPOSE: Tests for Git infrastructure adapter
+package iw.tests
+
 // PURPOSE: Verifies GitAdapter can read git remote URL from actual git repos
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../Git.scala"
-//> using file "../Config.scala"
-//> using file "../Process.scala"
-
 import iw.core.*
 import scala.sys.process.*
 

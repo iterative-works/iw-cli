@@ -7,16 +7,13 @@ import sttp.client4.quick.*
 import sttp.model.StatusCode
 
 object YouTrackClient:
-  def fetchIssue(issueId: IssueId, baseUrl: String, token: String): Either[String, Issue] =
-    if token.isEmpty then
-      return Left("API token is empty")
-
+  def fetchIssue(issueId: IssueId, baseUrl: String, token: ApiToken): Either[String, Issue] =
     try
       val url = buildYouTrackUrl(baseUrl, issueId)
 
       val response = quickRequest
         .get(uri"$url")
-        .header("Authorization", s"Bearer $token")
+        .header("Authorization", s"Bearer ${token.value}")
         .header("Accept", "application/json")
         .send()
 

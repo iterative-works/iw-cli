@@ -42,17 +42,17 @@ def loadConfig(): Either[String, ProjectConfiguration] =
 def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, Issue] =
   config.trackerType match
     case IssueTrackerType.Linear =>
-      val token = sys.env.getOrElse(Constants.EnvVars.LinearApiToken, "")
-      if token.isEmpty then
-        Left(s"${Constants.EnvVars.LinearApiToken} environment variable is not set")
-      else
-        LinearClient.fetchIssue(issueId, token)
+      ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+        case None =>
+          Left(s"${Constants.EnvVars.LinearApiToken} environment variable is not set")
+        case Some(token) =>
+          LinearClient.fetchIssue(issueId, token)
 
     case IssueTrackerType.YouTrack =>
-      val token = sys.env.getOrElse(Constants.EnvVars.YouTrackApiToken, "")
-      if token.isEmpty then
-        Left(s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set")
-      else
-        config.youtrackBaseUrl match
-          case Some(baseUrl) => YouTrackClient.fetchIssue(issueId, baseUrl, token)
-          case None => Left(s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}")
+      ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
+        case None =>
+          Left(s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set")
+        case Some(token) =>
+          config.youtrackBaseUrl match
+            case Some(baseUrl) => YouTrackClient.fetchIssue(issueId, baseUrl, token)
+            case None => Left(s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}")

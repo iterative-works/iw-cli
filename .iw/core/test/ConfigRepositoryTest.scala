@@ -1,12 +1,7 @@
 // PURPOSE: Tests for configuration file repository
+package iw.tests
+
 // PURPOSE: Verifies ConfigFileRepository can write and read HOCON config files
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using dep com.typesafe:config:1.4.3
-//> using file "../ConfigRepository.scala"
-//> using file "../Config.scala"
-
 import iw.core.*
 
 class ConfigRepositoryTest extends munit.FunSuite:

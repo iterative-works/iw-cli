@@ -1,11 +1,6 @@
 // PURPOSE: Unit tests for Constants object containing all magic strings
 // PURPOSE: Tests that constants are accessible and have expected values
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../Constants.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

@@ -1,13 +1,6 @@
 // PURPOSE: Unit tests for Linear issue fetching and response parsing
 // PURPOSE: Tests LinearClient.fetchIssue with various response scenarios
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../LinearClient.scala"
-//> using file "../Issue.scala"
-//> using file "../IssueId.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

@@ -1,10 +1,7 @@
 // PURPOSE: Tests for DeletionSafety value object
+package iw.tests
+
 // PURPOSE: Verifies safety checks for worktree deletion operations
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../DeletionSafety.scala"
-
 import iw.core.*
 
 class DeletionSafetyTest extends munit.FunSuite:

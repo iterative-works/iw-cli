@@ -1,14 +1,6 @@
 // PURPOSE: Unit tests for DoctorChecks and CheckResult enum
 // PURPOSE: Tests check execution order and result formatting
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using dep com.typesafe:config:1.4.5
-//> using file "../DoctorChecks.scala"
-//> using file "../Config.scala"
-//> using file "../Constants.scala"
-
-package iw.core.test
+package iw.tests
 
 import iw.core.*
 import munit.FunSuite

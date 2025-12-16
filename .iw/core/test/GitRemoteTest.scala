@@ -1,10 +1,7 @@
 // PURPOSE: Comprehensive tests for GitRemote.host method
+package iw.tests
+
 // PURPOSE: Verifies host extraction from various git URL formats and error handling
-
-//> using scala 3.3.1
-//> using dep org.scalameta::munit::1.0.0
-//> using file "../Config.scala"
-
 import iw.core.*
 
 class GitRemoteTest extends munit.FunSuite:

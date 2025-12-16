@@ -1,7 +1,5 @@
 // PURPOSE: Debug test to understand stdout capture issue
-
-//> using scala 3.3.1
-//> using file "../Output.scala"
+package iw.tests
 
 import iw.core.Output
 import java.io.ByteArrayOutputStream
