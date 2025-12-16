@@ -35,7 +35,8 @@ case class ProjectConfiguration(
   trackerType: IssueTrackerType,
   team: String,
   projectName: String,
-  version: Option[String] = Some("latest")
+  version: Option[String] = Some("latest"),
+  youtrackBaseUrl: Option[String] = None
 )
 
 object TrackerDetector:
@@ -52,10 +53,11 @@ object ConfigSerializer:
       case IssueTrackerType.YouTrack => "youtrack"
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
+    val youtrackUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
 
     s"""tracker {
        |  type = $trackerTypeStr
-       |  team = ${config.team}
+       |  team = ${config.team}$youtrackUrlLine
        |}
        |
        |project {
@@ -82,6 +84,12 @@ object ConfigSerializer:
       else
         Some("latest")
 
-      Right(ProjectConfiguration(trackerType, team, projectName, version))
+      // Read YouTrack base URL if present
+      val youtrackBaseUrl = if config.hasPath("tracker.baseUrl") then
+        Some(config.getString("tracker.baseUrl"))
+      else
+        None
+
+      Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl))
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")

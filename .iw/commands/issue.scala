@@ -54,5 +54,6 @@ def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, I
       if token.isEmpty then
         Left("YOUTRACK_API_TOKEN environment variable is not set")
       else
-        val baseUrl = "https://youtrack.e-bs.cz"
-        YouTrackClient.fetchIssue(issueId, baseUrl, token)
+        config.youtrackBaseUrl match
+          case Some(baseUrl) => YouTrackClient.fetchIssue(issueId, baseUrl, token)
+          case None => Left("YouTrack base URL not configured. Add 'baseUrl' to tracker section in .iw/config.conf")

@@ -64,7 +64,8 @@ class ConfigFileTest extends munit.FunSuite:
       val original = ProjectConfiguration(
         trackerType = IssueTrackerType.YouTrack,
         team = "TEST",
-        projectName = "myproject"
+        projectName = "myproject",
+        youtrackBaseUrl = Some("https://youtrack.example.com")
       )
 
       val hocon = ConfigSerializer.toHocon(original)
@@ -92,6 +93,28 @@ class ConfigFileTest extends munit.FunSuite:
       val Right(config) = result: @unchecked
 
       assertEquals(config.trackerType, IssueTrackerType.YouTrack)
+      assertEquals(config.youtrackBaseUrl, None)
+
+  tempDir.test("ConfigSerializer reads YouTrack baseUrl when present"):
+    tempDir =>
+      val hocon = """
+        tracker {
+          type = youtrack
+          team = TEST
+          baseUrl = "https://youtrack.example.com"
+        }
+
+        project {
+          name = myproject
+        }
+      """
+
+      val result = ConfigSerializer.fromHocon(hocon)
+      assert(result.isRight)
+      val Right(config) = result: @unchecked
+
+      assertEquals(config.trackerType, IssueTrackerType.YouTrack)
+      assertEquals(config.youtrackBaseUrl, Some("https://youtrack.example.com"))
 
   test("ConfigSerializer returns Left with meaningful message for invalid tracker type"):
     val hocon = """
