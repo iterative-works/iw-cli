@@ -42,6 +42,13 @@ object YouTrackClient:
 
       val parsed = ujson.read(json)
 
+      if !parsed.obj.contains("idReadable") then
+        return Left("Malformed response: missing 'idReadable' field")
+      if !parsed.obj.contains("summary") then
+        return Left("Malformed response: missing 'summary' field")
+      if !parsed.obj.contains("customFields") then
+        return Left("Malformed response: missing 'customFields' field")
+
       val id = parsed("idReadable").str
       val title = parsed("summary").str
 
@@ -53,16 +60,20 @@ object YouTrackClient:
 
       // Extract State from customFields
       val customFields = parsed("customFields").arr
-      val stateField = customFields.find(field => field("name").str == "State")
+      val stateField = customFields.find(field =>
+        field.obj.contains("name") && field("name").str == "State"
+      )
       val status = stateField match
-        case Some(field) if !field("value").isNull =>
+        case Some(field) if field.obj.contains("value") && !field("value").isNull =>
           field("value")("name").str
         case _ => "Unknown"
 
       // Extract Assignee from customFields
-      val assigneeField = customFields.find(field => field("name").str == "Assignee")
+      val assigneeField = customFields.find(field =>
+        field.obj.contains("name") && field("name").str == "Assignee"
+      )
       val assignee = assigneeField match
-        case Some(field) if !field("value").isNull =>
+        case Some(field) if field.obj.contains("value") && !field("value").isNull =>
           Some(field("value")("fullName").str)
         case _ => None
 

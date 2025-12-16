@@ -64,25 +64,41 @@ object LinearClient:
       import upickle.default.*
 
       val parsed = ujson.read(json)
-      val issueData = parsed("data")("issue")
 
-      if issueData.isNull then
+      if !parsed.obj.contains("data") then
+        return Left("Malformed response: missing 'data' field")
+
+      val data = parsed("data")
+      if data("issue").isNull then
         return Left("Issue not found")
+
+      val issueData = data("issue")
+
+      if !issueData.obj.contains("identifier") then
+        return Left("Malformed response: missing 'identifier' field")
+      if !issueData.obj.contains("title") then
+        return Left("Malformed response: missing 'title' field")
+      if !issueData.obj.contains("state") then
+        return Left("Malformed response: missing 'state' field")
+
+      val state = issueData("state")
+      if !state.obj.contains("name") then
+        return Left("Malformed response: missing 'name' field in state")
 
       val id = issueData("identifier").str
       val title = issueData("title").str
-      val status = issueData("state")("name").str
+      val status = state("name").str
 
-      val assignee = if issueData("assignee").isNull then
-        None
-      else
+      val assignee = if issueData.obj.contains("assignee") && !issueData("assignee").isNull then
         Some(issueData("assignee")("displayName").str)
-
-      val description = if issueData("description").isNull then
-        None
       else
+        None
+
+      val description = if issueData.obj.contains("description") && !issueData("description").isNull then
         val desc = issueData("description").str
         if desc.isEmpty then None else Some(desc)
+      else
+        None
 
       Right(Issue(id, title, status, assignee, description))
     catch
