@@ -36,7 +36,7 @@ This project uses Linear for issue tracking. Issues are in the IWLE team.
 
 Run unit tests (from project root):
 ```bash
-scala-cli test .iw/core/test/*.scala
+scala-cli test .iw/core/test/*.scala .iw/core/project.scala
 ```
 
 Run integration tests:
@@ -46,5 +46,5 @@ bats .iw/test/
 
 Run all tests:
 ```bash
-scala-cli test .iw/core/test/*.scala && bats .iw/test/
+scala-cli test .iw/core/test/*.scala .iw/core/project.scala && bats .iw/test/
 ```

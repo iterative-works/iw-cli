@@ -1,5 +1,5 @@
 // PURPOSE: Doctor check for issue command - validates Linear API token
-// PURPOSE: Registers check to verify LINEAR_API_TOKEN environment variable
+// PURPOSE: Exposes check to verify LINEAR_API_TOKEN environment variable
 
 import iw.core.*
 
@@ -19,5 +19,5 @@ object IssueHookDoctor:
         else
           CheckResult.Error("Authentication failed", Some("Check token at linear.app/settings/api"))
 
-  // Registration executes when object is initialized
-  DoctorChecks.register("LINEAR_API_TOKEN")(checkLinearToken)
+  // Expose check as immutable value for discovery
+  val check: Check = Check("LINEAR_API_TOKEN", checkLinearToken)

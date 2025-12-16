@@ -1,5 +1,5 @@
-// PURPOSE: Unit tests for DoctorChecks registry and CheckResult enum
-// PURPOSE: Tests check registration, execution order, and result formatting
+// PURPOSE: Unit tests for DoctorChecks and CheckResult enum
+// PURPOSE: Tests check execution order and result formatting
 
 //> using scala 3.3.1
 //> using dep org.scalameta::munit::1.0.0
@@ -56,26 +56,20 @@ class DoctorChecksTest extends FunSuite:
       case CheckResult.Skip(reason) => assertEquals(reason, "Not applicable")
       case _ => fail("Expected Skip")
 
-  // Test DoctorChecks registry
-  test("DoctorChecks.register adds check to registry"):
-    // Create a fresh registry for this test
-    val testRegistry = new DoctorChecksRegistry()
+  // Test Check case class
+  test("Check holds name and run function"):
+    val check = Check("Test Check", _ => CheckResult.Success("OK"))
+    assertEquals(check.name, "Test Check")
 
-    testRegistry.register("Test Check")(_ => CheckResult.Success("OK"))
-
-    val checks = testRegistry.all
-    assertEquals(checks.length, 1)
-    assertEquals(checks.head.name, "Test Check")
-
-  test("DoctorChecks.runAll executes all checks in registration order"):
-    val testRegistry = new DoctorChecksRegistry()
+  test("DoctorChecks.runAll executes all checks in list order"):
+    val checks = List(
+      Check("First", _ => CheckResult.Success("First done")),
+      Check("Second", _ => CheckResult.Success("Second done")),
+      Check("Third", _ => CheckResult.Error("Third failed", None))
+    )
     val config = ProjectConfiguration(IssueTrackerType.Linear, "TEST", "test-project")
 
-    testRegistry.register("First")(_ => CheckResult.Success("First done"))
-    testRegistry.register("Second")(_ => CheckResult.Success("Second done"))
-    testRegistry.register("Third")(_ => CheckResult.Error("Third failed", None))
-
-    val results = testRegistry.runAll(config)
+    val results = DoctorChecks.runAll(checks, config)
 
     assertEquals(results.length, 3)
     assertEquals(results(0)._1, "First")
@@ -86,20 +80,25 @@ class DoctorChecksTest extends FunSuite:
     assertEquals(results(2)._2, CheckResult.Error("Third failed", None))
 
   test("DoctorChecks.runAll passes config to check functions"):
-    val testRegistry = new DoctorChecksRegistry()
-
-    testRegistry.register("Config Check")(config =>
-      if config.team == "EXPECTED" then
-        CheckResult.Success("Correct team")
-      else
-        CheckResult.Error("Wrong team", None)
+    val checks = List(
+      Check("Config Check", config =>
+        if config.team == "EXPECTED" then
+          CheckResult.Success("Correct team")
+        else
+          CheckResult.Error("Wrong team", None)
+      )
     )
 
     val correctConfig = ProjectConfiguration(IssueTrackerType.Linear, "EXPECTED", "test")
     val wrongConfig = ProjectConfiguration(IssueTrackerType.Linear, "WRONG", "test")
 
-    val correctResults = testRegistry.runAll(correctConfig)
+    val correctResults = DoctorChecks.runAll(checks, correctConfig)
     assertEquals(correctResults.head._2, CheckResult.Success("Correct team"))
 
-    val wrongResults = testRegistry.runAll(wrongConfig)
+    val wrongResults = DoctorChecks.runAll(checks, wrongConfig)
     assertEquals(wrongResults.head._2, CheckResult.Error("Wrong team", None))
+
+  test("DoctorChecks.runAll with empty list returns empty results"):
+    val config = ProjectConfiguration(IssueTrackerType.Linear, "TEST", "test")
+    val results = DoctorChecks.runAll(Nil, config)
+    assertEquals(results, Nil)

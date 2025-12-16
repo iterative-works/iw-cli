@@ -9,37 +9,40 @@ import java.nio.file.{Path, Paths}
 
 val ConfigPath = Paths.get(".iw/config.conf")
 
-// Register base doctor checks at file load time (val forces execution)
-val _gitCheck = DoctorChecks.register("Git repository") { _ =>
-  val currentDir = Paths.get(System.getProperty("user.dir"))
-  if GitAdapter.isGitRepository(currentDir) then
-    CheckResult.Success("Found")
-  else
-    CheckResult.Error("Not found", Some("Initialize git repository: git init"))
-}
+// Base checks defined as immutable values
+val baseChecks: List[Check] = List(
+  Check("Git repository", { _ =>
+    val currentDir = Paths.get(System.getProperty("user.dir"))
+    if GitAdapter.isGitRepository(currentDir) then
+      CheckResult.Success("Found")
+    else
+      CheckResult.Error("Not found", Some("Initialize git repository: git init"))
+  }),
+  Check("Configuration", { _ =>
+    ConfigFileRepository.read(ConfigPath) match
+      case Some(_) =>
+        CheckResult.Success(".iw/config.conf valid")
+      case None =>
+        CheckResult.Error("Missing or invalid", Some("Run: iw init"))
+  })
+)
 
-val _configCheck = DoctorChecks.register("Configuration") { _ =>
-  ConfigFileRepository.read(ConfigPath) match
-    case Some(_) =>
-      CheckResult.Success(".iw/config.conf valid")
-    case None =>
-      CheckResult.Error("Missing or invalid", Some("Run: iw init"))
-}
-
-// Initialize hook objects discovered by bootstrap script
+// Collect hook checks from discovered hook classes via reflection
 // IW_HOOK_CLASSES env var contains comma-separated list of hook class names
-private def initializeHooks(): Unit =
+private def collectHookChecks(): List[Check] =
   val hookClasses = sys.env.getOrElse("IW_HOOK_CLASSES", "")
-  if hookClasses.nonEmpty then
-    hookClasses.split(",").foreach { className =>
-      try Class.forName(s"$className$$") // Scala object class names end with $
-      catch case _: ClassNotFoundException => () // Hook not present, that's OK
-    }
+  if hookClasses.isEmpty then Nil
+  else hookClasses.split(",").toList.flatMap { className =>
+    try
+      val clazz = Class.forName(s"$className$$") // Scala object class names end with $
+      val instance = clazz.getField("MODULE$").get(null)
+      val checkField = clazz.getMethod("check")
+      Some(checkField.invoke(instance).asInstanceOf[Check])
+    catch
+      case _: Exception => None // Hook not present or doesn't have check field
+  }
 
 @main def doctor(args: String*): Unit =
-  // Initialize discovered hooks (their registration runs when objects load)
-  initializeHooks()
-
   // Load configuration (use default if not available for hook checks)
   val config = ConfigFileRepository.read(ConfigPath).getOrElse(
     ProjectConfiguration(IssueTrackerType.Linear, "UNKNOWN", "unknown")
@@ -48,8 +51,11 @@ private def initializeHooks(): Unit =
   System.out.println("Environment Check")
   System.out.println()
 
-  // Run all registered checks (base + hooks registered via top-level code)
-  val results = DoctorChecks.runAll(config)
+  // Collect all checks: base + hooks (immutable composition)
+  val allChecks = baseChecks ++ collectHookChecks()
+
+  // Run all checks
+  val results = DoctorChecks.runAll(allChecks, config)
 
   var errorCount = 0
   var warningCount = 0
