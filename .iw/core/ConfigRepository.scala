@@ -19,7 +19,7 @@ object ConfigFileRepository:
     Try {
       if Files.exists(path) then
         val hocon = Files.readString(path)
-        Some(ConfigSerializer.fromHocon(hocon))
+        ConfigSerializer.fromHocon(hocon).toOption
       else
         None
     }.toOption.flatten

@@ -6,18 +6,27 @@ package iw.core
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 
 case class GitRemote(url: String):
-  def host: String =
+  def host: Either[String, String] =
     // Extract host from either SSH (git@host:path) or HTTPS (https://host/path) format
+    def validateHost(extracted: String): Either[String, String] =
+      if extracted.isEmpty then
+        Left(s"Unsupported git URL format: $url")
+      else
+        Right(extracted)
+
     if url.startsWith("git@") then
       // SSH format: git@github.com:user/repo.git
       val afterAt = url.drop(4) // remove "git@"
-      afterAt.takeWhile(_ != ':')
+      if !afterAt.contains(':') then
+        Left(s"Unsupported git URL format: $url")
+      else
+        validateHost(afterAt.takeWhile(_ != ':'))
     else if url.startsWith("https://") || url.startsWith("http://") then
       // HTTPS format: https://github.com/user/repo.git
       val withoutProtocol = url.dropWhile(_ != '/').drop(2) // remove protocol and //
-      withoutProtocol.takeWhile(_ != '/')
+      validateHost(withoutProtocol.takeWhile(_ != '/'))
     else
-      throw IllegalArgumentException(s"Unsupported git URL format: $url")
+      Left(s"Unsupported git URL format: $url")
 
 enum IssueTrackerType:
   case Linear, YouTrack
@@ -32,8 +41,8 @@ case class ProjectConfiguration(
 object TrackerDetector:
   def suggestTracker(remote: GitRemote): Option[IssueTrackerType] =
     remote.host match
-      case "github.com" => Some(IssueTrackerType.Linear)
-      case "gitlab.e-bs.cz" => Some(IssueTrackerType.YouTrack)
+      case Right("github.com") => Some(IssueTrackerType.Linear)
+      case Right("gitlab.e-bs.cz") => Some(IssueTrackerType.YouTrack)
       case _ => None
 
 object ConfigSerializer:
@@ -54,22 +63,25 @@ object ConfigSerializer:
        |}$versionLine
        |""".stripMargin
 
-  def fromHocon(hocon: String): ProjectConfiguration =
-    val config = ConfigFactory.parseString(hocon)
+  def fromHocon(hocon: String): Either[String, ProjectConfiguration] =
+    try
+      val config = ConfigFactory.parseString(hocon)
 
-    val trackerTypeStr = config.getString("tracker.type")
-    val trackerType = trackerTypeStr match
-      case "linear" => IssueTrackerType.Linear
-      case "youtrack" => IssueTrackerType.YouTrack
-      case other => throw IllegalArgumentException(s"Unknown tracker type: $other")
+      val trackerTypeStr = config.getString("tracker.type")
+      val trackerType = trackerTypeStr match
+        case "linear" => IssueTrackerType.Linear
+        case "youtrack" => IssueTrackerType.YouTrack
+        case other => return Left(s"Unknown tracker type: $other")
 
-    val team = config.getString("tracker.team")
-    val projectName = config.getString("project.name")
+      val team = config.getString("tracker.team")
+      val projectName = config.getString("project.name")
 
-    // Read version, default to "latest" if not present
-    val version = if config.hasPath("version") then
-      Some(config.getString("version"))
-    else
-      Some("latest")
+      // Read version, default to "latest" if not present
+      val version = if config.hasPath("version") then
+        Some(config.getString("version"))
+      else
+        Some("latest")
 
-    ProjectConfiguration(trackerType, team, projectName, version)
+      Right(ProjectConfiguration(trackerType, team, projectName, version))
+    catch
+      case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")

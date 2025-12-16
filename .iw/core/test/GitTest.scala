@@ -39,7 +39,7 @@ class GitTest extends munit.FunSuite:
     repo =>
       val remote = GitAdapter.getRemoteUrl(repo)
       assert(remote.isDefined)
-      assertEquals(remote.get.host, "github.com")
+      assertEquals(remote.get.host, Right("github.com"))
 
   test("GitAdapter returns None for non-git directory"):
     val dir = Files.createTempDirectory("iw-non-git-test")
