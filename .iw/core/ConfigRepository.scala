@@ -3,22 +3,21 @@
 
 package iw.core
 
-import java.nio.file.{Path, Files}
 import scala.util.Try
 
 object ConfigFileRepository:
-  def write(path: Path, config: ProjectConfiguration): Unit =
+  def write(path: os.Path, config: ProjectConfiguration): Unit =
     // Create parent directories if they don't exist
-    Files.createDirectories(path.getParent)
+    os.makeDir.all(path / os.up)
 
     // Serialize to HOCON and write to file
     val hocon = ConfigSerializer.toHocon(config)
-    Files.writeString(path, hocon)
+    os.write.over(path, hocon)
 
-  def read(path: Path): Option[ProjectConfiguration] =
+  def read(path: os.Path): Option[ProjectConfiguration] =
     Try {
-      if Files.exists(path) then
-        val hocon = Files.readString(path)
+      if os.exists(path) then
+        val hocon = os.read(path)
         ConfigSerializer.fromHocon(hocon).toOption
       else
         None

@@ -5,14 +5,13 @@
 // EXAMPLE: iw doctor
 
 import iw.core.*
-import java.nio.file.{Path, Paths}
 
-val ConfigPath = Paths.get(Constants.Paths.ConfigFile)
+val ConfigPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 
 // Base checks defined as immutable values
 val baseChecks: List[Check] = List(
   Check("Git repository", { _ =>
-    val currentDir = Paths.get(System.getProperty(Constants.SystemProps.UserDir))
+    val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
     if GitAdapter.isGitRepository(currentDir) then
       CheckResult.Success("Found")
     else

@@ -8,7 +8,6 @@
 // EXAMPLE: iw init --tracker=linear --team=IWLE
 
 import iw.core.*
-import java.nio.file.{Paths, Files}
 
 def parseArg(args: Seq[String], prefix: String): Option[String] =
   args.find(_.startsWith(prefix)).map(_.drop(prefix.length))
@@ -31,7 +30,7 @@ def askForTrackerType(): IssueTrackerType =
   val force = args.contains("--force")
   val trackerArg = parseArg(args, "--tracker=")
   val teamArg = parseArg(args, "--team=")
-  val currentDir = Paths.get(System.getProperty(Constants.SystemProps.UserDir))
+  val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
 
   // Check if we're in a git repository
   if !GitAdapter.isGitRepository(currentDir) then
@@ -39,8 +38,8 @@ def askForTrackerType(): IssueTrackerType =
     System.exit(1)
 
   // Check if config already exists
-  val configPath = currentDir.resolve(Constants.Paths.IwDir).resolve("config.conf")
-  if Files.exists(configPath) && !force then
+  val configPath = currentDir / Constants.Paths.IwDir / "config.conf"
+  if os.exists(configPath) && !force then
     Output.error(s"Configuration already exists at ${Constants.Paths.ConfigFile}")
     Output.info("Use 'iw init --force' to overwrite")
     System.exit(1)
@@ -78,7 +77,7 @@ def askForTrackerType(): IssueTrackerType =
   }
 
   // Auto-detect project name from directory
-  val projectName = currentDir.getFileName.toString
+  val projectName = currentDir.last
 
   // Create configuration
   val config = ProjectConfiguration(

@@ -3,13 +3,11 @@
 
 package iw.core
 
-import java.nio.file.Path
-
 case class WorktreePath(projectName: String, issueId: IssueId):
   def directoryName: String = s"$projectName-${issueId.value}"
 
   /** Resolve to actual path as sibling of current directory */
-  def resolve(currentDir: Path): Path =
-    currentDir.getParent.resolve(directoryName)
+  def resolve(currentDir: os.Path): os.Path =
+    currentDir / os.up / directoryName
 
   def sessionName: String = directoryName

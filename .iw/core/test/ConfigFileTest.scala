@@ -7,18 +7,16 @@
 //> using file "../Config.scala"
 
 import iw.core.*
-import java.nio.file.Files
-import java.nio.file.Path
 import com.typesafe.config.ConfigFactory
 
 class ConfigFileTest extends munit.FunSuite:
 
-  val tempDir = FunFixture[Path](
+  val tempDir = FunFixture[os.Path](
     setup = { _ =>
-      Files.createTempDirectory("iw-config-test")
+      os.Path(java.nio.file.Files.createTempDirectory("iw-config-test"))
     },
     teardown = { dir =>
-      Files.walk(dir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
+      os.remove.all(dir)
     }
   )
 

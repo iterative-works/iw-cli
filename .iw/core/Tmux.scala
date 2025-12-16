@@ -3,15 +3,13 @@
 
 package iw.core
 
-import java.nio.file.Path
-
 object TmuxAdapter:
   /** Check if a tmux session with the given name exists */
   def sessionExists(name: String): Boolean =
     ProcessAdapter.run(Seq("tmux", "has-session", "-t", name)).exitCode == 0
 
   /** Create a new tmux session in the given directory */
-  def createSession(name: String, workDir: Path): Either[String, Unit] =
+  def createSession(name: String, workDir: os.Path): Either[String, Unit] =
     val result = ProcessAdapter.run(
       Seq("tmux", "new-session", "-d", "-s", name, "-c", workDir.toString)
     )

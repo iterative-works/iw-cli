@@ -11,7 +11,6 @@ package iw.core.test
 
 import iw.core.*
 import munit.FunSuite
-import java.nio.file.Paths
 
 class TmuxAdapterTest extends FunSuite:
 
@@ -38,7 +37,7 @@ class TmuxAdapterTest extends FunSuite:
 
   test("TmuxAdapter.sessionExists returns true for existing session"):
     val sessionName = uniqueSessionName()
-    val workDir = Paths.get(System.getProperty("user.home"))
+    val workDir = os.Path(System.getProperty("user.home"))
     // Create session using adapter
     TmuxAdapter.createSession(sessionName, workDir)
     try
@@ -48,7 +47,7 @@ class TmuxAdapterTest extends FunSuite:
 
   test("TmuxAdapter.createSession creates a detached session"):
     val sessionName = uniqueSessionName()
-    val workDir = Paths.get(System.getProperty("user.home"))
+    val workDir = os.Path(System.getProperty("user.home"))
 
     try
       val result = TmuxAdapter.createSession(sessionName, workDir)
@@ -61,7 +60,7 @@ class TmuxAdapterTest extends FunSuite:
 
   test("TmuxAdapter.createSession sets working directory"):
     val sessionName = uniqueSessionName()
-    val workDir = Paths.get(System.getProperty("user.home"))
+    val workDir = os.Path(System.getProperty("user.home"))
 
     try
       val result = TmuxAdapter.createSession(sessionName, workDir)
@@ -77,7 +76,7 @@ class TmuxAdapterTest extends FunSuite:
 
   test("TmuxAdapter.createSession fails for duplicate session name"):
     val sessionName = uniqueSessionName()
-    val workDir = Paths.get(System.getProperty("user.home"))
+    val workDir = os.Path(System.getProperty("user.home"))
 
     try
       // Create first session
@@ -91,7 +90,7 @@ class TmuxAdapterTest extends FunSuite:
 
   test("TmuxAdapter.killSession removes existing session"):
     val sessionName = uniqueSessionName()
-    val workDir = Paths.get(System.getProperty("user.home"))
+    val workDir = os.Path(System.getProperty("user.home"))
 
     // Create session
     TmuxAdapter.createSession(sessionName, workDir)
@@ -130,7 +129,7 @@ class TmuxAdapterTest extends FunSuite:
     // We'll test this via E2E tests instead
     // For now, just verify the logic path
     val sessionName = uniqueSessionName()
-    val workDir = Paths.get(System.getProperty("user.home"))
+    val workDir = os.Path(System.getProperty("user.home"))
 
     try
       // Create a session

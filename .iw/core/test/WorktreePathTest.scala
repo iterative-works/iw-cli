@@ -10,7 +10,6 @@ package iw.core.test
 
 import iw.core.*
 import munit.FunSuite
-import java.nio.file.Paths
 
 class WorktreePathTest extends FunSuite:
 
@@ -32,21 +31,21 @@ class WorktreePathTest extends FunSuite:
   test("WorktreePath.resolve creates sibling path"):
     val issueId = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse valid issue ID"))
     val worktreePath = WorktreePath("kanon", issueId)
-    val currentDir = Paths.get("/home/user/projects/kanon")
+    val currentDir = os.Path("/home/user/projects/kanon")
     val resolved = worktreePath.resolve(currentDir)
     assertEquals(resolved.toString, "/home/user/projects/kanon-IWLE-123")
 
   test("WorktreePath.resolve handles different current paths"):
     val issueId = IssueId.parse("ABC-1").getOrElse(fail("Failed to parse valid issue ID"))
     val worktreePath = WorktreePath("myproject", issueId)
-    val currentDir = Paths.get("/opt/code/myproject")
+    val currentDir = os.Path("/opt/code/myproject")
     val resolved = worktreePath.resolve(currentDir)
     assertEquals(resolved.toString, "/opt/code/myproject-ABC-1")
 
   test("WorktreePath.resolve handles absolute paths correctly"):
     val issueId = IssueId.parse("TEST-999").getOrElse(fail("Failed to parse valid issue ID"))
     val worktreePath = WorktreePath("test", issueId)
-    val currentDir = Paths.get("/a/b/c/test")
+    val currentDir = os.Path("/a/b/c/test")
     val resolved = worktreePath.resolve(currentDir)
     assertEquals(resolved.toString, "/a/b/c/test-TEST-999")
 

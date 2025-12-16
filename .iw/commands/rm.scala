@@ -2,7 +2,6 @@
 // PURPOSE: Kills tmux session and removes worktree with safety checks
 
 import iw.core.*
-import java.nio.file.{Files, Paths}
 
 @main def rm(args: String*): Unit =
   // Parse arguments
@@ -27,7 +26,7 @@ def parseArgs(args: List[String]): (Option[String], Boolean) =
   (issueIdArg, forceFlag)
 
 def removeWorktree(issueId: IssueId, force: Boolean): Unit =
-  val configPath = Paths.get(Constants.Paths.ConfigFile)
+  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 
   // Read project config
   ConfigFileRepository.read(configPath) match
@@ -36,7 +35,7 @@ def removeWorktree(issueId: IssueId, force: Boolean): Unit =
       Output.info("Run './iw init' to initialize the project")
       sys.exit(1)
     case Some(config) =>
-      val currentDir = Paths.get(".").toAbsolutePath.normalize
+      val currentDir = os.pwd
       val worktreePath = WorktreePath(config.projectName, issueId)
       val targetPath = worktreePath.resolve(currentDir)
       val sessionName = worktreePath.sessionName

@@ -10,12 +10,11 @@ package iw.core.test
 
 import iw.core.*
 import munit.FunSuite
-import java.nio.file.{Files, Path}
 
 class GitWorktreeAdapterTest extends FunSuite:
 
-  var tempDir: Path = null
-  var repoDir: Path = null
+  var tempDir: os.Path = null
+  var repoDir: os.Path = null
 
   /** Run git command in repo directory using ProcessAdapter */
   def git(args: String*): ProcessResult =
@@ -23,9 +22,9 @@ class GitWorktreeAdapterTest extends FunSuite:
 
   override def beforeEach(context: BeforeEach): Unit =
     // Create a temporary directory for test repos
-    tempDir = Files.createTempDirectory("iw-test-git")
-    repoDir = tempDir.resolve("test-repo")
-    Files.createDirectory(repoDir)
+    tempDir = os.Path(java.nio.file.Files.createTempDirectory("iw-test-git"))
+    repoDir = tempDir / "test-repo"
+    os.makeDir(repoDir)
 
     // Initialize a git repo using ProcessAdapter
     git("init")
@@ -33,13 +32,13 @@ class GitWorktreeAdapterTest extends FunSuite:
     git("config", "user.name", "Test User")
 
     // Create initial commit
-    Files.write(repoDir.resolve("README.md"), "# Test Repo".getBytes)
+    os.write(repoDir / "README.md", "# Test Repo")
     git("add", "README.md")
     git("commit", "-m", "Initial commit")
 
   override def afterEach(context: AfterEach): Unit =
     // Cleanup: remove worktrees first, then delete temp directory
-    if tempDir != null && Files.exists(tempDir) then
+    if tempDir != null && os.exists(tempDir) then
       // Remove all worktrees using ProcessAdapter
       val result = git("worktree", "list", "--porcelain")
       val worktreePaths = result.stdout.split("\n")
@@ -52,20 +51,15 @@ class GitWorktreeAdapterTest extends FunSuite:
       }
 
       // Delete temp directory
-      deleteRecursively(tempDir)
-
-  def deleteRecursively(path: Path): Unit =
-    if Files.isDirectory(path) then
-      Files.list(path).forEach(deleteRecursively)
-    Files.deleteIfExists(path)
+      os.remove.all(tempDir)
 
   test("GitWorktreeAdapter.worktreeExists returns false for non-existent worktree"):
-    val worktreePath = tempDir.resolve("non-existent")
+    val worktreePath = tempDir / "non-existent"
     val exists = GitWorktreeAdapter.worktreeExists(worktreePath, repoDir)
     assertEquals(exists, false)
 
   test("GitWorktreeAdapter.worktreeExists returns true for existing worktree"):
-    val worktreePath = tempDir.resolve("test-worktree")
+    val worktreePath = tempDir / "test-worktree"
 
     // Create worktree using adapter
     GitWorktreeAdapter.createWorktree(worktreePath, "test-branch", repoDir)
@@ -91,14 +85,14 @@ class GitWorktreeAdapterTest extends FunSuite:
     assert(hasMaster || hasMain, "Should have either master or main branch")
 
   test("GitWorktreeAdapter.createWorktree creates worktree with new branch"):
-    val worktreePath = tempDir.resolve("new-worktree")
+    val worktreePath = tempDir / "new-worktree"
     val branchName = "feature-branch"
 
     val result = GitWorktreeAdapter.createWorktree(worktreePath, branchName, repoDir)
     assert(result.isRight, s"Failed to create worktree: $result")
 
     // Verify worktree exists
-    assert(Files.exists(worktreePath), "Worktree directory should exist")
+    assert(os.exists(worktreePath), "Worktree directory should exist")
     assert(GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should be registered")
     assert(GitWorktreeAdapter.branchExists(branchName, repoDir), "Branch should exist")
 
@@ -106,7 +100,7 @@ class GitWorktreeAdapterTest extends FunSuite:
     // Create a branch first using ProcessAdapter
     git("branch", "duplicate-branch")
 
-    val worktreePath = tempDir.resolve("duplicate-worktree")
+    val worktreePath = tempDir / "duplicate-worktree"
     val result = GitWorktreeAdapter.createWorktree(worktreePath, "duplicate-branch", repoDir)
 
     assert(result.isLeft, "Should fail to create worktree with duplicate branch name")
@@ -116,21 +110,21 @@ class GitWorktreeAdapterTest extends FunSuite:
     val branchName = "existing-branch"
     git("branch", branchName)
 
-    val worktreePath = tempDir.resolve("worktree-for-existing")
+    val worktreePath = tempDir / "worktree-for-existing"
     val result = GitWorktreeAdapter.createWorktreeForBranch(worktreePath, branchName, repoDir)
 
     assert(result.isRight, s"Failed to create worktree: $result")
-    assert(Files.exists(worktreePath), "Worktree directory should exist")
+    assert(os.exists(worktreePath), "Worktree directory should exist")
     assert(GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should be registered")
 
   test("GitWorktreeAdapter.createWorktreeForBranch fails for non-existent branch"):
-    val worktreePath = tempDir.resolve("worktree-for-missing")
+    val worktreePath = tempDir / "worktree-for-missing"
     val result = GitWorktreeAdapter.createWorktreeForBranch(worktreePath, "non-existent", repoDir)
 
     assert(result.isLeft, "Should fail to create worktree for non-existent branch")
 
   test("GitWorktreeAdapter.removeWorktree succeeds for clean worktree"):
-    val worktreePath = tempDir.resolve("remove-test")
+    val worktreePath = tempDir / "remove-test"
     val branchName = "remove-branch"
 
     // Create worktree
@@ -143,17 +137,17 @@ class GitWorktreeAdapterTest extends FunSuite:
 
     // Verify worktree is gone
     assert(!GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should not exist after removal")
-    assert(!Files.exists(worktreePath), "Worktree directory should be deleted")
+    assert(!os.exists(worktreePath), "Worktree directory should be deleted")
 
   test("GitWorktreeAdapter.removeWorktree with force succeeds even with uncommitted changes"):
-    val worktreePath = tempDir.resolve("remove-dirty")
+    val worktreePath = tempDir / "remove-dirty"
     val branchName = "remove-dirty-branch"
 
     // Create worktree
     GitWorktreeAdapter.createWorktree(worktreePath, branchName, repoDir)
 
     // Add uncommitted changes
-    Files.write(worktreePath.resolve("test.txt"), "uncommitted".getBytes)
+    os.write(worktreePath / "test.txt", "uncommitted")
 
     // Remove worktree with force
     val result = GitWorktreeAdapter.removeWorktree(worktreePath, repoDir, force = true)
@@ -163,7 +157,7 @@ class GitWorktreeAdapterTest extends FunSuite:
     assert(!GitWorktreeAdapter.worktreeExists(worktreePath, repoDir), "Worktree should not exist after removal")
 
   test("GitWorktreeAdapter.removeWorktree fails for non-existent worktree"):
-    val worktreePath = tempDir.resolve("non-existent-worktree")
+    val worktreePath = tempDir / "non-existent-worktree"
 
     val result = GitWorktreeAdapter.removeWorktree(worktreePath, repoDir, force = false)
     assert(result.isLeft, "Should fail to remove non-existent worktree")

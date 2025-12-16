@@ -2,7 +2,6 @@
 // PURPOSE: Infers issue ID from current branch when no parameter given.
 
 import iw.core.*
-import java.nio.file.{Files, Paths}
 
 @main def open(args: String*): Unit =
   // Resolve issue ID (from args or current branch)
@@ -18,11 +17,11 @@ import java.nio.file.{Files, Paths}
       openWorktreeSession(issueId)
 
 def inferIssueFromBranch(): Either[String, IssueId] =
-  val currentDir = Paths.get(".").toAbsolutePath.normalize
+  val currentDir = os.pwd
   GitAdapter.getCurrentBranch(currentDir).flatMap(IssueId.fromBranch)
 
 def openWorktreeSession(issueId: IssueId): Unit =
-  val configPath = Paths.get(Constants.Paths.ConfigFile)
+  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 
   // Read project config
   ConfigFileRepository.read(configPath) match
@@ -31,13 +30,13 @@ def openWorktreeSession(issueId: IssueId): Unit =
       Output.info("Run './iw init' to initialize the project")
       sys.exit(1)
     case Some(config) =>
-      val currentDir = Paths.get(".").toAbsolutePath.normalize
+      val currentDir = os.pwd
       val worktreePath = WorktreePath(config.projectName, issueId)
       val targetPath = worktreePath.resolve(currentDir)
       val sessionName = worktreePath.sessionName
 
       // Check worktree exists
-      if !Files.exists(targetPath) then
+      if !os.exists(targetPath) then
         Output.error(s"Worktree not found: ${worktreePath.directoryName}")
         Output.info(s"Use './iw start ${issueId.value}' to create a new worktree")
         sys.exit(1)

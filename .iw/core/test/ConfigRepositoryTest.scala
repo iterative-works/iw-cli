@@ -8,17 +8,15 @@
 //> using file "../Config.scala"
 
 import iw.core.*
-import java.nio.file.Files
-import java.nio.file.Path
 
 class ConfigRepositoryTest extends munit.FunSuite:
 
-  val tempDir = FunFixture[Path](
+  val tempDir = FunFixture[os.Path](
     setup = { _ =>
-      Files.createTempDirectory("iw-config-repo-test")
+      os.Path(java.nio.file.Files.createTempDirectory("iw-config-repo-test"))
     },
     teardown = { dir =>
-      Files.walk(dir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
+      os.remove.all(dir)
     }
   )
 
@@ -30,20 +28,20 @@ class ConfigRepositoryTest extends munit.FunSuite:
         projectName = "kanon"
       )
 
-      val configPath = dir.resolve(".iw").resolve("config.conf")
+      val configPath = dir / ".iw" / "config.conf"
       ConfigFileRepository.write(configPath, config)
 
-      assert(Files.exists(configPath))
-      val content = Files.readString(configPath)
+      assert(os.exists(configPath))
+      val content = os.read(configPath)
       assert(content.contains("tracker"))
       assert(content.contains("type = linear"))
       assert(content.contains("team = IWLE"))
 
   tempDir.test("ConfigFileRepository reads config from file"):
     dir =>
-      val configPath = dir.resolve(".iw").resolve("config.conf")
-      Files.createDirectories(configPath.getParent)
-      Files.writeString(configPath, """
+      val configPath = dir / ".iw" / "config.conf"
+      os.makeDir.all(configPath / os.up)
+      os.write(configPath, """
         tracker {
           type = youtrack
           team = TEST
@@ -69,7 +67,7 @@ class ConfigRepositoryTest extends munit.FunSuite:
         projectName = "kanon"
       )
 
-      val configPath = dir.resolve(".iw").resolve("config.conf")
+      val configPath = dir / ".iw" / "config.conf"
       ConfigFileRepository.write(configPath, original)
       val restored = ConfigFileRepository.read(configPath)
 
@@ -78,7 +76,7 @@ class ConfigRepositoryTest extends munit.FunSuite:
 
   tempDir.test("ConfigFileRepository returns None for non-existent file"):
     dir =>
-      val configPath = dir.resolve(".iw").resolve("config.conf")
+      val configPath = dir / ".iw" / "config.conf"
       val config = ConfigFileRepository.read(configPath)
 
       assertEquals(config, None)
@@ -91,12 +89,12 @@ class ConfigRepositoryTest extends munit.FunSuite:
         projectName = "kanon"
       )
 
-      val configPath = dir.resolve("deep").resolve("nested").resolve("config.conf")
+      val configPath = dir / "deep" / "nested" / "config.conf"
       ConfigFileRepository.write(configPath, config)
 
-      assert(Files.exists(configPath))
-      assert(Files.exists(configPath.getParent))
-      assert(Files.exists(configPath.getParent.getParent))
+      assert(os.exists(configPath))
+      assert(os.exists(configPath / os.up))
+      assert(os.exists(configPath / os.up / os.up))
 
   tempDir.test("ConfigFileRepository writes config with version field"):
     dir =>
@@ -107,18 +105,18 @@ class ConfigRepositoryTest extends munit.FunSuite:
         version = Some("0.1.0")
       )
 
-      val configPath = dir.resolve(".iw").resolve("config.conf")
+      val configPath = dir / ".iw" / "config.conf"
       ConfigFileRepository.write(configPath, config)
 
-      assert(Files.exists(configPath))
-      val content = Files.readString(configPath)
+      assert(os.exists(configPath))
+      val content = os.read(configPath)
       assert(content.contains("version = 0.1.0"))
 
   tempDir.test("ConfigFileRepository reads config with version field"):
     dir =>
-      val configPath = dir.resolve(".iw").resolve("config.conf")
-      Files.createDirectories(configPath.getParent)
-      Files.writeString(configPath, """
+      val configPath = dir / ".iw" / "config.conf"
+      os.makeDir.all(configPath / os.up)
+      os.write(configPath, """
         tracker {
           type = linear
           team = IWLE
@@ -138,9 +136,9 @@ class ConfigRepositoryTest extends munit.FunSuite:
 
   tempDir.test("ConfigFileRepository defaults to 'latest' when version is missing"):
     dir =>
-      val configPath = dir.resolve(".iw").resolve("config.conf")
-      Files.createDirectories(configPath.getParent)
-      Files.writeString(configPath, """
+      val configPath = dir / ".iw" / "config.conf"
+      os.makeDir.all(configPath / os.up)
+      os.write(configPath, """
         tracker {
           type = linear
           team = IWLE

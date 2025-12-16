@@ -2,7 +2,6 @@
 // USAGE: iw start <issue-id>
 
 import iw.core.*
-import java.nio.file.{Files, Paths}
 
 @main def start(args: String*): Unit =
   if args.isEmpty then
@@ -21,7 +20,7 @@ import java.nio.file.{Files, Paths}
       createWorktreeForIssue(issueId)
 
 def createWorktreeForIssue(issueId: IssueId): Unit =
-  val configPath = Paths.get(Constants.Paths.ConfigFile)
+  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 
   // Read project config to get project name
   ConfigFileRepository.read(configPath) match
@@ -30,14 +29,14 @@ def createWorktreeForIssue(issueId: IssueId): Unit =
       Output.info("Run './iw init' to initialize the project")
       sys.exit(1)
     case Some(config) =>
-      val currentDir = Paths.get(".").toAbsolutePath.normalize
+      val currentDir = os.pwd
       val worktreePath = WorktreePath(config.projectName, issueId)
       val targetPath = worktreePath.resolve(currentDir)
       val sessionName = worktreePath.sessionName
       val branchName = issueId.toBranchName
 
       // Check for collisions
-      if Files.exists(targetPath) then
+      if os.exists(targetPath) then
         Output.error(s"Directory ${worktreePath.directoryName} already exists")
         if GitWorktreeAdapter.worktreeExists(targetPath, currentDir) then
           Output.info(s"Use './iw open ${issueId.value}' to open existing worktree")

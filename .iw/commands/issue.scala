@@ -5,7 +5,6 @@
 // EXAMPLE: iw issue IWLE-123
 
 import iw.core.*
-import java.nio.file.{Path, Paths}
 
 @main def issue(args: String*): Unit =
   val result = for {
@@ -25,7 +24,7 @@ import java.nio.file.{Path, Paths}
 def getIssueId(args: Seq[String]): Either[String, IssueId] =
   if args.isEmpty then
     // Infer from current branch
-    val currentDir = Paths.get(System.getProperty(Constants.SystemProps.UserDir))
+    val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
     for {
       branch <- GitAdapter.getCurrentBranch(currentDir)
       issueId <- IssueId.fromBranch(branch)
@@ -35,7 +34,7 @@ def getIssueId(args: Seq[String]): Either[String, IssueId] =
     IssueId.parse(args.head)
 
 def loadConfig(): Either[String, ProjectConfiguration] =
-  val configPath = Paths.get(System.getProperty(Constants.SystemProps.UserDir), Constants.Paths.IwDir, "config.conf")
+  val configPath = os.Path(System.getProperty(Constants.SystemProps.UserDir)) / Constants.Paths.IwDir / "config.conf"
   ConfigFileRepository.read(configPath) match
     case Some(config) => Right(config)
     case None => Left("Configuration file not found. Run 'iw init' first.")
