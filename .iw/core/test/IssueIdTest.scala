@@ -122,3 +122,12 @@ class IssueIdTest extends FunSuite:
   test("IssueId.toBranchName preserves exact format"):
     val issueId = IssueId.parse("ABC-99").getOrElse(fail("Failed to parse valid issue ID"))
     assertEquals(issueId.toBranchName, "ABC-99")
+
+  test("IssueId.value accessor returns underlying string"):
+    val issueId = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse valid issue ID"))
+    assertEquals(issueId.value, "IWLE-123")
+
+  test("IssueId instances with same value are equal"):
+    val id1 = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse"))
+    val id2 = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse"))
+    assertEquals(id1, id2)
