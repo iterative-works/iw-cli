@@ -1,5 +1,6 @@
 // PURPOSE: Opens an existing worktree tmux session, creating session if needed.
 // PURPOSE: Infers issue ID from current branch when no parameter given.
+// USAGE: iw open [issue-id]
 
 import iw.core.*
 

@@ -1,5 +1,6 @@
 // PURPOSE: Remove a worktree for a completed issue
 // PURPOSE: Kills tmux session and removes worktree with safety checks
+// USAGE: iw rm <issue-id> [--force]
 
 import iw.core.*
 
