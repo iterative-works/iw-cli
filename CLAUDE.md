@@ -34,7 +34,17 @@ This project uses Linear for issue tracking. Issues are in the IWLE team.
 
 ## Testing
 
-Run tests with:
+Run all tests (unit + E2E):
 ```bash
-scala-cli test .
+./iw test
+```
+
+Run only unit tests (Scala/munit):
+```bash
+./iw test unit
+```
+
+Run only E2E tests (BATS):
+```bash
+./iw test e2e
 ```

@@ -1,0 +1,6 @@
+# scala-cli build directories
+.scala-build/
+.bloop/
+
+# Packaged binaries
+iw-*/iw-*-binary

@@ -1,0 +1,74 @@
+#!/bin/bash
+# PURPOSE: Bootstrap script for iw-cli command discovery
+# PURPOSE: Discovers and runs commands from the commands/ directory using scala-cli
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMANDS_DIR="$SCRIPT_DIR/commands"
+
+# Check if scala-cli is available
+if ! command -v scala-cli &> /dev/null; then
+    echo "Error: scala-cli not found. Please install scala-cli first." >&2
+    echo "Visit: https://scala-cli.virtuslab.org/install" >&2
+    exit 1
+fi
+
+# Function to extract command metadata from a scala file
+get_command_info() {
+    local file="$1"
+    local field="$2"
+
+    # Try to compile and run the command to get its metadata
+    # This is a simple approach - in real implementation might want caching
+    scala-cli run "$file" --quiet -- --help 2>/dev/null || true
+}
+
+# Function to list all available commands
+list_commands() {
+    echo "Available commands:"
+    echo ""
+
+    if [ ! -d "$COMMANDS_DIR" ]; then
+        echo "  (no commands found)"
+        return
+    fi
+
+    for cmd_file in "$COMMANDS_DIR"/*.scala; do
+        if [ -f "$cmd_file" ]; then
+            local cmd_name=$(basename "$cmd_file" .scala)
+            # Extract description from the command object
+            local description=$(grep -E "def description.*=.*\"" "$cmd_file" | sed -E 's/.*"(.*)".*/\1/' || echo "")
+
+            if [ -n "$description" ]; then
+                printf "  %-15s %s\n" "$cmd_name" "$description"
+            else
+                printf "  %-15s\n" "$cmd_name"
+            fi
+        fi
+    done
+}
+
+# Main logic
+if [ $# -eq 0 ]; then
+    # No arguments - list available commands
+    list_commands
+    exit 0
+fi
+
+COMMAND="$1"
+shift
+
+# Check if command file exists
+COMMAND_FILE="$COMMANDS_DIR/${COMMAND}.scala"
+
+if [ ! -f "$COMMAND_FILE" ]; then
+    echo "Error: Unknown command '$COMMAND'" >&2
+    echo "" >&2
+    list_commands >&2
+    exit 1
+fi
+
+# Run the command with scala-cli
+exec scala-cli run "$COMMAND_FILE" -- "$@"

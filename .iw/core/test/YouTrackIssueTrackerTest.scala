@@ -1,0 +1,207 @@
+// PURPOSE: Unit tests for YouTrack issue fetching and response parsing
+// PURPOSE: Tests YouTrackClient with various response scenarios including customFields
+package iw.tests
+
+import iw.core.*
+import munit.FunSuite
+
+class YouTrackIssueTrackerTest extends FunSuite:
+
+  test("parseYouTrackResponse extracts all fields from valid response"):
+    val json = """{
+      "idReadable": "IWSD-123",
+      "summary": "Fix login bug",
+      "description": "Users cannot log in",
+      "customFields": [
+        {
+          "name": "State",
+          "value": { "name": "In Progress" }
+        },
+        {
+          "name": "Assignee",
+          "value": { "fullName": "John Smith" }
+        }
+      ]
+    }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.id, "IWSD-123")
+    assertEquals(issue.title, "Fix login bug")
+    assertEquals(issue.status, "In Progress")
+    assertEquals(issue.assignee, Some("John Smith"))
+    assertEquals(issue.description, Some("Users cannot log in"))
+
+  test("parseYouTrackResponse handles missing assignee"):
+    val json = """{
+      "idReadable": "IWSD-456",
+      "summary": "Unassigned task",
+      "description": "Description here",
+      "customFields": [
+        {
+          "name": "State",
+          "value": { "name": "Todo" }
+        }
+      ]
+    }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.assignee, None)
+
+  test("parseYouTrackResponse handles missing description"):
+    val json = """{
+      "idReadable": "IWSD-789",
+      "summary": "No description task",
+      "customFields": [
+        {
+          "name": "State",
+          "value": { "name": "Done" }
+        },
+        {
+          "name": "Assignee",
+          "value": { "fullName": "Jane Doe" }
+        }
+      ]
+    }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.description, None)
+
+  test("parseYouTrackResponse handles null description"):
+    val json = """{
+      "idReadable": "IWSD-999",
+      "summary": "Null desc",
+      "description": null,
+      "customFields": [
+        {
+          "name": "State",
+          "value": { "name": "Todo" }
+        }
+      ]
+    }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.description, None)
+
+  test("parseYouTrackResponse handles empty description"):
+    val json = """{
+      "idReadable": "IWSD-888",
+      "summary": "Empty desc",
+      "description": "",
+      "customFields": [
+        {
+          "name": "State",
+          "value": { "name": "Todo" }
+        }
+      ]
+    }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.description, None)
+
+  test("parseYouTrackResponse returns error for malformed JSON"):
+    val json = """{ invalid json }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Failed to parse") || msg.contains("parse")
+    ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
+
+  test("parseYouTrackResponse handles missing State field"):
+    val json = """{
+      "idReadable": "IWSD-111",
+      "summary": "No state",
+      "description": "test",
+      "customFields": []
+    }"""
+
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.status, "Unknown")
+
+  test("buildYouTrackUrl creates correct REST URL"):
+    val baseUrl = "https://youtrack.e-bs.cz"
+    val issueId = IssueId.parse("IWSD-123").getOrElse(fail("Failed to parse issue ID"))
+    val url = YouTrackClient.buildYouTrackUrl(baseUrl, issueId)
+
+    assert(url.contains("https://youtrack.e-bs.cz/api/issues/IWSD-123"))
+    assert(url.contains("fields="))
+    assert(url.contains("idReadable"))
+    assert(url.contains("summary"))
+    assert(url.contains("customFields"))
+    assert(url.contains("description"))
+
+  test("parseYouTrackResponse returns error for missing idReadable field"):
+    val json = """{
+      "summary": "Test Issue",
+      "customFields": []
+    }"""
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("missing 'idReadable' field"))
+
+  test("parseYouTrackResponse returns error for missing summary field"):
+    val json = """{
+      "idReadable": "IWSD-123",
+      "customFields": []
+    }"""
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("missing 'summary' field"))
+
+  test("parseYouTrackResponse returns error for missing customFields field"):
+    val json = """{
+      "idReadable": "IWSD-123",
+      "summary": "Test Issue"
+    }"""
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("missing 'customFields' field"))
+
+  test("parseYouTrackResponse handles customFields with null value"):
+    val json = """{
+      "idReadable": "IWSD-456",
+      "summary": "Test Issue",
+      "customFields": [
+        {
+          "name": "State",
+          "value": null
+        }
+      ]
+    }"""
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.status, "Unknown")
+
+  test("parseYouTrackResponse handles customFields with missing name"):
+    val json = """{
+      "idReadable": "IWSD-789",
+      "summary": "Test Issue",
+      "customFields": [
+        {
+          "value": { "name": "Todo" }
+        }
+      ]
+    }"""
+    val result = YouTrackClient.parseYouTrackResponse(json)
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issue.status, "Unknown")

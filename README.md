@@ -12,17 +12,44 @@ Project-local CLI tool for managing git worktrees and integrating with issue tra
 
 ## Installation
 
-Copy the `iw` bootstrap script to your project root:
+### Quick Start
+
+Download and run the bootstrap script in your project root:
 
 ```bash
-# Coming soon
-```
-
-Then run:
-
-```bash
+curl -L https://github.com/iterative-works/iw-cli/releases/latest/download/iw-bootstrap -o iw
+chmod +x iw
 ./iw init
 ```
+
+The bootstrap script will:
+1. Read the version from `.iw/config.conf` (defaults to "latest")
+2. Download the specified version to `~/.local/share/iw/versions/<version>/`
+3. Pre-compile dependencies for offline use
+4. Execute the requested command
+
+### Version Pinning
+
+Pin a specific version in your project's `.iw/config.conf`:
+
+```hocon
+version = "0.1.0"
+```
+
+Or use the latest release:
+
+```hocon
+version = "latest"
+```
+
+If not specified, defaults to "latest".
+
+### Requirements
+
+- **scala-cli**: Install from [scala-cli.virtuslab.org](https://scala-cli.virtuslab.org/install)
+- **git**: For worktree management
+- **tmux** (optional): For session management
+- **curl**: For downloading releases
 
 ## Commands
 
@@ -44,6 +71,74 @@ Worktrees are created as sibling directories:
 ├── myproject/              # main worktree (master/main)
 ├── myproject-IW-123/       # worktree for issue IW-123
 ├── myproject-IW-456/       # worktree for issue IW-456
+```
+
+## Development
+
+### Setup
+
+Clone the repository and use the local `iw` script directly:
+
+```bash
+git clone https://github.com/iterative-works/iw-cli.git
+cd iw-cli
+./iw --list
+```
+
+The local `iw` script runs commands from `.iw/commands/` without downloading anything - ideal for development.
+
+### Testing in Other Projects
+
+To test your local iw-cli changes in other projects, set `IW_HOME`:
+
+```bash
+# In any project using iw-bootstrap
+IW_HOME=/path/to/iw-cli ./iw --list
+
+# Or export for the session
+export IW_HOME=/path/to/iw-cli
+./iw start ISSUE-123
+```
+
+This bypasses version download and uses your local `iw-run` directly.
+
+### Running Tests
+
+```bash
+# Unit tests (Scala)
+scala-cli test .iw/core/test/*.scala .iw/core/*.scala
+
+# Integration tests (Bats)
+bats .iw/test/
+
+# All tests
+scala-cli test .iw/core/test/*.scala .iw/core/*.scala && bats .iw/test/
+```
+
+### Project Structure
+
+```
+iw-cli/
+├── iw                    # Development launcher (runs locally)
+├── iw-bootstrap          # Distribution bootstrap (downloads releases)
+├── iw-run                # Distribution launcher (in release tarball)
+├── .iw/
+│   ├── commands/         # Command implementations (*.scala)
+│   ├── core/             # Shared library code
+│   │   ├── project.scala # Build configuration (deps, Scala version)
+│   │   └── test/         # Unit tests
+│   ├── scripts/          # Build/release scripts
+│   └── test/             # Integration tests (*.bats)
+└── RELEASE.md            # Release process documentation
+```
+
+### Creating a Release
+
+See [RELEASE.md](RELEASE.md) for the full release process. Quick version:
+
+```bash
+.iw/scripts/package-release.sh 0.1.0
+# Creates release/iw-cli-0.1.0.tar.gz
 ```
 
 ## License
