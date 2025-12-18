@@ -41,3 +41,6 @@ object Constants:
   /** Character encoding names */
   object Encoding:
     val Utf8 = "UTF-8"
+
+  // Linear team ID for IWLE (iw-cli project)
+  val IwCliTeamId: String = "cf2767bc-3458-44ca-87a8-f2a512ed2b7d"
