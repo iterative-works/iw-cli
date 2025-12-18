@@ -153,3 +153,86 @@ Followed strict TDD methodology:
 ### Next Steps
 
 Phase 3 will implement project command description with `iw --describe ./command-name` syntax.
+
+## Phase 3: Project command description with ./prefix
+
+**Status:** Complete
+**Date:** 2025-12-18
+
+### Summary
+
+Implemented project command description feature that allows users to get detailed help for project-specific commands using `iw --describe ./command-name` syntax. This completes the feature by providing discoverability for project commands.
+
+### Changes Made
+
+1. **Created test file:** `.iw/test/project-commands-describe.bats`
+   - 7 comprehensive E2E tests covering all scenarios
+   - Tests for full metadata display (PURPOSE, USAGE, ARGS, EXAMPLES)
+   - Tests for minimal metadata display
+   - Tests for error messages (both namespaces)
+   - Tests for invalid syntax
+   - Tests for commands with dashes in name
+   - All tests passing
+
+2. **Modified:** `iw-run`
+   - Updated `describe_command()` function to detect `./` prefix
+   - Added routing logic: `./cmd` → `$PROJECT_DIR/.iw/commands/cmd.scala`
+   - Uses same `parse_command_header()` function for both namespaces
+   - Display name includes `./` prefix for project commands
+   - Updated error messages to indicate which namespace was searched
+
+### Test Results
+
+All 7 E2E tests passing:
+- describe project command shows full metadata (PURPOSE, USAGE, ARGS, EXAMPLES) ✓
+- describe project command with minimal metadata shows what's available ✓
+- describe project command not found shows clear error ✓
+- describe shared command (no prefix) works normally ✓
+- describe invalid project command syntax ./ alone shows error ✓
+- describe invalid project command syntax with special chars shows error ✓
+- describe project command with dashes in name works ✓
+
+No regressions detected in existing tests (all 86 non-bootstrap tests passing).
+
+### TDD Approach
+
+Followed strict TDD methodology:
+1. RED: Wrote 7 tests, verified they fail appropriately (4/7 failed as expected)
+2. GREEN: Implemented routing logic in `describe_command()`, all tests pass
+3. REFACTOR: Code is clean and follows existing patterns, no refactoring needed
+
+### Implementation Details
+
+**Namespace Routing:**
+- Commands with `./` prefix → project namespace (`$PROJECT_DIR/.iw/commands/`)
+- Commands without prefix → shared namespace (`$COMMANDS_DIR/`)
+- Display name includes `./` prefix for project commands: `=== Command: ./deploy ===`
+- Clear error messages indicate which namespace was searched
+
+**Metadata Display:**
+- Uses same `parse_command_header()` function for both namespaces
+- Displays PURPOSE (required)
+- Displays USAGE (required)
+- Displays ARGS (optional, shown if present)
+- Displays EXAMPLES (optional, shown if present)
+- Gracefully handles minimal metadata (only PURPOSE/USAGE)
+
+**Error Handling:**
+- Project command not found: "Project command 'X' not found in .iw/commands/"
+- Shared command not found: "Command 'X' not found"
+- Invalid syntax: "Invalid project command name"
+- Same validation as execute_command (alphanumeric, dash, underscore only)
+
+### Files Modified
+
+- `iw-run` - Added project command description support with namespace routing
+- `.iw/test/project-commands-describe.bats` - New test file with 7 tests
+
+### Feature Complete
+
+All three phases of IWLE-74 are now complete:
+- Phase 1: List project commands with `iw --list`
+- Phase 2: Execute project commands with `./command-name`
+- Phase 3: Describe project commands with `iw --describe ./command-name`
+
+The project commands feature is fully implemented and ready for use.
