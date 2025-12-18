@@ -2,7 +2,7 @@
 
 **Issue:** IWLE-75
 **Phase:** 1 of 2
-**Status:** 7/8 tasks complete
+**Status:** Complete
 
 ## Tasks
 
