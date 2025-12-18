@@ -22,6 +22,12 @@ object TmuxAdapter:
     if result.exitCode == 0 then Right(())
     else Left(s"Failed to attach to session: ${result.stderr}")
 
+  /** Switch to an existing tmux session (when already inside tmux) */
+  def switchSession(name: String): Either[String, Unit] =
+    val result = ProcessAdapter.run(Seq("tmux", "switch-client", "-t", name))
+    if result.exitCode == 0 then Right(())
+    else Left(s"Failed to switch to session: ${result.stderr}")
+
   /** Kill an existing tmux session */
   def killSession(name: String): Either[String, Unit] =
     val result = ProcessAdapter.run(Seq("tmux", "kill-session", "-t", name))
