@@ -191,39 +191,90 @@ execute_command() {
     local cmd_name="$1"
     shift
 
-    # Validate command name - only alphanumeric, dash, underscore
-    if [[ ! "$cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-        echo "Error: Invalid command name '$cmd_name'" >&2
-        echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
-        exit 1
+    # Detect if this is a project command (starts with ./)
+    local is_project_cmd=false
+    local actual_name=""
+    local cmd_file=""
+
+    if [[ "$cmd_name" == ./* ]]; then
+        # Project command - strip ./ prefix
+        is_project_cmd=true
+        actual_name="${cmd_name:2}"
+
+        # Validate project command name
+        if [[ -z "$actual_name" ]] || [[ ! "$actual_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid project command name '$cmd_name'" >&2
+            echo "Project command names must be ./name where name contains only letters, numbers, dashes, and underscores" >&2
+            exit 1
+        fi
+
+        cmd_file="$PROJECT_DIR/.iw/commands/${actual_name}.scala"
+
+        if [ ! -f "$cmd_file" ]; then
+            echo "Error: Project command '$actual_name' not found in .iw/commands/" >&2
+            echo "Run 'iw --list' to see available commands" >&2
+            exit 1
+        fi
+
+        # Project commands: Execute with core library, NO hook discovery
+        cd "$PROJECT_DIR"
+        exec scala-cli run "$cmd_file" "$CORE_DIR"/*.scala -- "$@"
+
+    else
+        # Shared command
+        actual_name="$cmd_name"
+
+        # Validate shared command name
+        if [[ ! "$actual_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid command name '$cmd_name'" >&2
+            echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+            exit 1
+        fi
+
+        cmd_file="$COMMANDS_DIR/${actual_name}.scala"
+
+        if [ ! -f "$cmd_file" ]; then
+            echo "Error: Command '$actual_name' not found" >&2
+            echo "Run 'iw --list' to see available commands" >&2
+            exit 1
+        fi
+
+        # Shared commands: Find hook files from BOTH shared and project directories
+        # shellcheck disable=SC2086
+        local hook_files=""
+
+        # Find shared hooks
+        local shared_hooks
+        shared_hooks=$(find "$COMMANDS_DIR" -maxdepth 1 -name "*.hook-${actual_name}.scala" 2>/dev/null || true)
+        hook_files="$shared_hooks"
+
+        # Find project hooks (if project commands directory exists)
+        if [ -d "$PROJECT_DIR/.iw/commands" ]; then
+            local project_hooks
+            project_hooks=$(find "$PROJECT_DIR/.iw/commands" -maxdepth 1 -name "*.hook-${actual_name}.scala" 2>/dev/null || true)
+            if [ -n "$project_hooks" ]; then
+                if [ -n "$hook_files" ]; then
+                    hook_files="$hook_files $project_hooks"
+                else
+                    hook_files="$project_hooks"
+                fi
+            fi
+        fi
+
+        # Extract hook class names and pass as environment variable
+        local hook_classes=""
+        if [ -n "$hook_files" ]; then
+            hook_classes=$(extract_hook_classes "$hook_files")
+        fi
+
+        # Change to project directory for command execution
+        cd "$PROJECT_DIR"
+
+        # Execute with scala-cli, including core library and any discovered hook files
+        # IW_HOOK_CLASSES tells the command which hook objects to initialize
+        # shellcheck disable=SC2086
+        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
     fi
-
-    local cmd_file="$COMMANDS_DIR/${cmd_name}.scala"
-
-    if [ ! -f "$cmd_file" ]; then
-        echo "Error: Command '$cmd_name' not found" >&2
-        echo "Run 'iw --list' to see available commands" >&2
-        exit 1
-    fi
-
-    # Find hook files for this command (e.g., *.hook-doctor.scala for 'doctor' command)
-    # shellcheck disable=SC2086
-    local hook_files
-    hook_files=$(find "$COMMANDS_DIR" -maxdepth 1 -name "*.hook-${cmd_name}.scala" 2>/dev/null || true)
-
-    # Extract hook class names and pass as environment variable
-    local hook_classes=""
-    if [ -n "$hook_files" ]; then
-        hook_classes=$(extract_hook_classes "$hook_files")
-    fi
-
-    # Change to project directory for command execution
-    cd "$PROJECT_DIR"
-
-    # Execute with scala-cli, including core library and any discovered hook files
-    # IW_HOOK_CLASSES tells the command which hook objects to initialize
-    # shellcheck disable=SC2086
-    IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
 }
 
 # Main entry point
