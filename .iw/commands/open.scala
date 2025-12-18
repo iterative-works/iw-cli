@@ -42,42 +42,63 @@ def openWorktreeSession(issueId: IssueId): Unit =
         Output.info(s"Use './iw start ${issueId.value}' to create a new worktree")
         sys.exit(1)
 
-      // Handle nested tmux scenario
+      // Handle session joining (switch if inside tmux, attach if outside)
       if TmuxAdapter.isInsideTmux then
+        // Check if we're already in the target session
         TmuxAdapter.currentSessionName match
           case Some(current) if current == sessionName =>
             Output.info(s"Already in session '$sessionName'")
             sys.exit(0)
-          case Some(current) =>
-            Output.error(s"Already inside tmux session '$current'")
-            Output.info("Detach first with: Ctrl+B, D")
-            Output.info(s"Then run: ./iw open ${issueId.value}")
-            sys.exit(1)
-          case None =>
-            Output.error("Inside tmux but cannot determine session name")
-            sys.exit(1)
-
-      // Check if session exists, create if not
-      if TmuxAdapter.sessionExists(sessionName) then
-        Output.info(s"Attaching to session '$sessionName'...")
-        TmuxAdapter.attachSession(sessionName) match
-          case Left(error) =>
-            Output.error(error)
-            sys.exit(1)
-          case Right(_) =>
-            () // Successfully attached and detached
+          case _ =>
+            // Inside tmux but in different session - switch to target
+            if TmuxAdapter.sessionExists(sessionName) then
+              Output.info(s"Switching to session '$sessionName'...")
+              TmuxAdapter.switchSession(sessionName) match
+                case Left(error) =>
+                  Output.error(error)
+                  Output.info(s"Switch manually with: tmux switch-client -t $sessionName")
+                  sys.exit(1)
+                case Right(_) =>
+                  () // Successfully switched
+            else
+              // Session doesn't exist, create it then switch
+              Output.info(s"Creating session '$sessionName' for existing worktree...")
+              TmuxAdapter.createSession(sessionName, targetPath) match
+                case Left(error) =>
+                  Output.error(s"Failed to create session: $error")
+                  sys.exit(1)
+                case Right(_) =>
+                  Output.success("Session created")
+                  Output.info(s"Switching to session '$sessionName'...")
+                  TmuxAdapter.switchSession(sessionName) match
+                    case Left(error) =>
+                      Output.error(error)
+                      Output.info(s"Switch manually with: tmux switch-client -t $sessionName")
+                      sys.exit(1)
+                    case Right(_) =>
+                      () // Successfully switched
       else
-        Output.info(s"Creating session '$sessionName' for existing worktree...")
-        TmuxAdapter.createSession(sessionName, targetPath) match
-          case Left(error) =>
-            Output.error(s"Failed to create session: $error")
-            sys.exit(1)
-          case Right(_) =>
-            Output.success("Session created")
-            TmuxAdapter.attachSession(sessionName) match
-              case Left(error) =>
-                Output.error(error)
-                Output.info(s"Attach manually with: tmux attach -t $sessionName")
-                sys.exit(1)
-              case Right(_) =>
-                ()
+        // Not inside tmux - use attach logic
+        if TmuxAdapter.sessionExists(sessionName) then
+          Output.info(s"Attaching to session '$sessionName'...")
+          TmuxAdapter.attachSession(sessionName) match
+            case Left(error) =>
+              Output.error(error)
+              sys.exit(1)
+            case Right(_) =>
+              () // Successfully attached and detached
+        else
+          Output.info(s"Creating session '$sessionName' for existing worktree...")
+          TmuxAdapter.createSession(sessionName, targetPath) match
+            case Left(error) =>
+              Output.error(s"Failed to create session: $error")
+              sys.exit(1)
+            case Right(_) =>
+              Output.success("Session created")
+              TmuxAdapter.attachSession(sessionName) match
+                case Left(error) =>
+                  Output.error(error)
+                  Output.info(s"Attach manually with: tmux attach -t $sessionName")
+                  sys.exit(1)
+                case Right(_) =>
+                  () // Successfully attached and detached
