@@ -43,3 +43,38 @@ M  .iw/core/test/TmuxAdapterTest.scala (+21)
 ```
 
 ---
+
+## Phase 2: Apply switch pattern to open.scala (2025-12-18)
+
+**What was built:**
+- Command: `.iw/commands/open.scala` - Replaced "Detach first" error with automatic session switching using `TmuxAdapter.switchSession`
+
+**Decisions made:**
+- Follow exact same pattern as `start.scala` from Phase 1 for consistency
+- Keep "already in target session" early exit (user feedback that they're already where they want to be)
+- Simplified None case handling - just try to switch, it will fail gracefully if something is wrong
+
+**Patterns applied:**
+- Same switch-vs-attach conditional pattern from Phase 1
+- Functional error handling: `Either[String, Unit]` consistent with all TmuxAdapter methods
+- Actionable error messages with manual recovery commands
+
+**Testing:**
+- No new unit tests (Phase 1 tests cover `switchSession` method)
+- All 172 tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-packet-phase-02.md
+- Major findings: No critical issues. Minor suggestion to extract shared session join logic in future refactoring.
+
+**Completion:**
+- This completes IWLE-75 - both `start` and `open` commands now handle nested tmux sessions consistently
+- Future refactoring opportunity: Extract shared session join logic between start.scala and open.scala
+
+**Files changed:**
+```
+M  .iw/commands/open.scala (+61/-40)
+```
+
+---
