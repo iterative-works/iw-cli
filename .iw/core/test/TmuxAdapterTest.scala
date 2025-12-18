@@ -153,3 +153,24 @@ class TmuxAdapterTest extends FunSuite:
     if !sys.env.contains("TMUX") then
       val sessionName = uniqueSessionName()
       assertEquals(TmuxAdapter.isCurrentSession(sessionName), false)
+
+  test("TmuxAdapter.switchSession returns Left when session doesn't exist"):
+    val sessionName = uniqueSessionName()
+    val result = TmuxAdapter.switchSession(sessionName)
+    assert(result.isLeft, "Should fail when switching to non-existent session")
+
+  test("TmuxAdapter.switchSession returns Left when not in tmux"):
+    // This test verifies the command fails gracefully when not inside tmux
+    if !sys.env.contains("TMUX") then
+      val sessionName = uniqueSessionName()
+      val workDir = os.Path(System.getProperty("user.home"))
+
+      try
+        // Create a session first
+        TmuxAdapter.createSession(sessionName, workDir)
+
+        // Try to switch while not in tmux - should fail
+        val result = TmuxAdapter.switchSession(sessionName)
+        assert(result.isLeft, "Should fail when switching outside tmux")
+      finally
+        TmuxAdapter.killSession(sessionName)

@@ -77,12 +77,22 @@ def createWorktreeForIssue(issueId: IssueId): Unit =
         case Right(_) =>
           Output.success(s"Tmux session created")
 
-      // Attach to session
-      Output.info(s"Attaching to session...")
-      TmuxAdapter.attachSession(sessionName) match
-        case Left(error) =>
-          Output.error(error)
-          Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
-          sys.exit(1)
-        case Right(_) =>
-          () // Successfully attached and detached
+      // Join session (switch if inside tmux, attach if outside)
+      if TmuxAdapter.isInsideTmux then
+        Output.info(s"Switching to session '$sessionName'...")
+        TmuxAdapter.switchSession(sessionName) match
+          case Left(error) =>
+            Output.error(error)
+            Output.info(s"Session created. Switch manually with: tmux switch-client -t $sessionName")
+            sys.exit(1)
+          case Right(_) =>
+            () // Successfully switched
+      else
+        Output.info(s"Attaching to session...")
+        TmuxAdapter.attachSession(sessionName) match
+          case Left(error) =>
+            Output.error(error)
+            Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
+            sys.exit(1)
+          case Right(_) =>
+            () // Successfully attached and detached
