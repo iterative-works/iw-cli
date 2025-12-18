@@ -74,6 +74,48 @@ list_commands() {
             echo ""
         fi
     done
+
+    # List project commands if they exist
+    local project_commands_dir="$PROJECT_DIR/.iw/commands"
+    if [ -d "$project_commands_dir" ]; then
+        # Check if there are any .scala files (excluding hook files)
+        local has_commands=false
+        for cmd_file in "$project_commands_dir"/*.scala; do
+            if [ -f "$cmd_file" ]; then
+                local filename=$(basename "$cmd_file")
+                # Skip hook files (*.hook-*.scala)
+                if [[ "$filename" =~ \.hook- ]]; then
+                    continue
+                fi
+                has_commands=true
+                break
+            fi
+        done
+
+        if [ "$has_commands" = true ]; then
+            echo "Project commands (use ./name):"
+            echo ""
+
+            for cmd_file in "$project_commands_dir"/*.scala; do
+                if [ -f "$cmd_file" ]; then
+                    local filename=$(basename "$cmd_file")
+                    # Skip hook files (*.hook-*.scala)
+                    if [[ "$filename" =~ \.hook- ]]; then
+                        continue
+                    fi
+
+                    local cmd_name=$(basename "$cmd_file" .scala)
+                    local purpose=$(parse_command_header "$cmd_file" "PURPOSE")
+                    local usage=$(parse_command_header "$cmd_file" "USAGE")
+
+                    echo "Command: ./$cmd_name"
+                    echo "Purpose: $purpose"
+                    echo "Usage:   $usage"
+                    echo ""
+                fi
+            done
+        fi
+    fi
 }
 
 # Describe a specific command in detail
