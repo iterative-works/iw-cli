@@ -1,6 +1,13 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw feedback command
 # PURPOSE: Tests feedback submission, error handling, and help text
+#
+# NOTE: Tests that create real Linear issues use [TEST] prefix for identification.
+# These test issues should be periodically cleaned up manually in Linear:
+#   1. Go to Linear > IWLE team > Issues
+#   2. Search for "[TEST]" in issue titles
+#   3. Select and archive/delete test issues
+# Consider running live API tests sparingly to avoid issue accumulation.
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
@@ -106,4 +113,15 @@ teardown() {
     [[ "$output" == *"--description"* ]]
     [[ "$output" == *"--type"* ]]
     [[ "$output" == *"LINEAR_API_TOKEN"* ]]
+}
+
+@test "feedback -h shows usage" {
+    # Run with -h short flag
+    run "$PROJECT_ROOT/iw" feedback -h
+
+    # Assert success - same output as --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Usage:"* ]]
+    [[ "$output" == *"--description"* ]]
+    [[ "$output" == *"--type"* ]]
 }
