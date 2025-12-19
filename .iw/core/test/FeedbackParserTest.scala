@@ -103,3 +103,39 @@ class FeedbackParserTest extends munit.FunSuite:
     val request = result.getOrElse(fail("Expected FeedbackRequest"))
     assertEquals(request.description, "")
     assertEquals(request.issueType, FeedbackParser.IssueType.Bug)
+
+  test("parseFeedbackArgs_TitleTooLong"):
+    val longTitle = "x" * (FeedbackParser.MaxTitleLength + 1)
+    val args = Seq(longTitle)
+    val result = FeedbackParser.parseFeedbackArgs(args)
+    assert(result.isLeft, "Expected Left for title exceeding max length")
+    val error = result.left.getOrElse("")
+    assert(error.contains("500 characters or less"), s"Expected length error, got: $error")
+
+  test("parseFeedbackArgs_TitleAtMaxLength"):
+    val maxTitle = "x" * FeedbackParser.MaxTitleLength
+    val args = Seq(maxTitle)
+    val result = FeedbackParser.parseFeedbackArgs(args)
+    assert(result.isRight, "Expected Right for title at exactly max length")
+
+  test("parseFeedbackArgs_DescriptionTooLong"):
+    val longDesc = "x" * (FeedbackParser.MaxDescriptionLength + 1)
+    val args = Seq("Title", "--description", longDesc)
+    val result = FeedbackParser.parseFeedbackArgs(args)
+    assert(result.isLeft, "Expected Left for description exceeding max length")
+    val error = result.left.getOrElse("")
+    assert(error.contains("10000 characters or less"), s"Expected length error, got: $error")
+
+  test("parseFeedbackArgs_DescriptionAtMaxLength"):
+    val maxDesc = "x" * FeedbackParser.MaxDescriptionLength
+    val args = Seq("Title", "--description", maxDesc)
+    val result = FeedbackParser.parseFeedbackArgs(args)
+    assert(result.isRight, "Expected Right for description at exactly max length")
+
+  test("getLabelIdForIssueType_Bug"):
+    val labelId = FeedbackParser.getLabelIdForIssueType(FeedbackParser.IssueType.Bug)
+    assertEquals(labelId, Constants.IwCliLabels.Bug)
+
+  test("getLabelIdForIssueType_Feature"):
+    val labelId = FeedbackParser.getLabelIdForIssueType(FeedbackParser.IssueType.Feature)
+    assertEquals(labelId, Constants.IwCliLabels.Feature)

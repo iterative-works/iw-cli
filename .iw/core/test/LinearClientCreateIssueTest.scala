@@ -67,6 +67,27 @@ class LinearClientCreateIssueTest extends FunSuite:
     // The mutation should contain escaped quotes
     assert(mutation.contains("\\\""), "Mutation should escape quotes in title")
 
+  test("buildCreateIssueMutation escapes newlines in description"):
+    val mutation = LinearClient.buildCreateIssueMutation(
+      title = "Issue title",
+      description = "Line 1\nLine 2\nLine 3",
+      teamId = "team-123"
+    )
+
+    // The mutation should escape newlines as \\n
+    assert(mutation.contains("\\n"), "Mutation should escape newlines")
+
+  test("buildCreateIssueMutation escapes special characters"):
+    val mutation = LinearClient.buildCreateIssueMutation(
+      title = "Title with\ttab",
+      description = "Description with\r\nCRLF",
+      teamId = "team-123"
+    )
+
+    // The mutation should escape tabs and carriage returns
+    assert(mutation.contains("\\t"), "Mutation should escape tabs")
+    assert(mutation.contains("\\r"), "Mutation should escape carriage returns")
+
   test("createIssue returns Left for invalid token"):
     // Test with an invalid token (should fail gracefully)
     val token = ApiToken("invalid-token-12345").get

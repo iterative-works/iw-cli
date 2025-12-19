@@ -11,6 +11,16 @@ case class CreatedIssue(id: String, url: String)
 object LinearClient:
   private val apiUrl = "https://api.linear.app/graphql"
 
+  /** Escapes special characters for safe JSON string embedding in GraphQL queries.
+    * Handles backslashes, quotes, newlines, carriage returns, and tabs.
+    */
+  private def escapeForJson(s: String): String =
+    s.replace("\\", "\\\\")
+     .replace("\"", "\\\"")
+     .replace("\n", "\\n")
+     .replace("\r", "\\r")
+     .replace("\t", "\\t")
+
   def validateToken(token: ApiToken): Boolean =
     try
       // Simple GraphQL query to validate token - just fetch viewer info
@@ -57,9 +67,9 @@ object LinearClient:
 
   def buildCreateIssueMutation(title: String, description: String, teamId: String, labelIds: Seq[String] = Seq.empty): String =
     // Linear API mutation reference: https://developers.linear.app/docs/graphql/mutations#issuecreate
-    // Escape quotes in user input
-    val escapedTitle = title.replace("\\", "\\\\").replace("\"", "\\\"")
-    val escapedDescription = description.replace("\\", "\\\\").replace("\"", "\\\"")
+    // Escape special characters in user input for JSON string embedding
+    val escapedTitle = escapeForJson(title)
+    val escapedDescription = escapeForJson(description)
 
     // Build labelIds array if provided
     val labelIdsField = if labelIds.nonEmpty then

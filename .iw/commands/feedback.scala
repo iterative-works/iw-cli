@@ -35,9 +35,7 @@ import iw.core.*
     case Right(r) => r
 
   // Map issue type to Linear label ID
-  val labelId = request.issueType match
-    case FeedbackParser.IssueType.Bug => Constants.IwCliLabels.Bug
-    case FeedbackParser.IssueType.Feature => Constants.IwCliLabels.Feature
+  val labelId = FeedbackParser.getLabelIdForIssueType(request.issueType)
 
   // Create issue via Linear API
   val result = LinearClient.createIssue(
@@ -58,7 +56,7 @@ import iw.core.*
       Output.info(s"URL: ${created.url}")
       sys.exit(0)
 
-def showHelp(): Unit =
+private def showHelp(): Unit =
   println("Submit feedback to the iw-cli team")
   println()
   println("Usage:")
