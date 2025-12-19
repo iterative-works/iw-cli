@@ -4,6 +4,7 @@ package iw.tests
 
 import iw.core.*
 import munit.FunSuite
+import java.util.UUID
 
 class ConstantsTest extends FunSuite:
   test("Constants.EnvVars contains LINEAR_API_TOKEN"):
@@ -53,3 +54,14 @@ class ConstantsTest extends FunSuite:
 
   test("Constants.Encoding contains UTF-8"):
     assertEquals(Constants.Encoding.Utf8, "UTF-8")
+
+  test("IwCliTeamId exists and is a valid UUID"):
+    val teamId = Constants.IwCliTeamId
+    assert(teamId.nonEmpty, "IwCliTeamId should not be empty")
+
+    // Validate it's a valid UUID format
+    try
+      UUID.fromString(teamId)
+    catch
+      case e: IllegalArgumentException =>
+        fail(s"IwCliTeamId should be a valid UUID, but got: $teamId")
