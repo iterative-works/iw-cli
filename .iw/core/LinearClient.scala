@@ -55,14 +55,20 @@ object LinearClient:
     }"""
     graphql
 
-  def buildCreateIssueMutation(title: String, description: String, teamId: String): String =
+  def buildCreateIssueMutation(title: String, description: String, teamId: String, labelIds: Seq[String] = Seq.empty): String =
     // Linear API mutation reference: https://developers.linear.app/docs/graphql/mutations#issuecreate
     // Escape quotes in user input
     val escapedTitle = title.replace("\\", "\\\\").replace("\"", "\\\"")
     val escapedDescription = description.replace("\\", "\\\\").replace("\"", "\\\"")
 
+    // Build labelIds array if provided
+    val labelIdsField = if labelIds.nonEmpty then
+      val ids = labelIds.map(id => s"""\\"$id\\"""").mkString(", ")
+      s""", labelIds: [$ids]"""
+    else ""
+
     val graphql = s"""{
-      "query": "mutation { issueCreate(input: { title: \\"$escapedTitle\\", description: \\"$escapedDescription\\", teamId: \\"$teamId\\" }) { success issue { id url } } }"
+      "query": "mutation { issueCreate(input: { title: \\"$escapedTitle\\", description: \\"$escapedDescription\\", teamId: \\"$teamId\\"$labelIdsField }) { success issue { id url } } }"
     }"""
     graphql
 
@@ -159,11 +165,12 @@ object LinearClient:
     * @param description Issue description
     * @param teamId Linear team UUID
     * @param token Valid Linear API token
+    * @param labelIds Optional list of Linear label UUIDs to apply
     * @return Right(CreatedIssue) on success, Left(error message) on failure
     */
-  def createIssue(title: String, description: String, teamId: String, token: ApiToken): Either[String, CreatedIssue] =
+  def createIssue(title: String, description: String, teamId: String, token: ApiToken, labelIds: Seq[String] = Seq.empty): Either[String, CreatedIssue] =
     try
-      val mutation = buildCreateIssueMutation(title, description, teamId)
+      val mutation = buildCreateIssueMutation(title, description, teamId, labelIds)
 
       val response = quickRequest
         .post(uri"$apiUrl")
