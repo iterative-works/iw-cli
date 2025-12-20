@@ -2,7 +2,7 @@
 
 **Phase:** 7
 **Created:** 2025-12-20
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -92,33 +92,33 @@ object Paths:
 
 ### Path Handling
 
-- [ ] [impl] [Refactor] Update Constants.Paths: split ConfigFile into IwDir + ConfigFileName
-- [ ] [impl] [Refactor] Update CaskServer.scala line 32 to use `os.pwd / Paths.IwDir / Paths.ConfigFileName`
-- [ ] [impl] [Verify] Run unit tests to ensure no regressions
+- [x] [impl] [Refactor] Update Constants.Paths: split ConfigFile into IwDir + ConfigFileName
+- [x] [impl] [Refactor] Update CaskServer.scala line 32 to use `os.pwd / Paths.IwDir / Paths.ConfigFileName`
+- [x] [impl] [Verify] Run unit tests to ensure no regressions
 
 ### Build System - Command Scripts
 
-- [ ] [impl] [Refactor] Remove `//> using file` directives from dashboard.scala
-- [ ] [impl] [Refactor] Remove `//> using file` directives from server.scala
-- [ ] [impl] [Refactor] Remove `//> using file` directives from server-daemon.scala
-- [ ] [impl] [Analysis] Check all other command scripts for `//> using file` directives
-- [ ] [impl] [Refactor] Remove `//> using file` directives from any other commands found
+- [x] [impl] [Refactor] Remove `//> using file` directives from dashboard.scala
+- [x] [impl] [Refactor] Remove `//> using file` directives from server.scala
+- [x] [impl] [Refactor] Remove `//> using file` directives from server-daemon.scala
+- [x] [impl] [Analysis] Check all other command scripts for `//> using file` directives
+- [x] [impl] [Refactor] Remove `//> using file` directives from any other commands found (none found)
 
 ### Build System - Wrapper Script
 
-- [ ] [impl] [Refactor] Update `./iw` wrapper to exclude test directory from glob
-- [ ] [impl] [Verify] Test `./iw server status` works correctly
-- [ ] [impl] [Verify] Test `./iw dashboard` opens without crashes
-- [ ] [impl] [Verify] Test `./iw test` still runs tests correctly
+- [x] [impl] [Refactor] Update `./iw` wrapper to exclude test directory from glob
+- [x] [impl] [Verify] Test `./iw server status` works correctly
+- [x] [impl] [Verify] Test `./iw dashboard` opens without crashes
+- [x] [impl] [Verify] Test `./iw test` still runs tests correctly
 
 ## Verification
 
-- [ ] All existing unit tests pass via `./iw test unit`
-- [ ] `./iw server start` starts the server successfully
-- [ ] `./iw server status` shows correct status
-- [ ] `./iw dashboard` opens dashboard without crashes
-- [ ] Dashboard displays worktrees correctly (path bug fixed)
-- [ ] No regressions in other commands (`./iw start`, `./iw open`, etc.)
+- [x] All existing unit tests pass via `./iw test unit`
+- [x] `./iw server start` starts the server successfully
+- [x] `./iw server status` shows correct status
+- [x] `./iw dashboard` opens dashboard without crashes
+- [x] Dashboard displays worktrees correctly (path bug fixed)
+- [ ] No regressions in other commands (`./iw start`, `./iw open`, etc.) - E2E tests have pre-existing failures
 
 ## Notes
 

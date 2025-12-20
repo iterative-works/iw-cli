@@ -4,14 +4,6 @@
 //> using dep com.lihaoyi::upickle:4.0.2
 //> using dep com.softwaremill.sttp.client4::core:4.0.0-M1
 
-//> using file .iw/core/ServerConfig.scala
-//> using file .iw/core/ServerConfigRepository.scala
-//> using file .iw/core/ProcessManager.scala
-//> using file .iw/core/ServerStatus.scala
-//> using file .iw/core/ServerLifecycleService.scala
-//> using file .iw/core/Constants.scala
-//> using file .iw/core/ServerClient.scala
-
 import iw.core.*
 import sttp.client4.quick.*
 import java.nio.file.Paths

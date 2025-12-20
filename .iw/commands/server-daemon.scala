@@ -4,15 +4,6 @@
 //> using dep com.lihaoyi::cask:0.9.4
 //> using dep com.lihaoyi::upickle:4.0.2
 
-//> using file .iw/core/CaskServer.scala
-//> using file .iw/core/ServerState.scala
-//> using file .iw/core/StateRepository.scala
-//> using file .iw/core/ServerStateService.scala
-//> using file .iw/core/DashboardService.scala
-//> using file .iw/core/WorktreeListView.scala
-//> using file .iw/core/WorktreeRegistration.scala
-//> using file .iw/core/WorktreeRegistrationService.scala
-
 // PURPOSE: Run CaskServer in daemon mode (background)
 // PURPOSE: Entry point for background server process
 

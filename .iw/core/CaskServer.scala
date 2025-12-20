@@ -29,7 +29,7 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
         val worktrees = ServerStateService.listWorktrees(state)
 
         // Load project configuration
-        val configPath = os.pwd / Constants.Paths.ConfigFile
+        val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
         val config = ConfigFileRepository.read(configPath)
 
         // Render dashboard with issue data, progress, and PR data
