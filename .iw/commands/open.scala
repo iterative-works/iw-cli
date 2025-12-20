@@ -3,6 +3,7 @@
 // USAGE: iw open [issue-id]
 
 import iw.core.*
+import iw.core.infrastructure.ServerClient
 
 @main def open(args: String*): Unit =
   // Resolve issue ID (from args or current branch)
@@ -35,6 +36,18 @@ def openWorktreeSession(issueId: IssueId): Unit =
       val worktreePath = WorktreePath(config.projectName, issueId)
       val targetPath = worktreePath.resolve(currentDir)
       val sessionName = worktreePath.sessionName
+
+      // Update dashboard lastSeenAt timestamp (best-effort)
+      ServerClient.updateLastSeen(
+        issueId.value,
+        targetPath.toString,
+        config.trackerType.toString,
+        issueId.team
+      ) match
+        case Left(error) =>
+          Output.warn(s"Failed to update dashboard: $error")
+        case Right(_) =>
+          () // Silent success
 
       // Check worktree exists
       if !os.exists(targetPath) then
