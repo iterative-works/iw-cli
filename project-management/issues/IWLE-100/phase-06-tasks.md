@@ -72,26 +72,26 @@
 
 ### Tests
 
-- [ ] **[test]** Write GitStatusServiceTest: getGitStatus returns status when git commands succeed
-- [ ] **[test]** Write GitStatusServiceTest: getGitStatus handles dirty working tree (modified file)
-- [ ] **[test]** Write GitStatusServiceTest: getGitStatus returns error when git command fails
-- [ ] **[test]** Write GitStatusServiceTest: parseBranchName extracts branch from "main\n"
-- [ ] **[test]** Write GitStatusServiceTest: parseBranchName handles "feature-branch" without newline
-- [ ] **[test]** Write GitStatusServiceTest: isWorkingTreeClean returns true for empty output
-- [ ] **[test]** Write GitStatusServiceTest: isWorkingTreeClean returns false for " M file.txt"
-- [ ] **[test]** Write GitStatusServiceTest: isWorkingTreeClean returns false for "?? new-file.txt"
+- [x] **[test]** Write GitStatusServiceTest: getGitStatus returns status when git commands succeed
+- [x] **[test]** Write GitStatusServiceTest: getGitStatus handles dirty working tree (modified file)
+- [x] **[test]** Write GitStatusServiceTest: getGitStatus returns error when git command fails
+- [x] **[test]** Write GitStatusServiceTest: parseBranchName extracts branch from "main\n"
+- [x] **[test]** Write GitStatusServiceTest: parseBranchName handles "feature-branch" without newline
+- [x] **[test]** Write GitStatusServiceTest: isWorkingTreeClean returns true for empty output
+- [x] **[test]** Write GitStatusServiceTest: isWorkingTreeClean returns false for " M file.txt"
+- [x] **[test]** Write GitStatusServiceTest: isWorkingTreeClean returns false for "?? new-file.txt"
 
 ### Implementation
 
-- [ ] **[impl]** Create `.iw/core/GitStatusService.scala` object
-- [ ] **[impl]** Implement getGitStatus with injected execCommand function
-- [ ] **[impl]** Call execCommand for "git rev-parse --abbrev-ref HEAD" to get branch name
-- [ ] **[impl]** Call execCommand for "git status --porcelain" to get status
-- [ ] **[impl]** Implement parseBranchName(output) - trim and extract branch
-- [ ] **[impl]** Implement isWorkingTreeClean(output) - return true if empty
-- [ ] **[impl]** Combine results into GitStatus case class
-- [ ] **[impl]** Run GitStatusService tests and verify all pass
-- [ ] **[impl]** Commit: "feat(IWLE-100): Add GitStatusService for repository status detection"
+- [x] **[impl]** Create `.iw/core/GitStatusService.scala` object
+- [x] **[impl]** Implement getGitStatus with injected execCommand function
+- [x] **[impl]** Call execCommand for "git rev-parse --abbrev-ref HEAD" to get branch name
+- [x] **[impl]** Call execCommand for "git status --porcelain" to get status
+- [x] **[impl]** Implement parseBranchName(output) - trim and extract branch
+- [x] **[impl]** Implement isWorkingTreeClean(output) - return true if empty
+- [x] **[impl]** Combine results into GitStatus case class
+- [x] **[impl]** Run GitStatusService tests and verify all pass
+- [x] **[impl]** Commit: "feat(IWLE-100): Add GitStatusService for repository status detection"
 
 ---
 
