@@ -6,6 +6,6 @@
 //> using dep com.softwaremill.sttp.client4::core:4.0.13
 //> using dep com.lihaoyi::upickle:4.4.1
 //> using dep com.lihaoyi::os-lib:0.11.6
-//> using dep com.lihaoyi::cask:0.9.4
+//> using dep com.lihaoyi::cask:0.11.3
 //> using dep com.lihaoyi::scalatags:0.13.1
 //> using test.dep org.scalameta::munit::1.2.1

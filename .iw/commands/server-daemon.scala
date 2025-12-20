@@ -1,9 +1,4 @@
 #!/usr/bin/env -S scala-cli shebang
-//> using scala 3.3.7
-//> using dep com.lihaoyi::os-lib:0.11.4-M3
-//> using dep com.lihaoyi::cask:0.9.4
-//> using dep com.lihaoyi::upickle:4.0.2
-
 // PURPOSE: Run CaskServer in daemon mode (background)
 // PURPOSE: Entry point for background server process
 
