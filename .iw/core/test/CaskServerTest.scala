@@ -336,3 +336,165 @@ class CaskServerTest extends FunSuite:
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
       if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("DELETE /api/v1/worktrees/:issueId returns 200 and removes worktree"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // First register a worktree
+      val registerRequest = ujson.Obj(
+        "path" -> "/test/path",
+        "trackerType" -> "Linear",
+        "team" -> "IWLE"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-123")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Delete the worktree
+      val response = quickRequest
+        .delete(uri"http://localhost:$port/api/v1/worktrees/IWLE-123")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      // Verify response body
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("status").str, "ok")
+      assertEquals(responseJson("issueId").str, "IWLE-123")
+
+      // Verify worktree was removed from state
+      val stateContent = Files.readString(Paths.get(statePath))
+      val stateJson = ujson.read(stateContent)
+      assert(!stateJson("worktrees").obj.contains("IWLE-123"), "Worktree should be removed")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("DELETE /api/v1/worktrees/:issueId returns 404 for non-existent worktree"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Try to delete non-existent worktree
+      val response = quickRequest
+        .delete(uri"http://localhost:$port/api/v1/worktrees/IWLE-999")
+        .send()
+
+      assertEquals(response.code.code, 404)
+
+      // Verify error response
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("code").str, "NOT_FOUND")
+      assert(responseJson("message").str.contains("not found") || responseJson("message").str.contains("IWLE-999"))
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("DELETE endpoint removes associated cache entries"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a worktree
+      val registerRequest = ujson.Obj(
+        "path" -> "/test/path",
+        "trackerType" -> "Linear",
+        "team" -> "IWLE"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-123")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Manually add cache entries to state (simulating cached data)
+      val stateContent = Files.readString(Paths.get(statePath))
+      val stateJson = ujson.read(stateContent)
+      val now = java.time.Instant.now().toString
+      stateJson("issueCache") = ujson.Obj(
+        "IWLE-123" -> ujson.Obj(
+          "data" -> ujson.Obj(
+            "id" -> "IWLE-123",
+            "title" -> "Test Issue",
+            "status" -> "Open",
+            "assignee" -> ujson.Null,
+            "description" -> ujson.Null,
+            "url" -> "http://example.com",
+            "fetchedAt" -> now
+          ),
+          "ttlMinutes" -> 5
+        )
+      )
+      stateJson("progressCache") = ujson.Obj(
+        "IWLE-123" -> ujson.Obj(
+          "progress" -> ujson.Obj(
+            "currentPhase" -> ujson.Null,
+            "totalPhases" -> 0,
+            "phases" -> ujson.Arr(),
+            "overallCompleted" -> 0,
+            "overallTotal" -> 0
+          ),
+          "filesMtime" -> ujson.Obj()
+        )
+      )
+      stateJson("prCache") = ujson.Obj(
+        "IWLE-123" -> ujson.Obj(
+          "pr" -> ujson.Obj(
+            "url" -> "http://example.com/pr/1",
+            "state" -> "Open",
+            "number" -> 1,
+            "title" -> "Test PR"
+          ),
+          "fetchedAt" -> now
+        )
+      )
+      Files.writeString(Paths.get(statePath), ujson.write(stateJson, indent = 2))
+
+      // Delete the worktree
+      val response = quickRequest
+        .delete(uri"http://localhost:$port/api/v1/worktrees/IWLE-123")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      // Verify all caches were removed
+      val updatedStateContent = Files.readString(Paths.get(statePath))
+      val updatedStateJson = ujson.read(updatedStateContent)
+      assert(!updatedStateJson("worktrees").obj.contains("IWLE-123"))
+      assert(
+        !updatedStateJson.obj.get("issueCache").exists(_.obj.contains("IWLE-123")),
+        "issueCache should not contain IWLE-123"
+      )
+      assert(
+        !updatedStateJson.obj.get("progressCache").exists(_.obj.contains("IWLE-123")),
+        "progressCache should not contain IWLE-123"
+      )
+      assert(
+        !updatedStateJson.obj.get("prCache").exists(_.obj.contains("IWLE-123")),
+        "prCache should not contain IWLE-123"
+      )
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)

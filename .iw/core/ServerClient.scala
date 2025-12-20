@@ -157,3 +157,26 @@ object ServerClient:
   ): Either[String, Unit] =
     // Reuse registerWorktree - the PUT endpoint handles updates
     registerWorktree(issueId, path, trackerType, team, statePath)
+
+  /**
+   * Unregisters a worktree from the server.
+   *
+   * @param issueId The issue identifier
+   * @return Right(()) on success, Left(error message) on failure
+   */
+  def unregisterWorktree(issueId: String): Either[String, Unit] =
+    val port = getServerPort()
+    try
+      val response = quickRequest
+        .delete(uri"http://localhost:$port/api/v1/worktrees/$issueId")
+        .send()
+
+      response.code match
+        case StatusCode.Ok => Right(())
+        case StatusCode.NotFound => Right(()) // Already removed - treat as success
+        case _ =>
+          val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
+          Left(s"Server returned ${response.code.code}: $errorMsg")
+
+    catch
+      case e: Exception => Left(s"Failed to unregister worktree: ${e.getMessage}")

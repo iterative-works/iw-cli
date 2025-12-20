@@ -3,6 +3,7 @@
 // USAGE: iw rm <issue-id> [--force]
 
 import iw.core.*
+import iw.core.infrastructure.ServerClient
 
 @main def rm(args: String*): Unit =
   // Parse arguments
@@ -84,4 +85,12 @@ def removeWorktree(issueId: IssueId, force: Boolean): Unit =
           sys.exit(1)
         case Right(_) =>
           Output.success("Worktree removed")
+
+          // Unregister from dashboard (best-effort)
+          ServerClient.unregisterWorktree(issueId.value) match
+            case Right(_) =>
+              Output.info("Unregistered from dashboard")
+            case Left(err) =>
+              System.err.println(s"Warning: Failed to unregister from dashboard: $err")
+
           Output.info(s"Branch '${issueId.value}' was not deleted (delete manually if needed)")
