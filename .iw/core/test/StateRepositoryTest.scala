@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue}
+import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress}
 import iw.core.infrastructure.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path, Paths}
@@ -257,4 +257,116 @@ class StateRepositoryTest extends munit.FunSuite:
         assert(loadedState.issueCache.contains("IWLE-1"))
         assert(loadedState.issueCache.contains("IWLE-2"))
         assert(loadedState.issueCache.contains("PROJ-3"))
+      }
+
+  tempDir.test("StateRepository serializes ServerState with progressCache"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val phase1 = PhaseInfo(1, "Phase 1", "/path/phase-01-tasks.md", 10, 5)
+      val progress = WorkflowProgress(
+        currentPhase = Some(1),
+        totalPhases = 1,
+        phases = List(phase1),
+        overallCompleted = 5,
+        overallTotal = 10
+      )
+      val cached = CachedProgress(progress, Map("/path/phase-01-tasks.md" -> 1000L))
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map("IWLE-123" -> cached)
+      )
+
+      val writeResult = repo.write(state)
+      assert(writeResult.isRight, s"Write failed: $writeResult")
+
+      // Verify file exists
+      assert(Files.exists(statePath))
+
+  tempDir.test("StateRepository deserializes ServerState with progressCache correctly"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val phase1 = PhaseInfo(1, "Setup", "/worktree/phase-01.md", 5, 5)
+      val phase2 = PhaseInfo(2, "Implementation", "/worktree/phase-02.md", 10, 3)
+      val progress = WorkflowProgress(
+        currentPhase = Some(2),
+        totalPhases = 2,
+        phases = List(phase1, phase2),
+        overallCompleted = 8,
+        overallTotal = 15
+      )
+      val filesMtime = Map(
+        "/worktree/phase-01.md" -> 1000L,
+        "/worktree/phase-02.md" -> 2000L
+      )
+      val cached = CachedProgress(progress, filesMtime)
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map("IWLE-456" -> cached)
+      )
+
+      repo.write(state)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.progressCache.size, 1)
+        assert(loadedState.progressCache.contains("IWLE-456"))
+
+        val loadedCached = loadedState.progressCache("IWLE-456")
+        assertEquals(loadedCached.progress.totalPhases, 2)
+        assertEquals(loadedCached.progress.overallCompleted, 8)
+        assertEquals(loadedCached.progress.overallTotal, 15)
+        assertEquals(loadedCached.progress.currentPhase, Some(2))
+        assertEquals(loadedCached.filesMtime.size, 2)
+        assertEquals(loadedCached.filesMtime("/worktree/phase-01.md"), 1000L)
+        assertEquals(loadedCached.filesMtime("/worktree/phase-02.md"), 2000L)
+      }
+
+  tempDir.test("StateRepository handles empty progressCache"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map.empty
+      )
+
+      val writeResult = repo.write(state)
+      assert(writeResult.isRight)
+
+      val readResult = repo.read()
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.progressCache.size, 0)
+      }
+
+  tempDir.test("Old state.json without progressCache loads successfully"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+
+      // Simulate old state.json format (no progressCache field)
+      val oldJsonContent = """{
+        "worktrees": {},
+        "issueCache": {}
+      }"""
+      Files.writeString(statePath, oldJsonContent)
+
+      val repo = StateRepository(statePath.toString)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.worktrees.size, 0)
+        assertEquals(loadedState.issueCache.size, 0)
+        assertEquals(loadedState.progressCache.size, 0)
       }

@@ -3,20 +3,23 @@
 
 package iw.core.presentation.views
 
-import iw.core.domain.{WorktreeRegistration, IssueData}
+import iw.core.domain.{WorktreeRegistration, IssueData, WorkflowProgress}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration
 
 object WorktreeListView:
-  /** Render worktree list with issue data.
+  /** Render worktree list with issue data and progress.
     *
-    * @param worktreesWithIssues List of tuples (worktree, optional issue data with cache flag)
+    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress)
     * @param now Current timestamp for relative time formatting
     * @return HTML fragment
     */
-  def render(worktreesWithIssues: List[(WorktreeRegistration, Option[(IssueData, Boolean)])], now: Instant): Frag =
-    if worktreesWithIssues.isEmpty then
+  def render(
+    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress])],
+    now: Instant
+  ): Frag =
+    if worktreesWithData.isEmpty then
       div(
         cls := "empty-state",
         p("No worktrees registered yet")
@@ -24,12 +27,15 @@ object WorktreeListView:
     else
       div(
         cls := "worktree-list",
-        worktreesWithIssues.map((wt, issueData) => renderWorktreeCard(wt, issueData, now))
+        worktreesWithData.map { case (wt, issueData, progress) =>
+          renderWorktreeCard(wt, issueData, progress, now)
+        }
       )
 
   private def renderWorktreeCard(
     worktree: WorktreeRegistration,
     issueData: Option[(IssueData, Boolean)],
+    progress: Option[WorkflowProgress],
     now: Instant
   ): Frag =
     div(
@@ -44,6 +50,27 @@ object WorktreeListView:
           worktree.issueId
         )
       ),
+      // Phase info and progress bar (if available)
+      progress.flatMap(_.currentPhaseInfo).map { phaseInfo =>
+        div(
+          cls := "phase-info",
+          span(
+            cls := "phase-label",
+            s"Phase ${phaseInfo.phaseNumber}/${progress.get.totalPhases}: ${phaseInfo.phaseName}"
+          ),
+          div(
+            cls := "progress-container",
+            div(
+              cls := "progress-bar",
+              attr("style") := s"width: ${phaseInfo.progressPercentage}%"
+            ),
+            span(
+              cls := "progress-text",
+              s"${phaseInfo.completedTasks}/${phaseInfo.totalTasks} tasks"
+            )
+          )
+        )
+      },
       // Issue details (status, assignee, cache indicator)
       issueData.map { case (data, fromCache) =>
         div(
