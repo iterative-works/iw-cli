@@ -146,11 +146,11 @@
 
 ### DashboardService Modification
 
-- [ ] [impl] Add progressCache parameter to DashboardService.renderDashboard
-- [ ] [impl] Create fetchProgressForWorktree helper method
-- [ ] [impl] Implement file I/O wrapper functions (readFile, getMtime with Try/Either)
-- [ ] [impl] Call WorkflowProgressService.fetchProgress for each worktree
-- [ ] [impl] Handle errors gracefully (return None on failure)
+- [x] [impl] Add progressCache parameter to DashboardService.renderDashboard
+- [x] [impl] Create fetchProgressForWorktree helper method
+- [x] [impl] Implement file I/O wrapper functions (readFile, getMtime with Try/Either)
+- [x] [impl] Call WorkflowProgressService.fetchProgress for each worktree
+- [x] [impl] Handle errors gracefully (return None on failure)
 - [ ] [test] Write test: renderDashboard includes progress data when available
 - [ ] [test] Write test: renderDashboard handles missing task files gracefully
 - [ ] [test] Write test: renderDashboard handles file read errors gracefully
@@ -158,11 +158,11 @@
 
 ### CaskServer Integration
 
-- [ ] [impl] Pass progressCache from ServerState to DashboardService
+- [x] [impl] Pass progressCache from ServerState to DashboardService
 - [ ] [impl] Update progress cache after fetching (new mtimes)
 - [ ] [impl] Save updated state with new progress cache
 - [ ] [test] Manual test: Start server, verify progress fetching works
-- [ ] [impl] Commit: "feat(IWLE-100): Integrate progress fetching in dashboard service"
+- [x] [impl] Commit: "feat(IWLE-100): Integrate progress fetching in dashboard service"
 
 ---
 
@@ -170,23 +170,23 @@
 
 ### WorktreeListView Modification
 
-- [ ] [impl] Add progress parameter to renderWorktreeCard method signature
-- [ ] [impl] Add phase info display section in card template
-- [ ] [impl] Render phase label: "Phase N/Total: Phase Name"
-- [ ] [impl] Create progress bar HTML structure
-- [ ] [impl] Add progress bar width calculation (percentage)
-- [ ] [impl] Add task count label: "X/Y tasks"
-- [ ] [impl] Add conditional rendering (only show if progress available)
-- [ ] [impl] Handle edge case: no current phase (show nothing)
-- [ ] [impl] Handle edge case: 0 total tasks (show "no tasks defined")
+- [x] [impl] Add progress parameter to renderWorktreeCard method signature
+- [x] [impl] Add phase info display section in card template
+- [x] [impl] Render phase label: "Phase N/Total: Phase Name"
+- [x] [impl] Create progress bar HTML structure
+- [x] [impl] Add progress bar width calculation (percentage)
+- [x] [impl] Add task count label: "X/Y tasks"
+- [x] [impl] Add conditional rendering (only show if progress available)
+- [x] [impl] Handle edge case: no current phase (show nothing)
+- [x] [impl] Handle edge case: 0 total tasks (show "no tasks defined")
 
 ### Progress Bar Styling
 
-- [ ] [impl] Add CSS for .phase-info container
-- [ ] [impl] Add CSS for .phase-label styling
-- [ ] [impl] Add CSS for .progress-container background
-- [ ] [impl] Add CSS for .progress-bar gradient fill
-- [ ] [impl] Add CSS for .progress-text overlay
+- [x] [impl] Add CSS for .phase-info container
+- [x] [impl] Add CSS for .phase-label styling
+- [x] [impl] Add CSS for .progress-container background
+- [x] [impl] Add CSS for .progress-bar gradient fill
+- [x] [impl] Add CSS for .progress-text overlay
 - [ ] [impl] Add CSS for mobile responsive behavior
 - [ ] [test] Manual test: Verify progress bar renders correctly
 - [ ] [test] Manual test: Verify progress bar width matches percentage
@@ -195,7 +195,7 @@
 ### Commit View Changes
 
 - [ ] [impl] Run manual tests and verify visual correctness
-- [ ] [impl] Commit: "feat(IWLE-100): Enhance worktree cards with progress bar display"
+- [x] [impl] Commit: "feat(IWLE-100): Enhance worktree cards with progress bar display"
 
 ---
 
@@ -203,25 +203,25 @@
 
 ### Phase File Detection
 
-- [ ] [impl] Implement phase file listing logic (java.nio.file.Files)
-- [ ] [impl] Filter for phase-NN-tasks.md pattern (regex: phase-\d{2}-tasks\.md)
-- [ ] [impl] Extract phase number from filename (phase-02-tasks.md → 2)
-- [ ] [impl] Sort phase files by phase number
-- [ ] [test] Write test: Phase file detection finds all valid files
-- [ ] [test] Write test: Phase file detection ignores non-matching files
-- [ ] [test] Write test: Phase number extraction works for all valid names
-- [ ] [impl] Verify file detection tests pass
+- [x] [impl] Implement phase file listing logic (java.nio.file.Files)
+- [x] [impl] Filter for phase-NN-tasks.md pattern (regex: phase-\d{2}-tasks\.md)
+- [x] [impl] Extract phase number from filename (phase-02-tasks.md → 2)
+- [x] [impl] Sort phase files by phase number
+- [x] [test] Write test: Phase file detection finds all valid files
+- [x] [test] Write test: Phase file detection ignores non-matching files
+- [x] [test] Write test: Phase number extraction works for all valid names
+- [x] [impl] Verify file detection tests pass
 
 ### Phase Name Fallback
 
-- [ ] [impl] Implement fallback phase name from filename
-- [ ] [test] Write test: Fallback name works when header missing (phase-02 → "Phase 2")
-- [ ] [impl] Verify fallback logic works end-to-end
+- [x] [impl] Implement fallback phase name from filename
+- [x] [test] Write test: Fallback name works when header missing (phase-02 → "Phase 2")
+- [x] [impl] Verify fallback logic works end-to-end
 
 ### Commit File System Integration
 
-- [ ] [impl] Run filesystem integration tests and verify pass
-- [ ] [impl] Commit: "feat(IWLE-100): Add phase file detection and parsing"
+- [x] [impl] Run filesystem integration tests and verify pass
+- [x] [impl] Commit: "feat(IWLE-100): Add phase file detection and parsing"
 
 ---
 
@@ -229,27 +229,27 @@
 
 ### Missing Files
 
-- [ ] [test] Manual test: Worktree with no task directory shows no progress
-- [ ] [test] Manual test: Worktree with task directory but no phase files shows nothing
-- [ ] [impl] Verify graceful fallback (no error, just missing progress)
+- [x] [test] Manual test: Worktree with no task directory shows no progress
+- [x] [test] Manual test: Worktree with task directory but no phase files shows nothing
+- [x] [impl] Verify graceful fallback (no error, just missing progress)
 
 ### Empty Task Files
 
 - [ ] [test] Create fixture: empty phase-01-tasks.md file
 - [ ] [test] Manual test: Empty task file shows 0/0 tasks or no progress bar
-- [ ] [impl] Verify 0 total tasks handled correctly
+- [x] [impl] Verify 0 total tasks handled correctly
 
 ### Malformed Markdown
 
 - [ ] [test] Create fixture: task file with mixed markdown styles
 - [ ] [test] Manual test: Best-effort parsing counts valid checkboxes
-- [ ] [impl] Verify parser doesn't crash on unexpected input
+- [x] [impl] Verify parser doesn't crash on unexpected input
 
 ### File I/O Errors
 
 - [ ] [test] Manual test: Unreadable task file (permissions) shows no progress
 - [ ] [test] Manual test: File deleted between detection and read handled gracefully
-- [ ] [impl] Verify all error paths return Left() with message
+- [x] [impl] Verify all error paths return Left() with message
 
 ### Commit Error Handling
 
@@ -286,20 +286,20 @@
 
 ### Code Documentation
 
-- [ ] [impl] Add PURPOSE comments to PhaseInfo.scala
-- [ ] [impl] Add PURPOSE comments to WorkflowProgress.scala
-- [ ] [impl] Add PURPOSE comments to CachedProgress.scala
-- [ ] [impl] Add PURPOSE comments to MarkdownTaskParser.scala
-- [ ] [impl] Add PURPOSE comments to WorkflowProgressService.scala
-- [ ] [impl] Add inline comments for regex patterns
-- [ ] [impl] Add inline comments for current phase detection logic
+- [x] [impl] Add PURPOSE comments to PhaseInfo.scala
+- [x] [impl] Add PURPOSE comments to WorkflowProgress.scala
+- [x] [impl] Add PURPOSE comments to CachedProgress.scala
+- [x] [impl] Add PURPOSE comments to MarkdownTaskParser.scala
+- [x] [impl] Add PURPOSE comments to WorkflowProgressService.scala
+- [x] [impl] Add inline comments for regex patterns
+- [x] [impl] Add inline comments for current phase detection logic
 
 ### Implementation Log
 
-- [ ] [impl] Update implementation-log.md with Phase 5 summary
-- [ ] [impl] Document markdown parsing format assumptions
-- [ ] [impl] Document cache invalidation strategy (mtime-based)
-- [ ] [impl] Document edge cases handled
+- [x] [impl] Update implementation-log.md with Phase 5 summary
+- [x] [impl] Document markdown parsing format assumptions
+- [x] [impl] Document cache invalidation strategy (mtime-based)
+- [x] [impl] Document edge cases handled
 - [ ] [impl] Commit: "docs(IWLE-100): Document Phase 5 implementation"
 
 ---

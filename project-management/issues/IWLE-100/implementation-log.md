@@ -235,3 +235,71 @@ A .iw/core/test/IssueCacheServiceTest.scala
 ```
 
 ---
+
+## Phase 5: Display phase and task progress (2025-12-20)
+
+**What was built:**
+- Domain: `PhaseInfo.scala` - Phase metadata with task counts and computed properties (isComplete, isInProgress, notStarted, progressPercentage)
+- Domain: `WorkflowProgress.scala` - Complete workflow state with current phase detection and overall progress calculation
+- Domain: `CachedProgress.scala` - Cache wrapper with file mtime validation for cache invalidation
+- Application: `MarkdownTaskParser.scala` - Pure functions for parsing checkbox tasks (`- [ ]`, `- [x]`) and extracting phase names from headers
+- Application: `WorkflowProgressService.scala` - Pure business logic for progress computation with file I/O injection pattern
+- Infrastructure: `ServerState.scala` - Extended with progressCache field for workflow progress persistence
+- Infrastructure: `StateRepository.scala` - Added upickle ReadWriters for PhaseInfo, WorkflowProgress, CachedProgress
+- Application: `DashboardService.scala` - Integrated progress fetching with file I/O wrappers (readFile, getMtime)
+- Presentation: `WorktreeListView.scala` - Enhanced cards with phase label, progress bar, and task count display
+- Styling: Added CSS for phase-info, progress-container, progress-bar with gradient fill and overlay text
+
+**Decisions made:**
+- mtime-based cache invalidation (no TTL, no content hashing) - simpler and fast enough for manual file edits
+- Strict checkbox parsing: only `- [ ]` and `- [x]` recognized (matches agile workflow format)
+- Phase name extraction: try header first (`# Phase N: Name`), fallback to filename (`phase-02-tasks.md` → "Phase 2")
+- Current phase logic: first with incomplete tasks, or first not-started, or last phase if all complete
+- Progress display: show current phase progress (not overall) for actionable focus
+- File discovery: check phase-01 through phase-20 by attempting to get mtime
+- Error handling: graceful fallback - missing files show no progress (no error message)
+- Progress bar: linear gradient green (#51cf66 → #37b24d), text overlay for task count
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: PhaseInfo, WorkflowProgress, MarkdownTaskParser, WorkflowProgressService are pure; file I/O injected from DashboardService
+- File I/O injection: `readFile: String => Either[String, Seq[String]]` and `getMtime: String => Either[String, Long]` passed to WorkflowProgressService
+- Best-effort parsing: count valid checkboxes, ignore malformed lines (don't crash on unexpected markdown)
+- Cache validation: compare file mtimes, re-parse if any changed or new files added
+- Graceful degradation: missing task files → no progress shown, read errors → toOption for silent failure
+
+**Testing:**
+- Unit tests: 48 tests added (PhaseInfo: 5, WorkflowProgress: 4, CachedProgress: 4, MarkdownTaskParser: 16, WorkflowProgressService: 12, IssueCacheService extended: 7)
+- Integration tests: 4 tests added (StateRepository progress cache serialization)
+- E2E tests: Manual testing deferred to Parts 8-9 (empty files, malformed markdown, missing directories)
+
+**Code review:**
+- Iterations: 0 (self-review during implementation)
+- Review file: N/A
+- Quality checks: FCIS pattern verified, pure functions throughout, effects at edges
+
+**For next phases:**
+- Available utilities: `WorkflowProgressService.fetchProgress()` for progress tracking, `MarkdownTaskParser` for checkbox counting
+- Extension points: Add nested task support, custom task formats, real-time file watching
+- Notes: Progress cache grows with worktrees (~1KB per issue); no pruning needed (mtime-based invalidation keeps it current)
+
+**Files changed:**
+```
+M .iw/core/CaskServer.scala
+M .iw/core/DashboardService.scala
+M .iw/core/ServerState.scala
+M .iw/core/StateRepository.scala
+M .iw/core/WorktreeListView.scala
+M .iw/core/test/StateRepositoryTest.scala
+A .iw/core/PhaseInfo.scala
+A .iw/core/WorkflowProgress.scala
+A .iw/core/CachedProgress.scala
+A .iw/core/MarkdownTaskParser.scala
+A .iw/core/WorkflowProgressService.scala
+A .iw/core/test/PhaseInfoTest.scala
+A .iw/core/test/WorkflowProgressTest.scala
+A .iw/core/test/CachedProgressTest.scala
+A .iw/core/test/MarkdownTaskParserTest.scala
+A .iw/core/test/WorkflowProgressServiceTest.scala
+```
+
+---
