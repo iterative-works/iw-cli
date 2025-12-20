@@ -3,9 +3,9 @@
 
 package iw.core.infrastructure
 
-import iw.core.application.{ServerStateService, DashboardService}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService}
 import iw.core.domain.ServerState
-import iw.core.service.WorktreeRegistrationService
+import java.time.Instant
 
 class CaskServer(statePath: String) extends cask.MainRoutes:
   private val repository = StateRepository(statePath)
@@ -22,8 +22,9 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
           headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
         )
       case Left(error) =>
+        System.err.println(s"Error loading state: $error")
         cask.Response(
-          data = s"Error loading state: $error",
+          data = "Internal server error",
           statusCode = 500
         )
 
@@ -31,7 +32,7 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
   def health(): ujson.Value =
     ujson.Obj("status" -> "ok")
 
-  @cask.put("/api/worktrees/:issueId")
+  @cask.put("/api/v1/worktrees/:issueId")
   def registerWorktree(issueId: String, request: cask.Request): cask.Response[ujson.Value] =
     val requestJson = try
       // Parse request body
@@ -39,15 +40,24 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
       val bodyStr = new String(bodyBytes, "UTF-8")
       ujson.read(bodyStr)
     catch
-      case e: ujson.ParseException =>
+      case e: Throwable if e.getClass.getName.contains("ParseException") ||
+                           e.getClass.getName.contains("Abort") ||
+                           e.getClass.getName.contains("TraceException") =>
         return cask.Response(
-          data = ujson.Obj("error" -> s"Malformed JSON: ${e.getMessage}"),
+          data = ujson.Obj(
+            "code" -> "MALFORMED_JSON",
+            "message" -> s"Malformed JSON: ${e.getMessage}"
+          ),
           statusCode = 400
         )
       case e: Exception =>
+        System.err.println(s"Error reading request body: ${e.getClass.getName}: ${e.getMessage}")
         return cask.Response(
-          data = ujson.Obj("error" -> s"Error reading request body: ${e.getMessage}"),
-          statusCode = 400
+          data = ujson.Obj(
+            "code" -> "INTERNAL_ERROR",
+            "message" -> "Internal server error"
+          ),
+          statusCode = 500
         )
 
     try
@@ -61,17 +71,19 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
 
       stateResult match
         case Right(currentState) =>
-          // Register or update worktree
+          // Register or update worktree with current timestamp
+          val now = Instant.now()
           val registrationResult = WorktreeRegistrationService.register(
             issueId,
             path,
             trackerType,
             team,
+            now,
             currentState
           )
 
           registrationResult match
-            case Right(newState) =>
+            case Right((newState, wasCreated)) =>
               // Persist new state
               val saveResult = ServerStateService.save(newState, repository)
 
@@ -84,40 +96,63 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
                       "issueId" -> issueId,
                       "lastSeenAt" -> registration.lastSeenAt.toString
                     ),
-                    statusCode = 200
+                    statusCode = if wasCreated then 201 else 200
                   )
                 case Left(error) =>
+                  System.err.println(s"Failed to save state: $error")
                   cask.Response(
-                    data = ujson.Obj("error" -> s"Failed to save state: $error"),
+                    data = ujson.Obj(
+                      "code" -> "INTERNAL_ERROR",
+                      "message" -> "Internal server error"
+                    ),
                     statusCode = 500
                   )
 
             case Left(error) =>
               cask.Response(
-                data = ujson.Obj("error" -> error),
+                data = ujson.Obj(
+                  "code" -> "VALIDATION_ERROR",
+                  "message" -> error
+                ),
                 statusCode = 400
               )
 
         case Left(error) =>
+          System.err.println(s"Failed to load state: $error")
           cask.Response(
-            data = ujson.Obj("error" -> s"Failed to load state: $error"),
+            data = ujson.Obj(
+              "code" -> "INTERNAL_ERROR",
+              "message" -> "Internal server error"
+            ),
             statusCode = 500
           )
 
     catch
-      case e: ujson.ParseException =>
+      case e: Throwable if e.getClass.getName.contains("ParseException") ||
+                           e.getClass.getName.contains("Abort") ||
+                           e.getClass.getName.contains("TraceException") =>
         cask.Response(
-          data = ujson.Obj("error" -> s"Malformed JSON: ${e.getMessage}"),
+          data = ujson.Obj(
+            "code" -> "MALFORMED_JSON",
+            "message" -> s"Malformed JSON: ${e.getMessage}"
+          ),
           statusCode = 400
         )
       case e: NoSuchElementException =>
         cask.Response(
-          data = ujson.Obj("error" -> s"Missing required field: ${e.getMessage}"),
+          data = ujson.Obj(
+            "code" -> "MISSING_FIELD",
+            "message" -> s"Missing required field: ${e.getMessage}"
+          ),
           statusCode = 400
         )
       case e: Exception =>
+        System.err.println(s"Internal error: ${e.getMessage}")
         cask.Response(
-          data = ujson.Obj("error" -> s"Internal error: ${e.getMessage}"),
+          data = ujson.Obj(
+            "code" -> "INTERNAL_ERROR",
+            "message" -> "Internal server error"
+          ),
           statusCode = 500
         )
 

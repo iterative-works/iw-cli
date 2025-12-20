@@ -62,3 +62,54 @@ A .iw/core/test/WorktreeRegistrationTest.scala
 ```
 
 ---
+
+## Phase 2: Automatic worktree registration from CLI commands (2025-12-20)
+
+**What was built:**
+- Application: `WorktreeRegistrationService.scala` - Pure business logic for registration with upsert semantics and timestamp injection
+- Infrastructure: `ServerClient.scala` - HTTP client for CLI-to-server communication with lazy server start
+- Infrastructure: `CaskServer.scala` - Added `PUT /api/v1/worktrees/:issueId` endpoint with structured error responses
+- CLI Integration: Modified `start.scala`, `open.scala`, `issue.scala` to auto-register/update worktrees
+
+**Decisions made:**
+- Best-effort registration: CLI commands succeed even if server unavailable (warnings only)
+- Upsert semantics: PUT creates new registration or updates existing, preserving `registeredAt`
+- Lazy server start: ServerClient auto-starts server if health check fails
+- API versioning: Added `/api/v1/` prefix for future compatibility
+- Timestamp injection: Pure functions receive `Instant` from callers (FCIS compliance)
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: WorktreeRegistrationService is pure, CaskServer handles I/O and passes timestamps
+- Best-effort side effects: Registration uses Either with warn-only error handling
+- Daemon thread pattern: Server started in daemon thread for lazy start
+- Structured error responses: `{"code": "ERROR_CODE", "message": "..."}` format
+
+**Testing:**
+- Unit tests: 15 tests added (WorktreeRegistrationService: 12, ServerClient: 3)
+- Integration tests: 5 tests added (CaskServer PUT endpoint)
+- E2E tests: Deferred to Phase 3 with server lifecycle
+
+**Code review:**
+- Iterations: 2
+- Review file: review-phase-02-20251220.md
+- Issues fixed: Timestamp injection (FCIS), API versioning, structured errors, package naming
+
+**For next phases:**
+- Available utilities: `ServerClient.registerWorktree()` for any command needing registration
+- Extension points: Add more endpoints to CaskServer, extend registration data
+- Notes: Phase 3 will add `iw server start/stop/status` and port configuration
+
+**Files changed:**
+```
+M .iw/commands/issue.scala
+M .iw/commands/open.scala
+M .iw/commands/start.scala
+M .iw/core/CaskServer.scala
+A .iw/core/ServerClient.scala
+A .iw/core/WorktreeRegistrationService.scala
+A .iw/core/test/CaskServerTest.scala
+A .iw/core/test/ServerClientTest.scala
+A .iw/core/test/WorktreeRegistrationServiceTest.scala
+```
+
+---

@@ -63,12 +63,12 @@ class CaskServerTest extends FunSuite:
       )
 
       val response = quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/IWLE-123")
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-123")
         .body(ujson.write(requestBody))
         .header("Content-Type", "application/json")
         .send()
 
-      assertEquals(response.code.code, 200)
+      assertEquals(response.code.code, 201)
 
       // Verify response body
       val responseJson = ujson.read(response.body)
@@ -111,12 +111,10 @@ class CaskServerTest extends FunSuite:
       )
 
       quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/IWLE-456")
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-456")
         .body(ujson.write(firstRequest))
         .header("Content-Type", "application/json")
         .send()
-
-      Thread.sleep(50) // Ensure time difference
 
       // Second registration with updated data
       val secondRequest = ujson.Obj(
@@ -126,7 +124,7 @@ class CaskServerTest extends FunSuite:
       )
 
       val response = quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/IWLE-456")
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-456")
         .body(ujson.write(secondRequest))
         .header("Content-Type", "application/json")
         .send()
@@ -157,7 +155,7 @@ class CaskServerTest extends FunSuite:
       val serverThread = startTestServer(statePath, port)
 
       val response = quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/IWLE-789")
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-789")
         .body("{invalid json")
         .header("Content-Type", "application/json")
         .send()
@@ -165,7 +163,8 @@ class CaskServerTest extends FunSuite:
       assertEquals(response.code.code, 400)
 
       val responseJson = ujson.read(response.body)
-      assert(responseJson.obj.contains("error"))
+      assert(responseJson.obj.contains("code"))
+      assert(responseJson.obj.contains("message"))
 
     finally
       // Cleanup
@@ -188,7 +187,7 @@ class CaskServerTest extends FunSuite:
       )
 
       val response = quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/IWLE-999")
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-999")
         .body(ujson.write(requestBody))
         .header("Content-Type", "application/json")
         .send()
@@ -196,7 +195,8 @@ class CaskServerTest extends FunSuite:
       assertEquals(response.code.code, 400)
 
       val responseJson = ujson.read(response.body)
-      assert(responseJson.obj.contains("error"))
+      assert(responseJson.obj.contains("code"))
+      assert(responseJson.obj.contains("message"))
 
     finally
       // Cleanup
@@ -220,7 +220,7 @@ class CaskServerTest extends FunSuite:
 
       // Empty issueId
       val response = quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/")
+        .put(uri"http://localhost:$port/api/v1/worktrees/")
         .body(ujson.write(requestBody))
         .header("Content-Type", "application/json")
         .send()

@@ -96,15 +96,15 @@ object ServerClient:
       )
 
       val response = quickRequest
-        .put(uri"http://localhost:$port/api/worktrees/$issueId")
+        .put(uri"http://localhost:$port/api/v1/worktrees/$issueId")
         .body(ujson.write(requestBody))
         .header("Content-Type", "application/json")
         .send()
 
       response.code match
-        case StatusCode.Ok => Right(())
+        case StatusCode.Ok | StatusCode.Created => Right(())
         case _ =>
-          val errorMsg = Try(ujson.read(response.body)("error").str).getOrElse(response.body)
+          val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
           Left(s"Server returned ${response.code.code}: $errorMsg")
 
     catch
