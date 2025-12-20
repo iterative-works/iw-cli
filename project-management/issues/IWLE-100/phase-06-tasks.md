@@ -51,20 +51,20 @@
 
 ### Tests
 
-- [ ] **[test]** Write CommandRunnerTest: execute returns stdout when command succeeds (echo test)
-- [ ] **[test]** Write CommandRunnerTest: execute returns Left(error) when command fails (false)
-- [ ] **[test]** Write CommandRunnerTest: execute works with workingDir parameter
-- [ ] **[test]** Write CommandRunnerTest: isCommandAvailable returns true for "echo"
-- [ ] **[test]** Write CommandRunnerTest: isCommandAvailable returns false for non-existent command
+- [x] **[test]** Write CommandRunnerTest: execute returns stdout when command succeeds (echo test)
+- [x] **[test]** Write CommandRunnerTest: execute returns Left(error) when command fails (false)
+- [x] **[test]** Write CommandRunnerTest: execute works with workingDir parameter
+- [x] **[test]** Write CommandRunnerTest: isCommandAvailable returns true for "echo"
+- [x] **[test]** Write CommandRunnerTest: isCommandAvailable returns false for non-existent command
 
 ### Implementation
 
-- [ ] **[impl]** Create `.iw/core/CommandRunner.scala` object
-- [ ] **[impl]** Implement execute(command, args, workingDir) using scala.sys.process
-- [ ] **[impl]** Add error handling with Either (catch RuntimeException, return Left)
-- [ ] **[impl]** Implement isCommandAvailable(command) using "which" check
-- [ ] **[impl]** Run CommandRunner tests and verify all pass
-- [ ] **[impl]** Commit: "feat(IWLE-100): Add CommandRunner for shell command execution"
+- [x] **[impl]** Create `.iw/core/CommandRunner.scala` object
+- [x] **[impl]** Implement execute(command, args, workingDir) using scala.sys.process
+- [x] **[impl]** Add error handling with Either (catch RuntimeException, return Left)
+- [x] **[impl]** Implement isCommandAvailable(command) using "which" check
+- [x] **[impl]** Run CommandRunner tests and verify all pass
+- [x] **[impl]** Commit: "feat(IWLE-100): Add CommandRunner for shell command execution"
 
 ---
 
