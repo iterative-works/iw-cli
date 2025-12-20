@@ -8,7 +8,7 @@
 
 When testing the dashboard server, it crashed with `os.PathError$InvalidSegment` because `Constants.Paths.ConfigFile = ".iw/config.conf"` contains a `/` character, which `os-lib` doesn't allow in a single path segment.
 
-Additionally, the `//> using file` directives in command scripts use relative paths that resolve incorrectly when scripts are run from different directories than expected. This causes compile errors like "File not found: .iw/commands/.iw/core/ServerConfig.scala" because the relative paths are resolved from the script location.
+Additionally, command scripts have `//> using file` directives that conflict with the glob-based approach already used by the `./iw` wrapper. The wrapper passes `"$CORE_DIR"/*.scala` but command scripts also declare their own file dependencies, causing confusion and including test files that require munit.
 
 ## Current State
 
@@ -26,24 +26,35 @@ val configPath = os.pwd / Constants.Paths.ConfigFile  // Crashes!
 
 ### Build System Issue
 
-**File:** `.iw/commands/server.scala` (lines 7-13)
+**File:** `./iw` wrapper (line 166) - GOOD approach:
+```bash
+exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
+```
+
+**Problem:** Command scripts ALSO have `//> using file` directives that:
+1. Conflict with the wrapper's glob approach
+2. Use relative paths that break when resolved from wrong directory
+
+**File:** `.iw/commands/server.scala` (lines 7-13) - REMOVE these:
 ```scala
 //> using file .iw/core/ServerConfig.scala
 //> using file .iw/core/ServerConfigRepository.scala
-// ... more relative paths that break when cwd differs
+...
 ```
 
-**File:** `.iw/commands/server-daemon.scala` (lines 7-14)
+**File:** `.iw/commands/server-daemon.scala` (lines 7-14) - REMOVE these:
 ```scala
 //> using file .iw/core/CaskServer.scala
-// ... same issue
+...
 ```
 
-**File:** `.iw/commands/dashboard.scala` (lines 5-6)
+**File:** `.iw/commands/dashboard.scala` (lines 5-6) - REMOVE these:
 ```scala
 //> using file "../core/project.scala"
 //> using file "../core"
 ```
+
+**Additional issue:** The glob `"$CORE_DIR"/*.scala` includes test files in `.iw/core/test/` which require munit dependency not available at runtime.
 
 ## Target State
 
@@ -55,55 +66,63 @@ Split paths into components that work with `os-lib`:
 object Paths:
   val IwDir = ".iw"
   val ConfigFileName = "config.conf"
-  // For building paths: os.pwd / Paths.IwDir / Paths.ConfigFileName
+  // Usage: os.pwd / Paths.IwDir / Paths.ConfigFileName
 ```
 
 ### Build System
 
-Option A: Use `//> using files` with proper paths from project root
-Option B: Remove `//> using file` and use scala-cli classpath arguments
-
-Preferred approach: **Option A** - Standardize on using `../core` pattern from commands directory, ensuring scripts are always run via `./iw` wrapper.
+1. **Remove ALL `//> using file` directives** from command scripts
+2. **Keep `project.scala`** with dependency declarations (each command can reference it or declare own deps)
+3. **Update `./iw` wrapper** to exclude test files from glob:
+   ```bash
+   # Find core files excluding test directory
+   CORE_FILES=$(find "$CORE_DIR" -maxdepth 1 -name "*.scala" | tr '\n' ' ')
+   exec scala-cli run "$cmd_file" $hook_files $CORE_FILES -- "$@"
+   ```
 
 ## Constraints
 
 - PRESERVE: All existing functionality must work unchanged
-- PRESERVE: All tests must pass
+- PRESERVE: All tests must pass (run via `./iw test`, not directly)
 - PRESERVE: `./iw` wrapper script invocation pattern
 - DO NOT TOUCH: Business logic in any file
-- DO NOT TOUCH: Test files (unless imports change)
+- DO NOT TOUCH: Test files
 
 ## Tasks
 
 ### Path Handling
 
-- [ ] [impl] [Analysis] Identify all usages of Constants.Paths in codebase
-- [ ] [impl] [Refactor] Update Constants.Paths.ConfigFile to separate IwDir and ConfigFileName
-- [ ] [impl] [Refactor] Update CaskServer.scala to use proper path construction
+- [ ] [impl] [Refactor] Update Constants.Paths: split ConfigFile into IwDir + ConfigFileName
+- [ ] [impl] [Refactor] Update CaskServer.scala line 32 to use `os.pwd / Paths.IwDir / Paths.ConfigFileName`
 - [ ] [impl] [Verify] Run unit tests to ensure no regressions
 
-### Build System
+### Build System - Command Scripts
 
-- [ ] [impl] [Analysis] Document current `//> using file` patterns in all command scripts
-- [ ] [impl] [Refactor] Standardize dashboard.scala pattern (`../core/project.scala`, `../core`)
-- [ ] [impl] [Refactor] Update server.scala to use standardized pattern
-- [ ] [impl] [Refactor] Update server-daemon.scala to use standardized pattern
+- [ ] [impl] [Refactor] Remove `//> using file` directives from dashboard.scala
+- [ ] [impl] [Refactor] Remove `//> using file` directives from server.scala
+- [ ] [impl] [Refactor] Remove `//> using file` directives from server-daemon.scala
+- [ ] [impl] [Analysis] Check all other command scripts for `//> using file` directives
+- [ ] [impl] [Refactor] Remove `//> using file` directives from any other commands found
+
+### Build System - Wrapper Script
+
+- [ ] [impl] [Refactor] Update `./iw` wrapper to exclude test directory from glob
 - [ ] [impl] [Verify] Test `./iw server status` works correctly
-- [ ] [impl] [Verify] Test `./iw dashboard` works correctly
-- [ ] [impl] [Cleanup] Remove any dead or duplicate using directives
+- [ ] [impl] [Verify] Test `./iw dashboard` opens without crashes
+- [ ] [impl] [Verify] Test `./iw test` still runs tests correctly
 
 ## Verification
 
-- [ ] All existing unit tests pass
+- [ ] All existing unit tests pass via `./iw test unit`
 - [ ] `./iw server start` starts the server successfully
 - [ ] `./iw server status` shows correct status
 - [ ] `./iw dashboard` opens dashboard without crashes
 - [ ] Dashboard displays worktrees correctly (path bug fixed)
-- [ ] No regressions in other commands
+- [ ] No regressions in other commands (`./iw start`, `./iw open`, etc.)
 
 ## Notes
 
-- The `./iw` wrapper script should handle working directory setup
-- All command scripts should assume they're run from project root via `./iw`
-- The `../core` pattern works because commands are in `.iw/commands/` directory
-- Consider adding a check/assertion for working directory at startup
+- The `./iw` wrapper handles all file discovery - commands don't need to declare dependencies
+- `project.scala` stays as the central dependency declaration
+- Test files are only included when running `./iw test` (which has its own invocation)
+- Commands can still have their own `//> using dep` for command-specific dependencies

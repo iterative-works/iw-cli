@@ -303,5 +303,6 @@ From Story 7 in analysis.md:
 
 **Approach:**
 1. Split `Constants.Paths.ConfigFile` into separate directory and filename components
-2. Update all path constructions using these constants to use proper `os-lib` path operations
-3. Migrate command scripts from `//> using file` to a shared project configuration or classpath approach
+2. Update path construction in CaskServer.scala to use proper `os-lib` path operations
+3. Remove ALL `//> using file` directives from command scripts - the `./iw` wrapper already passes core files via glob
+4. Update `./iw` wrapper to exclude test directory from glob (use `find -maxdepth 1` instead of `*.scala`)
