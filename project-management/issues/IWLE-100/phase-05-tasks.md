@@ -125,20 +125,20 @@
 
 ### ServerState Extension
 
-- [ ] [impl] Add progressCache field to ServerState case class
-- [ ] [impl] Add default value Map.empty for backward compatibility
-- [ ] [test] Write test: ServerState with progressCache serializes to JSON
-- [ ] [test] Write test: ServerState with progressCache deserializes from JSON
-- [ ] [test] Write test: Old state.json without progressCache loads successfully
-- [ ] [impl] Add upickle ReadWriter instances for PhaseInfo
-- [ ] [impl] Add upickle ReadWriter instances for WorkflowProgress
-- [ ] [impl] Add upickle ReadWriter instances for CachedProgress
-- [ ] [impl] Verify serialization tests pass
+- [x] [impl] Add progressCache field to ServerState case class
+- [x] [impl] Add default value Map.empty for backward compatibility
+- [x] [test] Write test: ServerState with progressCache serializes to JSON
+- [x] [test] Write test: ServerState with progressCache deserializes from JSON
+- [x] [test] Write test: Old state.json without progressCache loads successfully
+- [x] [impl] Add upickle ReadWriter instances for PhaseInfo
+- [x] [impl] Add upickle ReadWriter instances for WorkflowProgress
+- [x] [impl] Add upickle ReadWriter instances for CachedProgress
+- [x] [impl] Verify serialization tests pass
 
 ### Commit State Extension
 
-- [ ] [impl] Run state repository tests and verify pass
-- [ ] [impl] Commit: "feat(IWLE-100): Extend ServerState with progress cache"
+- [x] [impl] Run state repository tests and verify pass
+- [x] [impl] Commit: "feat(IWLE-100): Extend ServerState with progress cache"
 
 ---
 
