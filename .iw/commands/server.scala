@@ -1,16 +1,6 @@
 #!/usr/bin/env -S scala-cli shebang
-//> using scala 3.3.7
-//> using dep com.lihaoyi::os-lib:0.11.4-M3
-//> using dep com.lihaoyi::upickle:4.0.2
-//> using dep com.softwaremill.sttp.client4::core:4.0.0-M1
-
-//> using file .iw/core/ServerConfig.scala
-//> using file .iw/core/ServerConfigRepository.scala
-//> using file .iw/core/ProcessManager.scala
-//> using file .iw/core/ServerStatus.scala
-//> using file .iw/core/ServerLifecycleService.scala
-//> using file .iw/core/Constants.scala
-//> using file .iw/core/ServerClient.scala
+// PURPOSE: Manage iw dashboard server lifecycle (start/stop/status)
+// PURPOSE: Uses ServerClient for health checks and ProcessManager for process control
 
 import iw.core.*
 import sttp.client4.quick.*

@@ -11,3 +11,11 @@ case class ServerState(
 ):
   def listByActivity: List[WorktreeRegistration] =
     worktrees.values.toList.sortBy(_.lastSeenAt.getEpochSecond)(Ordering[Long].reverse)
+
+  def removeWorktree(issueId: String): ServerState =
+    copy(
+      worktrees = worktrees - issueId,
+      issueCache = issueCache - issueId,
+      progressCache = progressCache - issueId,
+      prCache = prCache - issueId
+    )

@@ -4,7 +4,7 @@
 package iw.core.infrastructure
 
 import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService}
 import iw.core.domain.ServerState
 import java.time.Instant
 
@@ -15,11 +15,21 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
   def dashboard(): cask.Response[String] =
     val stateResult = ServerStateService.load(repository)
     stateResult match
-      case Right(state) =>
+      case Right(rawState) =>
+        // Auto-prune non-existent worktrees
+        val state = WorktreeUnregistrationService.pruneNonExistent(
+          rawState,
+          path => os.exists(os.Path(path, os.pwd))
+        )
+
+        // Save pruned state if changes were made
+        if state != rawState then
+          repository.write(state) // Best-effort save, ignore errors
+
         val worktrees = ServerStateService.listWorktrees(state)
 
         // Load project configuration
-        val configPath = os.pwd / Constants.Paths.ConfigFile
+        val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
         val config = ConfigFileRepository.read(configPath)
 
         // Render dashboard with issue data, progress, and PR data
@@ -181,6 +191,34 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
             "code" -> "INTERNAL_ERROR",
             "message" -> "Internal server error"
           ),
+          statusCode = 500
+        )
+
+  @cask.delete("/api/v1/worktrees/:issueId")
+  def unregisterWorktree(issueId: String): cask.Response[ujson.Value] =
+    repository.read() match
+      case Right(state) =>
+        WorktreeUnregistrationService.unregister(state, issueId) match
+          case Right(newState) =>
+            repository.write(newState) match
+              case Right(_) =>
+                cask.Response(
+                  ujson.Obj("status" -> "ok", "issueId" -> issueId),
+                  statusCode = 200
+                )
+              case Left(err) =>
+                cask.Response(
+                  ujson.Obj("code" -> "SAVE_ERROR", "message" -> err),
+                  statusCode = 500
+                )
+          case Left(err) =>
+            cask.Response(
+              ujson.Obj("code" -> "NOT_FOUND", "message" -> err),
+              statusCode = 404
+            )
+      case Left(err) =>
+        cask.Response(
+          ujson.Obj("code" -> "LOAD_ERROR", "message" -> err),
           statusCode = 500
         )
 

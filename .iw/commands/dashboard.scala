@@ -2,9 +2,6 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
-//> using file "../core/project.scala"
-//> using file "../core"
-
 import iw.core.infrastructure.CaskServer
 import iw.core.{ServerConfig, ServerConfigRepository}
 import scala.util.{Try, Success, Failure}

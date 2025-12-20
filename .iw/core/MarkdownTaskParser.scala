@@ -10,6 +10,14 @@ package iw.core.application
   */
 case class TaskCount(total: Int, completed: Int)
 
+/** Phase entry from tasks.md Phase Index section.
+  *
+  * @param phaseNumber Phase number (1-based)
+  * @param isComplete Whether the phase checkbox is checked
+  * @param name Phase name (text after "Phase N:")
+  */
+case class PhaseIndexEntry(phaseNumber: Int, isComplete: Boolean, name: String)
+
 /** Pure functions for parsing markdown task files.
   *
   * Recognizes standard checkbox format:
@@ -81,3 +89,28 @@ object MarkdownTaskParser:
     lines.collectFirst {
       case phaseHeaderPattern(name) => name.trim
     }
+
+  /** Parse Phase Index from tasks.md to determine phase completion status.
+    *
+    * Looks for lines matching:
+    * - `- [x] Phase N: Phase Name ...` (complete)
+    * - `- [ ] Phase N: Phase Name ...` (incomplete)
+    *
+    * Extracts the phase name (text between colon and any parenthesis/arrow).
+    *
+    * @param lines Lines from tasks.md file
+    * @return List of PhaseIndexEntry in order found
+    */
+  def parsePhaseIndex(lines: Seq[String]): List[PhaseIndexEntry] =
+    // Regex: checkbox, "Phase", number, colon, name (stop at parenthesis, arrow, or end)
+    val phaseIndexPattern = "^\\s*-\\s+\\[([ xX])\\]\\s+Phase\\s+(\\d+):\\s*([^(→]+)".r
+
+    lines.flatMap { line =>
+      phaseIndexPattern.findFirstMatchIn(line).map { m =>
+        val marker = m.group(1)
+        val phaseNum = m.group(2).toInt
+        val name = m.group(3).trim
+        val isComplete = marker.toLowerCase == "x"
+        PhaseIndexEntry(phaseNum, isComplete, name)
+      }
+    }.toList

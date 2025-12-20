@@ -377,3 +377,56 @@ A .iw/core/test/PullRequestDataTest.scala
 ```
 
 ---
+
+## Phase 7: Unregister worktrees when removed (2025-12-20)
+
+**What was built:**
+- Domain: `ServerState.removeWorktree()` - Method to atomically remove worktree and all associated caches (issue, progress, PR)
+- Application: `WorktreeUnregistrationService.scala` - Pure functions for explicit unregistration and auto-pruning of non-existent paths
+- Infrastructure: `CaskServer.scala` - Added `DELETE /api/v1/worktrees/:issueId` endpoint with 200/404 responses, integrated auto-pruning into dashboard route
+- Infrastructure: `ServerClient.scala` - Added `unregisterWorktree()` method for CLI-to-server communication
+- CLI Integration: `rm.scala` - Integrated best-effort unregistration after successful worktree removal
+
+**Decisions made:**
+- Best-effort unregistration: `iw rm` succeeds even if server unavailable (warnings only)
+- Idempotent DELETE: Returns 200 if worktree removed, 404 if already absent (no error on re-delete)
+- Auto-pruning on dashboard load: Checks path existence and removes stale worktrees
+- Atomic cache cleanup: Removing worktree also removes all associated caches (issue, progress, PR)
+- Auto-prune saves state: Only persists if changes detected (no unnecessary writes)
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: `WorktreeUnregistrationService` is pure, `CaskServer` handles filesystem checks
+- Pure functions with path predicate injection: `pruneNonExistent(state, pathExists: String => Boolean)`
+- Best-effort side effects: Unregistration uses Either with warn-only error handling (consistent with Phase 2)
+- Idempotent operations: Safe to call multiple times (DELETE, prune)
+
+**Testing:**
+- Unit tests: 13 tests added (WorktreeUnregistrationService: 10, ServerState.removeWorktree: 3)
+- Integration tests: 3 tests added (CaskServer DELETE endpoint)
+- E2E tests: Manual verification scenarios for rm command and auto-pruning
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-07-20251220.md
+- Skills applied: architecture, scala3, testing, composition
+- Verdict: PASS with 0 critical, 1 warning, 4 suggestions
+- Warning: Inconsistent error output style in rm.scala (System.err vs Output.warning)
+
+**For next phases:**
+- Available utilities: `WorktreeUnregistrationService.pruneNonExistent()` for cleanup, `ServerClient.unregisterWorktree()` for explicit removal
+- Extension points: Add batch unregistration, archiving instead of deletion
+- Notes: This is the final phase - dashboard feature complete!
+
+**Files changed:**
+```
+M .iw/commands/rm.scala
+M .iw/core/CaskServer.scala
+M .iw/core/ServerClient.scala
+M .iw/core/ServerState.scala
+M .iw/core/test/CaskServerTest.scala
+M .iw/core/test/ServerStateTest.scala
+A .iw/core/WorktreeUnregistrationService.scala
+A .iw/core/test/WorktreeUnregistrationServiceTest.scala
+```
+
+---

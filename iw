@@ -160,10 +160,14 @@ execute_command() {
         hook_classes=$(extract_hook_classes "$hook_files")
     fi
 
+    # Find core files excluding test directory
+    local core_files
+    core_files=$(find "$CORE_DIR" -maxdepth 1 -name "*.scala" | tr '\n' ' ')
+
     # Execute with scala-cli, including core library and any discovered hook files
     # IW_HOOK_CLASSES tells the command which hook objects to initialize
     # shellcheck disable=SC2086
-    IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
+    IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files $core_files -- "$@"
 }
 
 # Main entry point

@@ -75,3 +75,77 @@ class ServerStateTest extends munit.FunSuite:
     val sorted = state.listByActivity
     assertEquals(sorted.size, 1)
     assertEquals(sorted.head.issueId, "IWLE-1")
+
+  test("ServerState.removeWorktree removes entry from worktrees map"):
+    val worktree = WorktreeRegistration(
+      issueId = "IWLE-123",
+      path = "/path",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = Instant.now(),
+      lastSeenAt = Instant.now()
+    )
+    val state = ServerState(worktrees = Map("IWLE-123" -> worktree))
+
+    val newState = state.removeWorktree("IWLE-123")
+
+    assertEquals(newState.worktrees.size, 0)
+    assert(!newState.worktrees.contains("IWLE-123"))
+
+  test("ServerState.removeWorktree removes entry from all cache maps"):
+    val now = Instant.now()
+    val worktree = WorktreeRegistration(
+      issueId = "IWLE-123",
+      path = "/path",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val issueCache = Map("IWLE-123" -> iw.core.domain.CachedIssue(
+      iw.core.domain.IssueData("IWLE-123", "Test Issue", "In Progress", None, None, "http://example.com", now)
+    ))
+    val progressCache = Map("IWLE-123" -> iw.core.domain.CachedProgress(
+      iw.core.domain.WorkflowProgress(None, 0, List.empty, 0, 0),
+      Map.empty
+    ))
+    val prCache = Map("IWLE-123" -> iw.core.domain.CachedPR(
+      iw.core.domain.PullRequestData("http://example.com/pr/123", iw.core.domain.PRState.Open, 123, "Test PR"),
+      now
+    ))
+
+    val state = ServerState(
+      worktrees = Map("IWLE-123" -> worktree),
+      issueCache = issueCache,
+      progressCache = progressCache,
+      prCache = prCache
+    )
+
+    val newState = state.removeWorktree("IWLE-123")
+
+    assert(!newState.worktrees.contains("IWLE-123"))
+    assert(!newState.issueCache.contains("IWLE-123"))
+    assert(!newState.progressCache.contains("IWLE-123"))
+    assert(!newState.prCache.contains("IWLE-123"))
+
+  test("ServerState.removeWorktree is idempotent for non-existent issueId"):
+    val worktree1 = WorktreeRegistration(
+      issueId = "IWLE-100",
+      path = "/path1",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = Instant.now(),
+      lastSeenAt = Instant.now()
+    )
+    val state = ServerState(worktrees = Map("IWLE-100" -> worktree1))
+
+    val newState = state.removeWorktree("IWLE-999")
+
+    assertEquals(newState.worktrees.size, 1)
+    assert(newState.worktrees.contains("IWLE-100"), "Should preserve existing worktree")
+    assertEquals(newState, state.copy(
+      worktrees = state.worktrees - "IWLE-999",
+      issueCache = state.issueCache - "IWLE-999",
+      progressCache = state.progressCache - "IWLE-999",
+      prCache = state.prCache - "IWLE-999"
+    ))

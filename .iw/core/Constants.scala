@@ -22,8 +22,9 @@ object Constants:
 
   /** File paths and directory names */
   object Paths:
-    val ConfigFile = ".iw/config.conf"
     val IwDir = ".iw"
+    val ConfigFileName = "config.conf"
+    val ConfigFile = s"$IwDir/$ConfigFileName"  // For display purposes
 
   /** System property names */
   object SystemProps:
