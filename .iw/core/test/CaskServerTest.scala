@@ -234,3 +234,105 @@ class CaskServerTest extends FunSuite:
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
       if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("GET /api/status returns 200 OK with status JSON"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Call status endpoint
+      val response = quickRequest
+        .get(uri"http://localhost:$port/api/status")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      // Verify response contains expected fields
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("status").str, "running")
+      assert(responseJson.obj.contains("port"))
+      assert(responseJson.obj.contains("worktreeCount"))
+      assert(responseJson.obj.contains("startedAt"))
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("GET /api/status shows correct worktree count"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register 2 worktrees
+      val requestBody1 = ujson.Obj(
+        "path" -> "/test/path/1",
+        "trackerType" -> "Linear",
+        "team" -> "IWLE"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-111")
+        .body(ujson.write(requestBody1))
+        .header("Content-Type", "application/json")
+        .send()
+
+      val requestBody2 = ujson.Obj(
+        "path" -> "/test/path/2",
+        "trackerType" -> "Linear",
+        "team" -> "IWLE"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-222")
+        .body(ujson.write(requestBody2))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Check status
+      val response = quickRequest
+        .get(uri"http://localhost:$port/api/status")
+        .send()
+
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("worktreeCount").num.toInt, 2)
+      assertEquals(responseJson("port").num.toInt, port)
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("GET /api/status startedAt is recent"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val beforeStart = java.time.Instant.now()
+      val serverThread = startTestServer(statePath, port)
+
+      // Call status endpoint
+      val response = quickRequest
+        .get(uri"http://localhost:$port/api/status")
+        .send()
+
+      val responseJson = ujson.read(response.body)
+      val startedAt = java.time.Instant.parse(responseJson("startedAt").str)
+
+      // startedAt should be within 2 seconds of server start
+      val afterStart = java.time.Instant.now()
+      assert(!startedAt.isBefore(beforeStart), s"startedAt $startedAt should not be before $beforeStart")
+      assert(!startedAt.isAfter(afterStart), s"startedAt $startedAt should not be after $afterStart")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
