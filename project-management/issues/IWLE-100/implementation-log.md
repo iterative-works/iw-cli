@@ -113,3 +113,67 @@ A .iw/core/test/WorktreeRegistrationServiceTest.scala
 ```
 
 ---
+
+## Phase 3: Server lifecycle management (2025-12-20)
+
+**What was built:**
+- Domain: `ServerConfig.scala` - Port configuration with validation (1024-65535 range)
+- Domain: `ServerStatus.scala` - Server runtime status model (running, port, worktreeCount, startedAt, pid)
+- Application: `ServerLifecycleService.scala` - Pure business logic for uptime formatting and status creation
+- Infrastructure: `ServerConfigRepository.scala` - JSON config file persistence with default creation
+- Infrastructure: `ProcessManager.scala` - Background process spawning, PID file management, process lifecycle control
+- Infrastructure: `CaskServer.scala` - Added `GET /api/status` endpoint with runtime information
+- Presentation: `server.scala` - CLI with `start`, `stop`, `status` subcommands
+- Presentation: `server-daemon.scala` - Background server process entry point
+
+**Decisions made:**
+- Port configuration stored in `~/.local/share/iw/server/config.json` (single source of truth)
+- PID file at `~/.local/share/iw/server/server.pid` for process tracking
+- SIGTERM for graceful shutdown via `ProcessHandle.destroy()`
+- Health check with 50 retries x 100ms = 5 second timeout before declaring server ready
+- Default port 9876 maintained for backward compatibility
+- UNIX-only process management (Windows support deferred)
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: ServerConfig, ServerStatus are pure domain; ProcessManager handles effects
+- Value Objects with validation: `ServerConfig.validate(port)` returns `Either[String, Int]`
+- Process lifecycle: PID file creation on start, removal on stop, stale PID detection
+- Health check integration: Server start waits for `/health` response before success
+
+**Testing:**
+- Unit tests: 21 tests added (ServerConfig: 7, ServerStatus: 3, ServerLifecycleService: 8, ProcessManager: 3)
+- Integration tests: 14 tests added (ServerConfigRepository: 8, ProcessManager: 6, CaskServer status: 3)
+- E2E tests: Deferred to Phase 4
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20251220.md
+- Verdict: PASS with 0 critical, 3 warnings, 12 suggestions
+- Warnings: ServerClient lazy start coupling, test package organization, ProcessManager mutable state
+
+**For next phases:**
+- Available utilities: `ServerConfigRepository` for port config, `ProcessManager` for process control
+- Extension points: Add more status fields, extend lifecycle commands
+- Notes: Phase 4 will add issue data fetching from Linear/YouTrack
+
+**Files changed:**
+```
+M .iw/commands/dashboard.scala
+M .iw/core/CaskServer.scala
+M .iw/core/ServerClient.scala
+M .iw/core/test/CaskServerTest.scala
+A .iw/commands/server.scala
+A .iw/commands/server-daemon.scala
+A .iw/core/ServerConfig.scala
+A .iw/core/ServerConfigRepository.scala
+A .iw/core/ServerStatus.scala
+A .iw/core/ServerLifecycleService.scala
+A .iw/core/ProcessManager.scala
+A .iw/core/test/ServerConfigTest.scala
+A .iw/core/test/ServerConfigRepositoryTest.scala
+A .iw/core/test/ServerStatusTest.scala
+A .iw/core/test/ServerLifecycleServiceTest.scala
+A .iw/core/test/ProcessManagerTest.scala
+```
+
+---

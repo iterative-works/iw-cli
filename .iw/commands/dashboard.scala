@@ -6,18 +6,30 @@
 //> using file "../core"
 
 import iw.core.infrastructure.CaskServer
+import iw.core.{ServerConfig, ServerConfigRepository}
 import scala.util.{Try, Success, Failure}
 import sttp.client4.quick.*
 import java.nio.file.Paths
 
 @main def dashboard(): Unit =
-  val statePath = sys.env.get("HOME") match
-    case Some(home) => s"$home/.local/share/iw/server/state.json"
+  val homeDir = sys.env.get("HOME") match
+    case Some(home) => home
     case None =>
       System.err.println("ERROR: HOME environment variable not set")
       sys.exit(1)
 
-  val port = 9876
+  val serverDir = s"$homeDir/.local/share/iw/server"
+  val statePath = s"$serverDir/state.json"
+  val configPath = s"$serverDir/config.json"
+
+  // Read or create default config
+  val config = ServerConfigRepository.getOrCreateDefault(configPath) match
+    case Right(c) => c
+    case Left(err) =>
+      System.err.println(s"ERROR: Failed to read config: $err")
+      sys.exit(1)
+
+  val port = config.port
   val url = s"http://localhost:$port"
 
   // Check if server is already running

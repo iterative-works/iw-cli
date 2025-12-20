@@ -3,22 +3,31 @@
 
 package iw.core.infrastructure
 
+import iw.core.{ServerConfig, ServerConfigRepository}
 import sttp.client4.quick.*
 import sttp.model.StatusCode
 import scala.util.{Try, Success, Failure}
 
 object ServerClient:
 
+  private def getServerPort(): Int =
+    val homeDir = System.getProperty("user.home")
+    val configPath = s"$homeDir/.local/share/iw/server/config.json"
+    ServerConfigRepository.getOrCreateDefault(configPath) match
+      case Right(config) => config.port
+      case Left(_) => ServerConfig.DefaultPort
+
   /**
-   * Checks if the server is healthy at the given port.
+   * Checks if the server is healthy.
    *
-   * @param port The port to check (default: 9876)
+   * @param port The port to check (uses config file if not specified)
    * @return true if server responds with 200 OK to /health
    */
-  def isHealthy(port: Int = 9876): Boolean =
+  def isHealthy(port: Int = -1): Boolean =
+    val actualPort = if port == -1 then getServerPort() else port
     try
       val response = quickRequest
-        .get(uri"http://localhost:$port/health")
+        .get(uri"http://localhost:$actualPort/health")
         .send()
       response.code == StatusCode.Ok
     catch
@@ -28,11 +37,11 @@ object ServerClient:
    * Ensures the server is running, starting it if necessary.
    *
    * @param statePath Path to state.json file for server
-   * @param port Port to run server on (default: 9876)
    * @return Right(()) if server is running, Left(error) if start fails
    */
-  private def ensureServerRunning(statePath: String, port: Int = 9876): Either[String, Unit] =
-    if isHealthy(port) then
+  private def ensureServerRunning(statePath: String): Either[String, Unit] =
+    val port = getServerPort()
+    if isHealthy() then
       Right(())
     else
       // Start server in daemon thread
@@ -70,7 +79,6 @@ object ServerClient:
    * @param path The filesystem path to the worktree
    * @param trackerType The tracker system (e.g., "Linear", "YouTrack")
    * @param team The team identifier
-   * @param port Server port (default: 9876)
    * @param statePath Path to state.json for lazy start (default: ~/.local/share/iw/server/state.json)
    * @return Right(()) on success, Left(error message) on failure
    */
@@ -79,11 +87,11 @@ object ServerClient:
     path: String,
     trackerType: String,
     team: String,
-    port: Int = 9876,
     statePath: String = s"${System.getProperty("user.home")}/.local/share/iw/server/state.json"
   ): Either[String, Unit] =
+    val port = getServerPort()
     // Ensure server is running
-    ensureServerRunning(statePath, port) match
+    ensureServerRunning(statePath) match
       case Left(error) => return Left(s"Failed to start server: $error")
       case Right(_) => ()
 
@@ -120,7 +128,6 @@ object ServerClient:
    * @param path The filesystem path to the worktree
    * @param trackerType The tracker system
    * @param team The team identifier
-   * @param port Server port (default: 9876)
    * @param statePath Path to state.json for lazy start
    * @return Right(()) on success, Left(error message) on failure
    */
@@ -129,8 +136,7 @@ object ServerClient:
     path: String,
     trackerType: String,
     team: String,
-    port: Int = 9876,
     statePath: String = s"${System.getProperty("user.home")}/.local/share/iw/server/state.json"
   ): Either[String, Unit] =
     // Reuse registerWorktree - the PUT endpoint handles updates
-    registerWorktree(issueId, path, trackerType, team, port, statePath)
+    registerWorktree(issueId, path, trackerType, team, statePath)

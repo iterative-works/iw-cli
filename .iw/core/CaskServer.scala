@@ -7,7 +7,7 @@ import iw.core.application.{ServerStateService, DashboardService, WorktreeRegist
 import iw.core.domain.ServerState
 import java.time.Instant
 
-class CaskServer(statePath: String) extends cask.MainRoutes:
+class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.MainRoutes:
   private val repository = StateRepository(statePath)
 
   @cask.get("/")
@@ -31,6 +31,20 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
   @cask.get("/health")
   def health(): ujson.Value =
     ujson.Obj("status" -> "ok")
+
+  @cask.get("/api/status")
+  def status(): ujson.Value =
+    val stateResult = ServerStateService.load(repository)
+    val worktreeCount = stateResult match
+      case Right(state) => state.worktrees.size
+      case Left(_) => 0
+
+    ujson.Obj(
+      "status" -> "running",
+      "port" -> port,
+      "worktreeCount" -> worktreeCount,
+      "startedAt" -> startedAt.toString
+    )
 
   @cask.put("/api/v1/worktrees/:issueId")
   def registerWorktree(issueId: String, request: cask.Request): cask.Response[ujson.Value] =
@@ -160,7 +174,8 @@ class CaskServer(statePath: String) extends cask.MainRoutes:
 
 object CaskServer:
   def start(statePath: String, port: Int = 9876): Unit =
-    val server = new CaskServer(statePath)
+    val startedAt = Instant.now()
+    val server = new CaskServer(statePath, port, startedAt)
     io.undertow.Undertow.builder
       .addHttpListener(port, "localhost")
       .setHandler(server.defaultHandler)
