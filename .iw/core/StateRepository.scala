@@ -3,7 +3,7 @@
 
 package iw.core.infrastructure
 
-import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress}
+import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR}
 import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.time.Instant
 import scala.util.{Try, Success, Failure}
@@ -25,12 +25,26 @@ case class StateRepository(statePath: String):
   given ReadWriter[WorkflowProgress] = macroRW[WorkflowProgress]
   given ReadWriter[CachedProgress] = macroRW[CachedProgress]
 
+  // PRState enum serialization (as string)
+  given ReadWriter[PRState] = readwriter[String].bimap[PRState](
+    state => state.toString,
+    str => str match
+      case "Open" => PRState.Open
+      case "Merged" => PRState.Merged
+      case "Closed" => PRState.Closed
+      case other => throw new RuntimeException(s"Unknown PRState: $other")
+  )
+
+  given ReadWriter[PullRequestData] = macroRW[PullRequestData]
+  given ReadWriter[CachedPR] = macroRW[CachedPR]
+
   // JSON format matching the spec:
-  // { "worktrees": { "IWLE-123": { ... } }, "issueCache": { "IWLE-123": { ... } }, "progressCache": { "IWLE-123": { ... } } }
+  // { "worktrees": { "IWLE-123": { ... } }, "issueCache": { "IWLE-123": { ... } }, "progressCache": { "IWLE-123": { ... } }, "prCache": { "IWLE-123": { ... } } }
   case class StateJson(
     worktrees: Map[String, WorktreeRegistration],
     issueCache: Map[String, CachedIssue] = Map.empty,
-    progressCache: Map[String, CachedProgress] = Map.empty
+    progressCache: Map[String, CachedProgress] = Map.empty,
+    prCache: Map[String, CachedPR] = Map.empty
   )
   given ReadWriter[StateJson] = macroRW[StateJson]
 
@@ -40,12 +54,12 @@ case class StateRepository(statePath: String):
     if !Files.exists(path) then
       // Create empty state file if it doesn't exist
       ensureDirectoryExists()
-      Right(ServerState(Map.empty, Map.empty, Map.empty))
+      Right(ServerState(Map.empty, Map.empty, Map.empty, Map.empty))
     else
       Try {
         val content = Files.readString(path)
         val stateJson = upickle.default.read[StateJson](content)
-        ServerState(stateJson.worktrees, stateJson.issueCache, stateJson.progressCache)
+        ServerState(stateJson.worktrees, stateJson.issueCache, stateJson.progressCache, stateJson.prCache)
       } match
         case Success(state) => Right(state)
         case Failure(ex) => Left(s"Failed to parse JSON from $statePath: ${ex.getMessage}")
@@ -54,7 +68,7 @@ case class StateRepository(statePath: String):
     Try {
       ensureDirectoryExists()
 
-      val stateJson = StateJson(state.worktrees, state.issueCache, state.progressCache)
+      val stateJson = StateJson(state.worktrees, state.issueCache, state.progressCache, state.prCache)
       val json = upickle.default.write(stateJson, indent = 2)
 
       // Atomic write: write to temp file, then rename

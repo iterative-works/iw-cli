@@ -305,3 +305,75 @@ A .iw/core/test/WorkflowProgressServiceTest.scala
 ```
 
 ---
+
+## Phase 6: Show git status and PR links (2025-12-20)
+
+**What was built:**
+- Domain: `GitStatus.scala` - Git repository state model with branch name, clean/dirty indicator, and computed CSS classes
+- Domain: `PullRequestData.scala` - PR information model with PRState enum (Open/Merged/Closed) and badge styling
+- Domain: `CachedPR.scala` - Cache wrapper with 2-minute TTL validation for PR data
+- Application: `GitStatusService.scala` - Pure business logic for git status detection with injected command execution
+- Application: `PullRequestCacheService.scala` - Pure business logic for PR fetching with GitHub/GitLab CLI support and caching
+- Infrastructure: `CommandRunner.scala` - Shell command execution utilities (execute, isCommandAvailable)
+- Infrastructure: `ServerState.scala` - Extended with prCache field for PR data persistence
+- Infrastructure: `StateRepository.scala` - Added upickle ReadWriters for GitStatus, PRState, PullRequestData, CachedPR
+- Application: `DashboardService.scala` - Integrated git status and PR fetching with command execution wrappers
+- Presentation: `WorktreeListView.scala` - Enhanced cards with git status section and PR link button with state badges
+- Styling: Added CSS for git-status, git-clean (green), git-dirty (yellow), pr-button, pr-badge (open=blue, merged=purple, closed=gray)
+
+**Decisions made:**
+- 2-minute TTL for PR cache (shorter than issue cache, PRs change more frequently)
+- Command execution injected as functions to keep services pure (FCIS pattern)
+- Tool detection: prefer `gh` over `glab` if both available
+- Graceful degradation: no git status shown if not a git repo, no PR link if tools unavailable
+- Git commands use `-C` flag for worktree path (no chdir needed)
+- PR detection via CLI tools (gh/glab) leverages existing user authentication
+- Clean/dirty logic: empty `git status --porcelain` output = clean
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: GitStatus, PullRequestData, CachedPR, GitStatusService, PullRequestCacheService are pure; CommandRunner handles I/O
+- Function injection: `execCommand: (String, Array[String]) => Either[String, String]` passed to services
+- Tool detection injection: `detectTool: String => Boolean` for testable tool availability checking
+- Graceful degradation: Either.toOption for silent failure, dashboard renders without git/PR data on errors
+- Cache-first pattern: check PR cache validity before executing CLI commands
+
+**Testing:**
+- Unit tests: 57 tests added (GitStatus: 6, PullRequestData: 8, CachedPR: 8, CommandRunner: 10, GitStatusService: 14, PullRequestCacheService: 15)
+- Integration tests: 4 tests added (StateRepository PR cache serialization)
+- E2E tests: Manual testing scenarios documented for clean/dirty, PR links, cache TTL
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-06-20251220.md
+- Skills applied: architecture, scala3, testing, composition
+- Verdict: PASS with 0 critical, 6 warnings, 6 suggestions
+- Warnings: Opaque type for IssueId, extension methods for presentation logic, edge case test coverage
+
+**For next phases:**
+- Available utilities: `CommandRunner` for shell execution, `GitStatusService` for git status, `PullRequestCacheService` for PR fetching
+- Extension points: Add more git info (ahead/behind), support more PR tools, configure TTL per project
+- Notes: PR cache grows with worktrees (~0.5KB per issue); pruning via 2-minute TTL keeps it fresh
+
+**Files changed:**
+```
+M .iw/core/CaskServer.scala
+M .iw/core/DashboardService.scala
+M .iw/core/ServerState.scala
+M .iw/core/StateRepository.scala
+M .iw/core/WorktreeListView.scala
+M .iw/core/test/StateRepositoryTest.scala
+A .iw/core/CachedPR.scala
+A .iw/core/CommandRunner.scala
+A .iw/core/GitStatus.scala
+A .iw/core/GitStatusService.scala
+A .iw/core/PullRequestCacheService.scala
+A .iw/core/PullRequestData.scala
+A .iw/core/test/CachedPRTest.scala
+A .iw/core/test/CommandRunnerTest.scala
+A .iw/core/test/GitStatusServiceTest.scala
+A .iw/core/test/GitStatusTest.scala
+A .iw/core/test/PullRequestCacheServiceTest.scala
+A .iw/core/test/PullRequestDataTest.scala
+```
+
+---
