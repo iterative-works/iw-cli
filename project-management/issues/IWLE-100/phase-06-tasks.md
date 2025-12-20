@@ -147,7 +147,7 @@
 - [x] **[impl]** Add upickle ReadWriter for CachedPR in StateRepository
 - [x] **[impl]** Add upickle ReadWriter for GitStatus in StateRepository (for future use)
 - [x] **[impl]** Run StateRepository integration tests and verify serialization works
-- [ ] **[impl]** Commit: "test(IWLE-100): Add StateRepository tests for PR cache serialization"
+- [x] **[impl]** Commit: "test(IWLE-100): Add StateRepository tests for PR cache serialization"
 
 ---
 
@@ -164,14 +164,14 @@
 
 ### Implementation
 
-- [ ] **[impl]** Modify DashboardService.renderDashboard to accept prCache parameter
-- [ ] **[impl]** Add fetchGitStatusForWorktree helper method
-- [ ] **[impl]** Call GitStatusService.getGitStatus with execCommand wrapper
-- [ ] **[impl]** Add fetchPRForWorktree helper method
-- [ ] **[impl]** Call PullRequestCacheService.fetchPR with execCommand and detectTool wrappers
-- [ ] **[impl]** Pass Optional[GitStatus] and Optional[PullRequestData] to WorktreeListView
-- [ ] **[impl]** Update worktreesWithData to include git status and PR data tuples
-- [ ] **[impl]** Run DashboardService integration tests and verify all pass
+- [x] **[impl]** Modify DashboardService.renderDashboard to accept prCache parameter
+- [x] **[impl]** Add fetchGitStatusForWorktree helper method
+- [x] **[impl]** Call GitStatusService.getGitStatus with execCommand wrapper
+- [x] **[impl]** Add fetchPRForWorktree helper method
+- [x] **[impl]** Call PullRequestCacheService.fetchPR with execCommand and detectTool wrappers
+- [x] **[impl]** Pass Optional[GitStatus] and Optional[PullRequestData] to WorktreeListView
+- [x] **[impl]** Update worktreesWithData to include git status and PR data tuples
+- [x] **[impl]** Run DashboardService integration tests and verify all pass
 - [ ] **[impl]** Commit: "feat(IWLE-100): Integrate git status and PR data in dashboard"
 
 ---
@@ -189,17 +189,17 @@
 
 ### Implementation
 
-- [ ] **[impl]** Modify WorktreeListView.renderWorktreeCard signature to include gitStatus, prData
-- [ ] **[impl]** Add git status section with branch name display
-- [ ] **[impl]** Add git status indicator with statusIndicator and statusCssClass
-- [ ] **[impl]** Add PR link section when prData is Some
-- [ ] **[impl]** Render "View PR ↗" button with href to pr.url, target="_blank"
-- [ ] **[impl]** Add PR state badge with stateBadgeClass and stateBadgeText
-- [ ] **[impl]** Add inline CSS for .git-status, .git-branch, .git-indicator
-- [ ] **[impl]** Add inline CSS for .git-clean (green) and .git-dirty (yellow)
-- [ ] **[impl]** Add inline CSS for .pr-link, .pr-button, .pr-badge
-- [ ] **[impl]** Add inline CSS for .pr-open (blue), .pr-merged (purple), .pr-closed (gray)
-- [ ] **[impl]** Run WorktreeListView tests and verify rendering correct
+- [x] **[impl]** Modify WorktreeListView.renderWorktreeCard signature to include gitStatus, prData
+- [x] **[impl]** Add git status section with branch name display
+- [x] **[impl]** Add git status indicator with statusIndicator and statusCssClass
+- [x] **[impl]** Add PR link section when prData is Some
+- [x] **[impl]** Render "View PR ↗" button with href to pr.url, target="_blank"
+- [x] **[impl]** Add PR state badge with stateBadgeClass and stateBadgeText
+- [x] **[impl]** Add inline CSS for .git-status, .git-branch, .git-indicator
+- [x] **[impl]** Add inline CSS for .git-clean (green) and .git-dirty (yellow)
+- [x] **[impl]** Add inline CSS for .pr-link, .pr-button, .pr-badge
+- [x] **[impl]** Add inline CSS for .pr-open (blue), .pr-merged (purple), .pr-closed (gray)
+- [x] **[impl]** Run WorktreeListView tests and verify rendering correct
 - [ ] **[impl]** Commit: "feat(IWLE-100): Enhance worktree cards with git status and PR links"
 
 ---

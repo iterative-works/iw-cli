@@ -3,20 +3,20 @@
 
 package iw.core.presentation.views
 
-import iw.core.domain.{WorktreeRegistration, IssueData, WorkflowProgress}
+import iw.core.domain.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration
 
 object WorktreeListView:
-  /** Render worktree list with issue data and progress.
+  /** Render worktree list with issue data, progress, git status, and PR data.
     *
-    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress)
+    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data)
     * @param now Current timestamp for relative time formatting
     * @return HTML fragment
     */
   def render(
-    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress])],
+    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData])],
     now: Instant
   ): Frag =
     if worktreesWithData.isEmpty then
@@ -27,8 +27,8 @@ object WorktreeListView:
     else
       div(
         cls := "worktree-list",
-        worktreesWithData.map { case (wt, issueData, progress) =>
-          renderWorktreeCard(wt, issueData, progress, now)
+        worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData) =>
+          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, now)
         }
       )
 
@@ -36,6 +36,8 @@ object WorktreeListView:
     worktree: WorktreeRegistration,
     issueData: Option[(IssueData, Boolean)],
     progress: Option[WorkflowProgress],
+    gitStatus: Option[GitStatus],
+    prData: Option[PullRequestData],
     now: Instant
   ): Frag =
     div(
@@ -50,6 +52,33 @@ object WorktreeListView:
           worktree.issueId
         )
       ),
+      // Git status section (if available)
+      gitStatus.map { status =>
+        div(
+          cls := "git-status",
+          span(cls := "git-branch", s"Branch: ${status.branchName}"),
+          span(
+            cls := s"git-indicator ${status.statusCssClass}",
+            status.statusIndicator
+          )
+        )
+      },
+      // PR link section (if available)
+      prData.map { pr =>
+        div(
+          cls := "pr-link",
+          a(
+            cls := "pr-button",
+            href := pr.url,
+            target := "_blank",
+            "View PR ↗"
+          ),
+          span(
+            cls := s"pr-badge ${pr.stateBadgeClass}",
+            pr.stateBadgeText
+          )
+        )
+      },
       // Phase info and progress bar (if available)
       progress.flatMap(_.currentPhaseInfo).map { phaseInfo =>
         div(

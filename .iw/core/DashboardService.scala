@@ -4,7 +4,8 @@
 package iw.core.application
 
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, ProjectConfiguration}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress}
+import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR}
+import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.WorktreeListView
 import scalatags.Text.all.*
 import java.time.Instant
@@ -16,6 +17,7 @@ object DashboardService:
     * @param worktrees List of registered worktrees
     * @param issueCache Current issue cache
     * @param progressCache Current progress cache
+    * @param prCache Current PR cache
     * @param config Project configuration (for tracker type and team)
     * @return Complete HTML page as string
     */
@@ -23,15 +25,18 @@ object DashboardService:
     worktrees: List[WorktreeRegistration],
     issueCache: Map[String, CachedIssue],
     progressCache: Map[String, CachedProgress],
+    prCache: Map[String, CachedPR],
     config: Option[ProjectConfiguration]
   ): String =
     val now = Instant.now()
 
-    // Fetch issue data and progress for each worktree
+    // Fetch issue data, progress, git status, and PR data for each worktree
     val worktreesWithData = worktrees.map { wt =>
       val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
       val progress = fetchProgressForWorktree(wt, progressCache)
-      (wt, issueData, progress)
+      val gitStatus = fetchGitStatusForWorktree(wt)
+      val prData = fetchPRForWorktree(wt, prCache, now)
+      (wt, issueData, progress, gitStatus, prData)
     }
 
     val page = html(
@@ -173,6 +178,57 @@ object DashboardService:
       readFile,
       getMtime
     ).toOption
+
+  /** Fetch git status for a single worktree.
+    *
+    * Executes git commands to determine branch name and clean/dirty status.
+    * Returns None on any error (not a git repo, command fails, etc.)
+    *
+    * @param wt Worktree registration
+    * @return Optional GitStatus, None if unavailable
+    */
+  private def fetchGitStatusForWorktree(
+    wt: WorktreeRegistration
+  ): Option[GitStatus] =
+    // Wrapper for CommandRunner.execute that doesn't need workingDir
+    val execCommand = (command: String, args: Array[String]) =>
+      CommandRunner.execute(command, args)
+
+    // Call GitStatusService with injected command execution
+    GitStatusService.getGitStatus(wt.path, execCommand).toOption
+
+  /** Fetch PR data for a single worktree.
+    *
+    * Uses PR cache with TTL, re-fetches from gh/glab if expired.
+    * Returns None on any error (no PR tool, no PR found, etc.)
+    *
+    * @param wt Worktree registration
+    * @param cache Current PR cache
+    * @param now Current timestamp for TTL validation
+    * @return Optional PullRequestData, None if unavailable
+    */
+  private def fetchPRForWorktree(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedPR],
+    now: Instant
+  ): Option[PullRequestData] =
+    // Wrapper for CommandRunner.execute that doesn't need workingDir
+    val execCommand = (command: String, args: Array[String]) =>
+      CommandRunner.execute(command, args)
+
+    // Wrapper for CommandRunner.isCommandAvailable
+    val detectTool = (toolName: String) =>
+      CommandRunner.isCommandAvailable(toolName)
+
+    // Call PullRequestCacheService with injected functions
+    PullRequestCacheService.fetchPR(
+      wt.path,
+      cache,
+      wt.issueId,
+      now,
+      execCommand,
+      detectTool
+    ).toOption.flatten
 
   private val styles = """
     body {
@@ -320,5 +376,77 @@ object DashboardService:
       font-size: 0.85em;
       color: #212529;
       font-weight: 600;
+    }
+
+    .git-status {
+      margin: 10px 0;
+      font-size: 0.9em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .git-branch {
+      color: #495057;
+      font-weight: 500;
+    }
+
+    .git-indicator {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.85em;
+      font-weight: 500;
+    }
+
+    .git-clean {
+      background: #d3f9d8;
+      color: #2b8a3e;
+    }
+
+    .git-dirty {
+      background: #fff3bf;
+      color: #e67700;
+    }
+
+    .pr-link {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pr-button {
+      padding: 4px 12px;
+      background: #228be6;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .pr-button:hover {
+      background: #1c7ed6;
+    }
+
+    .pr-badge {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.85em;
+      font-weight: 500;
+      color: white;
+    }
+
+    .pr-open {
+      background: #228be6;
+    }
+
+    .pr-merged {
+      background: #9775fa;
+    }
+
+    .pr-closed {
+      background: #868e96;
     }
   """
