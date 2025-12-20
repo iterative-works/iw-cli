@@ -2,7 +2,7 @@
 
 **Issue:** IWLE-100
 **Created:** 2025-12-19
-**Status:** 6/7 phases complete (86%)
+**Status:** 7/7 phases complete (100%)
 
 ## Phase Index
 
@@ -12,11 +12,11 @@
 - [x] Phase 4: Show issue details and status from tracker (Est: 6-8h) → `phase-04-context.md`
 - [x] Phase 5: Display phase and task progress (Est: 8-12h) → `phase-05-context.md`
 - [x] Phase 6: Show git status and PR links (Est: 6-8h) → `phase-06-context.md`
-- [ ] Phase 7: Unregister worktrees when removed (Est: 3-4h) → `phase-07-context.md`
+- [x] Phase 7: Unregister worktrees when removed (Est: 3-4h) → `phase-07-context.md`
 
 ## Progress Tracker
 
-**Completed:** 6/7 phases
+**Completed:** 7/7 phases
 **Estimated Total:** 43-60 hours
 **Time Spent:** 0 hours
 
