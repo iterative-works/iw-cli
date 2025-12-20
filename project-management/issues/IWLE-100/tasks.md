@@ -2,7 +2,7 @@
 
 **Issue:** IWLE-100
 **Created:** 2025-12-19
-**Status:** 4/7 phases complete (57%)
+**Status:** 5/7 phases complete (71%)
 
 ## Phase Index
 
@@ -10,13 +10,13 @@
 - [x] Phase 2: Automatic worktree registration from CLI commands (Est: 6-8h) → `phase-02-context.md`
 - [x] Phase 3: Server lifecycle management (Est: 6-8h) → `phase-03-context.md`
 - [x] Phase 4: Show issue details and status from tracker (Est: 6-8h) → `phase-04-context.md`
-- [ ] Phase 5: Display phase and task progress (Est: 8-12h) → `phase-05-context.md`
+- [x] Phase 5: Display phase and task progress (Est: 8-12h) → `phase-05-context.md`
 - [ ] Phase 6: Show git status and PR links (Est: 6-8h) → `phase-06-context.md`
 - [ ] Phase 7: Unregister worktrees when removed (Est: 3-4h) → `phase-07-context.md`
 
 ## Progress Tracker
 
-**Completed:** 4/7 phases
+**Completed:** 5/7 phases
 **Estimated Total:** 43-60 hours
 **Time Spent:** 0 hours
 
