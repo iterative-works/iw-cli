@@ -4,7 +4,8 @@
 package iw.core.domain
 
 case class ServerState(
-  worktrees: Map[String, WorktreeRegistration]
+  worktrees: Map[String, WorktreeRegistration],
+  issueCache: Map[String, CachedIssue] = Map.empty
 ):
   def listByActivity: List[WorktreeRegistration] =
     worktrees.values.toList.sortBy(_.lastSeenAt.getEpochSecond)(Ordering[Long].reverse)

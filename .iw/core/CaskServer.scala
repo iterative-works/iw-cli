@@ -3,6 +3,7 @@
 
 package iw.core.infrastructure
 
+import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration}
 import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService}
 import iw.core.domain.ServerState
 import java.time.Instant
@@ -16,7 +17,14 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
     stateResult match
       case Right(state) =>
         val worktrees = ServerStateService.listWorktrees(state)
-        val html = DashboardService.renderDashboard(worktrees)
+
+        // Load project configuration
+        val configPath = os.pwd / Constants.Paths.ConfigFile
+        val config = ConfigFileRepository.read(configPath)
+
+        // Render dashboard with issue data
+        val html = DashboardService.renderDashboard(worktrees, state.issueCache, config)
+
         cask.Response(
           data = html,
           headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
