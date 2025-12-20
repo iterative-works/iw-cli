@@ -133,3 +133,72 @@ class MarkdownTaskParserTest extends FunSuite:
     val count = MarkdownTaskParser.parseTasks(lines)
     assertEquals(count.total, 5)
     assertEquals(count.completed, 3)
+
+  // Phase Index parsing tests
+
+  test("parsePhaseIndex extracts completed phases"):
+    val lines = Seq(
+      "## Phase Index",
+      "",
+      "- [x] Phase 1: View basic dashboard (Est: 8-12h)",
+      "- [x] Phase 2: Automatic registration (Est: 6-8h)",
+      "- [ ] Phase 3: Server lifecycle (Est: 6-8h)"
+    )
+    val index = MarkdownTaskParser.parsePhaseIndex(lines)
+    assertEquals(index.size, 3)
+    assertEquals(index(0), PhaseIndexEntry(1, isComplete = true, "View basic dashboard"))
+    assertEquals(index(1), PhaseIndexEntry(2, isComplete = true, "Automatic registration"))
+    assertEquals(index(2), PhaseIndexEntry(3, isComplete = false, "Server lifecycle"))
+
+  test("parsePhaseIndex handles all phases complete"):
+    val lines = Seq(
+      "- [x] Phase 1: First",
+      "- [x] Phase 2: Second"
+    )
+    val index = MarkdownTaskParser.parsePhaseIndex(lines)
+    assertEquals(index.size, 2)
+    assert(index.forall(_.isComplete))
+
+  test("parsePhaseIndex handles no phases complete"):
+    val lines = Seq(
+      "- [ ] Phase 1: First",
+      "- [ ] Phase 2: Second"
+    )
+    val index = MarkdownTaskParser.parsePhaseIndex(lines)
+    assertEquals(index.size, 2)
+    assert(index.forall(!_.isComplete))
+
+  test("parsePhaseIndex ignores non-phase lines"):
+    val lines = Seq(
+      "# Implementation Tasks",
+      "",
+      "**Issue:** IWLE-100",
+      "",
+      "- [x] Phase 1: First phase",
+      "- Some other bullet",
+      "- [ ] Phase 2: Second phase"
+    )
+    val index = MarkdownTaskParser.parsePhaseIndex(lines)
+    assertEquals(index.size, 2)
+
+  test("parsePhaseIndex handles empty input"):
+    val index = MarkdownTaskParser.parsePhaseIndex(Seq.empty)
+    assertEquals(index.size, 0)
+
+  test("parsePhaseIndex extracts phase number correctly"):
+    val lines = Seq(
+      "- [x] Phase 10: Tenth phase",
+      "- [ ] Phase 11: Eleventh phase"
+    )
+    val index = MarkdownTaskParser.parsePhaseIndex(lines)
+    assertEquals(index(0).phaseNumber, 10)
+    assertEquals(index(1).phaseNumber, 11)
+
+  test("parsePhaseIndex handles arrow notation"):
+    val lines = Seq(
+      "- [x] Phase 1: View dashboard (Est: 8-12h) → `phase-01-context.md`",
+      "- [ ] Phase 2: Registration (Est: 6-8h) → `phase-02-context.md`"
+    )
+    val index = MarkdownTaskParser.parsePhaseIndex(lines)
+    assertEquals(index(0).name, "View dashboard")
+    assertEquals(index(1).name, "Registration")

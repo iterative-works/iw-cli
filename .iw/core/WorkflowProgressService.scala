@@ -34,6 +34,7 @@ object WorkflowProgressService:
     getMtime: String => Either[String, Long]
   ): Either[String, WorkflowProgress] =
     val taskDir = s"$worktreePath/project-management/issues/$issueId"
+    val tasksFilePath = s"$taskDir/tasks.md"
 
     // Discover phase files using injected getMtime (check if files exist by trying to get mtime)
     val phaseFilePaths = (1 to 20).map { n =>
@@ -51,7 +52,7 @@ object WorkflowProgressService:
     if existingFiles.isEmpty then
       Left(s"No phase files found in $taskDir")
     else
-      // Get current mtimes for all phase files
+      // Get current mtimes for all phase files + tasks.md
       val mtimesResult = existingFiles.map { file =>
         getMtime(file.path).map(mtime => (file.path, mtime))
       }
@@ -63,16 +64,27 @@ object WorkflowProgressService:
       else
         val currentMtimes = mtimesResult.collect { case Right(pair) => pair }.toMap
 
+        // Also include tasks.md mtime in cache key (if it exists)
+        val tasksFileMtime = getMtime(tasksFilePath).toOption
+        val allMtimes = tasksFileMtime match
+          case Some(mtime) => currentMtimes + (tasksFilePath -> mtime)
+          case None => currentMtimes
+
         // Check cache validity
         cache.get(issueId) match {
-          case Some(cached) if CachedProgress.isValid(cached, currentMtimes) =>
+          case Some(cached) if CachedProgress.isValid(cached, allMtimes) =>
             // Cache is valid, return cached progress
             Right(cached.progress)
 
           case _ =>
             // Cache invalid or missing, parse files
+            // Read Phase Index from tasks.md to determine current phase
+            val phaseIndex = readFile(tasksFilePath)
+              .map(MarkdownTaskParser.parsePhaseIndex)
+              .getOrElse(List.empty)
+
             parsePhaseFiles(existingFiles, readFile).map { phaseInfos =>
-              computeProgress(phaseInfos)
+              computeProgress(phaseInfos, phaseIndex)
             }
         }
 
@@ -114,12 +126,13 @@ object WorkflowProgressService:
     * Pure function that aggregates phase information and determines current phase.
     *
     * @param phases List of phase information
+    * @param phaseIndex Phase completion status from tasks.md (source of truth for current phase)
     * @return WorkflowProgress with aggregated data
     */
-  def computeProgress(phases: List[PhaseInfo]): WorkflowProgress =
+  def computeProgress(phases: List[PhaseInfo], phaseIndex: List[PhaseIndexEntry] = List.empty): WorkflowProgress =
     val overallTotal = phases.map(_.totalTasks).sum
     val overallCompleted = phases.map(_.completedTasks).sum
-    val currentPhase = determineCurrentPhase(phases)
+    val currentPhase = determineCurrentPhase(phases, phaseIndex)
 
     WorkflowProgress(
       currentPhase = currentPhase,
@@ -129,29 +142,38 @@ object WorkflowProgressService:
       overallTotal = overallTotal
     )
 
-  /** Determine current phase number from phase list.
+  /** Determine current phase number.
     *
-    * Returns:
+    * Uses Phase Index from tasks.md as source of truth when available.
+    * Falls back to task-based detection if no Phase Index provided.
+    *
+    * With Phase Index:
+    * - Returns first incomplete phase (checkbox not checked)
+    * - Returns last phase if all complete
+    *
+    * Without Phase Index (fallback):
     * - First phase with tasks in progress (some complete, some incomplete)
     * - First phase with no tasks started (if no in-progress phases)
     * - Last phase (if all phases complete)
-    * - None (if no phases)
     *
     * @param phases List of phase information
+    * @param phaseIndex Phase completion status from tasks.md
     * @return Current phase number (1-based) or None
     */
-  def determineCurrentPhase(phases: List[PhaseInfo]): Option[Int] =
+  def determineCurrentPhase(phases: List[PhaseInfo], phaseIndex: List[PhaseIndexEntry] = List.empty): Option[Int] =
     if phases.isEmpty then
       None
+    else if phaseIndex.nonEmpty then
+      // Use Phase Index as source of truth
+      phaseIndex.find(!_.isComplete).map(_.phaseNumber)
+        .orElse(phaseIndex.lastOption.map(_.phaseNumber))
     else
-      // First check for in-progress phases
+      // Fallback: use task-based detection
       phases.find(_.isInProgress).map(_.phaseNumber)
         .orElse {
-          // Then check for not-started phases
           phases.find(_.notStarted).map(_.phaseNumber)
         }
         .orElse {
-          // All complete, return last phase
           phases.lastOption.map(_.phaseNumber)
         }
 
