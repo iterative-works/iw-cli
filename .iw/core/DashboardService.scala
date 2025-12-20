@@ -4,30 +4,34 @@
 package iw.core.application
 
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, ProjectConfiguration}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue}
+import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress}
 import iw.core.presentation.views.WorktreeListView
 import scalatags.Text.all.*
 import java.time.Instant
+import scala.util.Try
 
 object DashboardService:
   /** Render dashboard with issue data fetched from cache or APIs.
     *
     * @param worktrees List of registered worktrees
     * @param issueCache Current issue cache
+    * @param progressCache Current progress cache
     * @param config Project configuration (for tracker type and team)
     * @return Complete HTML page as string
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
     issueCache: Map[String, CachedIssue],
+    progressCache: Map[String, CachedProgress],
     config: Option[ProjectConfiguration]
   ): String =
     val now = Instant.now()
 
-    // Fetch issue data for each worktree
-    val worktreesWithIssues = worktrees.map { wt =>
+    // Fetch issue data and progress for each worktree
+    val worktreesWithData = worktrees.map { wt =>
       val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
-      (wt, issueData)
+      val progress = fetchProgressForWorktree(wt, progressCache)
+      (wt, issueData, progress)
     }
 
     val page = html(
@@ -40,7 +44,7 @@ object DashboardService:
         div(
           cls := "container",
           h1("iw Dashboard"),
-          WorktreeListView.render(worktreesWithIssues, now)
+          WorktreeListView.render(worktreesWithData, now)
         )
       )
     )
@@ -133,6 +137,42 @@ object DashboardService:
     (issueId: String) =>
       val baseUrl = config.flatMap(_.youtrackBaseUrl)
       IssueCacheService.buildIssueUrl(issueId, trackerType, baseUrl)
+
+  /** Fetch workflow progress for a single worktree.
+    *
+    * Reads task files from the filesystem and parses progress.
+    * Returns None on any error (missing files, read errors, etc.)
+    *
+    * @param wt Worktree registration
+    * @param cache Current progress cache
+    * @return Optional WorkflowProgress, None if unavailable
+    */
+  private def fetchProgressForWorktree(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedProgress]
+  ): Option[WorkflowProgress] =
+    // File I/O wrapper: read file lines
+    val readFile = (path: String) => Try {
+      val source = scala.io.Source.fromFile(path)
+      try source.getLines().toSeq
+      finally source.close()
+    }.toEither.left.map(_.getMessage)
+
+    // File I/O wrapper: get file modification time
+    val getMtime = (path: String) => Try {
+      java.nio.file.Files.getLastModifiedTime(
+        java.nio.file.Paths.get(path)
+      ).toMillis
+    }.toEither.left.map(_.getMessage)
+
+    // Call WorkflowProgressService with injected I/O functions
+    WorkflowProgressService.fetchProgress(
+      wt.issueId,
+      wt.path,
+      cache,
+      readFile,
+      getMtime
+    ).toOption
 
   private val styles = """
     body {
@@ -242,5 +282,43 @@ object DashboardService:
 
     .empty-state p {
       font-size: 18px;
+    }
+
+    .phase-info {
+      margin: 8px 0;
+      font-size: 0.9em;
+    }
+
+    .phase-label {
+      font-weight: 600;
+      color: #495057;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .progress-container {
+      position: relative;
+      background: #e9ecef;
+      border-radius: 4px;
+      height: 20px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, #51cf66, #37b24d);
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      line-height: 20px;
+      font-size: 0.85em;
+      color: #212529;
+      font-weight: 600;
     }
   """

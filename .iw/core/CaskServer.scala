@@ -22,8 +22,13 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
         val configPath = os.pwd / Constants.Paths.ConfigFile
         val config = ConfigFileRepository.read(configPath)
 
-        // Render dashboard with issue data
-        val html = DashboardService.renderDashboard(worktrees, state.issueCache, config)
+        // Render dashboard with issue data and progress
+        val html = DashboardService.renderDashboard(
+          worktrees,
+          state.issueCache,
+          state.progressCache,
+          config
+        )
 
         cask.Response(
           data = html,
