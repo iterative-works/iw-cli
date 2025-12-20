@@ -1,16 +1,22 @@
 // PURPOSE: Presentation layer for rendering worktree cards with Scalatags
-// PURPOSE: Generates HTML for worktree list with issue ID, title placeholder, and relative timestamps
+// PURPOSE: Generates HTML for worktree list with issue ID, title, status badge, and relative timestamps
 
 package iw.core.presentation.views
 
-import iw.core.domain.WorktreeRegistration
+import iw.core.domain.{WorktreeRegistration, IssueData}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration
 
 object WorktreeListView:
-  def render(worktrees: List[WorktreeRegistration]): Frag =
-    if worktrees.isEmpty then
+  /** Render worktree list with issue data.
+    *
+    * @param worktreesWithIssues List of tuples (worktree, optional issue data with cache flag)
+    * @param now Current timestamp for relative time formatting
+    * @return HTML fragment
+    */
+  def render(worktreesWithIssues: List[(WorktreeRegistration, Option[(IssueData, Boolean)])], now: Instant): Frag =
+    if worktreesWithIssues.isEmpty then
       div(
         cls := "empty-state",
         p("No worktrees registered yet")
@@ -18,21 +24,95 @@ object WorktreeListView:
     else
       div(
         cls := "worktree-list",
-        worktrees.map(renderWorktreeCard)
+        worktreesWithIssues.map((wt, issueData) => renderWorktreeCard(wt, issueData, now))
       )
 
-  private def renderWorktreeCard(worktree: WorktreeRegistration): Frag =
+  private def renderWorktreeCard(
+    worktree: WorktreeRegistration,
+    issueData: Option[(IssueData, Boolean)],
+    now: Instant
+  ): Frag =
     div(
       cls := "worktree-card",
-      h3(worktree.issueId),
-      p(cls := "title", "Issue title not yet loaded"),
-      p(cls := "last-activity", s"Last activity: ${formatRelativeTime(worktree.lastSeenAt)}")
+      // Issue title (or fallback)
+      h3(issueData.map(_._1.title).getOrElse("Issue data unavailable")),
+      // Issue ID as clickable link
+      p(
+        cls := "issue-id",
+        a(
+          href := issueData.map(_._1.url).getOrElse("#"),
+          worktree.issueId
+        )
+      ),
+      // Issue details (status, assignee, cache indicator)
+      issueData.map { case (data, fromCache) =>
+        div(
+          cls := "issue-details",
+          // Status badge
+          span(
+            cls := s"status-badge status-${statusClass(data.status)}",
+            data.status
+          ),
+          // Assignee (if present)
+          data.assignee.map(a =>
+            span(cls := "assignee", s" · Assigned: $a")
+          ),
+          // Cache indicator (if from cache)
+          if fromCache then
+            span(
+              cls := "cache-indicator",
+              s" · cached ${formatCacheAge(data.fetchedAt, now)}"
+            )
+          else
+            ()
+        )
+      },
+      // Last activity
+      p(
+        cls := "last-activity",
+        s"Last activity: ${formatRelativeTime(worktree.lastSeenAt, now)}"
+      )
     )
 
-  private def formatRelativeTime(instant: Instant): String =
-    val now = Instant.now()
-    val duration = Duration.between(instant, now)
+  /** Map status text to CSS class for color coding.
+    *
+    * @param status Issue status string
+    * @return CSS class suffix (e.g., "in-progress", "done")
+    */
+  private def statusClass(status: String): String =
+    status.toLowerCase match
+      case s if s.contains("progress") || s.contains("active") => "in-progress"
+      case s if s.contains("done") || s.contains("complete") || s.contains("closed") => "done"
+      case s if s.contains("blocked") => "blocked"
+      case _ => "default"
 
+  /** Format cache age as human-readable string.
+    *
+    * @param fetchedAt When issue data was fetched
+    * @param now Current timestamp
+    * @return Formatted string (e.g., "3m ago", "2h ago")
+    */
+  private def formatCacheAge(fetchedAt: Instant, now: Instant): String =
+    val duration = Duration.between(fetchedAt, now)
+    val minutes = duration.toMinutes
+
+    if minutes < 1 then
+      "just now"
+    else if minutes < 60 then
+      s"${minutes}m ago"
+    else if minutes < 1440 then
+      s"${minutes / 60}h ago"
+    else
+      s"${minutes / 1440}d ago"
+
+  /** Format relative time for worktree activity.
+    *
+    * @param instant Timestamp to format
+    * @param now Current timestamp
+    * @return Formatted string (e.g., "2h ago")
+    */
+  private def formatRelativeTime(instant: Instant, now: Instant): String =
+    val duration = Duration.between(instant, now)
     val seconds = duration.getSeconds
     val minutes = seconds / 60
     val hours = minutes / 60

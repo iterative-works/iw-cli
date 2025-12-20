@@ -177,3 +177,61 @@ A .iw/core/test/ProcessManagerTest.scala
 ```
 
 ---
+
+## Phase 4: Show issue details and status from tracker (2025-12-20)
+
+**What was built:**
+- Domain: `IssueData.scala` - Extended issue model with URL and fetchedAt timestamp, factory method `fromIssue()`
+- Domain: `CachedIssue.scala` - Cache wrapper with TTL validation (5 minute default), pure `isValid()` and `age()` functions
+- Application: `IssueCacheService.scala` - Pure business logic for cache-aware issue fetching with stale fallback on API failure
+- Infrastructure: `StateRepository.scala` - Extended with upickle ReadWriters for IssueData, CachedIssue, and Instant
+- Application: `DashboardService.scala` - Integrated issue fetching via IssueCacheService with Linear/YouTrack API dispatch
+- Presentation: `WorktreeListView.scala` - Enhanced cards with issue title, status badge, assignee, cache indicator, clickable links
+
+**Decisions made:**
+- TTL of 5 minutes balances freshness with API rate limits
+- Stale cache fallback: prefer showing outdated data over "unavailable" on API failure (better UX)
+- Timestamps injected via `now: Instant` parameter for FCIS purity
+- Issue cache embedded in ServerState (no separate cache file) for atomic persistence
+- Status badge color mapping: in-progress=yellow, done=green, blocked=red, default=gray
+- Cache age formatting: "just now", "Xm ago", "Xh ago", "Xd ago"
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: IssueData, CachedIssue, IssueCacheService are pure; DashboardService orchestrates at the edge
+- Pure functions with timestamp injection: `isValid(cached, now)`, `fetchWithCache(..., now, ...)`
+- Graceful degradation: Valid cache → Fresh fetch → Stale fallback → Error message
+- Factory method pattern: `IssueData.fromIssue(issue, url, fetchedAt)`
+
+**Testing:**
+- Unit tests: 18 tests added (IssueData: 3, CachedIssue: 6, IssueCacheService: 9)
+- Integration tests: 5 tests added (StateRepository cache serialization)
+- E2E tests: Deferred to Phase 8
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-04-20251220.md
+- Verdict: PASS with 0 critical, 2 warnings, 5 suggestions
+- Warnings: Case sensitivity in tracker type matching, view layer contains status classification logic
+
+**For next phases:**
+- Available utilities: `IssueCacheService.fetchWithCache()` for cache-aware issue fetching
+- Extension points: Add more issue fields, customize TTL per project, add cache pruning
+- Notes: Cache grows with worktrees (~2KB per issue); pruning deferred to Phase 7 if needed
+
+**Files changed:**
+```
+M .iw/core/CaskServer.scala
+M .iw/core/DashboardService.scala
+M .iw/core/ServerState.scala
+M .iw/core/StateRepository.scala
+M .iw/core/WorktreeListView.scala
+M .iw/core/test/StateRepositoryTest.scala
+A .iw/core/IssueData.scala
+A .iw/core/CachedIssue.scala
+A .iw/core/IssueCacheService.scala
+A .iw/core/test/IssueDataTest.scala
+A .iw/core/test/CachedIssueTest.scala
+A .iw/core/test/IssueCacheServiceTest.scala
+```
+
+---
