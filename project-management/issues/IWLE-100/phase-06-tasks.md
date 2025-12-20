@@ -134,20 +134,20 @@
 
 ### Tests
 
-- [ ] **[test]** Write StateRepositoryTest: serialize ServerState with prCache field
-- [ ] **[test]** Write StateRepositoryTest: deserialize ServerState with prCache correctly
-- [ ] **[test]** Write StateRepositoryTest: prCache persists PullRequestData url, state, number
-- [ ] **[test]** Write StateRepositoryTest: prCache persists fetchedAt timestamp
+- [x] **[test]** Write StateRepositoryTest: serialize ServerState with prCache field
+- [x] **[test]** Write StateRepositoryTest: deserialize ServerState with prCache correctly
+- [x] **[test]** Write StateRepositoryTest: prCache persists PullRequestData url, state, number
+- [x] **[test]** Write StateRepositoryTest: prCache persists fetchedAt timestamp
 
 ### Implementation
 
-- [ ] **[impl]** Extend ServerState case class with prCache: Map[String, CachedPR] = Map.empty
-- [ ] **[impl]** Add upickle ReadWriter for PRState enum in StateRepository
-- [ ] **[impl]** Add upickle ReadWriter for PullRequestData in StateRepository
-- [ ] **[impl]** Add upickle ReadWriter for CachedPR in StateRepository
-- [ ] **[impl]** Add upickle ReadWriter for GitStatus in StateRepository (for future use)
-- [ ] **[impl]** Run StateRepository integration tests and verify serialization works
-- [ ] **[impl]** Commit: "feat(IWLE-100): Extend ServerState with PR cache"
+- [x] **[impl]** Extend ServerState case class with prCache: Map[String, CachedPR] = Map.empty
+- [x] **[impl]** Add upickle ReadWriter for PRState enum in StateRepository
+- [x] **[impl]** Add upickle ReadWriter for PullRequestData in StateRepository
+- [x] **[impl]** Add upickle ReadWriter for CachedPR in StateRepository
+- [x] **[impl]** Add upickle ReadWriter for GitStatus in StateRepository (for future use)
+- [x] **[impl]** Run StateRepository integration tests and verify serialization works
+- [ ] **[impl]** Commit: "test(IWLE-100): Add StateRepository tests for PR cache serialization"
 
 ---
 

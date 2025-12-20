@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress}
+import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR}
 import iw.core.infrastructure.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path, Paths}
@@ -369,4 +369,165 @@ class StateRepositoryTest extends munit.FunSuite:
         assertEquals(loadedState.worktrees.size, 0)
         assertEquals(loadedState.issueCache.size, 0)
         assertEquals(loadedState.progressCache.size, 0)
+      }
+
+  tempDir.test("StateRepository serializes ServerState with prCache field"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val prData = PullRequestData(
+        url = "https://github.com/org/repo/pull/123",
+        state = PRState.Open,
+        number = 123,
+        title = "Test PR"
+      )
+      val cachedPR = CachedPR(prData, Instant.parse("2025-12-20T10:00:00Z"))
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map.empty,
+        prCache = Map("IWLE-123" -> cachedPR)
+      )
+
+      val writeResult = repo.write(state)
+      assert(writeResult.isRight, s"Write failed: $writeResult")
+
+      // Verify file exists
+      assert(Files.exists(statePath))
+
+  tempDir.test("StateRepository deserializes ServerState with prCache correctly"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val prData = PullRequestData(
+        url = "https://github.com/org/repo/pull/456",
+        state = PRState.Merged,
+        number = 456,
+        title = "Feature: Add awesome feature"
+      )
+      val cachedPR = CachedPR(prData, Instant.parse("2025-12-20T11:30:00Z"))
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map.empty,
+        prCache = Map("IWLE-456" -> cachedPR)
+      )
+
+      repo.write(state)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.prCache.size, 1)
+        assert(loadedState.prCache.contains("IWLE-456"))
+
+        val loadedCached = loadedState.prCache("IWLE-456")
+        assertEquals(loadedCached.pr.url, "https://github.com/org/repo/pull/456")
+        assertEquals(loadedCached.pr.state, PRState.Merged)
+        assertEquals(loadedCached.pr.number, 456)
+        assertEquals(loadedCached.pr.title, "Feature: Add awesome feature")
+        assertEquals(loadedCached.fetchedAt, Instant.parse("2025-12-20T11:30:00Z"))
+      }
+
+  tempDir.test("StateRepository prCache persists PullRequestData url, state, number"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val prData1 = PullRequestData(
+        url = "https://github.com/org/repo/pull/100",
+        state = PRState.Open,
+        number = 100,
+        title = "PR 100"
+      )
+      val prData2 = PullRequestData(
+        url = "https://github.com/org/repo/pull/200",
+        state = PRState.Closed,
+        number = 200,
+        title = "PR 200"
+      )
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map.empty,
+        prCache = Map(
+          "ISSUE-1" -> CachedPR(prData1, Instant.now()),
+          "ISSUE-2" -> CachedPR(prData2, Instant.now())
+        )
+      )
+
+      repo.write(state)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.prCache.size, 2)
+
+        val pr1 = loadedState.prCache("ISSUE-1").pr
+        assertEquals(pr1.url, "https://github.com/org/repo/pull/100")
+        assertEquals(pr1.state, PRState.Open)
+        assertEquals(pr1.number, 100)
+
+        val pr2 = loadedState.prCache("ISSUE-2").pr
+        assertEquals(pr2.url, "https://github.com/org/repo/pull/200")
+        assertEquals(pr2.state, PRState.Closed)
+        assertEquals(pr2.number, 200)
+      }
+
+  tempDir.test("StateRepository prCache persists fetchedAt timestamp"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val specificTime = Instant.parse("2025-12-20T14:22:33.456Z")
+      val prData = PullRequestData(
+        url = "https://github.com/org/repo/pull/999",
+        state = PRState.Open,
+        number = 999,
+        title = "Test timestamp"
+      )
+      val cachedPR = CachedPR(prData, specificTime)
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map.empty,
+        prCache = Map("TEST-1" -> cachedPR)
+      )
+
+      repo.write(state)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        val loadedCached = loadedState.prCache("TEST-1")
+        assertEquals(loadedCached.fetchedAt, specificTime)
+      }
+
+  tempDir.test("Old state.json without prCache loads successfully"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+
+      // Simulate old state.json format (no prCache field)
+      val oldJsonContent = """{
+        "worktrees": {},
+        "issueCache": {},
+        "progressCache": {}
+      }"""
+      Files.writeString(statePath, oldJsonContent)
+
+      val repo = StateRepository(statePath.toString)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.worktrees.size, 0)
+        assertEquals(loadedState.issueCache.size, 0)
+        assertEquals(loadedState.progressCache.size, 0)
+        assertEquals(loadedState.prCache.size, 0)
       }
