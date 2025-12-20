@@ -56,30 +56,30 @@
 
 ### Checkbox Counting
 
-- [ ] [test] Write test: parseTasks counts incomplete checkbox `- [ ]`
-- [ ] [test] Write test: parseTasks counts completed checkbox `- [x]`
-- [ ] [test] Write test: parseTasks counts completed checkbox case-insensitive `- [X]`
-- [ ] [test] Write test: parseTasks counts mixed checkboxes correctly
-- [ ] [test] Write test: parseTasks ignores non-checkbox bullets (*, +, 1.)
-- [ ] [test] Write test: parseTasks handles indented checkboxes
-- [ ] [test] Write test: parseTasks handles empty input (returns 0/0)
-- [ ] [impl] Create MarkdownTaskParser.scala object with parseTasks method
-- [ ] [impl] Implement regex pattern for checkbox detection
-- [ ] [impl] Verify checkbox counting tests pass
+- [x] [test] Write test: parseTasks counts incomplete checkbox `- [ ]`
+- [x] [test] Write test: parseTasks counts completed checkbox `- [x]`
+- [x] [test] Write test: parseTasks counts completed checkbox case-insensitive `- [X]`
+- [x] [test] Write test: parseTasks counts mixed checkboxes correctly
+- [x] [test] Write test: parseTasks ignores non-checkbox bullets (*, +, 1.)
+- [x] [test] Write test: parseTasks handles indented checkboxes
+- [x] [test] Write test: parseTasks handles empty input (returns 0/0)
+- [x] [impl] Create MarkdownTaskParser.scala object with parseTasks method
+- [x] [impl] Implement regex pattern for checkbox detection
+- [x] [impl] Verify checkbox counting tests pass
 
 ### Phase Name Extraction
 
-- [ ] [test] Write test: extractPhaseName parses "# Phase 2 Tasks: Name" format
-- [ ] [test] Write test: extractPhaseName parses "# Phase 3: Name" format
-- [ ] [test] Write test: extractPhaseName returns None for missing header
-- [ ] [test] Write test: extractPhaseName handles multiple headers (picks first)
-- [ ] [impl] Implement extractPhaseName with regex pattern matching
-- [ ] [impl] Verify phase name extraction tests pass
+- [x] [test] Write test: extractPhaseName parses "# Phase 2 Tasks: Name" format
+- [x] [test] Write test: extractPhaseName parses "# Phase 3: Name" format
+- [x] [test] Write test: extractPhaseName returns None for missing header
+- [x] [test] Write test: extractPhaseName handles multiple headers (picks first)
+- [x] [impl] Implement extractPhaseName with regex pattern matching
+- [x] [impl] Verify phase name extraction tests pass
 
 ### Commit Parser
 
-- [ ] [impl] Run all parser tests together and verify pass
-- [ ] [impl] Commit: "feat(IWLE-100): Add MarkdownTaskParser for checkbox counting"
+- [x] [impl] Run all parser tests together and verify pass
+- [x] [impl] Commit: "feat(IWLE-100): Add MarkdownTaskParser for checkbox counting"
 
 ---
 
