@@ -2,6 +2,7 @@
 // USAGE: iw start <issue-id>
 
 import iw.core.*
+import iw.core.infrastructure.ServerClient
 
 @main def start(args: String*): Unit =
   if args.isEmpty then
@@ -64,6 +65,18 @@ def createWorktreeForIssue(issueId: IssueId): Unit =
           sys.exit(1)
         case Right(_) =>
           Output.success(s"Worktree created at ${targetPath}")
+
+      // Register worktree with dashboard (best-effort)
+      ServerClient.registerWorktree(
+        issueId.value,
+        targetPath.toString,
+        config.trackerType.toString,
+        issueId.team
+      ) match
+        case Left(error) =>
+          Output.warn(s"Failed to register worktree with dashboard: $error")
+        case Right(_) =>
+          () // Silent success
 
       // Create tmux session
       Output.info(s"Creating tmux session '$sessionName'...")

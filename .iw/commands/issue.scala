@@ -5,18 +5,34 @@
 // EXAMPLE: iw issue IWLE-123
 
 import iw.core.*
+import iw.core.infrastructure.ServerClient
 
 @main def issue(args: String*): Unit =
   val result = for {
     issueId <- getIssueId(args)
     config <- loadConfig()
     issue <- fetchIssue(issueId, config)
-  } yield issue
+  } yield (issue, issueId, config)
 
   result match
-    case Right(issue) =>
+    case Right((issue, issueId, config)) =>
       val formatted = IssueFormatter.format(issue)
       println(formatted)
+
+      // Update dashboard timestamp (best-effort)
+      val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
+      val worktreePath = WorktreePath(config.projectName, issueId)
+      val targetPath = worktreePath.resolve(currentDir)
+
+      ServerClient.updateLastSeen(
+        issueId.value,
+        targetPath.toString,
+        config.trackerType.toString,
+        issueId.team
+      ) match
+        case Left(_) => () // Ignore errors silently at exit
+        case Right(_) => ()
+
     case Left(error) =>
       Output.error(error)
       sys.exit(1)
