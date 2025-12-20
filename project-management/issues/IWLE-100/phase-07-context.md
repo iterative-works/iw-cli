@@ -283,3 +283,25 @@ From Story 7 in analysis.md:
 - The prune-on-load approach means no separate cleanup timer is needed
 - Cache cleanup is atomic with worktree removal to prevent orphaned entries
 - Consider logging pruned worktrees for debugging (not user-facing)
+
+---
+
+## Refactoring Decisions
+
+### R1: Fix path handling and build system (2025-12-20)
+
+**Trigger:** When testing the dashboard server, it crashed with `os.PathError$InvalidSegment` because `Constants.Paths.ConfigFile = ".iw/config.conf"` contains a `/` character, which `os-lib` doesn't allow in a single path segment. Additionally, the `//> using file` directives in command scripts use relative paths that resolve incorrectly when scripts are not run from the expected directory.
+
+**Decision:** Two related fixes:
+1. Fix path construction in `CaskServer.scala` to properly handle multi-segment paths
+2. Replace `//> using file` directives with classpath-based approach for more reliable dependency resolution
+
+**Scope:**
+- Files affected: `CaskServer.scala`, `Constants.scala`, all command scripts in `.iw/commands/`
+- Components: Path construction, build/dependency resolution
+- Boundaries: Do NOT change business logic, only build and path handling
+
+**Approach:**
+1. Split `Constants.Paths.ConfigFile` into separate directory and filename components
+2. Update all path constructions using these constants to use proper `os-lib` path operations
+3. Migrate command scripts from `//> using file` to a shared project configuration or classpath approach

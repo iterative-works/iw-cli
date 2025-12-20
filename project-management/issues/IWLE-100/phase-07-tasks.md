@@ -105,4 +105,10 @@
 
 ---
 
+## Refactoring
+
+- [ ] [impl] [ ] [reviewed] Refactoring R1: Fix path handling and build system
+
+---
+
 **Next Step:** Start with Setup tasks, then follow TDD for each component.
