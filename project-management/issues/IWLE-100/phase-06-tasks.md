@@ -99,34 +99,34 @@
 
 ### Tests
 
-- [ ] **[test]** Write PullRequestCacheServiceTest: fetchPR uses cache when valid (<2 min)
-- [ ] **[test]** Write PullRequestCacheServiceTest: fetchPR re-fetches when cache expired (>2 min)
-- [ ] **[test]** Write PullRequestCacheServiceTest: fetchPR returns None when no PR tool available
-- [ ] **[test]** Write PullRequestCacheServiceTest: fetchPR returns None when PR not found (404)
-- [ ] **[test]** Write PullRequestCacheServiceTest: parseGitHubPR extracts url, state, number, title
-- [ ] **[test]** Write PullRequestCacheServiceTest: parseGitHubPR handles OPEN, MERGED, CLOSED states
-- [ ] **[test]** Write PullRequestCacheServiceTest: parseGitLabPR extracts mr data from JSON
-- [ ] **[test]** Write PullRequestCacheServiceTest: parseGitLabPR handles opened, merged, closed states
-- [ ] **[test]** Write PullRequestCacheServiceTest: detectPRTool returns Some("gh") when gh available
-- [ ] **[test]** Write PullRequestCacheServiceTest: detectPRTool returns Some("glab") when only glab
-- [ ] **[test]** Write PullRequestCacheServiceTest: detectPRTool returns None when neither available
+- [x] **[test]** Write PullRequestCacheServiceTest: fetchPR uses cache when valid (<2 min)
+- [x] **[test]** Write PullRequestCacheServiceTest: fetchPR re-fetches when cache expired (>2 min)
+- [x] **[test]** Write PullRequestCacheServiceTest: fetchPR returns None when no PR tool available
+- [x] **[test]** Write PullRequestCacheServiceTest: fetchPR returns None when PR not found (404)
+- [x] **[test]** Write PullRequestCacheServiceTest: parseGitHubPR extracts url, state, number, title
+- [x] **[test]** Write PullRequestCacheServiceTest: parseGitHubPR handles OPEN, MERGED, CLOSED states
+- [x] **[test]** Write PullRequestCacheServiceTest: parseGitLabPR extracts mr data from JSON
+- [x] **[test]** Write PullRequestCacheServiceTest: parseGitLabPR handles opened, merged, closed states
+- [x] **[test]** Write PullRequestCacheServiceTest: detectPRTool returns Some("gh") when gh available
+- [x] **[test]** Write PullRequestCacheServiceTest: detectPRTool returns Some("glab") when only glab
+- [x] **[test]** Write PullRequestCacheServiceTest: detectPRTool returns None when neither available
 
 ### Implementation
 
-- [ ] **[impl]** Create `.iw/core/PullRequestCacheService.scala` object
-- [ ] **[impl]** Implement fetchPR with cache check using CachedPR.isValid
-- [ ] **[impl]** Return cached PR if valid, otherwise proceed to fetch
-- [ ] **[impl]** Implement detectPRTool checking "gh" first, then "glab"
-- [ ] **[impl]** Return None if no PR tool available
-- [ ] **[impl]** Execute "gh pr view --json url,state,number,title" for GitHub
-- [ ] **[impl]** Execute "glab mr view --output json" for GitLab
-- [ ] **[impl]** Implement parseGitHubPR JSON parsing with upickle
-- [ ] **[impl]** Map GitHub states: OPEN→Open, MERGED→Merged, CLOSED→Closed
-- [ ] **[impl]** Implement parseGitLabPR JSON parsing
-- [ ] **[impl]** Map GitLab states: opened→Open, merged→Merged, closed→Closed
-- [ ] **[impl]** Handle command failures gracefully (return None, not error)
-- [ ] **[impl]** Run PullRequestCacheService tests and verify all pass
-- [ ] **[impl]** Commit: "feat(IWLE-100): Add PullRequestCacheService with GitHub/GitLab support"
+- [x] **[impl]** Create `.iw/core/PullRequestCacheService.scala` object
+- [x] **[impl]** Implement fetchPR with cache check using CachedPR.isValid
+- [x] **[impl]** Return cached PR if valid, otherwise proceed to fetch
+- [x] **[impl]** Implement detectPRTool checking "gh" first, then "glab"
+- [x] **[impl]** Return None if no PR tool available
+- [x] **[impl]** Execute "gh pr view --json url,state,number,title" for GitHub
+- [x] **[impl]** Execute "glab mr view --output json" for GitLab
+- [x] **[impl]** Implement parseGitHubPR JSON parsing with upickle
+- [x] **[impl]** Map GitHub states: OPEN→Open, MERGED→Merged, CLOSED→Closed
+- [x] **[impl]** Implement parseGitLabPR JSON parsing
+- [x] **[impl]** Map GitLab states: opened→Open, merged→Merged, closed→Closed
+- [x] **[impl]** Handle command failures gracefully (return None, not error)
+- [x] **[impl]** Run PullRequestCacheService tests and verify all pass
+- [x] **[impl]** Commit: "feat(IWLE-100): Add PullRequestCacheService with GitHub/GitLab support"
 
 ---
 
