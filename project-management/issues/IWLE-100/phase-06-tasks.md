@@ -172,7 +172,7 @@
 - [x] **[impl]** Pass Optional[GitStatus] and Optional[PullRequestData] to WorktreeListView
 - [x] **[impl]** Update worktreesWithData to include git status and PR data tuples
 - [x] **[impl]** Run DashboardService integration tests and verify all pass
-- [ ] **[impl]** Commit: "feat(IWLE-100): Integrate git status and PR data in dashboard"
+- [x] **[impl]** Commit: "feat(IWLE-100): Integrate git status and PR data in dashboard"
 
 ---
 
@@ -200,7 +200,7 @@
 - [x] **[impl]** Add inline CSS for .pr-link, .pr-button, .pr-badge
 - [x] **[impl]** Add inline CSS for .pr-open (blue), .pr-merged (purple), .pr-closed (gray)
 - [x] **[impl]** Run WorktreeListView tests and verify rendering correct
-- [ ] **[impl]** Commit: "feat(IWLE-100): Enhance worktree cards with git status and PR links"
+- [x] **[impl]** Commit: "feat(IWLE-100): Enhance worktree cards with git status and PR links"
 
 ---
 
