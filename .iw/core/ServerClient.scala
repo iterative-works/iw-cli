@@ -3,16 +3,19 @@
 
 package iw.core.infrastructure
 
-import iw.core.{ServerConfig, ServerConfigRepository}
+import iw.core.{ServerConfig, ServerConfigRepository, ProcessManager}
 import sttp.client4.quick.*
 import sttp.model.StatusCode
 import scala.util.{Try, Success, Failure}
 
 object ServerClient:
 
+  private val homeDir = System.getProperty("user.home")
+  private val serverDir = s"$homeDir/.local/share/iw/server"
+  private val configPath = s"$serverDir/config.json"
+  private val pidPath = s"$serverDir/server.pid"
+
   private def getServerPort(): Int =
-    val homeDir = System.getProperty("user.home")
-    val configPath = s"$homeDir/.local/share/iw/server/config.json"
     ServerConfigRepository.getOrCreateDefault(configPath) match
       case Right(config) => config.port
       case Left(_) => ServerConfig.DefaultPort
@@ -35,6 +38,7 @@ object ServerClient:
 
   /**
    * Ensures the server is running, starting it if necessary.
+   * Uses ProcessManager to spawn a persistent background process.
    *
    * @param statePath Path to state.json file for server
    * @return Right(()) if server is running, Left(error) if start fails
@@ -44,18 +48,31 @@ object ServerClient:
     if isHealthy() then
       Right(())
     else
-      // Start server in daemon thread
-      val serverThread = new Thread(() => {
-        CaskServer.start(statePath, port)
-      })
-      serverThread.setDaemon(true)
-      serverThread.start()
+      // Check if there's already a PID file with a running process
+      ProcessManager.readPidFile(pidPath) match
+        case Right(Some(pid)) if ProcessManager.isProcessAlive(pid) =>
+          // Process exists but not healthy yet, wait for it
+          if waitForServer(port, timeoutSeconds = 5) then
+            Right(())
+          else
+            Left("Server process exists but is not responding")
+        case _ =>
+          // No running process, spawn a new one
+          ProcessManager.spawnServerProcess(statePath, port) match
+            case Left(error) => Left(s"Failed to spawn server: $error")
+            case Right(pid) =>
+              // Write PID file
+              ProcessManager.writePidFile(pid, pidPath) match
+                case Left(error) =>
+                  // Server started but PID file failed - still try to use it
+                  ()
+                case Right(_) => ()
 
-      // Wait for server to be ready with health check polling
-      if waitForServer(port, timeoutSeconds = 5) then
-        Right(())
-      else
-        Left("Server failed to start within timeout")
+              // Wait for server to be ready with health check polling
+              if waitForServer(port, timeoutSeconds = 5) then
+                Right(())
+              else
+                Left("Server failed to start within timeout")
 
   /**
    * Waits for server to become healthy with polling.
