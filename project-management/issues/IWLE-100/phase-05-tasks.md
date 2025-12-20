@@ -87,37 +87,37 @@
 
 ### Progress Computation
 
-- [ ] [test] Write test: computeProgress sums task counts across phases
-- [ ] [test] Write test: computeProgress handles empty phase list
-- [ ] [test] Write test: computeProgress calculates overall percentage correctly
-- [ ] [impl] Implement computeProgress pure function
-- [ ] [impl] Verify computeProgress tests pass
+- [x] [test] Write test: computeProgress sums task counts across phases
+- [x] [test] Write test: computeProgress handles empty phase list
+- [x] [test] Write test: computeProgress calculates overall percentage correctly
+- [x] [impl] Implement computeProgress pure function
+- [x] [impl] Verify computeProgress tests pass
 
 ### Current Phase Detection
 
-- [ ] [test] Write test: determineCurrentPhase returns first incomplete phase
-- [ ] [test] Write test: determineCurrentPhase returns last phase if all complete
-- [ ] [test] Write test: determineCurrentPhase returns None for empty list
-- [ ] [test] Write test: determineCurrentPhase skips not-started phases after in-progress
-- [ ] [impl] Implement determineCurrentPhase logic
-- [ ] [impl] Verify determineCurrentPhase tests pass
+- [x] [test] Write test: determineCurrentPhase returns first incomplete phase
+- [x] [test] Write test: determineCurrentPhase returns last phase if all complete
+- [x] [test] Write test: determineCurrentPhase returns None for empty list
+- [x] [test] Write test: determineCurrentPhase skips not-started phases after in-progress
+- [x] [impl] Implement determineCurrentPhase logic
+- [x] [impl] Verify determineCurrentPhase tests pass
 
 ### Cache Integration
 
-- [ ] [test] Write test: fetchProgress uses cache when mtimes match (no file reads)
-- [ ] [test] Write test: fetchProgress re-parses when mtime changed
-- [ ] [test] Write test: fetchProgress re-parses when new phase file added
-- [ ] [test] Write test: fetchProgress handles missing directory gracefully
-- [ ] [test] Write test: fetchProgress handles read errors gracefully
-- [ ] [impl] Create WorkflowProgressService.scala with fetchProgress method
-- [ ] [impl] Implement file I/O injection pattern (readFile, getMtime functions)
-- [ ] [impl] Implement cache validation and file discovery logic
-- [ ] [impl] Verify all service tests pass
+- [x] [test] Write test: fetchProgress uses cache when mtimes match (no file reads)
+- [x] [test] Write test: fetchProgress re-parses when mtime changed
+- [x] [test] Write test: fetchProgress re-parses when new phase file added
+- [x] [test] Write test: fetchProgress handles missing directory gracefully
+- [x] [test] Write test: fetchProgress handles read errors gracefully
+- [x] [impl] Create WorkflowProgressService.scala with fetchProgress method
+- [x] [impl] Implement file I/O injection pattern (readFile, getMtime functions)
+- [x] [impl] Implement cache validation and file discovery logic
+- [x] [impl] Verify all service tests pass
 
 ### Commit Service
 
-- [ ] [impl] Run all WorkflowProgressService tests and verify pass
-- [ ] [impl] Commit: "feat(IWLE-100): Add WorkflowProgressService with cache support"
+- [x] [impl] Run all WorkflowProgressService tests and verify pass
+- [x] [impl] Commit: "feat(IWLE-100): Add WorkflowProgressService with cache support"
 
 ---
 
