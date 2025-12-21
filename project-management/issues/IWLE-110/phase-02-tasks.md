@@ -2,27 +2,27 @@
 
 **Issue:** IWLE-110
 **Phase:** 2 of 3
-**Status:** 0/8 tasks complete
+**Phase Status:** Complete
 
 ## Setup
 
-- [ ] [setup] Read and understand current status flow in server.scala, ServerClient, CaskServer
+- [x] [setup] Read and understand current status flow in server.scala, ServerClient, CaskServer
 
 ## Tests
 
-- [ ] [test] Write test for CaskServer status endpoint including hosts in response JSON
-- [ ] [test] Write test for status display formatting with single host
-- [ ] [test] Write test for status display formatting with multiple hosts
+- [x] [test] Write test for CaskServer status endpoint including hosts in response JSON
+- [x] [test] Write test for status display formatting with single host
+- [x] [test] Write test for status display formatting with multiple hosts
 
 ## Implementation
 
-- [ ] [impl] Update CaskServer to store hosts as instance field and include in /api/status response
-- [ ] [impl] Update server.scala showStatus() to read hosts from status JSON and display all host:port combinations
+- [x] [impl] Update CaskServer to store hosts as instance field and include in /api/status response
+- [x] [impl] Update server.scala showStatus() to read hosts from status JSON and display all host:port combinations
 
 ## Integration
 
-- [ ] [integration] Verify status endpoint returns hosts field with running server
-- [ ] [integration] Verify `iw server status` displays all bound host:port combinations
+- [x] [integration] Verify status endpoint returns hosts field with running server
+- [x] [integration] Verify `iw server status` displays all bound host:port combinations
 
 ## Notes
 

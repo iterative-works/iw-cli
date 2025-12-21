@@ -31,6 +31,14 @@ object ServerLifecycleService:
     else
       s"${seconds}s"
 
+  /** Format server hosts display message */
+  def formatHostsDisplay(hosts: Seq[String], port: Int): String =
+    if hosts.isEmpty then
+      s"Server running on port $port"
+    else
+      val addresses = hosts.map(host => s"$host:$port").mkString(", ")
+      s"Server running on $addresses"
+
   /** Create status from current server state and runtime information */
   def createStatus(
     state: ServerState,

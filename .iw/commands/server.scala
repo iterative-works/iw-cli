@@ -157,7 +157,15 @@ def showStatus(): Unit =
           val now = java.time.Instant.now()
           val uptime = ServerLifecycleService.formatUptime(startedAt, now)
 
-          println(s"Server running on port $port")
+          // Get hosts from status response, fall back to empty if missing
+          val hosts = if statusJson.obj.contains("hosts") then
+            statusJson("hosts").arr.map(_.str).toSeq
+          else
+            Seq.empty[String]
+
+          val hostDisplay = ServerLifecycleService.formatHostsDisplay(hosts, port)
+
+          println(hostDisplay)
           println(s"Tracking $worktreeCount worktrees")
           println(s"Uptime: $uptime")
           println(s"PID: $pid")
