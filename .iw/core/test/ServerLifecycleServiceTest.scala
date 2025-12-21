@@ -97,3 +97,66 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
     val status = ServerLifecycleService.createStatus(state, startedAt, pid, port)
 
     assertEquals(status.worktreeCount, 2)
+
+  test("Format status display with single host"):
+    val hosts = Seq("localhost")
+    val port = 9876
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on localhost:9876")
+
+  test("Format status display with multiple hosts"):
+    val hosts = Seq("127.0.0.1", "10.0.0.1")
+    val port = 8080
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on 127.0.0.1:8080, 10.0.0.1:8080")
+
+  test("Format status display with three hosts"):
+    val hosts = Seq("localhost", "127.0.0.1", "192.168.1.5")
+    val port = 9876
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on localhost:9876, 127.0.0.1:9876, 192.168.1.5:9876")
+
+  test("Format status display with empty hosts defaults to port"):
+    val hosts = Seq.empty[String]
+    val port = 9876
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on port 9876")
+
+  test("Format security warning returns None when no warning needed"):
+    val analysis = iw.core.SecurityAnalysis(Seq.empty, false, false)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assertEquals(warning, None)
+
+  test("Format security warning for bind-all (0.0.0.0)"):
+    val analysis = iw.core.SecurityAnalysis(Seq("0.0.0.0"), true, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("WARNING: Server is accessible from all network interfaces"))
+    assert(warning.get.contains("0.0.0.0"))
+    assert(warning.get.contains("Ensure your firewall is properly configured"))
+
+  test("Format security warning for bind-all (::)"):
+    val analysis = iw.core.SecurityAnalysis(Seq("::"), true, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("WARNING: Server is accessible from all network interfaces"))
+    assert(warning.get.contains("::"))
+
+  test("Format security warning for specific exposed hosts"):
+    val analysis = iw.core.SecurityAnalysis(Seq("100.64.1.5"), false, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("WARNING: Server is accessible from non-localhost interfaces"))
+    assert(warning.get.contains("100.64.1.5"))
+    assert(warning.get.contains("Ensure your firewall is properly configured"))
+
+  test("Format security warning lists multiple exposed hosts"):
+    val analysis = iw.core.SecurityAnalysis(Seq("192.168.1.100", "10.0.0.1"), false, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("192.168.1.100"))
+    assert(warning.get.contains("10.0.0.1"))

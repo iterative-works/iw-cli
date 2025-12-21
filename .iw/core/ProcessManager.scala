@@ -92,12 +92,13 @@ object ProcessManager:
    * Spawn server process in background
    * Returns the PID of the spawned process
    */
-  def spawnServerProcess(statePath: String, port: Int): Either[String, Long] =
+  def spawnServerProcess(statePath: String, port: Int, hosts: Seq[String]): Either[String, Long] =
     Try {
       // Use scala-cli to run the server-daemon script
+      val hostsArg = hosts.mkString(",")
       val processBuilder = new ProcessBuilder(
         "scala-cli", "run", ".iw/commands/server-daemon.scala",
-        "--", statePath, port.toString
+        "--", statePath, port.toString, hostsArg
       )
 
       // Redirect output to avoid blocking

@@ -50,7 +50,7 @@ def startServer(): Unit =
       System.exit(1)
 
   // Spawn server process
-  val spawnResult = ProcessManager.spawnServerProcess(statePath, config.port)
+  val spawnResult = ProcessManager.spawnServerProcess(statePath, config.port, config.hosts)
   val pid = spawnResult match
     case Right(p) => p
     case Left(err) =>
@@ -79,7 +79,15 @@ def startServer(): Unit =
     retries += 1
 
   if healthy then
-    println(s"Server started on http://localhost:${config.port}")
+    // Display security warning if applicable
+    val securityAnalysis = ServerConfig.analyzeHostsSecurity(config.hosts)
+    ServerLifecycleService.formatSecurityWarning(securityAnalysis).foreach { warning =>
+      println(warning)
+      println()
+    }
+
+    val addresses = config.hosts.map(host => s"$host:${config.port}").mkString(", ")
+    println(s"Server started on $addresses")
   else
     System.err.println(s"Server process started (PID: $pid) but health check failed")
     System.err.println(s"Check logs for errors")
@@ -156,7 +164,15 @@ def showStatus(): Unit =
           val now = java.time.Instant.now()
           val uptime = ServerLifecycleService.formatUptime(startedAt, now)
 
-          println(s"Server running on port $port")
+          // Get hosts from status response, fall back to empty if missing
+          val hosts = if statusJson.obj.contains("hosts") then
+            statusJson("hosts").arr.map(_.str).toSeq
+          else
+            Seq.empty[String]
+
+          val hostDisplay = ServerLifecycleService.formatHostsDisplay(hosts, port)
+
+          println(hostDisplay)
           println(s"Tracking $worktreeCount worktrees")
           println(s"Uptime: $uptime")
           println(s"PID: $pid")

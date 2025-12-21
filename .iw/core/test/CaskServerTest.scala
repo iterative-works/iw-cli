@@ -406,6 +406,50 @@ class CaskServerTest extends FunSuite:
       val parentDir = stateFile.getParent
       if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
 
+  test("status endpoint includes hosts field with single host"):
+    val statePath = createTempStatePath()
+    val port = 9876
+    val hosts = Seq("localhost")
+    val startedAt = java.time.Instant.now()
+
+    try
+      val server = new CaskServer(statePath, port, hosts, startedAt)
+      val statusJson = server.status()
+
+      assert(statusJson.obj.contains("hosts"), "Status response should contain hosts field")
+      assertEquals(statusJson("hosts").arr.size, 1)
+      assertEquals(statusJson("hosts")(0).str, "localhost")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("status endpoint includes hosts field with multiple hosts"):
+    val statePath = createTempStatePath()
+    val port = 9877
+    val hosts = Seq("192.168.1.1", "10.0.0.1", "localhost")
+    val startedAt = java.time.Instant.now()
+
+    try
+      val server = new CaskServer(statePath, port, hosts, startedAt)
+      val statusJson = server.status()
+
+      assert(statusJson.obj.contains("hosts"), "Status response should contain hosts field")
+      assertEquals(statusJson("hosts").arr.size, 3)
+      assertEquals(statusJson("hosts")(0).str, "192.168.1.1")
+      assertEquals(statusJson("hosts")(1).str, "10.0.0.1")
+      assertEquals(statusJson("hosts")(2).str, "localhost")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
   test("DELETE endpoint removes associated cache entries"):
     val statePath = createTempStatePath()
     val port = findAvailablePort()
