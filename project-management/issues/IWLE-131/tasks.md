@@ -2,17 +2,17 @@
 
 **Issue:** IWLE-131
 **Created:** 2025-12-21
-**Status:** 0/3 phases complete (0%)
+**Status:** 1/3 phases complete (33%)
 
 ## Phase Index
 
-- [ ] Phase 1: E2E tests skip real API calls by default (Est: 2-3h) → `phase-01-context.md`
+- [x] Phase 1: E2E tests skip real API calls by default (Est: 2-3h) → `phase-01-context.md`
 - [ ] Phase 2: Explicit live API opt-in mechanism (Est: 1-2h) → `phase-02-context.md`
 - [ ] Phase 3: Mock-based unit tests with sttp backend injection (Est: 3-4h) → `phase-03-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/3 phases
+**Completed:** 1/3 phases
 **Estimated Total:** 6-9 hours
 **Time Spent:** 0 hours
 
