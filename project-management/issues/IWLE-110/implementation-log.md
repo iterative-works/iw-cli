@@ -58,3 +58,49 @@ M  .iw/core/test/ServerConfigTest.scala
 ```
 
 ---
+
+## Phase 2: Display bound hosts in server status (2025-12-21)
+
+**What was built:**
+- Application: `ServerLifecycleService.formatHostsDisplay()` - Pure function for formatting host display
+- Infrastructure: `CaskServer.status()` - Include hosts array in /api/status JSON response
+- Presentation: `server.scala showStatus()` - Parse hosts from status JSON, display formatted addresses
+
+**Decisions made:**
+- Store hosts as instance field in CaskServer (passed via constructor)
+- Return hosts as JSON array in status endpoint for structured access
+- Fallback to empty array if hosts field missing (backward compatibility with older servers)
+- Display format: "Server running on host1:port, host2:port" (comma-separated)
+- Empty hosts fallback: "Server running on port {port}"
+
+**Patterns applied:**
+- Pure function for display formatting (no side effects)
+- Backward-compatible JSON parsing (graceful degradation)
+- Consistent with existing status display patterns
+
+**Testing:**
+- Unit tests: 6 tests added
+  - 2 in CaskServerTest (status endpoint hosts field verification)
+  - 4 in ServerLifecycleServiceTest (formatHostsDisplay: single/multiple/three/empty hosts)
+- Integration tests: Verified via unit tests calling status() directly
+
+**Code review:**
+- Iterations: 2
+- Review file: review-phase-02-20251221.md
+- Major findings: Test structure issues (fixed in iteration 2), package placement suggestion
+
+**For next phases:**
+- Available utilities: `ServerLifecycleService.formatHostsDisplay(hosts, port)`
+- Extension points: Status endpoint returns hosts array
+- Notes: Phase 3 will add security warnings for non-localhost bindings
+
+**Files changed:**
+```
+M  .iw/commands/server.scala
+M  .iw/core/CaskServer.scala
+M  .iw/core/ServerLifecycleService.scala
+M  .iw/core/test/CaskServerTest.scala
+M  .iw/core/test/ServerLifecycleServiceTest.scala
+```
+
+---

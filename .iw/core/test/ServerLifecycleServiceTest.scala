@@ -97,3 +97,31 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
     val status = ServerLifecycleService.createStatus(state, startedAt, pid, port)
 
     assertEquals(status.worktreeCount, 2)
+
+  test("Format status display with single host"):
+    val hosts = Seq("localhost")
+    val port = 9876
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on localhost:9876")
+
+  test("Format status display with multiple hosts"):
+    val hosts = Seq("127.0.0.1", "10.0.0.1")
+    val port = 8080
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on 127.0.0.1:8080, 10.0.0.1:8080")
+
+  test("Format status display with three hosts"):
+    val hosts = Seq("localhost", "127.0.0.1", "192.168.1.5")
+    val port = 9876
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on localhost:9876, 127.0.0.1:9876, 192.168.1.5:9876")
+
+  test("Format status display with empty hosts defaults to port"):
+    val hosts = Seq.empty[String]
+    val port = 9876
+
+    val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
+    assertEquals(message, "Server running on port 9876")

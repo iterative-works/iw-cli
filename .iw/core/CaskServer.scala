@@ -8,7 +8,7 @@ import iw.core.application.{ServerStateService, DashboardService, WorktreeRegist
 import iw.core.domain.ServerState
 import java.time.Instant
 
-class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.MainRoutes:
+class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
   private val repository = StateRepository(statePath)
 
   @cask.get("/")
@@ -66,6 +66,7 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
     ujson.Obj(
       "status" -> "running",
       "port" -> port,
+      "hosts" -> ujson.Arr.from(hosts),
       "worktreeCount" -> worktreeCount,
       "startedAt" -> startedAt.toString
     )
@@ -227,7 +228,7 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
 object CaskServer:
   def start(statePath: String, port: Int = 9876, hosts: Seq[String] = Seq("localhost")): Unit =
     val startedAt = Instant.now()
-    val server = new CaskServer(statePath, port, startedAt)
+    val server = new CaskServer(statePath, port, hosts, startedAt)
 
     // Create builder and add listener for each host
     val builder = hosts.foldLeft(io.undertow.Undertow.builder) { (b, host) =>
