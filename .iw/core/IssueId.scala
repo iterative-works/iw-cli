@@ -24,3 +24,4 @@ object IssueId:
   extension (issueId: IssueId)
     def value: String = issueId
     def toBranchName: String = issueId
+    def team: String = issueId.split("-").head

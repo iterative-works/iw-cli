@@ -45,7 +45,7 @@ def openWorktreeSession(issueId: IssueId): Unit =
         issueId.team
       ) match
         case Left(error) =>
-          Output.warn(s"Failed to update dashboard: $error")
+          Output.warning(s"Failed to update dashboard: $error")
         case Right(_) =>
           () // Silent success
 

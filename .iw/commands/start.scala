@@ -74,7 +74,7 @@ def createWorktreeForIssue(issueId: IssueId): Unit =
         issueId.team
       ) match
         case Left(error) =>
-          Output.warn(s"Failed to register worktree with dashboard: $error")
+          Output.warning(s"Failed to register worktree with dashboard: $error")
         case Right(_) =>
           () // Silent success
 
