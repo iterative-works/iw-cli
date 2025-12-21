@@ -39,3 +39,41 @@ M .iw/test/feedback.bats
 ```
 
 ---
+
+## Phase 2: Explicit live API opt-in mechanism (2025-12-21)
+
+**What was built:**
+- Added warning message when live API tests are enabled
+- Added comprehensive Testing section to README.md
+
+**Changes made:**
+- Added `setup_file()` function to `.iw/test/feedback.bats` with warning message
+- Warning uses BATS `>&3` file descriptor for user-visible output
+- Updated README.md with detailed Testing section covering all test types
+
+**Decisions made:**
+- Used `setup_file()` (runs once per file) instead of `setup()` (runs per test) for warning
+- Warning outputs to fd 3 for BATS compatibility
+- README documents three test types: Unit, E2E, Live API
+
+**Testing:**
+- Verified warning appears when both `LINEAR_API_TOKEN` and `ENABLE_LIVE_API_TESTS` are set
+- Verified no warning when `ENABLE_LIVE_API_TESTS` is not set
+- Verified all E2E tests pass with no regressions
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20251221-235500.md
+- Status: PASSED (no critical issues)
+
+**For next phases:**
+- Phase 3 can add mock-based unit tests for LinearClient
+- Documentation foundation in place for CI (IWLE-114)
+
+**Files changed:**
+```
+M .iw/test/feedback.bats
+M README.md
+```
+
+---
