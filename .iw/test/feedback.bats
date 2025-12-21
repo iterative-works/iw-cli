@@ -12,6 +12,12 @@
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
+setup_file() {
+    if [ -n "$LINEAR_API_TOKEN" ] && [ -n "$ENABLE_LIVE_API_TESTS" ]; then
+        echo "⚠️  WARNING: Live API tests enabled - real Linear issues will be created" >&3
+    fi
+}
+
 setup() {
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
