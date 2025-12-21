@@ -94,12 +94,19 @@ object ProcessManager:
    */
   def spawnServerProcess(statePath: String, port: Int, hosts: Seq[String]): Either[String, Long] =
     Try {
-      // Use scala-cli to run the server-daemon script
+      // Use scala-cli to run the server-daemon script with core library
       val hostsArg = hosts.mkString(",")
-      val processBuilder = new ProcessBuilder(
-        "scala-cli", "run", ".iw/commands/server-daemon.scala",
-        "--", statePath, port.toString, hostsArg
-      )
+      val coreDir = os.pwd / ".iw" / "core"
+      val coreFiles = os.list(coreDir)
+        .filter(_.ext == "scala")
+        .map(_.toString)
+        .toSeq
+
+      val command = Seq("scala-cli", "run", ".iw/commands/server-daemon.scala") ++
+        coreFiles ++
+        Seq("--", statePath, port.toString, hostsArg)
+
+      val processBuilder = new ProcessBuilder(command: _*)
 
       // Redirect output to avoid blocking
       // TODO: Consider logging to a file instead of discarding
