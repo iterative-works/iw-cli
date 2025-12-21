@@ -104,3 +104,51 @@ M  .iw/core/test/ServerLifecycleServiceTest.scala
 ```
 
 ---
+
+## Phase 3: Warn users about security implications (2025-12-21)
+
+**What was built:**
+- Domain: `SecurityAnalysis` case class - Represents security analysis result with `exposedHosts`, `bindsToAll`, `hasWarning`
+- Domain: `ServerConfig.isLocalhostVariant()` - Detects localhost variants (localhost, 127.x.x.x, ::1)
+- Domain: `ServerConfig.analyzeHostsSecurity()` - Pure function analyzing hosts for security implications
+- Application: `ServerLifecycleService.formatSecurityWarning()` - Formats warning message based on analysis
+- Presentation: `server.scala startServer()` - Displays warning before success message when applicable
+
+**Decisions made:**
+- Warning displayed AFTER health check passes, BEFORE success message
+- Localhost variants considered "safe" (no warning): localhost, 127.0.0.1, ::1, full 127.x.x.x range
+- Bind-all hosts (0.0.0.0, ::) get special "all network interfaces" warning
+- Other non-localhost IPs get "specific interfaces" warning listing the IPs
+- Warning is informational only - does not prevent server from starting
+- Security analysis logic placed in ServerConfig companion object (noted for potential future extraction)
+
+**Patterns applied:**
+- Pure functions for all security analysis (no I/O, deterministic)
+- Option[String] return type for optional warning message
+- FCIS: Shell layer (server.scala) calls pure functions and handles side effects (printing)
+
+**Testing:**
+- Unit tests: 19 tests added
+  - 8 in ServerConfigTest for `isLocalhostVariant()` (all localhost variants + non-localhost cases)
+  - 6 in ServerConfigTest for `analyzeHostsSecurity()` (no warning, bind-all, exposed hosts scenarios)
+  - 5 in ServerLifecycleServiceTest for `formatSecurityWarning()` (no warning, bind-all, specific hosts)
+- E2E tests: Skipped due to pre-existing server startup issue (verified via comprehensive unit tests)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20251221.md
+- Major findings:
+  - Architecture: Consider extracting security analysis to separate service (suggestion)
+  - Testing: Add edge case tests for invalid loopback patterns (warning)
+  - Overall: APPROVED - no critical issues
+
+**Files changed:**
+```
+M  .iw/commands/server.scala
+M  .iw/core/ServerConfig.scala
+M  .iw/core/ServerLifecycleService.scala
+M  .iw/core/test/ServerConfigTest.scala
+M  .iw/core/test/ServerLifecycleServiceTest.scala
+```
+
+---

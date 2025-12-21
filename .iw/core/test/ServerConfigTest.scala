@@ -129,3 +129,65 @@ class ServerConfigTest extends munit.FunSuite:
     val config = result.toOption.get
     assertEquals(config.port, 9876)
     assertEquals(config.hosts, Seq("localhost", "127.0.0.1"))
+
+  // isLocalhostVariant tests
+  test("isLocalhostVariant returns true for localhost"):
+    assert(ServerConfig.isLocalhostVariant("localhost"))
+
+  test("isLocalhostVariant returns true for 127.0.0.1"):
+    assert(ServerConfig.isLocalhostVariant("127.0.0.1"))
+
+  test("isLocalhostVariant returns true for ::1"):
+    assert(ServerConfig.isLocalhostVariant("::1"))
+
+  test("isLocalhostVariant returns true for 127.0.0.42 (loopback range)"):
+    assert(ServerConfig.isLocalhostVariant("127.0.0.42"))
+
+  test("isLocalhostVariant returns false for 0.0.0.0"):
+    assert(!ServerConfig.isLocalhostVariant("0.0.0.0"))
+
+  test("isLocalhostVariant returns false for ::"):
+    assert(!ServerConfig.isLocalhostVariant("::"))
+
+  test("isLocalhostVariant returns false for 100.64.1.5"):
+    assert(!ServerConfig.isLocalhostVariant("100.64.1.5"))
+
+  test("isLocalhostVariant returns false for 192.168.1.100"):
+    assert(!ServerConfig.isLocalhostVariant("192.168.1.100"))
+
+  // analyzeHostsSecurity tests
+  test("analyzeHostsSecurity returns no warning for localhost only"):
+    val analysis = ServerConfig.analyzeHostsSecurity(Seq("localhost"))
+    assert(!analysis.hasWarning)
+    assertEquals(analysis.exposedHosts, Seq.empty[String])
+    assert(!analysis.bindsToAll)
+
+  test("analyzeHostsSecurity returns no warning for 127.0.0.1 only"):
+    val analysis = ServerConfig.analyzeHostsSecurity(Seq("127.0.0.1"))
+    assert(!analysis.hasWarning)
+    assertEquals(analysis.exposedHosts, Seq.empty[String])
+    assert(!analysis.bindsToAll)
+
+  test("analyzeHostsSecurity returns bind-all warning for 0.0.0.0"):
+    val analysis = ServerConfig.analyzeHostsSecurity(Seq("0.0.0.0"))
+    assert(analysis.hasWarning)
+    assert(analysis.bindsToAll)
+    assertEquals(analysis.exposedHosts, Seq("0.0.0.0"))
+
+  test("analyzeHostsSecurity returns bind-all warning for ::"):
+    val analysis = ServerConfig.analyzeHostsSecurity(Seq("::"))
+    assert(analysis.hasWarning)
+    assert(analysis.bindsToAll)
+    assertEquals(analysis.exposedHosts, Seq("::"))
+
+  test("analyzeHostsSecurity returns exposed hosts warning for mixed localhost and non-localhost"):
+    val analysis = ServerConfig.analyzeHostsSecurity(Seq("127.0.0.1", "100.64.1.5"))
+    assert(analysis.hasWarning)
+    assert(!analysis.bindsToAll)
+    assertEquals(analysis.exposedHosts, Seq("100.64.1.5"))
+
+  test("analyzeHostsSecurity lists all non-localhost IPs in exposedHosts"):
+    val analysis = ServerConfig.analyzeHostsSecurity(Seq("localhost", "192.168.1.100", "10.0.0.1"))
+    assert(analysis.hasWarning)
+    assert(!analysis.bindsToAll)
+    assertEquals(analysis.exposedHosts, Seq("192.168.1.100", "10.0.0.1"))

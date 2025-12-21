@@ -79,6 +79,13 @@ def startServer(): Unit =
     retries += 1
 
   if healthy then
+    // Display security warning if applicable
+    val securityAnalysis = ServerConfig.analyzeHostsSecurity(config.hosts)
+    ServerLifecycleService.formatSecurityWarning(securityAnalysis).foreach { warning =>
+      println(warning)
+      println()
+    }
+
     val addresses = config.hosts.map(host => s"$host:${config.port}").mkString(", ")
     println(s"Server started on $addresses")
   else

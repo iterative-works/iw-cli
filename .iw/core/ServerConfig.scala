@@ -7,6 +7,12 @@ import upickle.default.*
 
 case class ServerConfig(port: Int, hosts: Seq[String] = Seq("localhost")) derives ReadWriter
 
+case class SecurityAnalysis(
+  exposedHosts: Seq[String],
+  bindsToAll: Boolean,
+  hasWarning: Boolean
+)
+
 object ServerConfig:
   val DefaultPort: Int = 9876
   val MinPort: Int = 1024
@@ -73,3 +79,25 @@ object ServerConfig:
 
   /** Create default config with standard port */
   def default: ServerConfig = ServerConfig(DefaultPort)
+
+  /** Check if host is a localhost variant (no security warning needed) */
+  def isLocalhostVariant(host: String): Boolean =
+    host == "localhost" || host == "::1" || isIPv4Loopback(host)
+
+  /** Check if IPv4 address is in loopback range (127.x.x.x) */
+  private def isIPv4Loopback(host: String): Boolean =
+    val ipv4Pattern = """^127\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$""".r
+    ipv4Pattern.matches(host) && {
+      val parts = host.split('.').drop(1) // skip "127"
+      parts.forall { part =>
+        val num = part.toIntOption
+        num.exists(n => n >= 0 && n <= 255)
+      }
+    }
+
+  /** Analyze hosts configuration for security implications */
+  def analyzeHostsSecurity(hosts: Seq[String]): SecurityAnalysis =
+    val exposedHosts = hosts.filterNot(isLocalhostVariant)
+    val bindsToAll = exposedHosts.exists(h => h == "0.0.0.0" || h == "::")
+    val hasWarning = exposedHosts.nonEmpty
+    SecurityAnalysis(exposedHosts, bindsToAll, hasWarning)

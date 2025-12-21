@@ -125,3 +125,38 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
 
     val message = ServerLifecycleService.formatHostsDisplay(hosts, port)
     assertEquals(message, "Server running on port 9876")
+
+  test("Format security warning returns None when no warning needed"):
+    val analysis = iw.core.SecurityAnalysis(Seq.empty, false, false)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assertEquals(warning, None)
+
+  test("Format security warning for bind-all (0.0.0.0)"):
+    val analysis = iw.core.SecurityAnalysis(Seq("0.0.0.0"), true, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("WARNING: Server is accessible from all network interfaces"))
+    assert(warning.get.contains("0.0.0.0"))
+    assert(warning.get.contains("Ensure your firewall is properly configured"))
+
+  test("Format security warning for bind-all (::)"):
+    val analysis = iw.core.SecurityAnalysis(Seq("::"), true, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("WARNING: Server is accessible from all network interfaces"))
+    assert(warning.get.contains("::"))
+
+  test("Format security warning for specific exposed hosts"):
+    val analysis = iw.core.SecurityAnalysis(Seq("100.64.1.5"), false, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("WARNING: Server is accessible from non-localhost interfaces"))
+    assert(warning.get.contains("100.64.1.5"))
+    assert(warning.get.contains("Ensure your firewall is properly configured"))
+
+  test("Format security warning lists multiple exposed hosts"):
+    val analysis = iw.core.SecurityAnalysis(Seq("192.168.1.100", "10.0.0.1"), false, true)
+    val warning = ServerLifecycleService.formatSecurityWarning(analysis)
+    assert(warning.isDefined)
+    assert(warning.get.contains("192.168.1.100"))
+    assert(warning.get.contains("10.0.0.1"))

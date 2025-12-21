@@ -53,3 +53,14 @@ object ServerLifecycleService:
       startedAt = Some(startedAt),
       pid = Some(pid)
     )
+
+  /** Format security warning message for non-localhost server bindings */
+  def formatSecurityWarning(analysis: SecurityAnalysis): Option[String] =
+    if !analysis.hasWarning then
+      None
+    else if analysis.bindsToAll then
+      val hosts = analysis.exposedHosts.mkString(", ")
+      Some(s"⚠️  WARNING: Server is accessible from all network interfaces ($hosts)\n   Ensure your firewall is properly configured.")
+    else
+      val hosts = analysis.exposedHosts.mkString(", ")
+      Some(s"⚠️  WARNING: Server is accessible from non-localhost interfaces: $hosts\n   Ensure your firewall is properly configured.")
