@@ -103,3 +103,52 @@ class ServerConfigRepositoryTest extends munit.FunSuite:
       val result = ServerConfigRepository.getOrCreateDefault(configPath.toString)
       assert(result.isRight)
       assertEquals(result.toOption.get.port, 8080)
+
+  // Backward compatibility tests for hosts field
+  fixture.test("Deserialize config without hosts field defaults to Seq(localhost)"):
+    tempDir =>
+      val configPath = tempDir / "config.json"
+      // Old config format without hosts field
+      os.write(configPath, """{"port": 9876}""")
+
+      val result = ServerConfigRepository.read(configPath.toString)
+      assert(result.isRight)
+      val config = result.toOption.get
+      assertEquals(config.port, 9876)
+      assertEquals(config.hosts, Seq("localhost"))
+
+  fixture.test("Deserialize config with hosts field preserves explicit values"):
+    tempDir =>
+      val configPath = tempDir / "config.json"
+      // New config format with hosts field
+      os.write(configPath, """{"port": 9876, "hosts": ["127.0.0.1", "192.168.1.5"]}""")
+
+      val result = ServerConfigRepository.read(configPath.toString)
+      assert(result.isRight)
+      val config = result.toOption.get
+      assertEquals(config.port, 9876)
+      assertEquals(config.hosts, Seq("127.0.0.1", "192.168.1.5"))
+
+  fixture.test("Deserialize config with empty hosts array fails validation"):
+    tempDir =>
+      val configPath = tempDir / "config.json"
+      // Config with empty hosts array
+      os.write(configPath, """{"port": 9876, "hosts": []}""")
+
+      val result = ServerConfigRepository.read(configPath.toString)
+      assert(result.isLeft)
+      assert(result.left.exists(_.contains("at least one host")))
+
+  fixture.test("Serialize config with hosts field includes hosts in JSON"):
+    tempDir =>
+      val configPath = tempDir / "config.json"
+      val config = ServerConfig(9876, Seq("localhost", "0.0.0.0"))
+
+      val writeResult = ServerConfigRepository.write(config, configPath.toString)
+      assert(writeResult.isRight)
+
+      // Read raw JSON and verify hosts field is present
+      val json = os.read(configPath)
+      assert(json.contains("hosts"))
+      assert(json.contains("localhost"))
+      assert(json.contains("0.0.0.0"))

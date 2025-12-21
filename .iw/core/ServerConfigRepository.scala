@@ -21,6 +21,11 @@ object ServerConfigRepository:
 
       // Validate the port after deserialization
       ServerConfig.validate(config.port) match
+        case Right(_) => ()
+        case Left(err) => throw new IllegalArgumentException(err)
+
+      // Validate hosts after deserialization
+      ServerConfig.validateHosts(config.hosts) match
         case Right(_) => config
         case Left(err) => throw new IllegalArgumentException(err)
     } match
@@ -34,6 +39,10 @@ object ServerConfigRepository:
     Try {
       // Validate before writing
       ServerConfig.validate(config.port) match
+        case Left(err) => throw new IllegalArgumentException(err)
+        case Right(_) => ()
+
+      ServerConfig.validateHosts(config.hosts) match
         case Left(err) => throw new IllegalArgumentException(err)
         case Right(_) => ()
 

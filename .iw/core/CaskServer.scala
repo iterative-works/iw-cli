@@ -225,11 +225,16 @@ class CaskServer(statePath: String, port: Int, startedAt: Instant) extends cask.
   initialize()
 
 object CaskServer:
-  def start(statePath: String, port: Int = 9876): Unit =
+  def start(statePath: String, port: Int = 9876, hosts: Seq[String] = Seq("localhost")): Unit =
     val startedAt = Instant.now()
     val server = new CaskServer(statePath, port, startedAt)
-    io.undertow.Undertow.builder
-      .addHttpListener(port, "localhost")
+
+    // Create builder and add listener for each host
+    val builder = hosts.foldLeft(io.undertow.Undertow.builder) { (b, host) =>
+      b.addHttpListener(port, host)
+    }
+
+    builder
       .setHandler(server.defaultHandler)
       .build
       .start()

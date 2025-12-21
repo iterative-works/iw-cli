@@ -6,12 +6,13 @@ import iw.core.infrastructure.CaskServer
 
 @main
 def main(args: String*): Unit =
-  if args.length < 2 then
-    System.err.println("Usage: server-daemon <statePath> <port>")
+  if args.length < 3 then
+    System.err.println("Usage: server-daemon <statePath> <port> <hosts>")
     System.exit(1)
 
   val statePath = args(0)
   val port = args(1).toInt
+  val hosts = args(2).split(",").toSeq
 
   // Start server (blocks)
-  CaskServer.start(statePath, port)
+  CaskServer.start(statePath, port, hosts)

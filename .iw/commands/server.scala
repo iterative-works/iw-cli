@@ -50,7 +50,7 @@ def startServer(): Unit =
       System.exit(1)
 
   // Spawn server process
-  val spawnResult = ProcessManager.spawnServerProcess(statePath, config.port)
+  val spawnResult = ProcessManager.spawnServerProcess(statePath, config.port, config.hosts)
   val pid = spawnResult match
     case Right(p) => p
     case Left(err) =>
@@ -79,7 +79,8 @@ def startServer(): Unit =
     retries += 1
 
   if healthy then
-    println(s"Server started on http://localhost:${config.port}")
+    val addresses = config.hosts.map(host => s"$host:${config.port}").mkString(", ")
+    println(s"Server started on $addresses")
   else
     System.err.println(s"Server process started (PID: $pid) but health check failed")
     System.err.println(s"Check logs for errors")

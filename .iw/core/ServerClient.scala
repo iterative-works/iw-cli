@@ -15,10 +15,13 @@ object ServerClient:
   private val configPath = s"$serverDir/config.json"
   private val pidPath = s"$serverDir/server.pid"
 
-  private def getServerPort(): Int =
+  private def getServerConfig(): ServerConfig =
     ServerConfigRepository.getOrCreateDefault(configPath) match
-      case Right(config) => config.port
-      case Left(_) => ServerConfig.DefaultPort
+      case Right(config) => config
+      case Left(_) => ServerConfig.default
+
+  private def getServerPort(): Int =
+    getServerConfig().port
 
   /**
    * Checks if the server is healthy.
@@ -58,7 +61,8 @@ object ServerClient:
             Left("Server process exists but is not responding")
         case _ =>
           // No running process, spawn a new one
-          ProcessManager.spawnServerProcess(statePath, port) match
+          val config = getServerConfig()
+          ProcessManager.spawnServerProcess(statePath, config.port, config.hosts) match
             case Left(error) => Left(s"Failed to spawn server: $error")
             case Right(pid) =>
               // Write PID file
