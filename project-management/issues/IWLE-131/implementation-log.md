@@ -77,3 +77,42 @@ M README.md
 ```
 
 ---
+
+## Phase 3: Mock-based unit tests with sttp backend injection (2025-12-22)
+
+**What was built:**
+- Refactored LinearClient to accept optional `SyncBackend` parameter for testability
+- Added comprehensive mock-based unit tests using sttp's `SyncBackendStub`
+
+**Changes made:**
+- Added `backend: SyncBackend = defaultBackend` parameter to `validateToken`, `fetchIssue`, `createIssue`
+- Changed from `quickRequest.send()` to `basicRequest.send(backend)`
+- Created `LinearClientMockTest.scala` with 10 mock-based tests
+
+**Decisions made:**
+- Used default parameter to ensure backward compatibility
+- Used sttp 4.x `SyncBackendStub` with `thenRespondAdjust` for mock responses
+- Dependency injection pattern allows testing without real HTTP calls
+
+**Patterns applied:**
+- Dependency Injection: Backend parameter allows swapping real HTTP for mocks
+- Test Doubles: BackendStub provides canned responses for testing
+
+**Testing:**
+- 10 new mock-based tests added
+- Tests cover: validateToken (2), fetchIssue (3), createIssue (4), GraphQL error (1)
+- All tests pass without LINEAR_API_TOKEN set
+- No real API calls made in unit tests
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20251222-001500.md
+- Status: PASSED (no critical issues)
+
+**Files changed:**
+```
+M .iw/core/LinearClient.scala
+A .iw/core/test/LinearClientMockTest.scala
+```
+
+---
