@@ -96,3 +96,53 @@ M  project-management/issues/IWLE-132/phase-02-tasks.md
 ```
 
 ---
+
+## Phase 3: Create GitHub issue via feedback command (2025-12-22)
+
+**What was built:**
+- `GitHubClient.scala` - New GitHub CLI wrapper for issue creation via `gh` command
+- `buildCreateIssueCommand()` - Generates gh CLI arguments with proper escaping
+- `parseCreateIssueResponse()` - Parses JSON output from `gh issue create --json`
+- `createIssue()` - Orchestrates command execution with label fallback
+- `feedback.scala` - Updated to route to GitHubClient when tracker is GitHub
+- Label mapping: Bug → "bug", Feature → "feedback"
+
+**Decisions made:**
+- Follow existing LinearClient pattern for consistency
+- Use function injection (`execCommand` parameter) for testability
+- Graceful label fallback: retry without labels if label error occurs
+- Array-based command construction to prevent shell injection
+- Config loading in feedback command to detect tracker type
+
+**Patterns applied:**
+- Adapter pattern: GitHubClient wraps `gh` CLI tool
+- Either monad: Error handling returns `Either[String, CreatedIssue]`
+- Function injection: `execCommand` parameter enables unit testing
+- Defensive programming: Label error detection and retry logic
+
+**Testing:**
+- Unit tests: 14 tests for GitHubClient (command building, JSON parsing, retry logic)
+- E2E tests: 6 new tests for GitHub tracker feedback
+- Regression tests: All existing Linear tests pass (tests 12-20)
+- Total: 115 E2E tests passing
+
+**Code review:**
+- Iterations: 1 (passed on first review)
+- Review file: review-phase-03-20251222.md
+- Major findings: APPROVED - excellent security (command injection protection), comprehensive tests, clean architecture
+- Suggestions: Minor UX improvements for error messages (deferred)
+
+**For next phases:**
+- Available utilities: `GitHubClient.createIssue()` for creating GitHub issues
+- Extension points: `GitHubClient` can be extended for `gh issue view` in Phase 5
+- Notes: gh CLI validation deferred to Phase 4, issue display deferred to Phase 5
+
+**Files changed:**
+```
+A  .iw/core/GitHubClient.scala
+A  .iw/core/test/GitHubClientTest.scala
+M  .iw/commands/feedback.scala
+M  .iw/test/feedback.bats
+```
+
+---
