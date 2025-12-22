@@ -12,6 +12,12 @@
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
+setup_file() {
+    if [ -n "$LINEAR_API_TOKEN" ] && [ -n "$ENABLE_LIVE_API_TESTS" ]; then
+        echo "⚠️  WARNING: Live API tests enabled - real Linear issues will be created" >&3
+    fi
+}
+
 setup() {
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
@@ -59,8 +65,8 @@ teardown() {
 
 @test "feedback creates issue successfully" {
     # Skip if no real token available
-    if [ -z "$LINEAR_API_TOKEN" ]; then
-        skip "LINEAR_API_TOKEN not set, skipping live API test"
+    if [ -z "$LINEAR_API_TOKEN" ] || [ -z "$ENABLE_LIVE_API_TESTS" ]; then
+        skip "Live API tests disabled. Set LINEAR_API_TOKEN and ENABLE_LIVE_API_TESTS=1 to enable."
     fi
 
     # Create issue with [TEST] prefix for easy identification
@@ -75,8 +81,8 @@ teardown() {
 
 @test "feedback with description creates issue" {
     # Skip if no real token available
-    if [ -z "$LINEAR_API_TOKEN" ]; then
-        skip "LINEAR_API_TOKEN not set, skipping live API test"
+    if [ -z "$LINEAR_API_TOKEN" ] || [ -z "$ENABLE_LIVE_API_TESTS" ]; then
+        skip "Live API tests disabled. Set LINEAR_API_TOKEN and ENABLE_LIVE_API_TESTS=1 to enable."
     fi
 
     # Create issue with description
@@ -91,8 +97,8 @@ teardown() {
 
 @test "feedback with bug type creates issue" {
     # Skip if no real token available
-    if [ -z "$LINEAR_API_TOKEN" ]; then
-        skip "LINEAR_API_TOKEN not set, skipping live API test"
+    if [ -z "$LINEAR_API_TOKEN" ] || [ -z "$ENABLE_LIVE_API_TESTS" ]; then
+        skip "Live API tests disabled. Set LINEAR_API_TOKEN and ENABLE_LIVE_API_TESTS=1 to enable."
     fi
 
     # Create bug issue
