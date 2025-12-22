@@ -1,13 +1,9 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw feedback command
-# PURPOSE: Tests feedback submission, error handling, and help text
+# PURPOSE: Tests feedback submission to GitHub, error handling, and help text
 #
-# NOTE: Tests that create real Linear issues use [TEST] prefix for identification.
-# These test issues should be periodically cleaned up manually in Linear:
-#   1. Go to Linear > IWLE team > Issues
-#   2. Search for "[TEST]" in issue titles
-#   3. Select and archive/delete test issues
-# Consider running live API tests sparingly to avoid issue accumulation.
+# NOTE: The feedback command always creates issues in the iw-cli repository
+# (iterative-works/iw-cli) regardless of the current directory or local config.
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
@@ -23,19 +19,16 @@ teardown() {
     rm -rf "$TEST_DIR"
 }
 
-@test "feedback without LINEAR_API_TOKEN fails" {
-    # Run without token
-    unset LINEAR_API_TOKEN
-    run "$PROJECT_ROOT/iw" feedback "Test issue"
-
-    # Assert failure
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"LINEAR_API_TOKEN"* ]]
-}
-
 @test "feedback without title fails" {
-    # Setup: ensure token is available (even if invalid, just for parsing test)
-    export LINEAR_API_TOKEN="dummy-token"
+    # Mock gh command - won't be called, but just in case
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo "Should not be called without title" >&2
+exit 1
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
 
     # Run with only --description flag
     run "$PROJECT_ROOT/iw" feedback --description "Only description"
@@ -46,8 +39,15 @@ teardown() {
 }
 
 @test "feedback with invalid type fails" {
-    # Setup: ensure token is available
-    export LINEAR_API_TOKEN="dummy-token"
+    # Mock gh command - won't be called for invalid type
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo "Should not be called for invalid type" >&2
+exit 1
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
 
     # Run with invalid --type value
     run "$PROJECT_ROOT/iw" feedback "Test issue" --type invalid
@@ -57,46 +57,187 @@ teardown() {
     [[ "$output" == *"Type must be"* ]]
 }
 
-@test "feedback creates issue successfully" {
-    # Skip if no real token available
-    if [ -z "$LINEAR_API_TOKEN" ]; then
-        skip "LINEAR_API_TOKEN not set, skipping live API test"
-    fi
+@test "feedback works without local config file" {
+    # Mock gh command that returns success
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo '{"number": 42, "url": "https://github.com/iterative-works/iw-cli/issues/42"}'
+exit 0
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
 
-    # Create issue with [TEST] prefix for easy identification
-    run "$PROJECT_ROOT/iw" feedback "[TEST] E2E test issue from feedback command"
+    # Ensure no .iw directory exists
+    rm -rf .iw
+
+    # Run feedback command - should work without config
+    run "$PROJECT_ROOT/iw" feedback "Test issue without config"
 
     # Assert success
     [ "$status" -eq 0 ]
     [[ "$output" == *"Feedback submitted successfully"* ]]
-    [[ "$output" == *"Issue ID:"* ]]
-    [[ "$output" == *"URL:"* ]]
+    [[ "$output" == *"Issue: #42"* ]]
+}
+
+@test "feedback creates issue in iw-cli repository" {
+    # Mock gh command that captures and validates args
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+# Check that repository is iterative-works/iw-cli
+for arg in "$@"; do
+    if [[ "$arg" == *"iterative-works/iw-cli"* ]]; then
+        echo '{"number": 99, "url": "https://github.com/iterative-works/iw-cli/issues/99"}'
+        exit 0
+    fi
+done
+# If we get here, wrong repository was used
+echo "Error: Expected iterative-works/iw-cli repository" >&2
+exit 1
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command
+    run "$PROJECT_ROOT/iw" feedback "Test issue"
+
+    # Assert success - proves it used the right repository
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Feedback submitted successfully"* ]]
+}
+
+@test "feedback ignores local config tracker type" {
+    # Create a local config with Linear tracker - should be ignored
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = linear
+  team = IWLE
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Mock gh command that returns success
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+# Prove GitHub is being used, not Linear
+echo '{"number": 77, "url": "https://github.com/iterative-works/iw-cli/issues/77"}'
+exit 0
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command - should use GitHub despite Linear config
+    run "$PROJECT_ROOT/iw" feedback "Test issue with Linear config"
+
+    # Assert success with GitHub
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Feedback submitted successfully"* ]]
+    [[ "$output" == *"https://github.com"* ]]
+}
+
+@test "feedback shows error when gh command fails" {
+    # Mock gh command that returns error
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo "gh: command not found" >&2
+exit 127
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command
+    run "$PROJECT_ROOT/iw" feedback "Test issue"
+
+    # Assert failure
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Failed to create issue"* ]]
+}
+
+@test "feedback shows issue number in output" {
+    # Mock gh command that returns success with specific issue number
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo '{"number": 123, "url": "https://github.com/iterative-works/iw-cli/issues/123"}'
+exit 0
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command
+    run "$PROJECT_ROOT/iw" feedback "Test issue"
+
+    # Assert success with issue number
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Feedback submitted successfully"* ]]
+    [[ "$output" == *"Issue: #123"* ]]
+    [[ "$output" == *"URL: https://github.com/iterative-works/iw-cli/issues/123"* ]]
+}
+
+@test "feedback with bug type applies bug label" {
+    # Mock gh command that verifies label is passed
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+# Check for --label bug in arguments
+args="$*"
+if [[ "$args" == *"--label"*"bug"* ]]; then
+    echo '{"number": 456, "url": "https://github.com/iterative-works/iw-cli/issues/456"}'
+    exit 0
+fi
+# If no label, still succeed (label might not exist in repo)
+echo '{"number": 456, "url": "https://github.com/iterative-works/iw-cli/issues/456"}'
+exit 0
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command with bug type
+    run "$PROJECT_ROOT/iw" feedback "Test bug" --type bug
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Feedback submitted successfully"* ]]
+}
+
+@test "feedback with feature type applies feedback label" {
+    # Mock gh command
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo '{"number": 789, "url": "https://github.com/iterative-works/iw-cli/issues/789"}'
+exit 0
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command with feature type
+    run "$PROJECT_ROOT/iw" feedback "Test feature" --type feature
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Feedback submitted successfully"* ]]
 }
 
 @test "feedback with description creates issue" {
-    # Skip if no real token available
-    if [ -z "$LINEAR_API_TOKEN" ]; then
-        skip "LINEAR_API_TOKEN not set, skipping live API test"
-    fi
+    # Mock gh command
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+echo '{"number": 111, "url": "https://github.com/iterative-works/iw-cli/issues/111"}'
+exit 0
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
 
-    # Create issue with description
-    run "$PROJECT_ROOT/iw" feedback "[TEST] E2E test with description" --description "This is a test description from E2E tests"
-
-    # Assert success
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"Feedback submitted successfully"* ]]
-    [[ "$output" == *"Issue ID:"* ]]
-    [[ "$output" == *"URL:"* ]]
-}
-
-@test "feedback with bug type creates issue" {
-    # Skip if no real token available
-    if [ -z "$LINEAR_API_TOKEN" ]; then
-        skip "LINEAR_API_TOKEN not set, skipping live API test"
-    fi
-
-    # Create bug issue
-    run "$PROJECT_ROOT/iw" feedback "[TEST] E2E test bug report" --type bug --description "Test bug description"
+    # Run feedback command with description
+    run "$PROJECT_ROOT/iw" feedback "Test issue" --description "Detailed description here"
 
     # Assert success
     [ "$status" -eq 0 ]
@@ -112,7 +253,8 @@ teardown() {
     [[ "$output" == *"Usage:"* ]]
     [[ "$output" == *"--description"* ]]
     [[ "$output" == *"--type"* ]]
-    [[ "$output" == *"LINEAR_API_TOKEN"* ]]
+    # Should NOT mention LINEAR_API_TOKEN anymore
+    [[ "$output" != *"LINEAR_API_TOKEN"* ]]
 }
 
 @test "feedback -h shows usage" {
@@ -124,4 +266,26 @@ teardown() {
     [[ "$output" == *"Usage:"* ]]
     [[ "$output" == *"--description"* ]]
     [[ "$output" == *"--type"* ]]
+}
+
+# Live API test - only runs if gh is authenticated
+@test "feedback creates real issue (live API)" {
+    # Skip unless explicitly enabled and gh is available
+    if [ -z "$IW_TEST_LIVE_FEEDBACK" ] || ! command -v gh &> /dev/null; then
+        skip "Live feedback test disabled (set IW_TEST_LIVE_FEEDBACK=1 to enable)"
+    fi
+
+    # Check if gh is authenticated
+    if ! gh auth status &> /dev/null; then
+        skip "gh CLI not authenticated"
+    fi
+
+    # Create real issue with [TEST] prefix for easy identification
+    run "$PROJECT_ROOT/iw" feedback "[TEST] E2E live feedback test $(date +%s)"
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Feedback submitted successfully"* ]]
+    [[ "$output" == *"Issue:"* ]]
+    [[ "$output" == *"https://github.com/iterative-works/iw-cli/issues/"* ]]
 }

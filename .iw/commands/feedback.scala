@@ -1,5 +1,5 @@
-// PURPOSE: Submit feedback to iw-cli team via Linear issue creation
-// PURPOSE: Allows users and agents to report bugs or request features
+// PURPOSE: Submit feedback to iw-cli team via GitHub issues
+// PURPOSE: Allows users and agents to report bugs or request features about iw-cli
 // USAGE: iw feedback "Issue title" [--description "Details"] [--type bug|feature]
 // ARGS:
 //   title: Issue title (required, can be multiple words)
@@ -18,14 +18,6 @@ import iw.core.*
     showHelp()
     sys.exit(0)
 
-  // Get LINEAR_API_TOKEN from environment
-  val token = ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
-    case None =>
-      Output.error(s"${Constants.EnvVars.LinearApiToken} environment variable is not set")
-      Output.info("Please set your Linear API token to submit feedback")
-      sys.exit(1)
-    case Some(t) => t
-
   // Parse arguments
   val request = FeedbackParser.parseFeedbackArgs(args.toSeq) match
     case Left(error) =>
@@ -34,16 +26,12 @@ import iw.core.*
       sys.exit(1)
     case Right(r) => r
 
-  // Map issue type to Linear label ID
-  val labelId = FeedbackParser.getLabelIdForIssueType(request.issueType)
-
-  // Create issue via Linear API
-  val result = LinearClient.createIssue(
+  // Always create GitHub issue in the iw-cli repository
+  val result = GitHubClient.createIssue(
+    repository = Constants.Feedback.Repository,
     title = request.title,
     description = request.description,
-    teamId = Constants.IwCliTeamId,
-    token = token,
-    labelIds = Seq(labelId)
+    issueType = request.issueType
   )
 
   result match
@@ -52,7 +40,7 @@ import iw.core.*
       sys.exit(1)
     case Right(created) =>
       Output.success("Feedback submitted successfully!")
-      Output.info(s"Issue ID: ${created.id}")
+      Output.info(s"Issue: #${created.id}")
       Output.info(s"URL: ${created.url}")
       sys.exit(0)
 
@@ -66,9 +54,6 @@ private def showHelp(): Unit =
   println("  title          Issue title (required, can be multiple words)")
   println("  --description  Detailed description (optional)")
   println("  --type         Issue type: 'bug' or 'feature' (optional, default: feature)")
-  println()
-  println("Environment:")
-  println(s"  ${Constants.EnvVars.LinearApiToken}  Your Linear API token (required)")
   println()
   println("Examples:")
   println("  iw feedback \"Bug in start command\"")
