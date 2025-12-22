@@ -230,6 +230,31 @@ val config = ConfigSerializer.fromHocon(configContent) match
 
 ---
 
+## Refactoring Decisions
+
+### R1: Hardcoded feedback target (2025-12-22)
+
+**Trigger:** During review, clarified that the feedback command is for reporting issues **about iw-cli itself**, not for the user's current project. The command should always target the iw-cli repository regardless of what project the user is working in.
+
+**Decision:** Remove config-dependent routing from feedback.scala. The feedback command should:
+1. Always target the hardcoded `iterative-works/iw-cli` repository on GitHub
+2. NOT depend on local `.iw/config.conf`
+3. Work from any directory, whether or not it's an iw-cli project
+
+**Scope:**
+- Files affected: `.iw/commands/feedback.scala`, `.iw/test/feedback.bats`
+- Components: Feedback command routing logic
+- Boundaries: Keep GitHubClient.scala as-is (it's reusable for other purposes)
+
+**Approach:**
+- Remove config loading from feedback.scala
+- Add `FEEDBACK_REPOSITORY` constant to Constants.scala
+- Always use GitHubClient with the hardcoded repository
+- Keep LinearClient code for backward compatibility (controlled by env var or remove entirely)
+- Update E2E tests to not depend on local config
+
+---
+
 ## Next Steps After Phase 3
 
 - **Phase 4**: Better error messages for gh not installed / not authenticated

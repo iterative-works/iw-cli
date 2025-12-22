@@ -2,7 +2,7 @@
 
 **Issue:** IWLE-132
 **Phase:** 3 of 6
-**Status:** Complete
+**Status:** In Progress
 
 ---
 
@@ -63,6 +63,10 @@
 - [x] [impl] Run all unit tests and fix any failures
 - [x] [impl] Run all E2E tests and fix any failures
 - [x] [impl] Update phase-03-tasks.md with completion status
+
+## Refactoring
+
+- [ ] [impl] Refactoring R1: Hardcoded feedback target
 
 ---
 
