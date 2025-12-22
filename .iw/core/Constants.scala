@@ -17,6 +17,7 @@ object Constants:
     val TrackerType = "tracker.type"
     val TrackerTeam = "tracker.team"
     val TrackerBaseUrl = "tracker.baseUrl"
+    val TrackerRepository = "tracker.repository"
     val ProjectName = "project.name"
     val Version = "version"
 
@@ -38,6 +39,7 @@ object Constants:
   object TrackerTypeValues:
     val Linear = "linear"
     val YouTrack = "youtrack"
+    val GitHub = "github"
 
   /** Character encoding names */
   object Encoding:

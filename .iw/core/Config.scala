@@ -28,21 +28,47 @@ case class GitRemote(url: String):
     else
       Left(s"Unsupported git URL format: $url")
 
+  def repositoryOwnerAndName: Either[String, String] =
+    // First verify this is a GitHub URL
+    host match
+      case Left(err) => Left(err)
+      case Right(h) if h != "github.com" => Left("Not a GitHub URL")
+      case Right(_) =>
+        // Extract path component (after host)
+        val path = if url.startsWith("git@") then
+          // SSH format: git@github.com:owner/repo.git
+          val afterColon = url.dropWhile(_ != ':').drop(1)
+          afterColon.stripSuffix(".git")
+        else
+          // HTTPS format: https://github.com/owner/repo.git
+          val afterHost = url.dropWhile(_ != '/').drop(2).dropWhile(_ != '/').drop(1)
+          afterHost.stripSuffix(".git")
+
+        // Validate format: should be owner/repo
+        // Use split limit -1 to preserve trailing empty strings
+        if path.count(_ == '/') != 1 then
+          Left("Invalid repository format: expected owner/repo")
+        else if path.split("/", -1).exists(_.isEmpty) then
+          Left("Invalid repository format: expected owner/repo")
+        else
+          Right(path)
+
 enum IssueTrackerType:
-  case Linear, YouTrack
+  case Linear, YouTrack, GitHub
 
 case class ProjectConfiguration(
   trackerType: IssueTrackerType,
   team: String,
   projectName: String,
   version: Option[String] = Some("latest"),
-  youtrackBaseUrl: Option[String] = None
+  youtrackBaseUrl: Option[String] = None,
+  repository: Option[String] = None
 )
 
 object TrackerDetector:
   def suggestTracker(remote: GitRemote): Option[IssueTrackerType] =
     remote.host match
-      case Right("github.com") => Some(IssueTrackerType.Linear)
+      case Right("github.com") => Some(IssueTrackerType.GitHub)
       case Right("gitlab.e-bs.cz") => Some(IssueTrackerType.YouTrack)
       case _ => None
 
@@ -51,13 +77,21 @@ object ConfigSerializer:
     val trackerTypeStr = config.trackerType match
       case IssueTrackerType.Linear => Constants.TrackerTypeValues.Linear
       case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
+      case IssueTrackerType.GitHub => Constants.TrackerTypeValues.GitHub
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
     val youtrackUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
 
+    // For GitHub, use repository instead of team
+    val trackerDetails = config.trackerType match
+      case IssueTrackerType.GitHub =>
+        config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
+      case _ =>
+        s"team = ${config.team}$youtrackUrlLine"
+
     s"""tracker {
        |  type = $trackerTypeStr
-       |  team = ${config.team}$youtrackUrlLine
+       |  $trackerDetails
        |}
        |
        |project {
@@ -73,9 +107,23 @@ object ConfigSerializer:
       val trackerType = trackerTypeStr match
         case Constants.TrackerTypeValues.Linear => IssueTrackerType.Linear
         case Constants.TrackerTypeValues.YouTrack => IssueTrackerType.YouTrack
+        case Constants.TrackerTypeValues.GitHub => IssueTrackerType.GitHub
         case other => return Left(s"Unknown tracker type: $other")
 
-      val team = config.getString(Constants.ConfigKeys.TrackerTeam)
+      // For GitHub, read repository; for others, read team
+      val (team, repository) = trackerType match
+        case IssueTrackerType.GitHub =>
+          if !config.hasPath(Constants.ConfigKeys.TrackerRepository) then
+            return Left("repository required for GitHub tracker")
+          val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
+          // Validate repository format: owner/repo
+          if !repo.contains('/') || repo.count(_ == '/') != 1 || repo.split('/').exists(_.isEmpty) then
+            return Left("repository must be in owner/repo format")
+          ("", Some(repo))
+        case _ =>
+          val t = config.getString(Constants.ConfigKeys.TrackerTeam)
+          (t, None)
+
       val projectName = config.getString(Constants.ConfigKeys.ProjectName)
 
       // Read version, default to "latest" if not present
@@ -90,6 +138,6 @@ object ConfigSerializer:
       else
         None
 
-      Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl))
+      Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl, repository))
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")
