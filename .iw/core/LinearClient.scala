@@ -3,13 +3,16 @@
 
 package iw.core
 
-import sttp.client4.quick.*
+import sttp.client4.{SyncBackend, DefaultSyncBackend, basicRequest, UriContext}
 import sttp.model.StatusCode
 
 case class CreatedIssue(id: String, url: String)
 
 object LinearClient:
   private val apiUrl = "https://api.linear.app/graphql"
+
+  // Default backend for production use
+  private def defaultBackend: SyncBackend = DefaultSyncBackend()
 
   /** Escapes special characters for safe JSON string embedding in GraphQL queries.
     * Handles backslashes, quotes, newlines, carriage returns, and tabs.
@@ -21,37 +24,39 @@ object LinearClient:
      .replace("\r", "\\r")
      .replace("\t", "\\t")
 
-  def validateToken(token: ApiToken): Boolean =
+  def validateToken(token: ApiToken, backend: SyncBackend = defaultBackend): Boolean =
     try
       // Simple GraphQL query to validate token - just fetch viewer info
       val query = """{"query":"{ viewer { id } }"}"""
 
-      val response = quickRequest
+      val response = basicRequest
         .post(uri"$apiUrl")
         .header("Authorization", token.value)
         .header("Content-Type", "application/json")
         .body(query)
-        .send()
+        .send(backend)
 
       // Valid token returns 200, invalid returns 401
       response.code == StatusCode.Ok
     catch
       case _: Exception => false
 
-  def fetchIssue(issueId: IssueId, token: ApiToken): Either[String, Issue] =
+  def fetchIssue(issueId: IssueId, token: ApiToken, backend: SyncBackend = defaultBackend): Either[String, Issue] =
     try
       val query = buildLinearQuery(issueId)
 
-      val response = quickRequest
+      val response = basicRequest
         .post(uri"$apiUrl")
         .header("Authorization", token.value)
         .header("Content-Type", "application/json")
         .body(query)
-        .send()
+        .send(backend)
 
       response.code match
         case StatusCode.Ok =>
-          parseLinearResponse(response.body)
+          response.body match
+            case Right(body) => parseLinearResponse(body)
+            case Left(_) => Left("Empty response body")
         case StatusCode.Unauthorized =>
           Left("API token is invalid or expired")
         case _ =>
@@ -176,22 +181,32 @@ object LinearClient:
     * @param teamId Linear team UUID
     * @param token Valid Linear API token
     * @param labelIds Optional list of Linear label UUIDs to apply
+    * @param backend HTTP backend (defaults to real HTTP, can be stubbed for testing)
     * @return Right(CreatedIssue) on success, Left(error message) on failure
     */
-  def createIssue(title: String, description: String, teamId: String, token: ApiToken, labelIds: Seq[String] = Seq.empty): Either[String, CreatedIssue] =
+  def createIssue(
+    title: String,
+    description: String,
+    teamId: String,
+    token: ApiToken,
+    labelIds: Seq[String] = Seq.empty,
+    backend: SyncBackend = defaultBackend
+  ): Either[String, CreatedIssue] =
     try
       val mutation = buildCreateIssueMutation(title, description, teamId, labelIds)
 
-      val response = quickRequest
+      val response = basicRequest
         .post(uri"$apiUrl")
         .header("Authorization", token.value)
         .header("Content-Type", "application/json")
         .body(mutation)
-        .send()
+        .send(backend)
 
       response.code match
         case StatusCode.Ok =>
-          parseCreateIssueResponse(response.body)
+          response.body match
+            case Right(body) => parseCreateIssueResponse(body)
+            case Left(_) => Left("Empty response body")
         case StatusCode.Unauthorized =>
           Left("API token is invalid or expired")
         case _ =>
