@@ -289,6 +289,79 @@ teardown() {
     [[ "$output" == *"Could not auto-detect repository"* ]] || [[ "$output" == *"Not a GitHub URL"* ]]
 }
 
+@test "init with github and multiple remotes uses origin" {
+    # Setup: create a git repo with multiple remotes (origin and upstream)
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+    git remote add upstream https://github.com/otheruser/iw-cli.git
+
+    # Run init with github tracker
+    run "$PROJECT_ROOT/iw" init --tracker=github
+
+    # Assert success and that origin was used (not upstream)
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: iterative-works/iw-cli"* ]]
+
+    # Assert config file has repository from origin
+    [ -f ".iw/config.conf" ]
+    grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+}
+
+@test "init with github and no remote shows error" {
+    # Setup: create a git repo without any remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    # No git remote add - repo has no remotes
+
+    # Run init with github tracker - this will fail to auto-detect and prompt
+    # We use timeout to abort the interactive prompt
+    run timeout 2s "$PROJECT_ROOT/iw" init --tracker=github || true
+
+    # Assert that auto-detection failed (should show warning or prompt)
+    [[ "$output" == *"Could not auto-detect repository"* ]] || [[ "$output" == *"GitHub repository"* ]]
+}
+
+@test "init with github and HTTPS URL with trailing slash" {
+    # Setup: create a git repo with GitHub HTTPS remote with trailing slash
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli/
+
+    # Run init with github tracker
+    run "$PROJECT_ROOT/iw" init --tracker=github
+
+    # Assert success - trailing slash should be handled correctly
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: iterative-works/iw-cli"* ]]
+
+    # Assert config file has correct repository (without trailing slash)
+    [ -f ".iw/config.conf" ]
+    grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+}
+
+@test "init with github and HTTPS URL with username prefix" {
+    # Setup: create a git repo with GitHub HTTPS remote with username prefix
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://testuser@github.com/iterative-works/iw-cli.git
+
+    # Run init with github tracker
+    run "$PROJECT_ROOT/iw" init --tracker=github
+
+    # Assert success - username prefix should be handled correctly
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: iterative-works/iw-cli"* ]]
+
+    # Assert config file has correct repository
+    [ -f ".iw/config.conf" ]
+    grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+}
+
 # NOTE: Interactive test for "init --tracker=github without any git remote"
 # requires manual verification or stdin mocking, which is not supported in this test suite.
 # The scenario is covered by unit tests for GitRemote.repositoryOwnerAndName.

@@ -202,3 +202,32 @@ class ConfigTest extends munit.FunSuite:
   test("TrackerDetector suggests GitHub for github.com SSH remote"):
     val suggestion = TrackerDetector.suggestTracker(GitRemote("git@github.com:user/repo.git"))
     assertEquals(suggestion, Some(IssueTrackerType.GitHub))
+
+  // Edge case tests for URL parsing
+  test("GitRemote extracts owner/repo from HTTPS URL with trailing slash"):
+    val remote = GitRemote("https://github.com/iterative-works/iw-cli/")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote extracts owner/repo from HTTPS URL with .git and trailing slash"):
+    val remote = GitRemote("https://github.com/iterative-works/iw-cli.git/")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote extracts owner/repo from HTTPS URL with username prefix"):
+    val remote = GitRemote("https://username@github.com/iterative-works/iw-cli.git")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote extracts owner/repo from HTTPS URL with username and no .git"):
+    val remote = GitRemote("https://username@github.com/iterative-works/iw-cli")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote handles SSH URL with trailing slash"):
+    val remote = GitRemote("git@github.com:iterative-works/iw-cli/")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote handles SSH URL with .git and trailing slash"):
+    val remote = GitRemote("git@github.com:iterative-works/iw-cli.git/")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote returns error for malformed SSH URL without colon"):
+    val remote = GitRemote("git@github.com/iterative-works/iw-cli.git")
+    assert(remote.repositoryOwnerAndName.isLeft)
