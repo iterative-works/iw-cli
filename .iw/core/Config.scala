@@ -22,9 +22,15 @@ case class GitRemote(url: String):
       else
         validateHost(afterAt.takeWhile(_ != ':'))
     else if url.startsWith("https://") || url.startsWith("http://") then
-      // HTTPS format: https://github.com/user/repo.git
+      // HTTPS format: https://github.com/user/repo.git or https://username@github.com/user/repo.git
       val withoutProtocol = url.dropWhile(_ != '/').drop(2) // remove protocol and //
-      validateHost(withoutProtocol.takeWhile(_ != '/'))
+      // Handle username prefix (username@host)
+      val hostPart = withoutProtocol.takeWhile(_ != '/')
+      val host = if hostPart.contains('@') then
+        hostPart.dropWhile(_ != '@').drop(1) // remove username@
+      else
+        hostPart
+      validateHost(host)
     else
       Left(s"Unsupported git URL format: $url")
 
@@ -35,14 +41,23 @@ case class GitRemote(url: String):
       case Right(h) if h != "github.com" => Left("Not a GitHub URL")
       case Right(_) =>
         // Extract path component (after host)
-        val path = if url.startsWith("git@") then
+        val rawPath = if url.startsWith("git@") then
           // SSH format: git@github.com:owner/repo.git
           val afterColon = url.dropWhile(_ != ':').drop(1)
-          afterColon.stripSuffix(".git")
+          afterColon
         else
-          // HTTPS format: https://github.com/owner/repo.git
-          val afterHost = url.dropWhile(_ != '/').drop(2).dropWhile(_ != '/').drop(1)
-          afterHost.stripSuffix(".git")
+          // HTTPS format: https://github.com/owner/repo.git or https://username@github.com/owner/repo.git
+          val afterProtocol = url.dropWhile(_ != '/').drop(2) // remove protocol and //
+          // Skip username@ if present
+          val afterUsername = if afterProtocol.contains('@') then
+            afterProtocol.dropWhile(_ != '@').drop(1)
+          else
+            afterProtocol
+          // Extract path after host
+          afterUsername.dropWhile(_ != '/').drop(1)
+
+        // Clean up path: remove trailing slash and .git suffix
+        val path = rawPath.stripSuffix("/").stripSuffix(".git").stripSuffix("/")
 
         // Validate format: should be owner/repo
         // Use split limit -1 to preserve trailing empty strings
