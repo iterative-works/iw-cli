@@ -2,7 +2,7 @@
 
 **Issue:** IWLE-132
 **Phase:** 3 of 6
-**Status:** In Progress
+**Status:** Complete
 
 ---
 
@@ -66,7 +66,7 @@
 
 ## Refactoring
 
-- [ ] [impl] Refactoring R1: Hardcoded feedback target
+- [x] [impl] Refactoring R1: Hardcoded feedback target
 
 ---
 

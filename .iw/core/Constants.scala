@@ -52,3 +52,7 @@ object Constants:
   object IwCliLabels:
     val Bug: String = "ec3254d4-dfd5-46b0-8c07-67a0d1fe482c"
     val Feature: String = "c004bc36-9272-43b3-93f2-38337a8c950e"
+
+  /** Feedback command configuration - always targets iw-cli repository */
+  object Feedback:
+    val Repository: String = "iterative-works/iw-cli"
