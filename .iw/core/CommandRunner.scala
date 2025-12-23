@@ -17,7 +17,7 @@ object CommandRunner:
     * @param command Command to execute (e.g., "git", "gh")
     * @param args Command arguments (e.g., Array("status", "--porcelain"))
     * @param workingDir Optional working directory for command execution
-    * @return Right(stdout) if success, Left(error message) if failure
+    * @return Right(stdout) if success, Left(error message with stderr) if failure
     */
   def execute(
     command: String,
@@ -25,15 +25,25 @@ object CommandRunner:
     workingDir: Option[String] = None
   ): Either[String, String] =
     try
+      val stdout = new StringBuilder
+      val stderr = new StringBuilder
+
       val processBuilder = workingDir match
         case Some(dir) => Process(command +: args, new File(dir))
         case None => Process(command +: args)
 
-      val output = processBuilder.!!.trim
-      Right(output)
+      val exitCode = processBuilder ! ProcessLogger(
+        line => stdout.append(line).append("\n"),
+        line => stderr.append(line).append("\n")
+      )
+
+      if exitCode == 0 then
+        Right(stdout.toString.trim)
+      else
+        // Include stderr in error message for better diagnostics
+        val stderrMsg = stderr.toString.trim
+        Left(s"$stderrMsg")
     catch
-      case e: RuntimeException if e.getMessage != null && e.getMessage.contains("exit") =>
-        Left(s"Command failed: $command ${args.mkString(" ")}: ${e.getMessage}")
       case e: RuntimeException if e.getMessage != null && e.getMessage.contains("Cannot run program") =>
         Left(s"Command not found: $command")
       case e: Exception =>

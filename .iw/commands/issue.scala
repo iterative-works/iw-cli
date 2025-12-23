@@ -72,3 +72,17 @@ def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, I
           config.youtrackBaseUrl match
             case Some(baseUrl) => YouTrackClient.fetchIssue(issueId, baseUrl, token)
             case None => Left(s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}")
+
+    case IssueTrackerType.GitHub =>
+      config.repository match
+        case None =>
+          Left("GitHub repository not configured. Run 'iw init' first.")
+        case Some(repository) =>
+          // Extract numeric issue number from IssueId
+          // Handle both numeric GitHub IDs (e.g., "132") and potential TEAM-NNN format
+          val issueNumber = if issueId.value.contains("-") then
+            issueId.value.split("-")(1) // IWLE-132 -> 132 (shouldn't happen for GitHub, but handle it)
+          else
+            issueId.value // 132 -> 132
+
+          GitHubClient.fetchIssue(issueNumber, repository)

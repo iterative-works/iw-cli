@@ -62,6 +62,46 @@ If not specified, defaults to "latest".
 | `iw rm <issue-id>` | Kill session, remove worktree, delete branch |
 | `iw issue` | Fetch issue details from configured tracker |
 
+## GitHub Integration
+
+### Repository Auto-Detection
+
+When using `iw init --tracker=github`, the repository is automatically detected from your git remote URL:
+
+```bash
+# Automatically detects "iterative-works/iw-cli" from remote URL
+iw init --tracker=github
+```
+
+**Supported URL formats:**
+- HTTPS: `https://github.com/owner/repo.git`
+- HTTPS without .git: `https://github.com/owner/repo`
+- HTTPS with username: `https://username@github.com/owner/repo.git`
+- HTTPS with trailing slash: `https://github.com/owner/repo/`
+- SSH: `git@github.com:owner/repo.git`
+- SSH without .git: `git@github.com:owner/repo`
+
+**Multiple remotes:**
+When your repository has multiple remotes (e.g., `origin` and `upstream`), the `origin` remote is always used for auto-detection.
+
+**Manual input:**
+If auto-detection fails (non-GitHub remote or no remote configured), you'll be prompted to enter the repository manually in `owner/repo` format.
+
+### Authentication
+
+GitHub integration uses the `gh` CLI for authentication:
+
+```bash
+# Authenticate once
+gh auth login
+
+# Then use iw normally
+iw init --tracker=github
+iw issue
+```
+
+No API tokens needed - `iw` uses your existing `gh` authentication.
+
 ## Worktree Layout
 
 Worktrees are created as sibling directories:

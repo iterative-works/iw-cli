@@ -1,11 +1,12 @@
 // PURPOSE: Initialize iw-cli configuration for the project
-// USAGE: iw init [--force] [--tracker=linear|youtrack] [--team=TEAM]
+// USAGE: iw init [--force] [--tracker=linear|youtrack|github] [--team=TEAM]
 // ARGS:
 //   --force: Overwrite existing configuration
-//   --tracker=linear|youtrack: Set tracker type (skips prompt)
-//   --team=TEAM: Set team identifier (skips prompt)
+//   --tracker=linear|youtrack|github: Set tracker type (skips prompt)
+//   --team=TEAM: Set team identifier for Linear/YouTrack (skips prompt)
 // EXAMPLE: iw init
 // EXAMPLE: iw init --tracker=linear --team=IWLE
+// EXAMPLE: iw init --tracker=github
 
 import iw.core.*
 
@@ -16,14 +17,16 @@ def askForTrackerType(): IssueTrackerType =
   Output.info("Available trackers:")
   Output.info("  1. Linear")
   Output.info("  2. YouTrack")
+  Output.info("  3. GitHub")
 
-  val choice = Prompt.ask("Select tracker (1 or 2)")
+  val choice = Prompt.ask("Select tracker (1, 2, or 3)")
 
   choice match
     case "1" | "linear" => IssueTrackerType.Linear
     case "2" | "youtrack" => IssueTrackerType.YouTrack
+    case "3" | "github" => IssueTrackerType.GitHub
     case _ =>
-      Output.error("Invalid choice. Please select 1 or 2.")
+      Output.error("Invalid choice. Please select 1, 2, or 3.")
       askForTrackerType()
 
 @main def init(args: String*): Unit =
@@ -48,8 +51,9 @@ def askForTrackerType(): IssueTrackerType =
   val trackerType = trackerArg match
     case Some(Constants.TrackerTypeValues.Linear) => IssueTrackerType.Linear
     case Some(Constants.TrackerTypeValues.YouTrack) => IssueTrackerType.YouTrack
+    case Some(Constants.TrackerTypeValues.GitHub) => IssueTrackerType.GitHub
     case Some(invalid) =>
-      Output.error(s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}' or '${Constants.TrackerTypeValues.YouTrack}'.")
+      Output.error(s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}', '${Constants.TrackerTypeValues.YouTrack}', or '${Constants.TrackerTypeValues.GitHub}'.")
       System.exit(1)
       throw RuntimeException("unreachable") // for type checker
     case None =>
@@ -62,6 +66,7 @@ def askForTrackerType(): IssueTrackerType =
           val trackerName = suggested match
             case IssueTrackerType.Linear => Constants.TrackerTypeValues.Linear
             case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
+            case IssueTrackerType.GitHub => Constants.TrackerTypeValues.GitHub
 
           Output.info(s"Detected tracker: $trackerName (based on git remote)")
           val confirmed = Prompt.confirm(s"Use $trackerName?", default = true)
@@ -71,10 +76,33 @@ def askForTrackerType(): IssueTrackerType =
           Output.info("Could not detect tracker from git remote")
           askForTrackerType()
 
-  // Get team from flag or interactively
-  val team = teamArg.getOrElse {
-    Prompt.ask("Enter team/project identifier (e.g., IWLE, TEST)")
-  }
+  // For GitHub, extract repository from git remote; for others, get team
+  val (team, repository) = trackerType match
+    case IssueTrackerType.GitHub =>
+      // Extract repository from git remote
+      val remote = GitAdapter.getRemoteUrl(currentDir)
+      val repo = remote.flatMap { r =>
+        r.repositoryOwnerAndName match
+          case Right(ownerRepo) => Some(ownerRepo)
+          case Left(err) =>
+            Output.warning(s"Could not auto-detect repository: $err")
+            None
+      }
+
+      repo match
+        case Some(ownerRepo) =>
+          Output.info(s"Auto-detected repository: $ownerRepo")
+          ("", Some(ownerRepo))
+        case None =>
+          val manual = Prompt.ask("Enter GitHub repository (owner/repo format)")
+          ("", Some(manual))
+
+    case _ =>
+      // Linear/YouTrack: get team
+      val t = teamArg.getOrElse {
+        Prompt.ask("Enter team/project identifier (e.g., IWLE, TEST)")
+      }
+      (t, None)
 
   // Auto-detect project name from directory
   val projectName = currentDir.last
@@ -83,7 +111,8 @@ def askForTrackerType(): IssueTrackerType =
   val config = ProjectConfiguration(
     trackerType = trackerType,
     team = team,
-    projectName = projectName
+    projectName = projectName,
+    repository = repository
   )
 
   // Write configuration
@@ -100,6 +129,10 @@ def askForTrackerType(): IssueTrackerType =
     case IssueTrackerType.YouTrack =>
       Output.info("Set your API token:")
       Output.info(s"  export ${Constants.EnvVars.YouTrackApiToken}=perm:...")
+    case IssueTrackerType.GitHub =>
+      Output.info("GitHub tracker configured.")
+      Output.info("Ensure the gh CLI is installed and authenticated:")
+      Output.info("  gh auth login")
 
   Output.info("")
   Output.info("Run './iw doctor' to verify your setup.")
