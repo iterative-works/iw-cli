@@ -200,3 +200,61 @@ M  .iw/test/feedback.bats
 - New tests: 11 total (8 unit + 3 E2E)
 
 ---
+
+## Phase 5: Display GitHub issue details (2025-12-23)
+
+**What was built:**
+- `IssueId.parse()` - Extended to accept numeric GitHub issue IDs (e.g., "132")
+- `IssueId.fromBranch()` - Extended to extract numeric prefixes (e.g., "132-feature")
+- `IssueId.team` - Returns empty string for numeric IDs (GitHub has no team concept)
+- `GitHubClient.buildFetchIssueCommand()` - Generates `gh issue view` command arguments
+- `GitHubClient.parseFetchIssueResponse()` - Parses JSON response into Issue domain model
+- `GitHubClient.fetchIssue()` - Full integration with prerequisite validation and command execution
+- `issue.scala` - Added GitHub case to `fetchIssue()` pattern match
+
+**Decisions made:**
+- Pattern priority: TEAM-NNN patterns tried first, numeric patterns as fallback (backward compatible)
+- No uppercasing: Numeric IDs preserved as-is (not uppercased like TEAM-NNN)
+- Graceful degradation: `team` extension returns empty string for numeric IDs
+- State normalization: GitHub states lowercased for consistency ("OPEN" → "open")
+- First assignee: When multiple assignees exist, use first one
+- ID formatting: GitHub issue IDs formatted with "#" prefix ("#132")
+- Prerequisite reuse: Uses Phase 4's `validateGhPrerequisites()` for consistency
+
+**Patterns applied:**
+- Function injection: `fetchIssue` uses same `execCommand` pattern as `createIssue`
+- Either monad: Error handling returns `Either[String, Issue]`
+- Adapter pattern: GitHubClient wraps `gh issue view` command
+- Backward compatibility: New patterns added without breaking existing functionality
+
+**Testing:**
+- Unit tests: 31 new tests (12 IssueId + 19 GitHubClient)
+  - IssueId: Numeric parsing, branch extraction, team extension
+  - GitHubClient: Command building, JSON parsing (complete/empty/null cases), integration
+- Regression tests: Linear/YouTrack patterns verified still working
+- All 682 unit tests passing
+
+**Code review:**
+- Iterations: 1 (passed on first review)
+- Review file: review-phase-05-20251223.md
+- Major findings: No critical issues
+- Warnings: 6 (Scala 3 enum, test mocking pattern, architecture suggestions)
+- Suggestions: 11 (composition patterns, package organization)
+
+**For next phases:**
+- Available utilities: `GitHubClient.fetchIssue()` for fetching GitHub issues
+- Extension points: `validateGhPrerequisites()` can be used in Phase 6 doctor command
+- Notes: Phase 6 will add GitHub validation to `iw doctor` command
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+M  .iw/core/GitHubClient.scala
+M  .iw/core/IssueId.scala
+M  .iw/core/test/GitHubClientTest.scala
+M  .iw/core/test/IssueIdTest.scala
+A  project-management/issues/IWLE-132/phase-05-context.md
+A  project-management/issues/IWLE-132/phase-05-tasks.md
+```
+
+---
