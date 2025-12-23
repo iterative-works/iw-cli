@@ -275,3 +275,28 @@ Scenario: gh CLI not authenticated
 
 **Original estimate**: 3-4 hours
 **Confidence**: High - straightforward extension of existing patterns
+
+---
+
+## Refactoring Decisions
+
+### R1: Fix FCIS Architecture Violations (2025-12-23)
+
+**Trigger:** Code review identified architecture violations:
+1. `GitHubHookDoctor` is in `iw.core` but imports from `iw.core.infrastructure.CommandRunner` (core depending on infrastructure)
+2. `GhPrerequisiteError` in `GitHubClient.scala` uses Scala 2 sealed trait pattern instead of Scala 3 enum
+
+**Decision:** Move `GitHubHookDoctor.scala` to `iw.core.infrastructure` package and convert `GhPrerequisiteError` to Scala 3 enum.
+
+**Scope:**
+- Files affected:
+  - `.iw/core/GitHubHookDoctor.scala` → move to `.iw/core/infrastructure/`
+  - `.iw/core/GitHubClient.scala` → convert GhPrerequisiteError to enum
+  - `.iw/core/test/GitHubHookDoctorTest.scala` → update package imports
+- Boundaries: Do NOT touch doctor.scala hook discovery or E2E tests
+
+**Approach:**
+1. Move GitHubHookDoctor.scala to infrastructure package, update package declaration
+2. Convert GhPrerequisiteError sealed trait to Scala 3 enum
+3. Update all imports and references
+4. Verify all tests still pass

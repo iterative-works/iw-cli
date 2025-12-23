@@ -34,10 +34,18 @@ private def collectHookChecks(): List[Check] =
     try
       val clazz = Class.forName(s"$className$$") // Scala object class names end with $
       val instance = clazz.getField(Constants.ScalaReflection.ModuleField).get(null)
-      val checkField = clazz.getMethod("check")
-      Some(checkField.invoke(instance).asInstanceOf[Check])
+
+      // Collect all fields of type Check from the hook
+      clazz.getDeclaredMethods
+        .filter(_.getReturnType == classOf[Check])
+        .filter(_.getParameterCount == 0)
+        .flatMap { method =>
+          try Some(method.invoke(instance).asInstanceOf[Check])
+          catch case _: Exception => None
+        }
+        .toList
     catch
-      case _: Exception => None // Hook not present or doesn't have check field
+      case _: Exception => Nil // Hook not present or error accessing checks
   }
 
 @main def doctor(args: String*): Unit =
