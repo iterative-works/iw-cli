@@ -1,5 +1,5 @@
 // PURPOSE: Unit tests for GitHubClient issue creation via gh CLI
-// PURPOSE: Tests command building, JSON parsing, and error handling
+// PURPOSE: Tests command building, URL parsing, and error handling
 
 package iw.core.test
 
@@ -22,10 +22,11 @@ class GitHubClientTest extends munit.FunSuite:
     assertEquals(args(4), "owner/repo")
     assertEquals(args(5), "--title")
     assertEquals(args(6), "Bug in start command")
-    assertEquals(args(7), "--label")
-    assertEquals(args(8), "feedback")
-    assertEquals(args(9), "--json")
-    assertEquals(args(10), "number,url")
+    assertEquals(args(7), "--body")
+    assertEquals(args(8), "")  // Empty body required for non-interactive
+    assertEquals(args(9), "--label")
+    assertEquals(args(10), "feedback")
+    // No --json flag - gh issue create outputs URL directly
 
   test("buildCreateIssueCommand with description"):
     val args = GitHubClient.buildCreateIssueCommand(
@@ -74,35 +75,27 @@ class GitHubClientTest extends munit.FunSuite:
     val repoIndex = args.indexOf("--repo")
     assertEquals(args(repoIndex + 1), "iterative-works/iw-cli")
 
-  test("parseCreateIssueResponse parses valid JSON with number and URL"):
-    val json = """{"number": 132, "url": "https://github.com/owner/repo/issues/132"}"""
-    val result = GitHubClient.parseCreateIssueResponse(json)
+  test("parseCreateIssueResponse parses valid URL"):
+    val url = "https://github.com/owner/repo/issues/132"
+    val result = GitHubClient.parseCreateIssueResponse(url)
 
     assertEquals(result, Right(CreatedIssue("132", "https://github.com/owner/repo/issues/132")))
 
-  test("parseCreateIssueResponse returns error for missing number field"):
-    val json = """{"url": "https://github.com/owner/repo/issues/132"}"""
-    val result = GitHubClient.parseCreateIssueResponse(json)
+  test("parseCreateIssueResponse handles URL with trailing newline"):
+    val url = "https://github.com/owner/repo/issues/456\n"
+    val result = GitHubClient.parseCreateIssueResponse(url)
+
+    assertEquals(result, Right(CreatedIssue("456", "https://github.com/owner/repo/issues/456")))
+
+  test("parseCreateIssueResponse returns error for non-URL output"):
+    val badOutput = "some unexpected output"
+    val result = GitHubClient.parseCreateIssueResponse(badOutput)
 
     assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("number"))
+    assert(result.left.getOrElse("").contains("Unexpected response format"))
 
-  test("parseCreateIssueResponse returns error for missing url field"):
-    val json = """{"number": 132}"""
-    val result = GitHubClient.parseCreateIssueResponse(json)
-
-    assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("url"))
-
-  test("parseCreateIssueResponse returns error for malformed JSON"):
-    val json = """{"invalid json"""
-    val result = GitHubClient.parseCreateIssueResponse(json)
-
-    assert(result.isLeft)
-
-  test("parseCreateIssueResponse returns error for empty response"):
-    val json = ""
-    val result = GitHubClient.parseCreateIssueResponse(json)
+  test("parseCreateIssueResponse returns error for empty output"):
+    val result = GitHubClient.parseCreateIssueResponse("")
 
     assert(result.isLeft)
 
@@ -122,10 +115,9 @@ class GitHubClientTest extends munit.FunSuite:
     assertEquals(args(6), "Bug in start command")
     assertEquals(args(7), "--body")
     assertEquals(args(8), "Description here")
-    assertEquals(args(9), "--json")
-    assertEquals(args(10), "number,url")
-    // Verify no --label flag
+    // Verify no --label flag and no --json flag
     assert(!args.contains("--label"))
+    assert(!args.contains("--json"))
 
   test("createIssue retries without label on label error"):
     var authCallCount = 0
@@ -142,8 +134,8 @@ class GitHubClientTest extends munit.FunSuite:
           // First issue create call fails with label error
           Left("label 'bug' not found in repository")
         else
-          // Second issue create call succeeds without label
-          Right("""{"number": 42, "url": "https://github.com/owner/repo/issues/42"}""")
+          // Second issue create call succeeds without label - returns URL
+          Right("https://github.com/owner/repo/issues/42")
       else
         Right("unexpected call")
 
