@@ -227,3 +227,100 @@ object GitHubClient:
       lowerError.contains("does not exist") ||
       lowerError.contains("invalid")
     )
+
+  /** Build gh CLI command arguments for fetching an issue.
+    *
+    * @param issueNumber GitHub issue number (e.g., "132")
+    * @param repository GitHub repository in owner/repo format
+    * @return Array of command arguments for gh CLI
+    */
+  def buildFetchIssueCommand(
+    issueNumber: String,
+    repository: String
+  ): Array[String] =
+    Array(
+      "issue", "view", issueNumber,
+      "--repo", repository,
+      "--json", "number,title,state,assignees,body"
+    )
+
+  /** Parse JSON response from gh issue view command.
+    *
+    * Expected format: {"number": 132, "title": "...", "state": "OPEN", "assignees": [...], "body": "..."}
+    *
+    * @param jsonOutput JSON string from gh CLI
+    * @param issueNumber Issue number (used for error messages and ID formatting)
+    * @return Right(Issue) on success, Left(error message) on failure
+    */
+  def parseFetchIssueResponse(
+    jsonOutput: String,
+    issueNumber: String
+  ): Either[String, Issue] =
+    try
+      import ujson.*
+      val json = read(jsonOutput)
+
+      // Format issue ID with # prefix (e.g., "#132")
+      val id = s"#$issueNumber"
+
+      // Extract title and state (lowercase state for consistency)
+      val title = json("title").str
+      val state = json("state").str.toLowerCase
+
+      // Extract first assignee if any exist
+      val assignee =
+        if json("assignees").arr.isEmpty then None
+        else Some(json("assignees").arr.head("login").str)
+
+      // Handle null body (GitHub returns null for empty descriptions)
+      val description =
+        if json("body").isNull then None
+        else Some(json("body").str)
+
+      Right(Issue(
+        id = id,
+        title = title,
+        status = state,
+        assignee = assignee,
+        description = description
+      ))
+    catch
+      case e: Exception =>
+        Left(s"Failed to parse issue response: ${e.getMessage}")
+
+  /** Fetch a GitHub issue via gh CLI.
+    *
+    * @param issueNumber GitHub issue number (e.g., "132")
+    * @param repository GitHub repository in owner/repo format
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(Issue) on success, Left(error message) on failure
+    */
+  def fetchIssue(
+    issueNumber: String,
+    repository: String,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, Issue] =
+    // Validate prerequisites before attempting fetch
+    validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GhNotInstalled) =>
+        return Left(formatGhNotInstalledError())
+      case Left(GhNotAuthenticated) =>
+        return Left(formatGhNotAuthenticatedError())
+      case Left(GhOtherError(msg)) =>
+        return Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        // Proceed with issue fetch
+
+    // Build command arguments
+    val args = buildFetchIssueCommand(issueNumber, repository)
+
+    // Execute gh issue view
+    execCommand("gh", args) match
+      case Left(error) =>
+        Left(s"Failed to fetch issue: $error")
+      case Right(jsonOutput) =>
+        // Parse JSON response
+        parseFetchIssueResponse(jsonOutput, issueNumber)

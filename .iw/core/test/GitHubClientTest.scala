@@ -328,3 +328,241 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(error.contains("gh is not authenticated"))
     assert(error.contains("gh auth login"))
+
+  // ========== fetchIssue Command Building Tests ==========
+
+  test("buildFetchIssueCommand generates correct gh CLI arguments"):
+    val args = GitHubClient.buildFetchIssueCommand(
+      issueNumber = "132",
+      repository = "owner/repo"
+    )
+
+    assertEquals(args(0), "issue")
+    assertEquals(args(1), "view")
+    assertEquals(args(2), "132")
+    assertEquals(args(3), "--repo")
+    assertEquals(args(4), "owner/repo")
+    assertEquals(args(5), "--json")
+    assertEquals(args(6), "number,title,state,assignees,body")
+
+  test("buildFetchIssueCommand with different issue number"):
+    val args = GitHubClient.buildFetchIssueCommand(
+      issueNumber = "1",
+      repository = "owner/repo"
+    )
+
+    assertEquals(args(2), "1")
+
+  test("buildFetchIssueCommand with different repository"):
+    val args = GitHubClient.buildFetchIssueCommand(
+      issueNumber = "999",
+      repository = "iterative-works/iw-cli"
+    )
+
+    val repoIndex = args.indexOf("--repo")
+    assertEquals(args(repoIndex + 1), "iterative-works/iw-cli")
+
+  // ========== fetchIssue JSON Parsing Tests ==========
+
+  test("parseFetchIssueResponse parses complete valid JSON"):
+    val json = """{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [{"login": "user1"}], "body": "Description here"}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "#132")
+    assertEquals(issue.title, "Add feature")
+    assertEquals(issue.status, "open")
+    assertEquals(issue.assignee, Some("user1"))
+    assertEquals(issue.description, Some("Description here"))
+
+  test("parseFetchIssueResponse handles empty assignees array"):
+    val json = """{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [], "body": "Description"}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.assignee, None)
+
+  test("parseFetchIssueResponse handles null body"):
+    val json = """{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [], "body": null}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.description, None)
+
+  test("parseFetchIssueResponse uses first assignee when multiple exist"):
+    val json = """{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [{"login": "user1"}, {"login": "user2"}], "body": "Description"}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.assignee, Some("user1"))
+
+  test("parseFetchIssueResponse maps OPEN state to lowercase"):
+    val json = """{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [], "body": null}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.status, "open")
+
+  test("parseFetchIssueResponse maps CLOSED state to lowercase"):
+    val json = """{"number": 132, "title": "Add feature", "state": "CLOSED", "assignees": [], "body": null}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.status, "closed")
+
+  test("parseFetchIssueResponse formats issue ID with # prefix"):
+    val json = """{"number": 999, "title": "Test", "state": "OPEN", "assignees": [], "body": null}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "999")
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "#999")
+
+  test("parseFetchIssueResponse returns error for malformed JSON"):
+    val json = """{"invalid json"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isLeft)
+
+  test("parseFetchIssueResponse returns error for missing title field"):
+    val json = """{"number": 132, "state": "OPEN", "assignees": [], "body": null}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Failed to parse"))
+
+  test("parseFetchIssueResponse returns error for missing state field"):
+    val json = """{"number": 132, "title": "Test", "assignees": [], "body": null}"""
+    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Failed to parse"))
+
+  // ========== fetchIssue Integration Tests ==========
+
+  test("fetchIssue validates prerequisites first - gh not installed"):
+    val mockIsCommandAvailable = (cmd: String) => false
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      fail("Should not execute command when gh not installed")
+
+    val result = GitHubClient.fetchIssue(
+      issueNumber = "132",
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh CLI is not installed"))
+
+  test("fetchIssue validates prerequisites first - gh not authenticated"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("Command failed: gh auth status: exit status 4")
+      else
+        fail("Should not execute issue command when not authenticated")
+
+    val result = GitHubClient.fetchIssue(
+      issueNumber = "132",
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh is not authenticated"))
+
+  test("fetchIssue executes command with correct arguments"):
+    var capturedCommand = ""
+    var capturedArgs = Array.empty[String]
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else
+        capturedCommand = cmd
+        capturedArgs = args
+        Right("""{"number": 132, "title": "Test", "state": "OPEN", "assignees": [], "body": null}""")
+
+    val result = GitHubClient.fetchIssue(
+      issueNumber = "132",
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    assertEquals(capturedCommand, "gh")
+    assert(capturedArgs.contains("issue"))
+    assert(capturedArgs.contains("view"))
+    assert(capturedArgs.contains("132"))
+    assert(capturedArgs.contains("--repo"))
+    assert(capturedArgs.contains("owner/repo"))
+
+  test("fetchIssue parses successful response into Issue"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else
+        Right("""{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [{"login": "user1"}], "body": "Description"}""")
+
+    val result = GitHubClient.fetchIssue(
+      issueNumber = "132",
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "#132")
+    assertEquals(issue.title, "Add feature")
+    assertEquals(issue.status, "open")
+    assertEquals(issue.assignee, Some("user1"))
+    assertEquals(issue.description, Some("Description"))
+
+  test("fetchIssue returns Left when command execution fails"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else
+        Left("issue not found")
+
+    val result = GitHubClient.fetchIssue(
+      issueNumber = "999999",
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Failed to fetch issue"))
+
+  test("fetchIssue returns Left when JSON parsing fails"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else
+        Right("""{"invalid json""")
+
+    val result = GitHubClient.fetchIssue(
+      issueNumber = "132",
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Failed to parse"))
