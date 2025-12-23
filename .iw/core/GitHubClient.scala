@@ -8,10 +8,10 @@ import iw.core.infrastructure.CommandRunner
 object GitHubClient:
 
   /** Error types for gh CLI prerequisite validation. */
-  sealed trait GhPrerequisiteError
-  case object GhNotInstalled extends GhPrerequisiteError
-  case object GhNotAuthenticated extends GhPrerequisiteError
-  case class GhOtherError(message: String) extends GhPrerequisiteError
+  enum GhPrerequisiteError:
+    case GhNotInstalled
+    case GhNotAuthenticated
+    case GhOtherError(message: String)
 
   /** Validate gh CLI prerequisites before creating issues.
     *
@@ -32,14 +32,14 @@ object GitHubClient:
   ): Either[GhPrerequisiteError, Unit] =
     // Check gh CLI is installed
     if !isCommandAvailable("gh") then
-      return Left(GhNotInstalled)
+      return Left(GhPrerequisiteError.GhNotInstalled)
 
     // Check gh authentication
     execCommand("gh", Array("auth", "status")) match
       case Left(error) if isAuthenticationError(error) =>
-        Left(GhNotAuthenticated)
+        Left(GhPrerequisiteError.GhNotAuthenticated)
       case Left(error) =>
-        Left(GhOtherError(error))
+        Left(GhPrerequisiteError.GhOtherError(error))
       case Right(_) =>
         Right(())
 
@@ -96,51 +96,35 @@ object GitHubClient:
       case FeedbackParser.IssueType.Bug => "bug"
       case FeedbackParser.IssueType.Feature => "feedback"
 
-    // Build base command: gh issue create --repo <repo> --title <title> --label <label> --json number,url
-    val baseArgs = Array(
+    // Build command: gh issue create --repo <repo> --title <title> --body <body> --label <label>
+    // Note: --body is always required when running non-interactively
+    Array(
       "gh", "issue", "create",
       "--repo", repository,
       "--title", title,
+      "--body", if description.nonEmpty then description else "",
       "--label", label
     )
 
-    // Add --body if description is non-empty
-    val withBody = if description.nonEmpty then
-      baseArgs ++ Array("--body", description)
-    else
-      baseArgs
-
-    // Add --json output format
-    withBody ++ Array("--json", "number,url")
-
-  /** Parse JSON response from gh issue create command.
+  /** Parse URL response from gh issue create command.
     *
-    * Expected format: {"number": 132, "url": "https://github.com/owner/repo/issues/132"}
+    * Expected format: https://github.com/owner/repo/issues/123
     *
-    * @param json JSON string from gh CLI
+    * @param output URL string from gh CLI (may have trailing newline)
     * @return Right(CreatedIssue) on success, Left(error message) on failure
     */
-  def parseCreateIssueResponse(json: String): Either[String, CreatedIssue] =
-    try
-      if json.isEmpty then
-        return Left("Empty response from gh CLI")
+  def parseCreateIssueResponse(output: String): Either[String, CreatedIssue] =
+    val url = output.trim
+    if url.isEmpty then
+      return Left("Empty response from gh CLI")
 
-      import upickle.default.*
-      val parsed = ujson.read(json)
-
-      // Check for required fields
-      if !parsed.obj.contains("number") then
-        return Left("Malformed response: missing 'number' field")
-      if !parsed.obj.contains("url") then
-        return Left("Malformed response: missing 'url' field")
-
-      // Extract number as string (gh returns it as integer)
-      val number = parsed("number").num.toInt.toString
-      val url = parsed("url").str
-
-      Right(CreatedIssue(number, url))
-    catch
-      case e: Exception => Left(s"Failed to parse gh response: ${e.getMessage}")
+    // Extract issue number from URL: https://github.com/owner/repo/issues/123
+    val issuePattern = """.*/issues/(\d+)$""".r
+    url match
+      case issuePattern(number) =>
+        Right(CreatedIssue(number, url))
+      case _ =>
+        Left(s"Unexpected response format: $url")
 
   /** Build gh CLI command arguments without labels (for fallback).
     *
@@ -154,21 +138,14 @@ object GitHubClient:
     title: String,
     description: String
   ): Array[String] =
-    // Build base command without label
-    val baseArgs = Array(
+    // Build command without label
+    // Note: --body is always required when running non-interactively
+    Array(
       "gh", "issue", "create",
       "--repo", repository,
-      "--title", title
+      "--title", title,
+      "--body", if description.nonEmpty then description else ""
     )
-
-    // Add --body if description is non-empty
-    val withBody = if description.nonEmpty then
-      baseArgs ++ Array("--body", description)
-    else
-      baseArgs
-
-    // Add --json output format
-    withBody ++ Array("--json", "number,url")
 
   /** Create a new GitHub issue via gh CLI.
     *
@@ -193,11 +170,11 @@ object GitHubClient:
   ): Either[String, CreatedIssue] =
     // Validate prerequisites before attempting creation
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
-      case Left(GhNotInstalled) =>
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
         return Left(formatGhNotInstalledError())
-      case Left(GhNotAuthenticated) =>
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
         return Left(formatGhNotAuthenticatedError())
-      case Left(GhOtherError(msg)) =>
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
         return Left(s"gh CLI error: $msg")
       case Right(_) =>
         // Proceed with issue creation
@@ -305,11 +282,11 @@ object GitHubClient:
   ): Either[String, Issue] =
     // Validate prerequisites before attempting fetch
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
-      case Left(GhNotInstalled) =>
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
         return Left(formatGhNotInstalledError())
-      case Left(GhNotAuthenticated) =>
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
         return Left(formatGhNotAuthenticatedError())
-      case Left(GhOtherError(msg)) =>
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
         return Left(s"gh CLI error: $msg")
       case Right(_) =>
         // Proceed with issue fetch

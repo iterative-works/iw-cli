@@ -180,3 +180,90 @@ EOF
     [[ "$output" == *"✓"* ]]  # Success symbol
     [[ "$output" == *"✗"* ]]  # Error symbol (for missing token)
 }
+
+@test "doctor shows gh CLI check passed for GitHub project when gh installed" {
+    # Setup: create config with GitHub tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = github
+  team = owner
+  repository = "owner/repo"
+}
+
+project {
+  name = repo
+}
+EOF
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show gh CLI check
+    [[ "$output" == *"gh CLI"* ]]
+
+    # If gh is installed (which it should be in CI), show success
+    # Otherwise, show error message
+    if command -v gh >/dev/null 2>&1; then
+        [[ "$output" == *"gh CLI"*"Installed"* ]] || [[ "$output" == *"✓"* ]]
+    else
+        [[ "$output" == *"gh CLI"*"Not found"* ]]
+    fi
+}
+
+@test "doctor skips gh checks for non-GitHub project (Linear)" {
+    # Setup: create config with Linear tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show gh CLI check as skipped
+    [[ "$output" == *"gh CLI"* ]]
+    [[ "$output" == *"Skipped"* ]]
+    [[ "$output" == *"Not using GitHub"* ]]
+}
+
+@test "doctor shows gh auth check when gh is installed" {
+    # Setup: create config with GitHub tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = github
+  team = owner
+  repository = "owner/repo"
+}
+
+project {
+  name = repo
+}
+EOF
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show gh auth check
+    [[ "$output" == *"gh auth"* ]]
+
+    # If gh is installed, check should run (not skip)
+    if command -v gh >/dev/null 2>&1; then
+        # Either authenticated (success) or not authenticated (error)
+        [[ "$output" == *"gh auth"* ]]
+        ! [[ "$output" == *"gh auth"*"gh not installed"* ]]
+    else
+        # If gh not installed, auth check should be skipped
+        [[ "$output" == *"gh auth"*"Skipped"* ]]
+    fi
+}

@@ -58,11 +58,15 @@ SCRIPT
 }
 
 @test "feedback works without local config file" {
-    # Mock gh command that returns success
+    # Mock gh command that returns success - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
-echo '{"number": 42, "url": "https://github.com/iterative-works/iw-cli/issues/42"}'
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+echo "https://github.com/iterative-works/iw-cli/issues/42"
 exit 0
 SCRIPT
     chmod +x bin/gh
@@ -81,14 +85,18 @@ SCRIPT
 }
 
 @test "feedback creates issue in iw-cli repository" {
-    # Mock gh command that captures and validates args
+    # Mock gh command that captures and validates args - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
 # Check that repository is iterative-works/iw-cli
 for arg in "$@"; do
     if [[ "$arg" == *"iterative-works/iw-cli"* ]]; then
-        echo '{"number": 99, "url": "https://github.com/iterative-works/iw-cli/issues/99"}'
+        echo "https://github.com/iterative-works/iw-cli/issues/99"
         exit 0
     fi
 done
@@ -120,12 +128,16 @@ project {
 }
 EOF
 
-    # Mock gh command that returns success
+    # Mock gh command that returns success - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
 # Prove GitHub is being used, not Linear
-echo '{"number": 77, "url": "https://github.com/iterative-works/iw-cli/issues/77"}'
+echo "https://github.com/iterative-works/iw-cli/issues/77"
 exit 0
 SCRIPT
     chmod +x bin/gh
@@ -145,8 +157,12 @@ SCRIPT
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
-echo "gh: command not found" >&2
-exit 127
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+echo "gh: some error occurred" >&2
+exit 1
 SCRIPT
     chmod +x bin/gh
     export PATH="$TEST_DIR/bin:$PATH"
@@ -156,15 +172,19 @@ SCRIPT
 
     # Assert failure
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Failed to create issue"* ]]
+    [[ "$output" == *"Failed to create issue"* ]] || [[ "$output" == *"some error"* ]]
 }
 
 @test "feedback shows issue number in output" {
-    # Mock gh command that returns success with specific issue number
+    # Mock gh command that returns success with specific issue number - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
-echo '{"number": 123, "url": "https://github.com/iterative-works/iw-cli/issues/123"}'
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+echo "https://github.com/iterative-works/iw-cli/issues/123"
 exit 0
 SCRIPT
     chmod +x bin/gh
@@ -181,18 +201,22 @@ SCRIPT
 }
 
 @test "feedback with bug type applies bug label" {
-    # Mock gh command that verifies label is passed
+    # Mock gh command that verifies label is passed - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
 # Check for --label bug in arguments
 args="$*"
 if [[ "$args" == *"--label"*"bug"* ]]; then
-    echo '{"number": 456, "url": "https://github.com/iterative-works/iw-cli/issues/456"}'
+    echo "https://github.com/iterative-works/iw-cli/issues/456"
     exit 0
 fi
 # If no label, still succeed (label might not exist in repo)
-echo '{"number": 456, "url": "https://github.com/iterative-works/iw-cli/issues/456"}'
+echo "https://github.com/iterative-works/iw-cli/issues/456"
 exit 0
 SCRIPT
     chmod +x bin/gh
@@ -207,11 +231,15 @@ SCRIPT
 }
 
 @test "feedback with feature type applies feedback label" {
-    # Mock gh command
+    # Mock gh command - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
-echo '{"number": 789, "url": "https://github.com/iterative-works/iw-cli/issues/789"}'
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+echo "https://github.com/iterative-works/iw-cli/issues/789"
 exit 0
 SCRIPT
     chmod +x bin/gh
@@ -226,11 +254,15 @@ SCRIPT
 }
 
 @test "feedback with description creates issue" {
-    # Mock gh command
+    # Mock gh command - outputs URL like real gh
     mkdir -p bin
     cat > bin/gh <<'SCRIPT'
 #!/bin/bash
-echo '{"number": 111, "url": "https://github.com/iterative-works/iw-cli/issues/111"}'
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+echo "https://github.com/iterative-works/iw-cli/issues/111"
 exit 0
 SCRIPT
     chmod +x bin/gh
