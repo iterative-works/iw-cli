@@ -238,7 +238,7 @@ class GitHubClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(result.left.getOrElse(null), GitHubClient.GhNotInstalled)
+    assertEquals(result.left.getOrElse(null), GitHubClient.GhPrerequisiteError.GhNotInstalled)
 
   test("validateGhPrerequisites returns GhNotAuthenticated when auth status fails with exit code 4"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -255,7 +255,7 @@ class GitHubClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(result.left.getOrElse(null), GitHubClient.GhNotAuthenticated)
+    assertEquals(result.left.getOrElse(null), GitHubClient.GhPrerequisiteError.GhNotAuthenticated)
 
   test("validateGhPrerequisites returns Right(()) when gh is authenticated"):
     val mockIsCommandAvailable = (cmd: String) => true

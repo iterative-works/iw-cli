@@ -258,3 +258,66 @@ A  project-management/issues/IWLE-132/phase-05-tasks.md
 ```
 
 ---
+
+## Phase 6: Doctor validates GitHub setup (2025-12-23)
+
+**What was built:**
+- `GitHubHookDoctor.checkGhInstalled()` - Checks if gh CLI is installed in PATH
+- `GitHubHookDoctor.checkGhAuthenticated()` - Verifies gh CLI is authenticated via `gh auth status`
+- `github.hook-doctor.scala` - Hook command exposing checks for doctor discovery
+- Integration with existing doctor infrastructure via `Check` and `CheckResult` types
+
+**Decisions made:**
+- Skip checks for non-GitHub trackers (Linear, YouTrack) - returns `CheckResult.Skip`
+- Reuse `GitHubClient.validateGhPrerequisites()` from Phase 4 for authentication check
+- Provide descriptive hints: "Install: https://cli.github.com/" and "Run: gh auth login"
+- Dependency injection for testability via `*With` function variants
+
+**Patterns applied:**
+- Hook pattern: Exposes checks as `val` for doctor discovery mechanism
+- Functional Core: Pure check functions with injected dependencies
+- Adapter pattern: Bridges `GhPrerequisiteError` to `CheckResult`
+
+**Testing:**
+- Unit tests: 7 tests added covering all check scenarios
+- E2E tests: 3 tests added verifying doctor output
+
+**Files changed:**
+```
+A  .iw/commands/github.hook-doctor.scala
+A  .iw/core/GitHubHookDoctor.scala
+A  .iw/core/test/GitHubHookDoctorTest.scala
+M  .iw/commands/doctor.scala
+M  .iw/test/doctor.bats
+```
+
+### Refactoring R1: Fix FCIS Architecture Violations (2025-12-23)
+
+**Trigger:** Code review identified FCIS violations - `GitHubHookDoctor` in core imported from infrastructure
+
+**What changed:**
+- `GitHubHookDoctor.scala` - Moved from `package iw.core` to `package iw.core.infrastructure`
+- `GitHubClient.scala` - Converted `GhPrerequisiteError` from sealed trait to Scala 3 enum
+- All pattern matches updated to use `GhPrerequisiteError.` prefix
+
+**Before → After:**
+- Core no longer depends on infrastructure (package layering fixed)
+- Idiomatic Scala 3 enum replaces Scala 2 sealed trait pattern
+
+**Patterns applied:**
+- Scala 3 enum for ADTs
+
+**Testing:**
+- Tests updated: 2 (imports in test files)
+- All tests passing
+
+**Files changed:**
+```
+M  .iw/commands/github.hook-doctor.scala
+M  .iw/core/GitHubClient.scala
+M  .iw/core/GitHubHookDoctor.scala
+M  .iw/core/test/GitHubClientTest.scala
+M  .iw/core/test/GitHubHookDoctorTest.scala
+```
+
+---

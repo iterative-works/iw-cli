@@ -2,7 +2,7 @@
 
 **Phase:** 6
 **Created:** 2025-12-23
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -72,20 +72,20 @@ enum GhPrerequisiteError:
 
 ## Tasks
 
-- [ ] [impl] [Analysis] Verify infrastructure directory exists and understand package structure
-- [ ] [impl] [Refactor] Move GitHubHookDoctor.scala to .iw/core/infrastructure/
-- [ ] [impl] [Refactor] Update package declaration in GitHubHookDoctor.scala to iw.core.infrastructure
-- [ ] [impl] [Refactor] Update import in github.hook-doctor.scala command to use new package
-- [ ] [impl] [Refactor] Convert GhPrerequisiteError to Scala 3 enum in GitHubClient.scala
-- [ ] [impl] [Refactor] Update pattern matches to use enum syntax if needed
-- [ ] [impl] [Test] Update GitHubHookDoctorTest.scala imports
-- [ ] [impl] [Verify] Run unit tests - all must pass
-- [ ] [impl] [Verify] Run E2E tests - all must pass
+- [x] [impl] [Analysis] Verify infrastructure directory exists and understand package structure
+- [x] [impl] [Refactor] Move GitHubHookDoctor.scala to .iw/core/infrastructure/
+- [x] [impl] [Refactor] Update package declaration in GitHubHookDoctor.scala to iw.core.infrastructure
+- [x] [impl] [Refactor] Update import in github.hook-doctor.scala command to use new package
+- [x] [impl] [Refactor] Convert GhPrerequisiteError to Scala 3 enum in GitHubClient.scala
+- [x] [impl] [Refactor] Update pattern matches to use enum syntax if needed
+- [x] [impl] [Test] Update GitHubHookDoctorTest.scala imports
+- [x] [impl] [Verify] Run unit tests - all must pass
+- [x] [impl] [Verify] Run E2E tests - all must pass
 
 ## Verification
 
-- [ ] All existing unit tests pass
-- [ ] All existing E2E tests pass
-- [ ] GitHubHookDoctor is in iw.core.infrastructure package
-- [ ] GhPrerequisiteError uses Scala 3 enum syntax
-- [ ] No cross-layer dependencies from core to infrastructure
+- [x] All existing unit tests pass
+- [x] All existing E2E tests pass
+- [x] GitHubHookDoctor is in iw.core.infrastructure package
+- [x] GhPrerequisiteError uses Scala 3 enum syntax
+- [x] No cross-layer dependencies from core to infrastructure

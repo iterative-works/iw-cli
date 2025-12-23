@@ -1,8 +1,8 @@
 // PURPOSE: GitHub doctor check functions - validates gh CLI prerequisites
 // PURPOSE: Provides checkGhInstalled and checkGhAuthenticated for doctor hooks
-package iw.core
+package iw.core.infrastructure
 
-import iw.core.infrastructure.CommandRunner
+import iw.core.{CheckResult, GitHubClient, IssueTrackerType, ProjectConfiguration}
 
 object GitHubHookDoctor:
 
@@ -53,12 +53,12 @@ object GitHubHookDoctor:
       GitHubClient.validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
         case Right(_) =>
           CheckResult.Success("Authenticated")
-        case Left(GitHubClient.GhNotAuthenticated) =>
+        case Left(GitHubClient.GhPrerequisiteError.GhNotAuthenticated) =>
           CheckResult.Error("Not authenticated", "Run: gh auth login")
-        case Left(GitHubClient.GhNotInstalled) =>
+        case Left(GitHubClient.GhPrerequisiteError.GhNotInstalled) =>
           // This shouldn't happen since we already checked installation
           CheckResult.Skip("gh not installed")
-        case Left(GitHubClient.GhOtherError(msg)) =>
+        case Left(GitHubClient.GhPrerequisiteError.GhOtherError(msg)) =>
           CheckResult.Error("Authentication check failed", msg)
 
   /** Check if gh CLI is authenticated (uses default CommandRunner).

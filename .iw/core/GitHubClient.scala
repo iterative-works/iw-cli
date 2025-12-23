@@ -8,10 +8,10 @@ import iw.core.infrastructure.CommandRunner
 object GitHubClient:
 
   /** Error types for gh CLI prerequisite validation. */
-  sealed trait GhPrerequisiteError
-  case object GhNotInstalled extends GhPrerequisiteError
-  case object GhNotAuthenticated extends GhPrerequisiteError
-  case class GhOtherError(message: String) extends GhPrerequisiteError
+  enum GhPrerequisiteError:
+    case GhNotInstalled
+    case GhNotAuthenticated
+    case GhOtherError(message: String)
 
   /** Validate gh CLI prerequisites before creating issues.
     *
@@ -32,14 +32,14 @@ object GitHubClient:
   ): Either[GhPrerequisiteError, Unit] =
     // Check gh CLI is installed
     if !isCommandAvailable("gh") then
-      return Left(GhNotInstalled)
+      return Left(GhPrerequisiteError.GhNotInstalled)
 
     // Check gh authentication
     execCommand("gh", Array("auth", "status")) match
       case Left(error) if isAuthenticationError(error) =>
-        Left(GhNotAuthenticated)
+        Left(GhPrerequisiteError.GhNotAuthenticated)
       case Left(error) =>
-        Left(GhOtherError(error))
+        Left(GhPrerequisiteError.GhOtherError(error))
       case Right(_) =>
         Right(())
 
@@ -193,11 +193,11 @@ object GitHubClient:
   ): Either[String, CreatedIssue] =
     // Validate prerequisites before attempting creation
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
-      case Left(GhNotInstalled) =>
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
         return Left(formatGhNotInstalledError())
-      case Left(GhNotAuthenticated) =>
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
         return Left(formatGhNotAuthenticatedError())
-      case Left(GhOtherError(msg)) =>
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
         return Left(s"gh CLI error: $msg")
       case Right(_) =>
         // Proceed with issue creation
@@ -305,11 +305,11 @@ object GitHubClient:
   ): Either[String, Issue] =
     // Validate prerequisites before attempting fetch
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
-      case Left(GhNotInstalled) =>
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
         return Left(formatGhNotInstalledError())
-      case Left(GhNotAuthenticated) =>
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
         return Left(formatGhNotAuthenticatedError())
-      case Left(GhOtherError(msg)) =>
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
         return Left(s"gh CLI error: $msg")
       case Right(_) =>
         // Proceed with issue fetch
