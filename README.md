@@ -142,16 +142,65 @@ export IW_HOME=/path/to/iw-cli
 
 This bypasses version download and uses your local `iw-run` directly.
 
-### Running Tests
+### Testing
+
+The project has three types of tests:
+
+#### Unit Tests (Scala/munit)
+
+Run Scala unit tests with:
 
 ```bash
-# Unit tests (Scala)
+./iw test unit
+```
+
+Or directly with scala-cli:
+
+```bash
 scala-cli test .iw/core/test/*.scala .iw/core/*.scala
+```
 
-# Integration tests (Bats)
+#### E2E Tests (BATS)
+
+End-to-end tests verify the CLI behavior. By default, tests that would create real Linear issues are skipped.
+
+Run E2E tests (without live API calls):
+
+```bash
+./iw test e2e
+```
+
+Or directly with BATS:
+
+```bash
 bats .iw/test/
+```
 
-# All tests
+#### Live API Tests
+
+Some E2E tests can create real Linear issues for comprehensive testing. These are **disabled by default** to prevent issue accumulation.
+
+To enable live API tests:
+
+```bash
+ENABLE_LIVE_API_TESTS=1 ./iw test e2e
+```
+
+**Requirements:**
+- `LINEAR_API_TOKEN` environment variable must be set
+- `ENABLE_LIVE_API_TESTS=1` must be explicitly set
+
+**Warning:** Live API tests will create real issues in Linear with `[TEST]` prefix. These should be cleaned up periodically.
+
+#### Run All Tests
+
+```bash
+./iw test
+```
+
+Or manually:
+
+```bash
 scala-cli test .iw/core/test/*.scala .iw/core/*.scala && bats .iw/test/
 ```
 

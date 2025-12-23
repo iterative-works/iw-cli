@@ -212,9 +212,9 @@ object DashboardService:
     cache: Map[String, CachedPR],
     now: Instant
   ): Option[PullRequestData] =
-    // Wrapper for CommandRunner.execute that doesn't need workingDir
+    // Wrapper for CommandRunner.execute with worktree path as working directory
     val execCommand = (command: String, args: Array[String]) =>
-      CommandRunner.execute(command, args)
+      CommandRunner.execute(command, args, Some(wt.path))
 
     // Wrapper for CommandRunner.isCommandAvailable
     val detectTool = (toolName: String) =>
