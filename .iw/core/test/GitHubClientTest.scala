@@ -128,62 +128,203 @@ class GitHubClientTest extends munit.FunSuite:
     assert(!args.contains("--label"))
 
   test("createIssue retries without label on label error"):
-    var callCount = 0
+    var authCallCount = 0
+    var issueCreateCallCount = 0
+    val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
-      callCount += 1
-      if callCount == 1 then
-        // First call fails with label error
-        Left("label 'bug' not found in repository")
+      if args.contains("auth") && args.contains("status") then
+        authCallCount += 1
+        // Auth check succeeds
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("create") then
+        issueCreateCallCount += 1
+        if issueCreateCallCount == 1 then
+          // First issue create call fails with label error
+          Left("label 'bug' not found in repository")
+        else
+          // Second issue create call succeeds without label
+          Right("""{"number": 42, "url": "https://github.com/owner/repo/issues/42"}""")
       else
-        // Second call succeeds without label
-        Right("""{"number": 42, "url": "https://github.com/owner/repo/issues/42"}""")
+        Right("unexpected call")
 
     val result = GitHubClient.createIssue(
       repository = "owner/repo",
       title = "Test",
       description = "Test description",
       issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
-    assertEquals(callCount, 2)
+    assertEquals(authCallCount, 1)
+    assertEquals(issueCreateCallCount, 2)
     assertEquals(result, Right(CreatedIssue("42", "https://github.com/owner/repo/issues/42")))
 
   test("createIssue does not retry on non-label error"):
-    var callCount = 0
+    var authCallCount = 0
+    var issueCreateCallCount = 0
+    val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
-      callCount += 1
-      Left("network error: connection refused")
+      if args.contains("auth") && args.contains("status") then
+        authCallCount += 1
+        // Auth check succeeds
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("create") then
+        issueCreateCallCount += 1
+        // Issue create fails with non-label error
+        Left("network error: connection refused")
+      else
+        Right("unexpected call")
 
     val result = GitHubClient.createIssue(
       repository = "owner/repo",
       title = "Test",
       description = "",
       issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
-    assertEquals(callCount, 1)
+    assertEquals(authCallCount, 1)
+    assertEquals(issueCreateCallCount, 1) // No retry on non-label error
     assert(result.isLeft)
     assert(result.left.getOrElse("").contains("network error"))
 
   test("createIssue returns error when retry also fails"):
-    var callCount = 0
+    var authCallCount = 0
+    var issueCreateCallCount = 0
+    val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
-      callCount += 1
-      if callCount == 1 then
-        Left("label 'bug' does not exist")
+      if args.contains("auth") && args.contains("status") then
+        authCallCount += 1
+        // Auth check succeeds
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("create") then
+        issueCreateCallCount += 1
+        if issueCreateCallCount == 1 then
+          // First issue create fails with label error
+          Left("label 'bug' does not exist")
+        else
+          // Retry also fails
+          Left("permission denied")
       else
-        Left("permission denied")
+        Right("unexpected call")
 
     val result = GitHubClient.createIssue(
       repository = "owner/repo",
       title = "Test",
       description = "",
       issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
-    assertEquals(callCount, 2)
+    assertEquals(authCallCount, 1)
+    assertEquals(issueCreateCallCount, 2)
     assert(result.isLeft)
     assert(result.left.getOrElse("").contains("permission denied"))
+
+  // ========== Prerequisite Validation Tests ==========
+
+  test("validateGhPrerequisites returns GhNotInstalled when gh not found"):
+    val mockIsCommandAvailable = (cmd: String) => false
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      Right("Logged in")
+
+    val result = GitHubClient.validateGhPrerequisites(
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    assertEquals(result.left.getOrElse(null), GitHubClient.GhNotInstalled)
+
+  test("validateGhPrerequisites returns GhNotAuthenticated when auth status fails with exit code 4"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("Command failed: gh auth status: exit status 4")
+      else
+        Right("success")
+
+    val result = GitHubClient.validateGhPrerequisites(
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    assertEquals(result.left.getOrElse(null), GitHubClient.GhNotAuthenticated)
+
+  test("validateGhPrerequisites returns Right(()) when gh is authenticated"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in to github.com")
+      else
+        Right("success")
+
+    val result = GitHubClient.validateGhPrerequisites(
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+
+  test("createIssue fails with installation message when gh not installed"):
+    val mockIsCommandAvailable = (cmd: String) => false
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      Right("shouldn't get here")
+
+    val result = GitHubClient.createIssue(
+      repository = "owner/repo",
+      title = "Test",
+      description = "",
+      issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh CLI is not installed"))
+    assert(error.contains("https://cli.github.com/"))
+
+  test("createIssue fails with auth message when gh not authenticated"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("Command failed: gh auth status: exit status 4")
+      else
+        Right("success")
+
+    val result = GitHubClient.createIssue(
+      repository = "owner/repo",
+      title = "Test",
+      description = "",
+      issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh is not authenticated"))
+    assert(error.contains("gh auth login"))
+
+  // ========== Error Message Formatting Tests ==========
+
+  test("formatGhNotInstalledError contains installation URL"):
+    val error = GitHubClient.formatGhNotInstalledError()
+
+    assert(error.contains("gh CLI is not installed"))
+    assert(error.contains("https://cli.github.com/"))
+    assert(error.contains("gh auth login"))
+
+  test("formatGhNotAuthenticatedError contains auth instruction"):
+    val error = GitHubClient.formatGhNotAuthenticatedError()
+
+    assert(error.contains("gh is not authenticated"))
+    assert(error.contains("gh auth login"))

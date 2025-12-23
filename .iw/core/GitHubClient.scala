@@ -7,6 +7,76 @@ import iw.core.infrastructure.CommandRunner
 
 object GitHubClient:
 
+  /** Error types for gh CLI prerequisite validation. */
+  sealed trait GhPrerequisiteError
+  case object GhNotInstalled extends GhPrerequisiteError
+  case object GhNotAuthenticated extends GhPrerequisiteError
+  case class GhOtherError(message: String) extends GhPrerequisiteError
+
+  /** Validate gh CLI prerequisites before creating issues.
+    *
+    * Checks that:
+    * 1. gh CLI is installed and available in PATH
+    * 2. gh CLI is authenticated (via `gh auth status`)
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(()) if all prerequisites met, Left(error) otherwise
+    */
+  def validateGhPrerequisites(
+    repository: String,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[GhPrerequisiteError, Unit] =
+    // Check gh CLI is installed
+    if !isCommandAvailable("gh") then
+      return Left(GhNotInstalled)
+
+    // Check gh authentication
+    execCommand("gh", Array("auth", "status")) match
+      case Left(error) if isAuthenticationError(error) =>
+        Left(GhNotAuthenticated)
+      case Left(error) =>
+        Left(GhOtherError(error))
+      case Right(_) =>
+        Right(())
+
+  /** Check if error message indicates authentication failure.
+    *
+    * Detects exit code 4 from gh CLI (not authenticated).
+    */
+  private def isAuthenticationError(error: String): Boolean =
+    val lowerError = error.toLowerCase
+    lowerError.contains("exit status 4") ||
+    lowerError.contains("exit value: 4") ||
+    lowerError.contains("not authenticated") ||
+    lowerError.contains("not logged in")
+
+  /** Format error message for gh CLI not installed. */
+  def formatGhNotInstalledError(): String =
+    """gh CLI is not installed
+      |
+      |The GitHub tracker requires the gh CLI tool.
+      |
+      |Install gh CLI:
+      |  https://cli.github.com/
+      |
+      |After installation, authenticate with:
+      |  gh auth login""".stripMargin
+
+  /** Format error message for gh CLI not authenticated. */
+  def formatGhNotAuthenticatedError(): String =
+    """gh is not authenticated
+      |
+      |You need to authenticate with GitHub before creating issues.
+      |
+      |Run this command to authenticate:
+      |  gh auth login
+      |
+      |Follow the prompts to sign in with your GitHub account.""".stripMargin
+
   /** Build gh CLI command arguments for creating an issue.
     *
     * @param repository GitHub repository in owner/repo format
@@ -108,6 +178,7 @@ object GitHubClient:
     * @param title Issue title
     * @param description Issue description
     * @param issueType Issue type (Bug or Feature)
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
     * @param execCommand Function to execute shell command (injected for testability)
     * @return Right(CreatedIssue) on success, Left(error message) on failure
     */
@@ -116,9 +187,21 @@ object GitHubClient:
     title: String,
     description: String,
     issueType: FeedbackParser.IssueType,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
     execCommand: (String, Array[String]) => Either[String, String] =
       (cmd, args) => CommandRunner.execute(cmd, args)
   ): Either[String, CreatedIssue] =
+    // Validate prerequisites before attempting creation
+    validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GhNotInstalled) =>
+        return Left(formatGhNotInstalledError())
+      case Left(GhNotAuthenticated) =>
+        return Left(formatGhNotAuthenticatedError())
+      case Left(GhOtherError(msg)) =>
+        return Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        // Proceed with issue creation
+
     val args = buildCreateIssueCommand(repository, title, description, issueType)
 
     // Execute gh command (first element is command, rest are args)
