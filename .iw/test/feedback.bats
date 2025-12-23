@@ -289,3 +289,90 @@ SCRIPT
     [[ "$output" == *"Issue:"* ]]
     [[ "$output" == *"https://github.com/iterative-works/iw-cli/issues/"* ]]
 }
+
+# ========== Phase 4: gh CLI Prerequisites Tests ==========
+
+@test "feedback fails with helpful message when gh CLI not installed" {
+    # Mock which command to report gh is not found
+    mkdir -p bin
+    cat > bin/which <<'SCRIPT'
+#!/bin/bash
+# Return false for gh, true for everything else
+if [[ "$1" == "gh" ]]; then
+    exit 1
+else
+    # Use real which for other commands
+    /usr/bin/which "$@"
+fi
+SCRIPT
+    chmod +x bin/which
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command
+    run "$PROJECT_ROOT/iw" feedback "Test issue"
+
+    # Assert failure
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"gh CLI is not installed"* ]]
+    [[ "$output" == *"https://cli.github.com/"* ]]
+    [[ "$output" == *"gh auth login"* ]]
+}
+
+@test "feedback fails with auth instructions when gh not authenticated" {
+    # Mock gh command that returns exit code 4 for auth status
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "You are not logged in to any GitHub hosts. Run gh auth login to authenticate." >&2
+    exit 4
+elif [[ "$1" == "issue" && "$2" == "create" ]]; then
+    # This should not be reached since validation should fail first
+    echo "Unexpected: issue create called when not authenticated" >&2
+    exit 1
+else
+    echo "Unexpected gh command: $*" >&2
+    exit 1
+fi
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command
+    run "$PROJECT_ROOT/iw" feedback "Test issue"
+
+    # Assert failure
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"gh is not authenticated"* ]]
+    [[ "$output" == *"gh auth login"* ]]
+}
+
+@test "feedback fails when repository not accessible" {
+    # Mock gh command that returns permission error
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    # Auth succeeds
+    echo "Logged in to github.com as testuser"
+    exit 0
+elif [[ "$1" == "issue" && "$2" == "create" ]]; then
+    # But issue creation fails with permission error
+    echo "GraphQL: Could not resolve to a Repository with the name 'iterative-works/iw-cli'. (repository)" >&2
+    exit 1
+else
+    echo "Unexpected gh command: $*" >&2
+    exit 1
+fi
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run feedback command
+    run "$PROJECT_ROOT/iw" feedback "Test issue"
+
+    # Assert failure
+    [ "$status" -ne 0 ]
+    # Error message should contain repository name or permission/access denial
+    [[ "$output" == *"Could not resolve"* ]] || [[ "$output" == *"repository"* ]]
+}

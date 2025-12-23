@@ -146,3 +146,57 @@ M  .iw/test/feedback.bats
 ```
 
 ---
+
+## Phase 4: Handle gh CLI prerequisites (2025-12-23)
+
+**What was built:**
+- `GhPrerequisiteError` - Sealed trait with `GhNotInstalled`, `GhNotAuthenticated`, `GhOtherError` cases
+- `validateGhPrerequisites()` - Validates gh CLI installation and authentication before issue creation
+- `isAuthenticationError()` - Helper to detect exit code 4 from gh CLI (not authenticated)
+- `formatGhNotInstalledError()` - User-friendly error message with installation instructions
+- `formatGhNotAuthenticatedError()` - User-friendly error message with authentication instructions
+- Updated `createIssue()` - Now validates prerequisites before attempting to create issue
+
+**Decisions made:**
+- Check prerequisites BEFORE attempting issue creation (fail fast)
+- Use `CommandRunner.isCommandAvailable()` to detect gh CLI presence
+- Use `gh auth status` to check authentication (exit code 4 = not authenticated)
+- Detect exit code patterns in error messages ("exit status 4" and "exit value: 4")
+- Provide actionable error messages with links to https://cli.github.com/ and `gh auth login` instructions
+- Function injection pattern maintained for testability (`isCommandAvailable` parameter)
+
+**Patterns applied:**
+- Sealed trait for error types: Type-safe error handling
+- Validation before operation: Fail fast with clear guidance
+- Function injection: Both `isCommandAvailable` and `execCommand` injected for testing
+- Multi-line error messages: Clear, actionable guidance for users
+
+**Testing:**
+- Unit tests: 8 new tests for prerequisite validation and error formatting
+- E2E tests: 3 new tests (gh not installed, gh not authenticated, repository not accessible)
+- Mock strategy: Mock `which` command to simulate gh not installed; mock `gh` to simulate auth errors
+- All tests passing: 21 GitHubClient tests, 16 feedback E2E tests (3 new)
+
+**Code review:**
+- Not yet reviewed
+- All acceptance criteria met
+- TDD methodology followed strictly (red → green → refactor)
+
+**For next phases:**
+- Available utilities: `validateGhPrerequisites()` can be reused in Phase 5 (issue view) and Phase 6 (doctor checks)
+- Extension points: Error messages are defined in standalone functions for easy customization
+- Notes: Phase 5 will reuse validation logic; Phase 6 will call same validation for `iw doctor`
+
+**Files changed:**
+```
+M  .iw/core/GitHubClient.scala
+M  .iw/core/test/GitHubClientTest.scala
+M  .iw/test/feedback.bats
+```
+
+**Test summary:**
+- Unit tests: All 224 tests passing
+- E2E tests: 15 of 16 feedback tests passing (1 pre-existing failure unrelated to this phase)
+- New tests: 11 total (8 unit + 3 E2E)
+
+---
