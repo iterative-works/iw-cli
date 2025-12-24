@@ -62,10 +62,11 @@ class IssueIdFromBranchTest extends FunSuite:
     assert(result.isLeft)
     assert(result.left.exists(_.contains("Cannot extract issue ID from branch 'feature-branch'")))
 
-  test("IssueId.fromBranch rejects branch with only numbers (123-456)"):
+  test("IssueId.fromBranch extracts from numeric branch with numeric suffix (123-456)"):
+    // 123-456 matches NumericBranchPattern and extracts 123 (description happens to be numbers)
     val result = IssueId.fromBranch("123-456")
-    assert(result.isLeft)
-    assert(result.left.exists(_.contains("Cannot extract issue ID from branch '123-456'")))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("123"))
 
   test("IssueId.fromBranch rejects empty string"):
     val result = IssueId.fromBranch("")
@@ -81,3 +82,8 @@ class IssueIdFromBranchTest extends FunSuite:
     val result = IssueId.fromBranch("PROJECT-789-implement-new-api")
     assert(result.isRight)
     assertEquals(result.map(_.value), Right("PROJECT-789"))
+
+  test("IssueId.fromBranch extracts from bare numeric branch (48)"):
+    val result = IssueId.fromBranch("48")
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("48"))

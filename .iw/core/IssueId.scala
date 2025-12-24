@@ -33,10 +33,11 @@ object IssueId:
     normalized match
       case BranchPattern(issueId) => Right(issueId)
       case _ =>
-        // Try numeric pattern (GitHub) - don't uppercase
+        // Try numeric pattern with suffix (GitHub) - don't uppercase
         branchName match
           case NumericBranchPattern(issueId) => Right(issueId)
-          case _ => Left(s"Cannot extract issue ID from branch '$branchName' (expected: PROJECT-123[-description] or 123-description)")
+          case NumericPattern() => Right(branchName) // Bare numeric branch (e.g., "48")
+          case _ => Left(s"Cannot extract issue ID from branch '$branchName' (expected: PROJECT-123[-description] or 123[-description])")
 
   extension (issueId: IssueId)
     def value: String = issueId
