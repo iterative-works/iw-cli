@@ -2,6 +2,7 @@
 
 **Issue:** #51
 **Created:** 2025-12-26
+**Updated:** 2025-12-26
 **Status:** Draft
 **Classification:** Simple
 
@@ -12,350 +13,318 @@ Currently, GitHub issue branches are created using bare numeric names (e.g., `48
 - **Namespace collision risk**: Numeric branches could conflict with other branch naming schemes (version numbers, sequential feature branches)
 - **Poor discoverability**: When browsing branches, it's not immediately obvious that `48` refers to a GitHub issue
 - **No semantic context**: Unlike Linear/YouTrack branches that include project prefix (e.g., `IWLE-123`), GitHub branches lack semantic meaning
+- **Code complexity**: Special handling for numeric-only patterns (`NumericPattern`, `NumericBranchPattern`) adds complexity to `IssueId`
 
-Users should be able to configure branch name prefixes (e.g., `issue/48`, `wip/48`, `feat/48`) to make branch purposes explicit and avoid naming collisions.
+## Solution: Unified Team Prefix for All Trackers
+
+Instead of adding path-based prefixes (like `issue/51`), we will use the same `TEAM-NNN` convention that Linear and YouTrack already use. GitHub projects will configure a team prefix, resulting in branches like `IWCLI-51` or `GH-51`.
+
+**Benefits:**
+- **Consistency**: All trackers use the same `TEAM-NNN` branch naming convention
+- **Simplification**: Remove `NumericPattern` and `NumericBranchPattern` from `IssueId`
+- **Existing code reuse**: `fromBranch` already handles `TEAM-NNN` pattern correctly
+- **Clear semantics**: Branch names immediately indicate project and issue number
 
 ## User Stories
 
-### Story 1: Configure branch prefix for new GitHub issue branches
+### Story 1: Configure team prefix for GitHub projects
 
 ```gherkin
-Feature: Configurable branch prefixes for GitHub issues
+Feature: Team prefix for GitHub issue branches
   As a developer using iw-cli with GitHub
-  I want to configure a prefix for issue branches
-  So that my branches have clear, collision-free names
+  I want to configure a team prefix for my project
+  So that my branches follow the same TEAM-NNN convention as Linear/YouTrack
 
-Scenario: Create new branch with configured prefix
-  Given I have GitHub tracker configured in .iw/config.conf
-  And I have set branch prefix to "issue/" in config
+Scenario: Initialize project with team prefix
+  Given I run "iw init" in a GitHub project
+  When I configure GitHub as the tracker
+  Then I am prompted to enter a team prefix (e.g., "IWCLI")
+  And the prefix is stored in .iw/config.conf
+
+Scenario: Create new branch with team prefix
+  Given I have GitHub tracker configured with team prefix "IWCLI"
   When I run "iw start 51"
-  Then a new branch "issue/51" is created
-  And a worktree is created for branch "issue/51"
-  And I see success message mentioning "issue/51"
+  Then a new branch "IWCLI-51" is created
+  And a worktree is created for branch "IWCLI-51"
+  And I see success message mentioning "IWCLI-51"
 ```
 
-**Estimated Effort:** 3-4h
+**Estimated Effort:** 2-3h
 **Complexity:** Straightforward
 
 **Technical Feasibility:**
-This is straightforward configuration enhancement. The existing `toBranchName` extension method already provides the hook point. Main work is:
-- Add config field for branch prefix
-- Update `toBranchName` to apply prefix for GitHub issues
-- Existing tests provide good safety net
+- Add `teamPrefix` field to config for GitHub tracker type
+- Update `iw init` to prompt for team prefix when GitHub is selected
+- Modify `IssueId` to compose `TEAM-NNN` format for GitHub issues
+- `toBranchName` already returns the issue ID value, which will now include prefix
 
 **Acceptance:**
-- Config file accepts optional `branchPrefix` setting
-- New branches created with prefix when configured
-- Backward compatible (no prefix = current behavior)
-- Tests verify prefix application
+- Config file stores `teamPrefix` for GitHub projects
+- `iw start <number>` creates branch with `TEAMPREFIX-<number>` format
+- Team prefix is required for GitHub (prompted during init)
 
 ---
 
-### Story 2: Parse issue ID from prefixed branches
+### Story 2: Parse and display GitHub issues with team prefix
 
 ```gherkin
-Feature: Extract issue IDs from prefixed branch names
-  As a developer working in a prefixed issue branch
-  I want iw-cli to infer the issue ID from the branch name
-  So that commands like "iw issue" and "iw open" work without explicit ID
+Feature: Handle GitHub issues with team prefix format
+  As a developer working in a team-prefixed branch
+  I want iw-cli to correctly parse and display issue information
+  So that all commands work seamlessly with the new format
 
-Scenario: Infer issue ID from prefixed branch
-  Given I am on branch "issue/51"
+Scenario: Parse issue ID from team-prefixed branch
+  Given I am on branch "IWCLI-51"
   When I run "iw issue" (without issue ID argument)
-  Then the issue ID "51" is extracted from "issue/51"
-  And issue #51 details are displayed
+  Then the issue ID is parsed as team="IWCLI", number="51"
+  And GitHub issue #51 is fetched and displayed
 
-Scenario: Open existing worktree by prefixed branch
-  Given a worktree exists for "issue/51"
-  And I am on branch "issue/51"
-  When I run "iw open" (without issue ID argument)
-  Then the issue ID "51" is extracted
-  And the worktree session is opened
+Scenario: Explicit issue ID with team prefix
+  Given I have GitHub tracker configured with team prefix "IWCLI"
+  When I run "iw issue IWCLI-51"
+  Then GitHub issue #51 is fetched and displayed
+
+Scenario: Explicit issue ID with just number
+  Given I have GitHub tracker configured with team prefix "IWCLI"
+  When I run "iw issue 51"
+  Then the team prefix is applied automatically
+  And GitHub issue #51 is fetched and displayed
 ```
 
 **Estimated Effort:** 2-3h
 **Complexity:** Straightforward
 
 **Technical Feasibility:**
-The `fromBranch` method already handles pattern extraction for Linear/YouTrack. We need to:
-- Update pattern matching to recognize prefix patterns
-- Make pattern configurable (read from config during parsing)
-- Existing test suite provides regression safety
-
-Key challenge: `fromBranch` is currently static but needs config context. May need to pass config or use sensible prefix patterns.
+- `fromBranch` already handles `TEAM-NNN` pattern - no changes needed
+- `IssueId.parse` needs to accept bare numbers for GitHub and apply team prefix
+- `GitHubClient.fetchIssue` already extracts numeric part for API calls
+- Existing test suite covers the pattern matching
 
 **Acceptance:**
-- Commands infer issue ID from prefixed branches
-- Pattern matching supports common prefixes (`issue/`, `wip/`, `feat/`, etc.)
-- Backward compatible with bare numeric branches
-- Comprehensive test coverage for all prefix patterns
+- Commands infer issue ID from `TEAM-NNN` branches (already works)
+- Bare numeric input (`51`) is accepted and prefixed automatically
+- Full format input (`IWCLI-51`) works directly
+- GitHub API receives correct numeric issue number
 
 ---
 
-### Story 3: Handle mixed branch naming scenarios
+### Story 3: Remove numeric-only branch handling
 
 ```gherkin
-Feature: Support mixed old and new branch naming
-  As a developer transitioning to prefixed branches
-  I want both old (bare numeric) and new (prefixed) branches to work
-  So that existing worktrees remain functional
+Feature: Simplify IssueId by removing numeric-only patterns
+  As a maintainer of iw-cli
+  I want to remove special-case numeric handling
+  So that the codebase is simpler and more consistent
 
-Scenario: Open existing bare numeric branch
-  Given a worktree exists for bare branch "48"
-  When I run "iw open 48"
-  Then the worktree for branch "48" opens successfully
+Scenario: Reject bare numeric branches
+  Given I am on a branch named "48" (legacy bare numeric)
+  When I run "iw issue"
+  Then I see an error suggesting the new format
+  And the error mentions configuring a team prefix
 
-Scenario: Switch between different branch naming conventions
-  Given I have worktree "48" with bare numeric branch
-  And I have worktree "issue/51" with prefixed branch
-  When I run "iw open 48"
-  Then I switch to the "48" worktree
-  When I run "iw open 51"
-  Then I switch to the "issue/51" worktree
+Scenario: Migration guidance for existing numeric branches
+  Given I have existing bare numeric branches
+  When I run "iw doctor"
+  Then I see a warning about legacy branch naming
+  And I see instructions to rename branches to TEAM-NNN format
 ```
 
-**Estimated Effort:** 2-3h
-**Complexity:** Moderate
+**Estimated Effort:** 1-2h
+**Complexity:** Simple (removal of code)
 
 **Technical Feasibility:**
-This tests backward compatibility edge cases. Main considerations:
-- Fallback logic in `fromBranch` (try prefixed patterns first, then bare)
-- Branch lookup should handle both formats
-- Config migration story (users changing prefix setting)
-
-Some complexity around what happens if someone has both `48` and `issue/48` branches (unlikely but possible).
+- Remove `NumericPattern` and `NumericBranchPattern` from `IssueId.scala`
+- Update error messages to guide users to new format
+- Add check in `iw doctor` for legacy numeric branches
+- Update tests to remove numeric-only test cases
 
 **Acceptance:**
-- Existing bare numeric branches continue working
-- New prefixed branches work alongside old branches
-- No data migration required
-- Clear error messages if ambiguous situations arise
+- `NumericPattern` and `NumericBranchPattern` removed from codebase
+- Clear error message when bare numeric branch detected
+- `iw doctor` warns about legacy branches
+- All existing `TEAM-NNN` functionality preserved
 
 ## Architectural Sketch
 
-### For Story 1: Configure branch prefix for new GitHub issue branches
+### For Story 1: Configure team prefix for GitHub projects
 
 **Domain Layer:**
 - `IssueId` value object (existing)
-  - Update `toBranchName` extension to apply prefix
-  - May need `toBranchName(config: BranchConfig)` variant
-- `BranchConfig` value object (new)
-  - Encapsulates prefix configuration
-  - Validation for valid prefix patterns
+  - Add factory method: `IssueId.forGitHub(teamPrefix: String, number: Int)`
+  - `toBranchName` remains unchanged (returns the value)
+- `ProjectConfiguration` (existing)
+  - Add `teamPrefix: Option[String]` field (required for GitHub)
 
 **Application Layer:**
+- `init.scala` command (existing)
+  - Prompt for team prefix when GitHub tracker selected
+  - Validate prefix format (uppercase letters only)
 - `start.scala` command (existing)
-  - Pass config to `toBranchName` when creating branches
-- Configuration loading (existing `ConfigFileRepository`)
+  - Compose issue ID with team prefix before creating branch
 
 **Infrastructure Layer:**
 - `ConfigFileRepository` (existing)
-  - Parse `branchPrefix` field from config.conf
-- `ProjectConfiguration` (existing)
-  - Add `branchPrefix: Option[String]` field
-
-**Presentation Layer:**
-- No UI changes needed
-- CLI output shows created branch name (already exists)
+  - Parse `teamPrefix` field from config.conf
+- Config schema update for tracker section
 
 ---
 
-### For Story 2: Parse issue ID from prefixed branches
+### For Story 2: Parse and display GitHub issues with team prefix
 
 **Domain Layer:**
-- `IssueId.fromBranch` (existing method)
-  - Update pattern matching to handle prefixes
-  - New regex patterns for common prefixes
-  - Fallback chain: prefixed patterns -> bare numeric
-
-**Application Layer:**
-- `issue.scala` command (existing)
-  - Already calls `fromBranch`, no changes needed if domain handles it
-- `open.scala` command (existing)
-  - Already calls `fromBranch`, no changes needed
-
-**Infrastructure Layer:**
-- Potentially read config to determine valid prefixes
-  - Alternative: Support common prefixes without config lookup
-
-**Presentation Layer:**
-- Error messages updated for prefix patterns
-
----
-
-### For Story 3: Handle mixed branch naming scenarios
-
-**Domain Layer:**
+- `IssueId.parse` (existing)
+  - Accept bare numeric with context (team prefix from config)
+  - Signature change: `parse(raw: String, defaultTeam: Option[String])`
 - `IssueId.fromBranch` (existing)
-  - Fallback logic ensuring backward compatibility
-  - Order of pattern matching matters (prefix first, then bare)
+  - No changes needed - already handles `TEAM-NNN`
 
 **Application Layer:**
-- All commands using `fromBranch` (existing)
-  - No changes needed if domain handles it correctly
+- All commands using `IssueId.parse`
+  - Pass team prefix from config when parsing user input
+- `GitHubClient.fetchIssue` (existing)
+  - Already extracts numeric part - no changes needed
 
-**Infrastructure Layer:**
-- Git branch lookup (existing `GitWorktreeAdapter`)
-  - May need logic to find branch by issue ID regardless of prefix
-  - `branchExists` might need enhancement
+---
+
+### For Story 3: Remove numeric-only branch handling
+
+**Domain Layer:**
+- `IssueId` (existing)
+  - Remove `NumericPattern` regex
+  - Remove `NumericBranchPattern` regex
+  - Simplify pattern matching in `parse` and `fromBranch`
+
+**Application Layer:**
+- `doctor.scala` command (existing)
+  - Add check for bare numeric branches in worktrees
 
 **Presentation Layer:**
-- Help text / error messages mentioning both formats
+- Updated error messages with migration guidance
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: What prefix patterns should be supported?
+### RESOLVED: Branch naming approach
 
-The issue description mentions `issue/`, `wip/`, `feat/` as examples, but doesn't specify:
+**Decision:** Use `TEAM-NNN` format for GitHub, same as Linear/YouTrack.
 
-**Questions to answer:**
-1. Should we support a single configurable prefix, or multiple preset patterns?
-2. Should the prefix be freeform (user types anything), or validated against a list?
-3. Do we want to support suffixes too (e.g., `51-feature-name`)?
-4. Should prefix configuration be per-project or per-tracker-type?
-
-**Options:**
-- **Option A: Single configurable prefix** - User sets `branchPrefix = "issue/"` in config
-  - Pros: Simple, clear, user has full control
-  - Cons: Can't easily support multiple patterns for migration scenarios
-
-- **Option B: Preset prefix list** - System recognizes common patterns (`issue/`, `wip/`, `feat/`, `gh/`)
-  - Pros: Works without config, handles mixed naming automatically
-  - Cons: Less flexible, might not match user's existing conventions
-
-- **Option C: Configurable with smart defaults** - Config overrides default pattern list
-  - Pros: Best of both worlds (works OOTB, customizable)
-  - Cons: More complex implementation
-
-**Impact:** Affects Story 1 (config schema) and Story 2 (pattern matching logic). All stories depend on this decision.
+This eliminates the previous CLARIFY markers about prefix patterns and config access. The solution is now straightforward:
+- GitHub projects require a `teamPrefix` in config
+- All trackers use unified `TEAM-NNN` format
+- `fromBranch` already works without changes
 
 ---
 
-### CLARIFY: How should fromBranch access configuration?
+### CLARIFY: Team prefix validation rules
 
-Currently `IssueId.fromBranch` is a static method with no dependencies. To support configurable prefixes:
+**Questions:**
+1. Should team prefix be uppercase only (like Linear: `IWLE`) or allow mixed case?
+2. Minimum/maximum length for prefix?
+3. Should we suggest a default based on repository name?
 
-**Questions to answer:**
-1. Should `fromBranch` read config internally (side effect)?
-2. Should we pass config as a parameter?
-3. Should we use smart defaults without config?
-
-**Options:**
-- **Option A: Pass config parameter** - `fromBranch(branch: String, config: BranchConfig)`
-  - Pros: Pure function, testable, explicit dependencies
-  - Cons: All call sites need config, breaking change
-
-- **Option B: Internal config lookup** - `fromBranch` reads config from filesystem
-  - Pros: No API changes, backward compatible
-  - Cons: Side effect in domain layer, harder to test
-
-- **Option C: Smart defaults (no config)** - Recognize common prefixes automatically
-  - Pros: No config needed, works OOTB, pure function
-  - Cons: Less customizable, users can't control patterns
-
-**Impact:** Affects domain design philosophy (functional purity) and all of Story 2.
+**Recommendation:**
+- Uppercase letters only, 2-10 characters
+- Suggest default from repo name: `iterative-works/iw-cli` → `IWCLI`
+- Validate during `iw init`
 
 ---
 
-### CLARIFY: Migration strategy for existing worktrees
+### CLARIFY: Migration for existing bare numeric branches
 
-Users may have existing worktrees with bare numeric branches.
-
-**Questions to answer:**
-1. When they change config to add prefix, what happens to existing worktrees?
-2. Do we support renaming branches in existing worktrees?
-3. Should `iw open` handle both old and new naming simultaneously?
+**Questions:**
+1. Should we provide a migration command to rename existing branches?
+2. How long should we support reading bare numeric branches (deprecation period)?
 
 **Options:**
-- **Option A: No migration needed** - Old branches keep working, new branches use prefix
-  - Pros: Safe, no data loss, no forced migration
-  - Cons: Mixed naming conventions in same project
+- **Option A: Hard cutoff** - Immediately reject bare numeric branches
+  - Pros: Clean, simple, no legacy code
+  - Cons: Breaks existing workflows immediately
 
-- **Option B: Automatic branch rename** - Tool offers to rename existing branches
-  - Pros: Clean, consistent naming
-  - Cons: Risky (git rename can fail), might interfere with PRs
+- **Option B: Deprecation warning** - Warn but continue working for N releases
+  - Pros: Gentle migration path
+  - Cons: Keeps complexity temporarily
 
-- **Option C: Hybrid lookup** - Commands search for both `issue/51` and `51`
-  - Pros: Seamless, works during transition period
-  - Cons: Ambiguity if both branches exist (rare but possible)
+- **Option C: Migration command** - Provide `iw migrate-branches` to rename
+  - Pros: Automated migration
+  - Cons: Additional development, git rename is risky
 
-**Impact:** Affects Story 3 implementation complexity and user experience during adoption.
+**Recommendation:** Option A (hard cutoff) with clear error messages. This is a small project, and we're the primary users. Clean break is better than carrying technical debt.
 
 ## Total Estimates
 
 **Story Breakdown:**
-- Story 1 (Configure branch prefix for new branches): 3-4 hours
-- Story 2 (Parse issue ID from prefixed branches): 2-3 hours
-- Story 3 (Handle mixed branch naming scenarios): 2-3 hours
+- Story 1 (Configure team prefix): 2-3 hours
+- Story 2 (Parse with team prefix): 2-3 hours
+- Story 3 (Remove numeric handling): 1-2 hours
 
-**Total Range:** 7-10 hours
+**Total Range:** 5-8 hours
 
-**Confidence:** Medium
+**Confidence:** High
 
 **Reasoning:**
-- Domain logic changes are localized to `IssueId.scala` (good encapsulation)
-- Existing test suite provides safety net (20+ tests in `IssueIdFromBranchTest`)
-- Config parsing already exists (`ConfigFileRepository`)
-- Some unknowns around config access pattern (CLARIFY markers above)
-- Backward compatibility adds moderate complexity but is well-scoped
+- Solution simplifies rather than adds complexity
+- Reuses existing `TEAM-NNN` handling (proven, tested)
+- Main work is config changes and code removal
+- Existing test suite covers most scenarios
 
 ## Testing Approach
 
-**Per Story Testing:**
+**Story 1: Configure team prefix**
+- Unit: Config parsing with `teamPrefix` field
+- Integration: `iw init` prompts for and stores prefix
+- E2E: `iw start 51` with `teamPrefix=IWCLI` creates branch `IWCLI-51`
 
-Each story should have:
-1. **Unit Tests**: Domain logic for pattern matching and prefix application
-2. **Integration Tests**: Config loading and branch creation
-3. **E2E Scenario Tests**: Full command workflows with real git operations
+**Story 2: Parse with team prefix**
+- Unit: `IssueId.parse("51", Some("IWCLI"))` returns `IWCLI-51`
+- Unit: `IssueId.parse("IWCLI-51", None)` returns `IWCLI-51`
+- Integration: Commands work with team-prefixed branches
+- E2E: Full workflow with GitHub issue
 
-**Story 1: Configure branch prefix**
-- Unit: `toBranchName` returns correct prefixed names
-- Integration: Config parsing reads `branchPrefix` field
-- E2E: `iw start 51` creates branch with configured prefix
-
-**Story 2: Parse issue ID from prefixed branches**
-- Unit: `fromBranch` extracts ID from various prefix patterns
-- Integration: Commands infer issue ID correctly
-- E2E: `iw issue` and `iw open` work from prefixed branches
-
-**Story 3: Mixed branch naming**
-- Unit: Fallback logic in `fromBranch`
-- Integration: Branch lookup handles both formats
-- E2E: Opening worktrees by ID works for both formats
+**Story 3: Remove numeric handling**
+- Unit: `IssueId.fromBranch("48")` returns error (not bare numeric anymore)
+- Unit: Verify `NumericPattern` regex no longer exists
+- E2E: Error message guides user to new format
 
 ## Dependencies
 
 ### Prerequisites
-- None - this is pure enhancement to existing functionality
+- None
 
 ### Story Dependencies
-- Story 2 depends on Story 1 (need config schema for prefix)
-- Story 3 is parallel to Story 2 (both enhance `fromBranch`)
+- Story 2 depends on Story 1 (needs config with team prefix)
+- Story 3 can be done in parallel with Story 2
 
 ### External Blockers
-- None identified
+- None
 
 ## Implementation Sequence
 
-**Recommended Story Order:**
+**Recommended Order:**
 
-1. **Story 1: Configure branch prefix for new branches** - Establishes foundation
-2. **Story 2: Parse issue ID from prefixed branches** - Enables commands to work with prefixed branches
-3. **Story 3: Handle mixed naming scenarios** - Validates backward compatibility
+1. **Story 1: Configure team prefix** - Add config support, update init
+2. **Story 2: Parse with team prefix** - Update IssueId.parse to apply prefix
+3. **Story 3: Remove numeric handling** - Clean up old patterns
 
-**Recommendation:** Implement all three stories in a single focused session (7-10h total). Scope is small, stories are tightly coupled.
+**Note:** Stories 2 and 3 can be combined since they both modify `IssueId.scala`.
 
 ---
 
-**Analysis Status:** Ready for Review - Pending CLARIFY Resolutions
+**Analysis Status:** Ready for Implementation
+
+**CLARIFY Resolutions Needed:**
+1. Team prefix validation rules (recommend: uppercase, 2-10 chars)
+2. Migration approach (recommend: hard cutoff with clear errors)
 
 **Next Steps:**
-1. **Resolve CLARIFY markers** - Decide on prefix patterns, config access, and migration strategy
-2. Run `/iterative-works:ag-create-tasks 51` to generate implementation phases
-3. Run `/iterative-works:ag-implement 51` for story-by-story implementation
+1. Confirm CLARIFY resolutions above
+2. Run `/iterative-works:ag-create-tasks 51` to generate phase-based tasks
+3. Run `/iterative-works:ag-implement 51` to start implementation
 
-**Recommendation:** Favor **Option C (Smart defaults)** for both prefix patterns and config access:
-- Recognize common prefixes without configuration (`issue/`, `wip/`, `feat/`, `gh/`)
-- No changes to `fromBranch` signature (stays pure)
-- Works OOTB for 90% of users
-- Can add configuration later if users request custom prefixes
+---
+
+**Key Simplification:**
+
+This approach is significantly simpler than the original analysis because:
+- We reuse existing `TEAM-NNN` pattern handling (no new regex patterns)
+- `fromBranch` requires no changes (already handles the format)
+- We remove code (NumericPattern, NumericBranchPattern) instead of adding it
+- Unified convention across all trackers reduces cognitive load
