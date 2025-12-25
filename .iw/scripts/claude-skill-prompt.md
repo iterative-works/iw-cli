@@ -52,6 +52,10 @@ scala-cli run script.scala .iw/core/*.scala -- args
 
 Include common patterns and examples.
 
+IMPORTANT: In script examples, do NOT include `//> using scala` directives.
+The Scala version is already defined in `.iw/core/project.scala` and gets
+included automatically when running with `.iw/core/*.scala`.
+
 ### Splitting Decision
 - If there are many commands, split into category-based skills
 - Each skill should be focused and self-contained
