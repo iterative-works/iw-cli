@@ -2,7 +2,7 @@
 
 **Issue:** #46
 **Created:** 2025-12-25
-**Status:** Draft
+**Status:** Ready for Implementation
 **Classification:** Feature
 
 ## Problem Statement
@@ -29,7 +29,7 @@ Feature: Display review artifacts in dashboard
 
 Scenario: Worktree with review state file shows artifacts
   Given a worktree is registered for issue "IWLE-72"
-  And the worktree has a review-state.yaml file
+  And the worktree has a review-state.json file
   And the state file lists 3 artifacts
   When I load the dashboard
   Then I see the worktree card for "IWLE-72"
@@ -42,16 +42,16 @@ Scenario: Worktree with review state file shows artifacts
 **Complexity:** Moderate
 
 **Technical Feasibility:**
-This story requires parsing YAML files from the filesystem and extending the existing dashboard rendering. The WorkflowProgressService already demonstrates the pattern for reading files from worktree directories with injected I/O. The main complexity is defining the review-state.yaml schema and integrating it into the existing dashboard data flow.
+This story requires parsing JSON files from the filesystem and extending the existing dashboard rendering. The WorkflowProgressService already demonstrates the pattern for reading files from worktree directories with injected I/O. The main complexity is defining the review-state.json schema and integrating it into the existing dashboard data flow.
 
 **Key Technical Challenges:**
-- Define YAML schema that workflows can write easily
-- Parse YAML in Scala (upickle/ujson or dedicated YAML library)
+- Define JSON schema that workflows can write easily
+- Parse JSON in Scala using existing uJson library
 - Extend ServerState to cache review state similar to progress cache
 - Handle missing/malformed state files gracefully
 
 **Acceptance:**
-- Dashboard loads and parses review-state.yaml from each worktree
+- Dashboard loads and parses review-state.json from each worktree
 - Worktree cards display artifact list when state file exists
 - Missing or invalid state files don't break dashboard rendering
 - Artifact labels are shown clearly
@@ -67,7 +67,7 @@ Feature: View artifact content
   So that I can read review materials without leaving the dashboard
 
 Scenario: Click artifact shows markdown content
-  Given a worktree has a review-state.yaml with artifact "analysis.md"
+  Given a worktree has a review-state.json with artifact "analysis.md"
   And the artifact path is "project-management/issues/IWLE-72/analysis.md"
   When I load the dashboard
   And I click the "analysis.md" artifact link
@@ -114,7 +114,7 @@ Feature: Display review status
   So that I know what stage the workflow is in
 
 Scenario: Review state shows phase number and message
-  Given a review-state.yaml file contains:
+  Given a review-state.json file contains:
     """
     status: awaiting_review
     phase: 8
@@ -136,7 +136,7 @@ Scenario: Different status values display appropriately
 **Complexity:** Straightforward
 
 **Technical Feasibility:**
-This extends Story 1 with minimal additional complexity. The review-state.yaml already needs parsing for artifacts; adding status/phase/message fields is straightforward. CSS styling for different statuses follows existing patterns in the dashboard.
+This extends Story 1 with minimal additional complexity. The review-state.json already needs parsing for artifacts; adding status/phase/message fields is straightforward. CSS styling for different statuses follows existing patterns in the dashboard.
 
 **Key Technical Challenges:**
 - Define finite set of status values
@@ -160,16 +160,16 @@ Feature: Cache review state
   So that the dashboard loads quickly with many worktrees
 
 Scenario: Review state cached with file mtime validation
-  Given a worktree has review-state.yaml with mtime 1000
+  Given a worktree has review-state.json with mtime 1000
   And the review state is cached
   When the dashboard loads
-  And the review-state.yaml mtime is still 1000
+  And the review-state.json mtime is still 1000
   Then the cached review state is used
   And the file is not re-read
 
 Scenario: Cache invalidated when file changes
   Given cached review state with mtime 1000
-  When review-state.yaml is modified (mtime 2000)
+  When review-state.json is modified (mtime 2000)
   And the dashboard loads
   Then the file is re-read
   And the cache is updated with new content
@@ -203,22 +203,22 @@ Feature: Graceful degradation
   I want the dashboard to work even with invalid state files
   So that one broken file doesn't break the entire dashboard
 
-Scenario: Missing review-state.yaml shows no review section
-  Given a worktree has no review-state.yaml file
+Scenario: Missing review-state.json shows no review section
+  Given a worktree has no review-state.json file
   When I load the dashboard
   Then I see the worktree card
   And I do not see a review artifacts section
   And other worktree data displays normally
 
-Scenario: Malformed YAML shows error indicator
-  Given a review-state.yaml file with invalid YAML syntax
+Scenario: Malformed JSON shows error indicator
+  Given a review-state.json file with invalid JSON syntax
   When I load the dashboard
   Then I see the worktree card
   And I see "Review state unavailable" message
   And the dashboard continues to function
 
 Scenario: Artifact file missing shows clear error
-  Given review-state.yaml lists artifact "missing.md"
+  Given review-state.json lists artifact "missing.md"
   And the file does not exist
   When I click the artifact link
   Then I see "Artifact not found: missing.md" error
@@ -239,7 +239,7 @@ Error handling follows functional patterns already in use (Either/Option types).
 
 **Acceptance:**
 - Missing state files don't break dashboard
-- Invalid YAML shows error, doesn't crash server
+- Invalid JSON shows error, doesn't crash server
 - Missing artifact files show clear error message
 - Other artifacts remain accessible despite individual failures
 - Errors logged for debugging
@@ -255,18 +255,18 @@ Feature: Secure artifact access
   So that users cannot access arbitrary files on the system
 
 Scenario: Relative paths normalized safely
-  Given review-state.yaml lists artifact "../../../etc/passwd"
+  Given review-state.json lists artifact "../../../etc/passwd"
   When I request the artifact
   Then I receive a "Invalid artifact path" error
   And the file is not served
 
 Scenario: Absolute paths rejected
-  Given review-state.yaml lists artifact "/etc/passwd"
+  Given review-state.json lists artifact "/etc/passwd"
   When I request the artifact
   Then I receive a "Invalid artifact path" error
 
 Scenario: Valid paths within worktree succeed
-  Given review-state.yaml lists "project-management/issues/IWLE-72/analysis.md"
+  Given review-state.json lists "project-management/issues/IWLE-72/analysis.md"
   And the path is within the worktree directory
   When I request the artifact
   Then the file content is returned
@@ -304,10 +304,10 @@ Path validation is a well-understood security pattern. Use canonical path resolu
 
 **Application Layer:**
 - `ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)`
-- `ReviewStateService.parseReviewStateFile(yamlContent)` - parse YAML to ReviewState
+- `ReviewStateService.parseReviewStateFile(jsonContent)` - parse JSON to ReviewState
 
 **Infrastructure Layer:**
-- YAML parsing (choose library: circe-yaml, snakeyaml-engine, or upickle)
+- JSON parsing using existing uJson library
 - File I/O via injected functions (follows existing pattern)
 
 **Presentation Layer:**
@@ -316,7 +316,7 @@ Path validation is a well-understood security pattern. Use canonical path resolu
 
 **Data Flow:**
 - DashboardService fetches review state per worktree (like progress)
-- ReviewStateService reads review-state.yaml from worktree
+- ReviewStateService reads review-state.json from worktree
 - ReviewState passed to WorktreeListView for rendering
 
 ---
@@ -398,7 +398,7 @@ Path validation is a well-understood security pattern. Use canonical path resolu
 - Error messages for different failure modes
 
 **Infrastructure Layer:**
-- YAML parser error handling
+- JSON parser error handling
 - File read error handling
 
 **Presentation Layer:**
@@ -423,185 +423,33 @@ Path validation is a well-understood security pattern. Use canonical path resolu
 
 ---
 
-## Technical Risks & Uncertainties
+## Design Decisions (Resolved)
 
-### CLARIFY: YAML parsing library choice
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **File format** | JSON (`review-state.json`) | Zero new dependencies - reuse existing uJson library |
+| **Artifact rendering** | Separate page | Simple server-side rendering, no JavaScript needed, easier to test |
+| **Markdown rendering** | Server-side (commonmark-java or flexmark) | Consistent styling, easier XSS prevention, no client JS needed |
+| **State file location** | `project-management/issues/{issueId}/review-state.json` | Co-located with artifacts, consistent with workflow organization |
+| **Path resolution** | Relative to worktree root | Clear, explicit, easy to validate for security |
+| **Schema evolution** | Lenient parsing | All fields optional except `artifacts`, ignore unknown fields |
 
-The existing codebase uses uJson for JSON parsing. For YAML support, we need to choose a library.
+### Review State Schema
 
-**Questions to answer:**
-1. Should we use a Scala-native YAML library or Java interop?
-2. What's the parsing performance requirement (files are small, <10KB typically)?
-3. Do we need YAML generation, or just parsing?
+```json
+{
+  "status": "awaiting_review",
+  "phase": 8,
+  "message": "Phase 8 complete - Ready for review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/46/analysis.md"},
+    {"label": "Phase Context", "path": "project-management/issues/46/phase-08-context.md"}
+  ]
+}
+```
 
-**Options:**
-
-**Option A: circe-yaml** (Scala, popular)
-- Pros: Pure Scala, integrates with circe ecosystem, good error messages
-- Cons: Adds circe dependency (heavy if not already using), more dependencies
-- Effort: ~1h to integrate, straightforward API
-
-**Option B: snakeyaml-engine** (Java, lightweight)
-- Pros: Lightweight, widely used, no Scala dependencies
-- Cons: Java API (more verbose), less type-safe
-- Effort: ~1-2h to integrate, write Scala wrapper
-
-**Option C: Manual parsing with upickle/ujson** (if YAML subset is simple)
-- Pros: No new dependency, consistent with existing code
-- Cons: YAML is complex, manual parsing error-prone
-- Effort: ~4-6h to implement robust parser, not recommended
-
-**Impact:** Affects Story 1 and potentially build configuration. Recommend **Option B** for minimal dependencies, or **Option A** if type safety is priority.
-
----
-
-### CLARIFY: Artifact rendering approach (modal vs separate page)
-
-When users click an artifact, how should content be displayed?
-
-**Questions to answer:**
-1. Should users stay on the dashboard or navigate away?
-2. Do we need JavaScript for modal, or prefer server-rendered simplicity?
-3. Should users be able to compare multiple artifacts side-by-side?
-
-**Options:**
-
-**Option A: JavaScript modal overlay**
-- Pros: No page navigation, smooth UX, can view multiple artifacts without losing context
-- Cons: Requires JavaScript, more complex frontend, harder to test
-- Effort: 6-8h (modal component, event handling, styling)
-
-**Option B: Separate page per artifact**
-- Pros: Simple server-side rendering, works without JavaScript, easier to test
-- Cons: Loses dashboard context, requires navigation, less smooth UX
-- Effort: 4-5h (new route, template, back navigation)
-
-**Option C: Inline expansion on dashboard card**
-- Pros: No modal or navigation, progressive disclosure
-- Cons: Large artifacts make cards unwieldy, scrolling issues
-- Effort: 3-4h (expandable section, scroll handling)
-
-**Impact:** Affects Story 2 implementation approach and user experience. Recommend **Option B** for simplicity in MVP, can upgrade to Option A later if needed.
-
----
-
-### CLARIFY: Markdown rendering location (server vs client)
-
-Should markdown conversion happen server-side or client-side?
-
-**Questions to answer:**
-1. Do we want to support rich markdown (tables, code blocks, etc.)?
-2. Should rendered content be cached?
-3. Is XSS a concern (do we trust markdown sources)?
-
-**Options:**
-
-**Option A: Server-side rendering with commonmark-java**
-- Pros: Consistent styling, no client dependencies, easier XSS prevention
-- Cons: Server does more work, adds JVM library
-- Effort: 2-3h (integrate library, sanitization)
-
-**Option B: Client-side rendering with marked.js or similar**
-- Pros: Offloads work to client, reduces server load
-- Cons: Requires JavaScript, client must download library, XSS risk
-- Effort: 3-4h (integrate library, sanitization, testing)
-
-**Option C: Pre-render on workflow side, serve static HTML**
-- Pros: Zero rendering cost, very fast
-- Cons: Workflows must render, less flexible, storage overhead
-- Effort: Depends on workflow changes
-
-**Impact:** Affects Story 2 performance and dependencies. Recommend **Option A** for security and simplicity, markdown files are small (<100KB typically).
-
----
-
-### CLARIFY: Review state file location and naming
-
-Where should workflows write the review-state.yaml file?
-
-**Questions to answer:**
-1. Should it live in project-management/issues/{issueId}/ with other artifacts?
-2. Should it be at worktree root for easy discovery?
-3. Should name be configurable or fixed?
-
-**Options:**
-
-**Option A: project-management/issues/{issueId}/review-state.yaml**
-- Pros: Co-located with artifacts, consistent with workflow file organization
-- Cons: Requires constructing path from issueId
-- Discovery path: `{worktreePath}/project-management/issues/{issueId}/review-state.yaml`
-
-**Option B: .iw/review-state.yaml (worktree root)**
-- Pros: Easy to find, consistent location across worktrees
-- Cons: Separated from artifacts, multiple issues in one worktree could conflict
-- Discovery path: `{worktreePath}/.iw/review-state.yaml`
-
-**Option C: Both: symlink or duplicate**
-- Pros: Accessible from both locations
-- Cons: Complexity, sync issues
-- Not recommended
-
-**Impact:** Affects file discovery logic in Story 1 and workflow writing logic. Recommend **Option A** for consistency with existing workflow patterns.
-
----
-
-### CLARIFY: Artifact path resolution strategy
-
-How should artifact paths in review-state.yaml be specified?
-
-**Questions to answer:**
-1. Relative to review-state.yaml location, or absolute from worktree root?
-2. Should we support glob patterns (e.g., "phase-*-context.md")?
-3. What if artifact doesn't exist when state file is written?
-
-**Options:**
-
-**Option A: Relative to worktree root**
-- Pros: Clear, explicit, easy to validate
-- Cons: Workflows must know full path
-- Example: `project-management/issues/IWLE-72/analysis.md`
-
-**Option B: Relative to review-state.yaml location**
-- Pros: Shorter paths, portable if state file moves
-- Cons: More complex resolution, ambiguity
-- Example: `./analysis.md` or `analysis.md`
-
-**Option C: Absolute filesystem paths**
-- Pros: Unambiguous
-- Cons: Not portable, security risk, wrong abstraction
-- Not recommended
-
-**Impact:** Affects path validation in Story 6 and workflow writing convenience. Recommend **Option A** for security and clarity.
-
----
-
-### CLARIFY: Review state schema evolution
-
-How should we handle future changes to review-state.yaml schema?
-
-**Questions to answer:**
-1. Should we version the schema explicitly?
-2. Should new fields be strictly optional for backward compatibility?
-3. How do we handle unknown fields (ignore or error)?
-
-**Options:**
-
-**Option A: Strict schema with version field**
-- Pros: Clear compatibility story, explicit migrations
-- Cons: More ceremony, workflows must specify version
-- Example: `version: 1` in YAML
-
-**Option B: Lenient parsing, optional fields, ignore unknowns**
-- Pros: Backward compatible by default, easy evolution
-- Cons: Harder to detect errors, undefined behavior on schema drift
-- Example: All fields optional except `artifacts`
-
-**Option C: No versioning, break when needed**
-- Pros: Simplest, YAGNI
-- Cons: Breaks workflows on upgrades
-- Not recommended for multi-team environment
-
-**Impact:** Affects Story 1 parsing logic and long-term maintainability. Recommend **Option B** for MVP (lenient), can add versioning later if schema changes frequently.
+**Required fields:** `artifacts` (array of `{label, path}` objects)
+**Optional fields:** `status`, `phase`, `message`
 
 ---
 
@@ -617,13 +465,13 @@ How should we handle future changes to review-state.yaml schema?
 
 **Total Range:** 26-37 hours
 
-**Confidence:** Medium
+**Confidence:** High
 
 **Reasoning:**
-- Stories 1, 4, 5, 6 are moderate confidence - patterns exist in codebase (progress caching, error handling)
-- Story 2 is lower confidence - depends on CLARIFY decisions (modal vs page, markdown rendering)
-- Story 3 is high confidence - straightforward extension of Story 1
-- Main unknowns: YAML library choice, rendering approach, edge cases in markdown parsing
+- All design decisions resolved - no blocking uncertainties
+- Stories 1, 4, 5, 6 follow existing patterns (progress caching, error handling)
+- Story 2 uses simple server-side page rendering with markdown library
+- Story 3 is straightforward extension of Story 1
 - Risk buffer included for integration testing across stories
 
 ## Testing Approach
@@ -632,7 +480,7 @@ How should we handle future changes to review-state.yaml schema?
 
 Each story should have:
 1. **Unit Tests**: Pure domain logic, value objects, business rules
-2. **Integration Tests**: File I/O, YAML parsing, HTTP endpoints
+2. **Integration Tests**: File I/O, JSON parsing, HTTP endpoints
 3. **E2E Tests**: Automated browser tests or BATS tests for dashboard rendering
 
 ---
@@ -640,12 +488,12 @@ Each story should have:
 **Story 1: Display artifacts from state file**
 
 **Unit:**
-- ReviewState parsing from YAML content
+- ReviewState parsing from JSON content
 - Cache validity logic (mtime comparison)
-- Error handling for malformed YAML
+- Error handling for malformed JSON
 
 **Integration:**
-- Read review-state.yaml from filesystem
+- Read review-state.json from filesystem
 - Parse and return ReviewState
 - Cache invalidation on mtime change
 
@@ -655,16 +503,17 @@ Each story should have:
 - No review section when file missing
 
 **Test Data:**
-```yaml
-# test-fixtures/review-state-simple.yaml
-status: awaiting_review
-phase: 8
-message: "Ready for review"
-artifacts:
-  - label: "Analysis"
-    path: "project-management/issues/IWLE-72/analysis.md"
-  - label: "Phase Context"
-    path: "project-management/issues/IWLE-72/phase-08-context.md"
+```json
+// test-fixtures/review-state-simple.json
+{
+  "status": "awaiting_review",
+  "phase": 8,
+  "message": "Ready for review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IWLE-72/analysis.md"},
+    {"label": "Phase Context", "path": "project-management/issues/IWLE-72/phase-08-context.md"}
+  ]
+}
 ```
 
 ---
@@ -698,7 +547,7 @@ artifacts:
 - CSS class mapping for status
 
 **Integration:**
-- Parse status/phase/message from YAML
+- Parse status/phase/message from JSON
 
 **E2E:**
 - Status badge displays correctly
@@ -706,11 +555,11 @@ artifacts:
 - Missing fields don't break rendering
 
 **Test Data:**
-```yaml
-# Each status value tested
-status: awaiting_review
-status: in_progress
-status: completed
+```json
+// Each status value tested
+{"status": "awaiting_review", "artifacts": []}
+{"status": "in_progress", "artifacts": []}
+{"status": "completed", "artifacts": []}
 ```
 
 ---
@@ -743,16 +592,16 @@ status: completed
 
 **Integration:**
 - Missing file returns Left with message
-- Invalid YAML returns Left with parse error
+- Invalid JSON returns Left with parse error
 - Partial success (some artifacts load)
 
 **E2E:**
 - Missing state file: no review section, no crash
-- Invalid YAML: error message shown
+- Invalid JSON: error message shown
 - Missing artifact: error on click, other artifacts work
 
 **Test Data:**
-- Invalid YAML syntax
+- Invalid JSON syntax
 - Non-existent files
 - Empty files
 
@@ -776,22 +625,22 @@ status: completed
 - Access valid artifact: succeeds
 
 **Test Data:**
-```yaml
-# Malicious path attempts
-artifacts:
-  - label: "Evil"
-    path: "../../../etc/passwd"
-  - label: "Sneaky"
-    path: "/etc/passwd"
-  - label: "Tricky"
-    path: "project-management/../../etc/passwd"
+```json
+// Malicious path attempts
+{
+  "artifacts": [
+    {"label": "Evil", "path": "../../../etc/passwd"},
+    {"label": "Sneaky", "path": "/etc/passwd"},
+    {"label": "Tricky", "path": "project-management/../../etc/passwd"}
+  ]
+}
 ```
 
 ---
 
 **Test Data Strategy:**
 - Create fixtures directory: `.iw/core/test/fixtures/review-states/`
-- Sample YAML files for each scenario
+- Sample JSON files for each scenario
 - Sample markdown files with various content
 - Use temporary worktrees for E2E tests
 
@@ -806,21 +655,21 @@ artifacts:
 ## Deployment Considerations
 
 ### Database Changes
-No database - all state in filesystem YAML files.
+No database - all state in filesystem JSON files.
 
 **Story 1 schema:**
-```yaml
-# project-management/issues/{issueId}/review-state.yaml
-status: awaiting_review | in_progress | completed
-phase: 8
-message: "Phase 8 complete - Ready for review"
-artifacts:
-  - label: "Analysis Document"
-    path: "project-management/issues/IWLE-72/analysis.md"
-  - label: "Phase 8 Context"
-    path: "project-management/issues/IWLE-72/phase-08-context.md"
-  - label: "Review Packet"
-    path: "project-management/issues/IWLE-72/review-packet-phase-08.md"
+```json
+// project-management/issues/{issueId}/review-state.json
+{
+  "status": "awaiting_review",
+  "phase": 8,
+  "message": "Phase 8 complete - Ready for review",
+  "artifacts": [
+    {"label": "Analysis Document", "path": "project-management/issues/IWLE-72/analysis.md"},
+    {"label": "Phase 8 Context", "path": "project-management/issues/IWLE-72/phase-08-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IWLE-72/review-packet-phase-08.md"}
+  ]
+}
 ```
 
 ### Configuration Changes
@@ -841,16 +690,15 @@ Possible future: `.iw/config.conf` option to disable review artifact feature.
 ### Rollback Plan
 - If review state breaks dashboard: feature flag or remove review section from template
 - Cache corruption: delete ServerState file, cache rebuilds on next load
-- Bad artifacts displayed: workflows can update review-state.yaml, dashboard re-reads on mtime change
+- Bad artifacts displayed: workflows can update review-state.json, dashboard re-reads on mtime change
 
 ---
 
 ## Dependencies
 
 ### Prerequisites
-- YAML parsing library (resolved via CLARIFY)
-- Markdown rendering library (resolved via CLARIFY)
-- Both likely available as JVM libraries via Maven Central
+- JSON parsing: existing uJson library (no new dependency)
+- Markdown rendering library: commonmark-java or flexmark (JVM library via Maven Central)
 
 ### Story Dependencies
 **Sequential:**
@@ -866,7 +714,7 @@ Possible future: `.iw/config.conf` option to disable review artifact feature.
 ### External Blockers
 None - all work contained in iw-cli codebase.
 
-Coordination needed: Workflows (ag-implement) must write review-state.yaml files for feature to be useful, but dashboard can be built first.
+Coordination needed: Workflows (ag-implement) must write review-state.json files for feature to be useful, but dashboard can be built first.
 
 ---
 
@@ -874,7 +722,7 @@ Coordination needed: Workflows (ag-implement) must write review-state.yaml files
 
 **Recommended Story Order:**
 
-1. **Story 1: Display artifacts from state file** - Establishes foundation, defines schema, proves YAML parsing works
+1. **Story 1: Display artifacts from state file** - Establishes foundation, defines schema, implements JSON parsing
 2. **Story 6: Path validation security** - Critical security before allowing file access
 3. **Story 2: View artifact content** - Delivers core user value, depends on 1 and 6
 4. **Story 3: Review status and phase** - Quick enhancement, builds on Story 1
@@ -902,28 +750,22 @@ Coordination needed: Workflows (ag-implement) must write review-state.yaml files
 
 ## Documentation Requirements
 
-- [ ] YAML schema documented (review-state.yaml format)
+- [ ] JSON schema documented (review-state.json format)
 - [ ] API documentation for artifact endpoint (Story 2)
-- [ ] Workflow integration guide (how to write review-state.yaml)
+- [ ] Workflow integration guide (how to write review-state.json)
 - [ ] Security considerations documented (path validation)
 - [ ] Dashboard user guide updated (how to use review artifacts)
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
 
 **Next Steps:**
-1. Resolve CLARIFY markers:
-   - YAML library choice (recommend snakeyaml-engine)
-   - Rendering approach (recommend separate page for MVP)
-   - Markdown rendering location (recommend server-side)
-   - State file location (recommend project-management/issues/{issueId}/)
-   - Path resolution strategy (recommend worktree-root-relative)
-   - Schema evolution (recommend lenient parsing)
+1. Generate implementation tasks: `/iterative-works:ag-create-tasks 46`
 
-2. After CLARIFY resolution, begin implementation with Story 1 + Story 6 (foundation + security)
+2. Begin implementation with Story 1 + Story 6 (foundation + security)
 
-3. Coordinate with workflow developers on review-state.yaml writing (can happen in parallel)
+3. Coordinate with workflow developers on review-state.json writing (can happen in parallel)
 
 ---
 
