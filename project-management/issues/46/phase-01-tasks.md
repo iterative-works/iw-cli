@@ -15,97 +15,97 @@
 
 ### ReviewState and ReviewArtifact
 
-- [ ] Write test: ReviewState requires artifacts list (10 min)
-- [ ] Write test: ReviewState accepts optional status, phase, message (10 min)
-- [ ] Write test: ReviewArtifact has label and path (10 min)
-- [ ] Implement: Create ReviewState.scala with case classes (15 min)
-- [ ] Run tests: Verify domain models pass (5 min)
+- [x] Write test: ReviewState requires artifacts list (10 min)
+- [x] Write test: ReviewState accepts optional status, phase, message (10 min)
+- [x] Write test: ReviewArtifact has label and path (10 min)
+- [x] Implement: Create ReviewState.scala with case classes (15 min)
+- [x] Run tests: Verify domain models pass (5 min)
 
 ### CachedReviewState
 
-- [ ] Write test: CachedReviewState.isValid returns true when mtimes match (15 min)
-- [ ] Write test: CachedReviewState.isValid returns false when mtime changed (10 min)
-- [ ] Write test: CachedReviewState.isValid returns false when file added/removed (10 min)
-- [ ] Implement: Create CachedReviewState.scala with validation logic (20 min)
-- [ ] Run tests: Verify cache validation passes (5 min)
+- [x] Write test: CachedReviewState.isValid returns true when mtimes match (15 min)
+- [x] Write test: CachedReviewState.isValid returns false when mtime changed (10 min)
+- [x] Write test: CachedReviewState.isValid returns false when file added/removed (10 min)
+- [x] Implement: Create CachedReviewState.scala with validation logic (20 min)
+- [x] Run tests: Verify cache validation passes (5 min)
 
 ## JSON Parsing (TDD)
 
 ### ReviewStateService - parseReviewStateJson
 
-- [ ] Write test: parseReviewStateJson parses valid JSON with all fields (15 min)
-- [ ] Write test: parseReviewStateJson parses minimal JSON (only artifacts) (10 min)
-- [ ] Write test: parseReviewStateJson returns error for missing artifacts (10 min)
-- [ ] Write test: parseReviewStateJson returns error for invalid JSON syntax (10 min)
-- [ ] Write test: parseReviewStateJson handles optional fields as None (10 min)
-- [ ] Implement: Create ReviewStateService.scala with parseReviewStateJson (30 min)
-- [ ] Implement: Add uJson ReadWriter instances for ReviewState and ReviewArtifact (15 min)
-- [ ] Run tests: Verify JSON parsing passes (5 min)
+- [x] Write test: parseReviewStateJson parses valid JSON with all fields (15 min)
+- [x] Write test: parseReviewStateJson parses minimal JSON (only artifacts) (10 min)
+- [x] Write test: parseReviewStateJson returns error for missing artifacts (10 min)
+- [x] Write test: parseReviewStateJson returns error for invalid JSON syntax (10 min)
+- [x] Write test: parseReviewStateJson handles optional fields as None (10 min)
+- [x] Implement: Create ReviewStateService.scala with parseReviewStateJson (30 min)
+- [x] Implement: Add uJson ReadWriter instances for ReviewState and ReviewArtifact (15 min)
+- [x] Run tests: Verify JSON parsing passes (5 min)
 
 ## Service with I/O Injection (TDD)
 
 ### ReviewStateService - fetchReviewState
 
-- [ ] Write test: fetchReviewState returns cached state when mtime unchanged (20 min)
-- [ ] Write test: fetchReviewState re-reads file when mtime changed (20 min)
-- [ ] Write test: fetchReviewState returns error for missing file (15 min)
-- [ ] Write test: fetchReviewState returns error for invalid JSON (15 min)
-- [ ] Write test: fetchReviewState handles cache miss (reads and parses file) (15 min)
-- [ ] Implement: fetchReviewState with I/O injection pattern (30 min)
-- [ ] Implement: File path construction (project-management/issues/{issueId}/review-state.json) (10 min)
-- [ ] Run tests: Verify fetchReviewState integration passes (10 min)
+- [x] Write test: fetchReviewState returns cached state when mtime unchanged (20 min)
+- [x] Write test: fetchReviewState re-reads file when mtime changed (20 min)
+- [x] Write test: fetchReviewState returns error for missing file (15 min)
+- [x] Write test: fetchReviewState returns error for invalid JSON (15 min)
+- [x] Write test: fetchReviewState handles cache miss (reads and parses file) (15 min)
+- [x] Implement: fetchReviewState with I/O injection pattern (30 min)
+- [x] Implement: File path construction (project-management/issues/{issueId}/review-state.json) (10 min)
+- [x] Run tests: Verify fetchReviewState integration passes (10 min)
 
 ## ServerState Integration
 
 ### Extend ServerState with reviewStateCache
 
-- [ ] Write test: ServerState includes reviewStateCache field (10 min)
-- [ ] Write test: ServerState.removeWorktree clears review state cache entry (10 min)
-- [ ] Implement: Add reviewStateCache to ServerState case class (5 min)
-- [ ] Implement: Update removeWorktree to clear reviewStateCache (5 min)
-- [ ] Run tests: Verify ServerState changes pass (5 min)
+- [x] Write test: ServerState includes reviewStateCache field (10 min)
+- [x] Write test: ServerState.removeWorktree clears review state cache entry (10 min)
+- [x] Implement: Add reviewStateCache to ServerState case class (5 min)
+- [x] Implement: Update removeWorktree to clear reviewStateCache (5 min)
+- [x] Run tests: Verify ServerState changes pass (5 min)
 
 ### Extend StateRepository JSON serialization
 
-- [ ] Write test: StateRepository serializes ReviewState (15 min)
-- [ ] Write test: StateRepository serializes CachedReviewState (15 min)
-- [ ] Write test: StateRepository deserializes reviewStateCache (15 min)
-- [ ] Write test: StateRepository handles missing reviewStateCache gracefully (10 min)
-- [ ] Implement: Add uJson ReadWriter for CachedReviewState in StateRepository (20 min)
-- [ ] Implement: Update StateJson case class with reviewStateCache field (10 min)
-- [ ] Implement: Update read/write methods to include reviewStateCache (15 min)
-- [ ] Run tests: Verify StateRepository serialization passes (5 min)
+- [x] Write test: StateRepository serializes ReviewState (15 min)
+- [x] Write test: StateRepository serializes CachedReviewState (15 min)
+- [x] Write test: StateRepository deserializes reviewStateCache (15 min)
+- [x] Write test: StateRepository handles missing reviewStateCache gracefully (10 min)
+- [x] Implement: Add uJson ReadWriter for CachedReviewState in StateRepository (20 min)
+- [x] Implement: Update StateJson case class with reviewStateCache field (10 min)
+- [x] Implement: Update read/write methods to include reviewStateCache (15 min)
+- [x] Run tests: Verify StateRepository serialization passes (5 min)
 
 ## Dashboard Integration
 
 ### DashboardService - fetchReviewStateForWorktree
 
-- [ ] Write test: fetchReviewStateForWorktree returns ReviewState when file exists (20 min)
-- [ ] Write test: fetchReviewStateForWorktree returns None when file missing (15 min)
-- [ ] Write test: fetchReviewStateForWorktree uses cache correctly (15 min)
-- [ ] Implement: Add fetchReviewStateForWorktree private method to DashboardService (25 min)
-- [ ] Implement: Inject readFile and getMtime functions following WorkflowProgressService pattern (15 min)
-- [ ] Implement: Update renderDashboard to accept reviewStateCache parameter (10 min)
-- [ ] Implement: Call fetchReviewStateForWorktree for each worktree in dashboard (15 min)
-- [ ] Run tests: Verify DashboardService changes pass (5 min)
+- [x] Write test: fetchReviewStateForWorktree returns ReviewState when file exists (20 min)
+- [x] Write test: fetchReviewStateForWorktree returns None when file missing (15 min)
+- [x] Write test: fetchReviewStateForWorktree uses cache correctly (15 min)
+- [x] Implement: Add fetchReviewStateForWorktree private method to DashboardService (25 min)
+- [x] Implement: Inject readFile and getMtime functions following WorkflowProgressService pattern (15 min)
+- [x] Implement: Update renderDashboard to accept reviewStateCache parameter (10 min)
+- [x] Implement: Call fetchReviewStateForWorktree for each worktree in dashboard (15 min)
+- [x] Run tests: Verify DashboardService changes pass (5 min)
 
 ### CaskServer - pass reviewStateCache to dashboard
 
-- [ ] Implement: Update dashboard route to pass state.reviewStateCache to DashboardService (10 min)
-- [ ] Manual test: Verify server compiles and starts (5 min)
+- [x] Implement: Update dashboard route to pass state.reviewStateCache to DashboardService (10 min)
+- [x] Manual test: Verify server compiles and starts (5 min)
 
 ## UI Rendering
 
 ### WorktreeListView - display review section
 
-- [ ] Write test: WorktreeListView renders review section when reviewState provided (20 min)
-- [ ] Write test: WorktreeListView omits review section when reviewState is None (15 min)
-- [ ] Write test: WorktreeListView displays artifact labels correctly (15 min)
-- [ ] Implement: Update WorktreeListView.render signature to accept reviewState parameter (10 min)
-- [ ] Implement: Update renderWorktreeCard to include review artifacts section (20 min)
-- [ ] Implement: Add renderReviewSection helper method (15 min)
-- [ ] Implement: Add CSS styles for review artifacts section (15 min)
-- [ ] Run tests: Verify WorktreeListView changes pass (5 min)
+- [x] Write test: WorktreeListView renders review section when reviewState provided (20 min)
+- [x] Write test: WorktreeListView omits review section when reviewState is None (15 min)
+- [x] Write test: WorktreeListView displays artifact labels correctly (15 min)
+- [x] Implement: Update WorktreeListView.render signature to accept reviewState parameter (10 min)
+- [x] Implement: Update renderWorktreeCard to include review artifacts section (20 min)
+- [x] Implement: Add renderReviewSection helper method (15 min)
+- [x] Implement: Add CSS styles for review artifacts section (15 min)
+- [x] Run tests: Verify WorktreeListView changes pass (5 min)
 
 ## End-to-End Testing
 
@@ -130,9 +130,9 @@
 
 ## Final Integration
 
-- [ ] Run all unit tests (5 min)
-- [ ] Run all integration tests (5 min)
-- [ ] Fix any failing tests (buffer: 30 min)
+- [x] Run all unit tests (5 min)
+- [x] Run all integration tests (5 min)
+- [x] Fix any failing tests (buffer: 30 min)
 - [ ] Manual smoke test: full dashboard workflow (10 min)
 - [ ] Review code for style consistency (15 min)
 - [ ] Commit: Domain models and JSON parsing (5 min)
