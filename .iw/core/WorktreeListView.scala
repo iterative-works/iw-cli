@@ -128,7 +128,25 @@ object WorktreeListView:
       reviewState.filter(_.artifacts.nonEmpty).map { state =>
         div(
           cls := "review-artifacts",
-          h4("Review Artifacts"),
+          // Header with phase number (if available)
+          h4(
+            "Review Artifacts",
+            state.phase.map { phaseNum =>
+              span(cls := "review-phase", s" (Phase $phaseNum)")
+            }
+          ),
+          // Status badge (if available)
+          state.status.map { statusValue =>
+            div(
+              cls := s"review-status ${statusBadgeClass(statusValue)}",
+              span(cls := "review-status-label", formatStatusLabel(statusValue))
+            )
+          },
+          // Message (if available)
+          state.message.map { msg =>
+            p(cls := "review-message", msg)
+          },
+          // Artifacts list (existing)
           ul(
             cls := "artifact-list",
             state.artifacts.map { artifact =>
@@ -201,3 +219,23 @@ object WorktreeListView:
       s"${minutes}m ago"
     else
       "just now"
+
+  /** Map status value to CSS class for badge styling.
+    *
+    * @param status Status string from review-state.json
+    * @return CSS class name (e.g., "review-status-awaiting-review")
+    */
+  def statusBadgeClass(status: String): String =
+    status.toLowerCase.replace(" ", "-") match
+      case "awaiting_review" | "awaiting-review" => "review-status-awaiting-review"
+      case "in_progress" | "in-progress" => "review-status-in-progress"
+      case "completed" | "complete" => "review-status-completed"
+      case _ => "review-status-default"
+
+  /** Format status value as human-readable label.
+    *
+    * @param status Status string from review-state.json
+    * @return Formatted label (e.g., "Awaiting Review")
+    */
+  def formatStatusLabel(status: String): String =
+    status.toLowerCase.replace("_", " ").split(" ").map(_.capitalize).mkString(" ")

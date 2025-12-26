@@ -523,4 +523,60 @@ object DashboardService:
     .artifact-list a:hover {
       text-decoration: underline;
     }
+
+    /* Review phase number */
+    .review-phase {
+      font-size: 0.85em;
+      color: #666;
+      font-weight: normal;
+      margin-left: 8px;
+    }
+
+    /* Review status badge */
+    .review-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin: 8px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .review-status-label {
+      color: white;
+    }
+
+    /* Status-specific colors */
+    .review-status-awaiting-review {
+      background-color: #28a745;
+    }
+
+    .review-status-in-progress {
+      background-color: #ffc107;
+    }
+
+    .review-status-in-progress .review-status-label {
+      color: #333;
+    }
+
+    .review-status-completed {
+      background-color: #6c757d;
+    }
+
+    .review-status-default {
+      background-color: #007bff;
+    }
+
+    /* Review message */
+    .review-message {
+      margin: 8px 0;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-left: 3px solid #007bff;
+      font-size: 0.9em;
+      color: #495057;
+      border-radius: 4px;
+    }
   """

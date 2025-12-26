@@ -9,94 +9,94 @@
 
 ### Setup
 
-- [ ] Review existing WorktreeListView review section code (lines 128-144)
-- [ ] Review existing DashboardService CSS structure for styling patterns
-- [ ] Identify test data fixtures needed for WorktreeListViewTest
+- [x] Review existing WorktreeListView review section code (lines 128-144)
+- [x] Review existing DashboardService CSS structure for styling patterns
+- [x] Identify test data fixtures needed for WorktreeListViewTest
 
 ### Tests - Helper Functions
 
-- [ ] Write test for `formatStatusLabel()` with "awaiting_review" → "Awaiting Review"
-- [ ] Write test for `formatStatusLabel()` with "in_progress" → "In Progress"
-- [ ] Write test for `formatStatusLabel()` with "completed" → "Completed"
-- [ ] Write test for `statusBadgeClass()` with "awaiting_review" → "review-status-awaiting-review"
-- [ ] Write test for `statusBadgeClass()` with "in_progress" → "review-status-in-progress"
-- [ ] Write test for `statusBadgeClass()` with "completed" → "review-status-completed"
-- [ ] Write test for `statusBadgeClass()` with unknown status → "review-status-default"
+- [x] Write test for `formatStatusLabel()` with "awaiting_review" → "Awaiting Review"
+- [x] Write test for `formatStatusLabel()` with "in_progress" → "In Progress"
+- [x] Write test for `formatStatusLabel()` with "completed" → "Completed"
+- [x] Write test for `statusBadgeClass()` with "awaiting_review" → "review-status-awaiting-review"
+- [x] Write test for `statusBadgeClass()` with "in_progress" → "review-status-in-progress"
+- [x] Write test for `statusBadgeClass()` with "completed" → "review-status-completed"
+- [x] Write test for `statusBadgeClass()` with unknown status → "review-status-default"
 
 ### Implementation - Helper Functions
 
-- [ ] Implement `formatStatusLabel(status: String): String` in WorktreeListView
-- [ ] Implement `statusBadgeClass(status: String): String` in WorktreeListView
-- [ ] Run tests and verify helper functions pass
+- [x] Implement `formatStatusLabel(status: String): String` in WorktreeListView
+- [x] Implement `statusBadgeClass(status: String): String` in WorktreeListView
+- [x] Run tests and verify helper functions pass
 
 ### Tests - Status Badge Rendering
 
-- [ ] Write test: status badge appears when ReviewState.status is defined
-- [ ] Write test: status badge has correct CSS class for "awaiting_review"
-- [ ] Write test: status badge has correct CSS class for "in_progress"
-- [ ] Write test: status badge has correct CSS class for "completed"
-- [ ] Write test: no status badge when ReviewState.status is None
+- [x] Write test: status badge appears when ReviewState.status is defined
+- [x] Write test: status badge has correct CSS class for "awaiting_review"
+- [x] Write test: status badge has correct CSS class for "in_progress"
+- [x] Write test: status badge has correct CSS class for "completed"
+- [x] Write test: no status badge when ReviewState.status is None
 
 ### Tests - Phase Number Display
 
-- [ ] Write test: phase number "Phase 8" appears when ReviewState.phase = Some(8)
-- [ ] Write test: phase number has CSS class "review-phase"
-- [ ] Write test: no phase number when ReviewState.phase is None
-- [ ] Write test: phase 0 displays as "Phase 0"
+- [x] Write test: phase number "Phase 8" appears when ReviewState.phase = Some(8)
+- [x] Write test: phase number has CSS class "review-phase"
+- [x] Write test: no phase number when ReviewState.phase is None
+- [x] Write test: phase 0 displays as "Phase 0"
 
 ### Tests - Message Display
 
-- [ ] Write test: message appears when ReviewState.message is defined
-- [ ] Write test: message has CSS class "review-message"
-- [ ] Write test: no message when ReviewState.message is None
-- [ ] Write test: empty string message does not render
+- [x] Write test: message appears when ReviewState.message is defined
+- [x] Write test: message has CSS class "review-message"
+- [x] Write test: no message when ReviewState.message is None
+- [x] Write test: empty string message does not render
 
 ### Tests - Combined Rendering
 
-- [ ] Write test: all fields (status, phase, message) render together correctly
-- [ ] Write test: missing all optional fields still renders artifacts section
-- [ ] Write test: partial fields (only status) renders correctly
+- [x] Write test: all fields (status, phase, message) render together correctly
+- [x] Write test: missing all optional fields still renders artifacts section
+- [x] Write test: partial fields (only status) renders correctly
 
 ### Implementation - Review Section Extension
 
-- [ ] Extend review section header to include phase number (lines 128-144)
-- [ ] Add status badge rendering after header
-- [ ] Add message rendering after status badge
-- [ ] Verify compilation succeeds
-- [ ] Run unit tests and verify all pass
+- [x] Extend review section header to include phase number (lines 128-144)
+- [x] Add status badge rendering after header
+- [x] Add message rendering after status badge
+- [x] Verify compilation succeeds
+- [x] Run unit tests and verify all pass
 
 ### Implementation - CSS Styling
 
-- [ ] Add CSS for `.review-phase` (gray text, smaller font)
-- [ ] Add CSS for `.review-status` (badge base styling)
-- [ ] Add CSS for `.review-status-label` (white text)
-- [ ] Add CSS for `.review-status-awaiting-review` (green background)
-- [ ] Add CSS for `.review-status-in-progress` (yellow background, dark text)
-- [ ] Add CSS for `.review-status-completed` (gray background)
-- [ ] Add CSS for `.review-status-default` (blue background)
-- [ ] Add CSS for `.review-message` (bordered info box)
+- [x] Add CSS for `.review-phase` (gray text, smaller font)
+- [x] Add CSS for `.review-status` (badge base styling)
+- [x] Add CSS for `.review-status-label` (white text)
+- [x] Add CSS for `.review-status-awaiting-review` (green background)
+- [x] Add CSS for `.review-status-in-progress` (yellow background, dark text)
+- [x] Add CSS for `.review-status-completed` (gray background)
+- [x] Add CSS for `.review-status-default` (blue background)
+- [x] Add CSS for `.review-message` (bordered info box)
 
 ### Integration Testing
 
-- [ ] Create test review-state.json with all fields (status, phase, message, artifacts)
-- [ ] Start server with `./iw server` and verify dashboard loads
-- [ ] Verify status badge displays with correct color (green for "awaiting_review")
-- [ ] Verify phase number displays as "Phase 8"
-- [ ] Verify message displays below status badge
-- [ ] Test with status = "in_progress" → verify yellow badge
-- [ ] Test with status = "completed" → verify gray badge
-- [ ] Test with missing status field → verify no badge, no error
-- [ ] Test with missing phase field → verify no phase number, no error
-- [ ] Test with missing message field → verify no message, no error
+- [x] Create test review-state.json with all fields (status, phase, message, artifacts)
+- [x] Start server with `./iw server` and verify dashboard loads
+- [x] Verify status badge displays with correct color (green for "awaiting_review")
+- [x] Verify phase number displays as "Phase 8"
+- [x] Verify message displays below status badge
+- [x] Test with status = "in_progress" → verify yellow badge
+- [x] Test with status = "completed" → verify gray badge
+- [x] Test with missing status field → verify no badge, no error
+- [x] Test with missing phase field → verify no phase number, no error
+- [x] Test with missing message field → verify no message, no error
 
 ### Code Review and Refinement
 
-- [ ] Review for code duplication (none expected)
-- [ ] Verify helper functions are pure and testable
-- [ ] Verify CSS follows existing dashboard conventions
-- [ ] Run all tests: `./iw test`
-- [ ] Verify no compilation warnings
-- [ ] Check that existing dashboard tests still pass
+- [x] Review for code duplication (none expected)
+- [x] Verify helper functions are pure and testable
+- [x] Verify CSS follows existing dashboard conventions
+- [x] Run all tests: `./iw test`
+- [x] Verify no compilation warnings
+- [x] Check that existing dashboard tests still pass
 
 ## Success Criteria
 

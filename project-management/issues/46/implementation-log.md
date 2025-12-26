@@ -176,3 +176,53 @@ M  .iw/core/test/WorktreeListViewTest.scala
 ```
 
 ---
+
+## Phase 4: Review status and phase display (2025-12-26)
+
+**What was built:**
+- Helper: `statusBadgeClass()` - Maps status values to CSS classes with normalization
+- Helper: `formatStatusLabel()` - Converts snake_case status to Title Case labels
+- UI: Extended `WorktreeListView` review section with status badge, phase number, and message display
+- CSS: Added status badge styles to `DashboardService` with color-coded visual indicators
+
+**Decisions made:**
+- Public Helper Functions: Made `statusBadgeClass` and `formatStatusLabel` public for direct unit testing
+- Status Normalization: Handle both underscore and hyphen separators (awaiting_review, awaiting-review)
+- Color Scheme: Green (awaiting_review), Yellow (in_progress), Gray (completed), Blue (default)
+- Graceful Degradation: Missing status/phase/message fields simply don't render (no errors)
+
+**Patterns applied:**
+- Option-based Conditional Rendering: `state.status.map { ... }` for clean optional display
+- Scalatags Fragment Composition: Option[Frag] handled automatically by Scalatags
+- CSS Class Mapping: Pure function maps status values to semantic CSS classes
+
+**Testing:**
+- Unit tests: 22 tests added/modified
+  - Helper function tests (10 tests) - formatStatusLabel, statusBadgeClass with various inputs
+  - Status badge rendering tests (4 tests) - awaiting_review, in_progress, completed, None
+  - Phase number display tests (3 tests) - Phase 8, Phase 0, None
+  - Message display tests (2 tests) - message present, message None
+  - Combined rendering tests (3 tests) - all fields, no fields, partial fields
+
+**Code review:**
+- Iterations: 1
+- Skills applied: scala3, style, testing
+- Critical issues: 0
+- Warnings: 4 (missing empty string test, documentation examples)
+- Suggestions: 6 (parameterized tests, edge cases, CSS constants)
+- Review file: review-phase-04.md
+
+**For next phases:**
+- Available utilities: Status badge CSS classes can be reused for other status displays
+- Extension points: Additional status values can be added to statusBadgeClass
+- Notes: Consider adding empty string message filtering; E2E tests recommended
+
+**Files changed:**
+```
+M  .iw/core/WorktreeListView.scala
+M  .iw/core/DashboardService.scala
+M  .iw/core/test/WorktreeListViewTest.scala
+M  .iw/commands/test.scala
+```
+
+---
