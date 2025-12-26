@@ -34,7 +34,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         val config = ConfigFileRepository.read(configPath)
 
         // Render dashboard with issue data, progress, PR data, and review state
-        val html = DashboardService.renderDashboard(
+        val (html, updatedReviewStateCache) = DashboardService.renderDashboard(
           worktrees,
           state.issueCache,
           state.progressCache,
@@ -42,6 +42,10 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           state.reviewStateCache,
           config
         )
+
+        // Update server state with new review state cache and persist
+        val updatedState = state.copy(reviewStateCache = updatedReviewStateCache)
+        repository.write(updatedState) // Best-effort save, ignore errors
 
         cask.Response(
           data = html,

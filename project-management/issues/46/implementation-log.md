@@ -226,3 +226,52 @@ M  .iw/commands/test.scala
 ```
 
 ---
+
+## Phase 5: Review state caching (2025-12-26)
+
+**What was built:**
+- Service: Updated `ReviewStateService.fetchReviewState()` to return `CachedReviewState` instead of `ReviewState`
+- Application: Updated `DashboardService.renderDashboard()` to use accumulator pattern for cache updates
+- Infrastructure: Updated `CaskServer` to persist updated cache via `StateRepository`
+
+**Decisions made:**
+- Return Type Change: Service returns `CachedReviewState` wrapper to enable caller to update cache
+- Accumulator Pattern: Use `foldLeft` in DashboardService to accumulate cache entries during iteration
+- Best-Effort Persistence: Cache persisted after each dashboard load (errors ignored for UX)
+- Functional Purity: Service remains pure, caller (CaskServer) handles state mutation
+
+**Patterns applied:**
+- Functional Core, Imperative Shell (FCIS): Service returns data, imperative shell persists it
+- Accumulator Pattern: `foldLeft` collects cache updates across worktrees
+- Existing Cache Pattern: Follows IssueCacheService/PullRequestCacheService patterns
+
+**Testing:**
+- Unit tests: 3 new tests added
+  - Cache hit returns CachedReviewState without file read
+  - Cache miss re-parses when mtime changes
+  - First fetch creates CachedReviewState
+- Updated tests: All existing ReviewStateServiceTest and DashboardServiceTest updated for new return types
+
+**Code review:**
+- Iterations: 1
+- Skills applied: scala3, style, testing
+- Critical issues: 0
+- Warnings: 2 (verbose type annotation, comment consistency)
+- Suggestions: 5 (type aliases, parameterized tests, cache accumulation tests)
+- Review file: review-phase-05.md
+
+**For next phases:**
+- Available utilities: Cache now fully functional - populates on parse, persists across restarts
+- Extension points: Cache eviction could be added if needed (not required for current scale)
+- Notes: Pre-existing issue with `./iw test unit` command not including subdirectories
+
+**Files changed:**
+```
+M  .iw/core/ReviewStateService.scala
+M  .iw/core/DashboardService.scala
+M  .iw/core/CaskServer.scala
+M  .iw/core/test/ReviewStateServiceTest.scala
+M  .iw/core/test/DashboardServiceTest.scala
+```
+
+---

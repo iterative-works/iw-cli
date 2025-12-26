@@ -100,7 +100,7 @@ object ReviewStateService:
     * @param cache Existing review state cache
     * @param readFile Function to read file content (injected I/O)
     * @param getMtime Function to get file modification time (injected I/O)
-    * @return Either error message or ReviewState
+    * @return Either error message or CachedReviewState
     */
   def fetchReviewState(
     issueId: String,
@@ -108,7 +108,7 @@ object ReviewStateService:
     cache: Map[String, CachedReviewState],
     readFile: String => Either[String, String],
     getMtime: String => Either[String, Long]
-  ): Either[String, ReviewState] =
+  ): Either[String, CachedReviewState] =
     val reviewStatePath = s"$worktreePath/project-management/issues/$issueId/review-state.json"
 
     // Get current mtime
@@ -123,13 +123,16 @@ object ReviewStateService:
         // Check cache validity
         cache.get(issueId) match {
           case Some(cached) if CachedReviewState.isValid(cached, currentMtimes) =>
-            // Cache is valid, return cached state
-            Right(cached.state)
+            // Cache is valid, return cached CachedReviewState
+            Right(cached)
 
           case _ =>
             // Cache invalid or missing, read and parse file
             readFile(reviewStatePath).flatMap { content =>
-              parseReviewStateJson(content)
+              parseReviewStateJson(content).map { state =>
+                // Wrap ReviewState in CachedReviewState with current mtime
+                CachedReviewState(state, currentMtimes)
+              }
             }
         }
     }

@@ -20,7 +20,7 @@ object DashboardService:
     * @param prCache Current PR cache
     * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
-    * @return Complete HTML page as string
+    * @return Tuple of (HTML page as string, updated review state cache)
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
@@ -29,17 +29,29 @@ object DashboardService:
     prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
     config: Option[ProjectConfiguration]
-  ): String =
+  ): (String, Map[String, CachedReviewState]) =
     val now = Instant.now()
 
-    // Fetch issue data, progress, git status, PR data, and review state for each worktree
-    val worktreesWithData = worktrees.map { wt =>
+    // Fetch data for each worktree and accumulate updated review state cache
+    val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
+      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[ReviewState])], reviewStateCache)
+    ) { case ((acc, cache), wt) =>
       val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktree(wt, prCache, now)
-      val reviewState = fetchReviewStateForWorktree(wt, reviewStateCache)
-      (wt, issueData, progress, gitStatus, prData, reviewState)
+      val cachedReviewState = fetchReviewStateForWorktree(wt, cache)
+
+      // Extract ReviewState for view and update cache
+      val (reviewState, newCache) = cachedReviewState match {
+        case Some(cached) =>
+          (Some(cached.state), cache + (wt.issueId -> cached))
+        case None =>
+          (None, cache)
+      }
+
+      val worktreeData = (wt, issueData, progress, gitStatus, prData, reviewState)
+      (worktreeData :: acc, newCache)
     }
 
     val page = html(
@@ -52,12 +64,12 @@ object DashboardService:
         div(
           cls := "container",
           h1("iw Dashboard"),
-          WorktreeListView.render(worktreesWithData, now)
+          WorktreeListView.render(worktreesWithData.reverse, now)
         )
       )
     )
 
-    "<!DOCTYPE html>\n" + page.render
+    ("<!DOCTYPE html>\n" + page.render, updatedReviewStateCache)
 
   /** Fetch issue data for a single worktree using cache or API.
     *
@@ -241,12 +253,12 @@ object DashboardService:
     *
     * @param wt Worktree registration
     * @param cache Current review state cache
-    * @return Optional ReviewState, None if unavailable
+    * @return Optional CachedReviewState, None if unavailable
     */
   private def fetchReviewStateForWorktree(
     wt: WorktreeRegistration,
     cache: Map[String, CachedReviewState]
-  ): Option[ReviewState] =
+  ): Option[CachedReviewState] =
     // File I/O wrapper: read file content
     val readFile = (path: String) => Try {
       val source = scala.io.Source.fromFile(path)
