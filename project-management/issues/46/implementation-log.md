@@ -70,3 +70,52 @@ M  .iw/core/test/StateRepositoryTest.scala
 ```
 
 ---
+
+## Phase 2: Path validation security (2025-12-26)
+
+**What was built:**
+- Security: `PathValidator.scala` - Pure validation functions for artifact paths
+- Security: `validateArtifactPath()` - Main entry point with I/O injection for symlink resolution
+- Security: `isWithinBoundary()` - Boundary enforcement using Path.startsWith after normalize
+- Security: `isAbsolute()` - Cross-platform absolute path detection (Unix + Windows)
+- Security: `defaultSymlinkResolver()` - Symlink resolution with toRealPath()
+
+**Decisions made:**
+- I/O Injection Pattern: Symlink resolution injected as function parameter for testability (FCIS)
+- Secure Error Messages: Generic messages ("Artifact not found") that don't leak filesystem structure
+- Double Boundary Check: Check before and after symlink resolution to prevent symlink escapes
+- Cross-Platform: Support both Unix (/) and Windows (C:\) absolute path detection
+
+**Patterns applied:**
+- Functional Core, Imperative Shell (FCIS): Pure path validation with I/O only in symlink resolution
+- Dependency Injection: `resolveSymlinks` parameter allows pure unit tests with mock resolvers
+- Defense in Depth: Multiple validation layers (empty, absolute, traversal, boundary, symlink)
+
+**Testing:**
+- Unit tests: 18 tests added
+  - PathValidatorTest - Basic validation (5 tests): empty, whitespace, absolute paths
+  - PathValidatorTest - Traversal detection (4 tests): simple, embedded, safe .., filename with ..
+  - PathValidatorTest - Boundary enforcement (3 tests): under base, escapes, equal paths
+  - PathValidatorTest - Symlink handling (3 tests): outside, inside, broken
+  - PathValidatorTest - Edge cases (3 tests): e2e, Unicode, special chars
+
+**Code review:**
+- Iterations: 1
+- Skills applied: scala3, style, testing, security
+- Critical issues: 0
+- Warnings: 5 (considered but not blocking)
+- Suggestions: 10+ (documented for future consideration)
+- Major findings: TOCTOU documentation suggested, Windows UNC paths noted
+
+**For next phases:**
+- Available utilities: PathValidator.validateArtifactPath for Phase 3 artifact serving
+- Extension points: Can add caching if performance becomes an issue
+- Notes: Call validateArtifactPath before any file read; use returned path directly
+
+**Files changed:**
+```
+A  .iw/core/PathValidator.scala
+A  .iw/core/test/PathValidatorTest.scala
+```
+
+---

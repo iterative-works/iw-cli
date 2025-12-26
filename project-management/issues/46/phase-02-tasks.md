@@ -2,77 +2,77 @@
 
 **Issue:** #46
 **Phase:** 2 of 6
-**Status:** Ready to implement
+**Status:** Complete
 **Estimated Effort:** 2-3 hours
 
 ## Setup
 
-- [ ] Review java.nio.file.Path API for normalize() and toRealPath() (5 min)
-- [ ] Review existing test patterns in codebase for munit tests (5 min)
+- [x] Review java.nio.file.Path API for normalize() and toRealPath() (5 min)
+- [x] Review existing test patterns in codebase for munit tests (5 min)
 
 ## Domain Layer (TDD)
 
 ### PathValidator - Basic Path Validation
 
-- [ ] Write test: validateArtifactPath accepts valid relative path within worktree (10 min)
-- [ ] Write test: validateArtifactPath rejects empty path (5 min)
-- [ ] Write test: validateArtifactPath rejects whitespace-only path (5 min)
-- [ ] Write test: validateArtifactPath rejects absolute Unix path (5 min)
-- [ ] Write test: validateArtifactPath rejects absolute Windows path (5 min)
-- [ ] Implement: Create PathValidator.scala with basic validation (15 min)
-- [ ] Run tests: Verify basic validation passes (5 min)
+- [x] Write test: validateArtifactPath accepts valid relative path within worktree (10 min)
+- [x] Write test: validateArtifactPath rejects empty path (5 min)
+- [x] Write test: validateArtifactPath rejects whitespace-only path (5 min)
+- [x] Write test: validateArtifactPath rejects absolute Unix path (5 min)
+- [x] Write test: validateArtifactPath rejects absolute Windows path (5 min)
+- [x] Implement: Create PathValidator.scala with basic validation (15 min)
+- [x] Run tests: Verify basic validation passes (5 min)
 
 ### PathValidator - Directory Traversal Detection
 
-- [ ] Write test: validateArtifactPath rejects simple traversal "../../../etc/passwd" (5 min)
-- [ ] Write test: validateArtifactPath rejects embedded traversal "a/../../../etc/passwd" (5 min)
-- [ ] Write test: validateArtifactPath accepts path with ".." that stays within boundary (10 min)
-- [ ] Write test: validateArtifactPath accepts filename containing ".." like "file..name.md" (5 min)
-- [ ] Implement: Add traversal detection using Path.normalize() (15 min)
-- [ ] Run tests: Verify traversal detection passes (5 min)
+- [x] Write test: validateArtifactPath rejects simple traversal "../../../etc/passwd" (5 min)
+- [x] Write test: validateArtifactPath rejects embedded traversal "a/../../../etc/passwd" (5 min)
+- [x] Write test: validateArtifactPath accepts path with ".." that stays within boundary (10 min)
+- [x] Write test: validateArtifactPath accepts filename containing ".." like "file..name.md" (5 min)
+- [x] Implement: Add traversal detection using Path.normalize() (15 min)
+- [x] Run tests: Verify traversal detection passes (5 min)
 
 ### PathValidator - Boundary Enforcement
 
-- [ ] Write test: isWithinBoundary returns true when path is under base (5 min)
-- [ ] Write test: isWithinBoundary returns false when path escapes base (5 min)
-- [ ] Write test: isWithinBoundary handles equal paths (same directory) (5 min)
-- [ ] Implement: isWithinBoundary using Path.startsWith after normalize (10 min)
-- [ ] Run tests: Verify boundary enforcement passes (5 min)
+- [x] Write test: isWithinBoundary returns true when path is under base (5 min)
+- [x] Write test: isWithinBoundary returns false when path escapes base (5 min)
+- [x] Write test: isWithinBoundary handles equal paths (same directory) (5 min)
+- [x] Implement: isWithinBoundary using Path.startsWith after normalize (10 min)
+- [x] Run tests: Verify boundary enforcement passes (5 min)
 
 ### PathValidator - Symlink Handling
 
-- [ ] Write test: validateArtifactPath rejects symlink pointing outside worktree (10 min)
-- [ ] Write test: validateArtifactPath accepts symlink pointing within worktree (10 min)
-- [ ] Write test: validateArtifactPath handles broken symlinks gracefully (10 min)
-- [ ] Implement: Add optional symlink resolution with I/O injection (20 min)
-- [ ] Run tests: Verify symlink handling passes (5 min)
+- [x] Write test: validateArtifactPath rejects symlink pointing outside worktree (10 min)
+- [x] Write test: validateArtifactPath accepts symlink pointing within worktree (10 min)
+- [x] Write test: validateArtifactPath handles broken symlinks gracefully (10 min)
+- [x] Implement: Add optional symlink resolution with I/O injection (20 min)
+- [x] Run tests: Verify symlink handling passes (5 min)
 
 ## Error Messages
 
 ### Secure Error Generation
 
-- [ ] Write test: error for absolute path says "Artifact path must be relative" (5 min)
-- [ ] Write test: error for traversal says "Invalid artifact path" (no path details) (5 min)
-- [ ] Write test: error for outside boundary says "Artifact not found" (5 min)
-- [ ] Write test: error for empty path says "Invalid artifact path" (5 min)
-- [ ] Implement: Ensure error messages don't leak filesystem structure (10 min)
-- [ ] Run tests: Verify error messages are secure (5 min)
+- [x] Write test: error for absolute path says "Artifact path must be relative" (5 min)
+- [x] Write test: error for traversal says "Invalid artifact path" (no path details) (5 min)
+- [x] Write test: error for outside boundary says "Artifact not found" (5 min)
+- [x] Write test: error for empty path says "Invalid artifact path" (5 min)
+- [x] Implement: Ensure error messages don't leak filesystem structure (10 min)
+- [x] Run tests: Verify error messages are secure (5 min)
 
 ## Integration
 
 ### Full Validation Flow
 
-- [ ] Write test: validateArtifactPath end-to-end with real worktree path (15 min)
-- [ ] Write test: validateArtifactPath handles Unicode path components (10 min)
-- [ ] Write test: validateArtifactPath handles special characters in filenames (10 min)
-- [ ] Run all tests: Full test suite passes (5 min)
+- [x] Write test: validateArtifactPath end-to-end with real worktree path (15 min)
+- [x] Write test: validateArtifactPath handles Unicode path components (10 min)
+- [x] Write test: validateArtifactPath handles special characters in filenames (10 min)
+- [x] Run all tests: Full test suite passes (5 min)
 
 ## Final Verification
 
-- [ ] Run unit tests for PathValidator (5 min)
-- [ ] Review code for security best practices (10 min)
-- [ ] Verify no path information leaked in error messages (5 min)
-- [ ] Manual test with real paths in worktree (10 min)
+- [x] Run unit tests for PathValidator (5 min)
+- [x] Review code for security best practices (10 min)
+- [x] Verify no path information leaked in error messages (5 min)
+- [x] Manual test with real paths in worktree (10 min)
 
 ---
 
