@@ -108,8 +108,10 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Analysis Doc"), s"Should contain artifact label 'Analysis Doc'")
     assert(htmlStr.contains("Phase Context"), s"Should contain artifact label 'Phase Context'")
     assert(htmlStr.contains("Review Packet"), s"Should contain artifact label 'Review Packet'")
-    // Verify all are within list items
-    assert(htmlStr.contains("<li>Analysis Doc</li>"), s"Artifacts should be in list items")
+    // Verify artifacts are clickable links
+    assert(htmlStr.contains("<a"), s"Artifacts should be links")
+    assert(htmlStr.contains("/worktrees/"), s"Artifact links should point to worktree artifacts route")
+    assert(htmlStr.contains("?path="), s"Artifact links should include path query parameter")
 
   test("WorktreeListView renders empty state when no worktrees"):
     val html = WorktreeListView.render(List.empty, now)

@@ -132,7 +132,12 @@ object WorktreeListView:
           ul(
             cls := "artifact-list",
             state.artifacts.map { artifact =>
-              li(artifact.label)
+              li(
+                a(
+                  href := s"/worktrees/${worktree.issueId}/artifacts?path=${artifact.path}",
+                  artifact.label
+                )
+              )
             }
           )
         )

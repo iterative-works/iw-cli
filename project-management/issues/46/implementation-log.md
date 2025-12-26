@@ -119,3 +119,60 @@ A  .iw/core/test/PathValidatorTest.scala
 ```
 
 ---
+
+## Phase 3: View artifact content (2025-12-26)
+
+**What was built:**
+- Infrastructure: `MarkdownRenderer.scala` - Flexmark integration for markdown-to-HTML conversion with GFM support
+- Application: `ArtifactService.scala` - Orchestrates path validation, file reading, and markdown rendering with I/O injection
+- Presentation: `ArtifactView.scala` - Server-rendered HTML pages for artifact viewing and error display
+- Route: Added `GET /worktrees/:issueId/artifacts?path=...` endpoint to CaskServer
+- UI: Updated `WorktreeListView` to make artifact labels clickable links
+
+**Decisions made:**
+- Server-Rendered Pages: Chose simple page navigation over JavaScript modal for simplicity and testability
+- Flexmark Library: Selected flexmark-all:0.64.8 for full GFM support (tables, code blocks, strikethrough, autolinks)
+- I/O Injection: Both readFile and resolveSymlinks injected into ArtifactService for testability (FCIS)
+- Secure Error Messages: Generic "Artifact not found" messages don't leak filesystem structure
+
+**Patterns applied:**
+- Functional Core, Imperative Shell (FCIS): ArtifactService is pure with injected I/O, CaskServer handles actual file reading
+- PathValidator Integration: Security validation from Phase 2 used before any file access
+- Scalatags for HTML: Consistent with existing WorktreeListView and DashboardService patterns
+- Defense in Depth: Path validation + XSS prevention via flexmark escaping + secure error messages
+
+**Testing:**
+- Unit tests: 38 tests added
+  - MarkdownRendererTest (15 tests) - Headers, lists, code blocks, tables, links, edge cases
+  - ArtifactServiceTest (11 tests) - Path validation, worktree lookup, error handling, markdown integration
+  - ArtifactViewTest (12 tests) - HTML structure, error pages, back navigation
+- View tests: Updated WorktreeListViewTest for clickable artifact links
+
+**Code review:**
+- Iterations: 1
+- Skills applied: scala3, style, testing, security, architecture
+- Critical issues: 2 (architectural - pre-existing patterns from Phase 2, deferred)
+- Warnings: 11 (documentation, CSP headers, E2E tests noted)
+- Suggestions: 21 (nice-to-have improvements documented)
+- Review file: review-phase-03.md
+
+**For next phases:**
+- Available utilities: ArtifactService.loadArtifact for loading and rendering markdown artifacts
+- Extension points: ArtifactView can be extended for status/phase display (Phase 4)
+- Notes: E2E tests recommended; CSP headers suggested for production deployment
+
+**Files changed:**
+```
+A  .iw/core/ArtifactService.scala
+A  .iw/core/MarkdownRenderer.scala
+A  .iw/core/presentation/views/ArtifactView.scala
+A  .iw/core/test/MarkdownRendererTest.scala
+A  .iw/core/test/ArtifactServiceTest.scala
+A  .iw/core/test/ArtifactViewTest.scala
+M  .iw/core/CaskServer.scala
+M  .iw/core/WorktreeListView.scala
+M  .iw/core/project.scala
+M  .iw/core/test/WorktreeListViewTest.scala
+```
+
+---
