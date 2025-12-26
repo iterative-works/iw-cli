@@ -60,3 +60,53 @@ M  .iw/test/start.bats
 ```
 
 ---
+
+## Phase 2: Parse and display GitHub issues with team prefix (2025-12-26)
+
+**What was built:**
+- Domain: Extended `IssueId.parse` with optional `defaultTeam: Option[String]` parameter
+- Logic: Numeric input + team prefix → composes `TEAM-NNN` format via `forGitHub`
+- Logic: Full format input (e.g., `IWCLI-51`) → accepted directly, ignores default team
+- Commands: Updated `issue`, `open`, `rm`, `start` to pass team prefix from config
+
+**Decisions made:**
+- Optional parameter with default `None` maintains backward compatibility
+- Explicit format always wins over default team prefix
+- Team prefix only extracted for GitHub tracker type (if-expression pattern)
+- Delegate composition to existing `forGitHub` factory for consistency
+
+**Patterns applied:**
+- Context-aware parsing: optional parameter carries config context to domain layer
+- Backward compatibility: default parameter value preserves existing behavior
+- DRY principle: reuse `forGitHub` for composition, don't duplicate validation
+
+**Testing:**
+- Unit tests: 10 new tests for parse with defaultTeam parameter
+- E2E tests: 3 new tests for issue command with team prefix
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20251226.md
+- Major findings: No critical issues. 3 warnings (pre-existing patterns, test assertion style)
+
+**For next phases:**
+- Available utilities:
+  - `IssueId.parse(raw, defaultTeam)` - context-aware parsing with optional team prefix
+  - All commands now consistently pass team prefix from config
+- Extension points:
+  - `fromBranch` can be updated to require TEAM-NNN format (Phase 3)
+  - Numeric patterns can now be removed safely (Phase 3)
+- Notes: Backward compatibility maintained - bare numeric still works when no team prefix configured
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+M  .iw/commands/open.scala
+M  .iw/commands/rm.scala
+M  .iw/commands/start.scala
+M  .iw/core/IssueId.scala
+M  .iw/core/test/IssueIdTest.scala
+M  .iw/test/issue.bats
+```
+
+---

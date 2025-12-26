@@ -2,7 +2,7 @@
 
 **Issue:** #51
 **Phase:** 2 of 3
-**Status:** Not Started
+**Status:** Complete
 
 ## Implementation Tasks
 
@@ -47,9 +47,9 @@
 
 ## Acceptance Checklist
 
-- [ ] IssueId.parse accepts optional team prefix parameter
-- [ ] Numeric input with team prefix composes TEAM-NNN format
-- [ ] Full format input (IWCLI-51) works regardless of team prefix
-- [ ] All existing tests pass (no regressions)
-- [ ] E2E tests verify command behavior
-- [ ] Backward compatibility maintained for projects without team prefix
+- [x] IssueId.parse accepts optional team prefix parameter
+- [x] Numeric input with team prefix composes TEAM-NNN format
+- [x] Full format input (IWCLI-51) works regardless of team prefix
+- [x] All existing tests pass (no regressions)
+- [x] E2E tests verify command behavior
+- [x] Backward compatibility maintained for projects without team prefix
