@@ -32,12 +32,13 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
         val config = ConfigFileRepository.read(configPath)
 
-        // Render dashboard with issue data, progress, and PR data
+        // Render dashboard with issue data, progress, PR data, and review state
         val html = DashboardService.renderDashboard(
           worktrees,
           state.issueCache,
           state.progressCache,
           state.prCache,
+          state.reviewStateCache,
           config
         )
 

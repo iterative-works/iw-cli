@@ -3,20 +3,20 @@
 
 package iw.core.presentation.views
 
-import iw.core.domain.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData}
+import iw.core.domain.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration
 
 object WorktreeListView:
-  /** Render worktree list with issue data, progress, git status, and PR data.
+  /** Render worktree list with issue data, progress, git status, PR data, and review state.
     *
-    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data)
+    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data, optional review state)
     * @param now Current timestamp for relative time formatting
     * @return HTML fragment
     */
   def render(
-    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData])],
+    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[ReviewState])],
     now: Instant
   ): Frag =
     if worktreesWithData.isEmpty then
@@ -27,8 +27,8 @@ object WorktreeListView:
     else
       div(
         cls := "worktree-list",
-        worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData) =>
-          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, now)
+        worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewState) =>
+          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewState, now)
         }
       )
 
@@ -38,6 +38,7 @@ object WorktreeListView:
     progress: Option[WorkflowProgress],
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
+    reviewState: Option[ReviewState],
     now: Instant
   ): Frag =
     div(
@@ -121,6 +122,19 @@ object WorktreeListView:
             )
           else
             ()
+        )
+      },
+      // Review artifacts section (if available)
+      reviewState.filter(_.artifacts.nonEmpty).map { state =>
+        div(
+          cls := "review-artifacts",
+          h4("Review Artifacts"),
+          ul(
+            cls := "artifact-list",
+            state.artifacts.map { artifact =>
+              li(artifact.label)
+            }
+          )
         )
       },
       // Last activity

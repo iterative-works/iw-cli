@@ -7,7 +7,8 @@ case class ServerState(
   worktrees: Map[String, WorktreeRegistration],
   issueCache: Map[String, CachedIssue] = Map.empty,
   progressCache: Map[String, CachedProgress] = Map.empty,
-  prCache: Map[String, CachedPR] = Map.empty
+  prCache: Map[String, CachedPR] = Map.empty,
+  reviewStateCache: Map[String, CachedReviewState] = Map.empty
 ):
   def listByActivity: List[WorktreeRegistration] =
     worktrees.values.toList.sortBy(_.lastSeenAt.getEpochSecond)(Ordering[Long].reverse)
@@ -17,5 +18,6 @@ case class ServerState(
       worktrees = worktrees - issueId,
       issueCache = issueCache - issueId,
       progressCache = progressCache - issueId,
-      prCache = prCache - issueId
+      prCache = prCache - issueId,
+      reviewStateCache = reviewStateCache - issueId
     )
