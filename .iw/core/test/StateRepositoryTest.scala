@@ -531,3 +531,123 @@ class StateRepositoryTest extends munit.FunSuite:
         assertEquals(loadedState.progressCache.size, 0)
         assertEquals(loadedState.prCache.size, 0)
       }
+
+  tempDir.test("StateRepository serializes ReviewState"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      import iw.core.domain.{ReviewState, ReviewArtifact}
+      val reviewState = ReviewState(
+        status = Some("awaiting_review"),
+        phase = Some(8),
+        message = Some("Ready for review"),
+        artifacts = List(
+          ReviewArtifact("Analysis", "project-management/issues/46/analysis.md"),
+          ReviewArtifact("Context", "project-management/issues/46/phase-08-context.md")
+        )
+      )
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        issueCache = Map.empty,
+        progressCache = Map.empty,
+        prCache = Map.empty,
+        reviewStateCache = Map.empty
+      )
+
+      val writeResult = repo.write(state)
+      assert(writeResult.isRight, s"Write failed: $writeResult")
+
+      // Verify file exists
+      assert(Files.exists(statePath))
+
+  tempDir.test("StateRepository serializes CachedReviewState"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      import iw.core.domain.{ReviewState, ReviewArtifact, CachedReviewState}
+      val reviewState = ReviewState(
+        status = Some("awaiting_review"),
+        phase = Some(8),
+        message = None,
+        artifacts = List(ReviewArtifact("Test", "test.md"))
+      )
+      val cached = CachedReviewState(
+        state = reviewState,
+        filesMtime = Map("/path/to/review-state.json" -> 1000L)
+      )
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        reviewStateCache = Map("IWLE-123" -> cached)
+      )
+
+      val writeResult = repo.write(state)
+      assert(writeResult.isRight, s"Write failed: $writeResult")
+
+      assert(Files.exists(statePath))
+
+  tempDir.test("StateRepository deserializes reviewStateCache"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      import iw.core.domain.{ReviewState, ReviewArtifact, CachedReviewState}
+      val reviewState = ReviewState(
+        status = Some("in_review"),
+        phase = Some(3),
+        message = Some("Phase 3 review"),
+        artifacts = List(
+          ReviewArtifact("Analysis", "analysis.md"),
+          ReviewArtifact("Tasks", "tasks.md")
+        )
+      )
+      val cached = CachedReviewState(
+        state = reviewState,
+        filesMtime = Map("/path/review-state.json" -> 2000L)
+      )
+
+      val state = ServerState(
+        worktrees = Map.empty,
+        reviewStateCache = Map("ISSUE-456" -> cached)
+      )
+
+      repo.write(state)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.reviewStateCache.size, 1)
+        assert(loadedState.reviewStateCache.contains("ISSUE-456"))
+
+        val loadedCached = loadedState.reviewStateCache("ISSUE-456")
+        assertEquals(loadedCached.state.status, Some("in_review"))
+        assertEquals(loadedCached.state.phase, Some(3))
+        assertEquals(loadedCached.state.message, Some("Phase 3 review"))
+        assertEquals(loadedCached.state.artifacts.size, 2)
+        assertEquals(loadedCached.state.artifacts.head.label, "Analysis")
+        assertEquals(loadedCached.filesMtime.size, 1)
+      }
+
+  tempDir.test("StateRepository handles missing reviewStateCache gracefully"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+
+      // Simulate old state.json format (no reviewStateCache field)
+      val oldJsonContent = """{
+        "worktrees": {},
+        "issueCache": {},
+        "progressCache": {},
+        "prCache": {}
+      }"""
+      Files.writeString(statePath, oldJsonContent)
+
+      val repo = StateRepository(statePath.toString)
+      val readResult = repo.read()
+
+      assert(readResult.isRight)
+      readResult.foreach { loadedState =>
+        assertEquals(loadedState.reviewStateCache.size, 0)
+      }
