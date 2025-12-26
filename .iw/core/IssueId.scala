@@ -6,14 +6,10 @@ package iw.core
 opaque type IssueId = String
 
 object IssueId:
-  // Pattern for Linear/YouTrack format: TEAM-NNN (e.g., IWLE-132)
+  // Pattern for TEAM-NNN format (e.g., IWLE-132, IWCLI-51)
   private val Pattern = """^[A-Z]+-[0-9]+$""".r
-  // Pattern for numeric GitHub format: NNN (e.g., 132)
-  private val NumericPattern = """^[0-9]+$""".r
-  // Branch pattern for Linear/YouTrack: TEAM-NNN-description
+  // Branch pattern for TEAM-NNN-description
   private val BranchPattern = """^([A-Z]+-[0-9]+).*""".r
-  // Branch pattern for numeric GitHub: NNN-description or NNN_description
-  private val NumericBranchPattern = """^([0-9]+)[-_].*""".r
 
   def parse(raw: String, defaultTeam: Option[String] = None): Either[String, IssueId] =
     val trimmed = raw.trim
@@ -22,20 +18,12 @@ object IssueId:
     normalized match
       case Pattern() => Right(normalized)
       case _ =>
-        // Try numeric pattern (GitHub) - don't uppercase
-        trimmed match
-          case NumericPattern() =>
-            // If we have a default team prefix, compose TEAM-NNN format
-            defaultTeam match
-              case Some(team) =>
-                // Use forGitHub to compose and validate
-                trimmed.toIntOption match
-                  case Some(number) => forGitHub(team, number)
-                  case None => Left(s"Invalid issue ID format: $raw (expected: PROJECT-123 or 123)")
-              case None =>
-                // Backward compatibility: return bare numeric
-                Right(trimmed)
-          case _ => Left(s"Invalid issue ID format: $raw (expected: PROJECT-123 or 123)")
+        // If we have team prefix context, try to compose from numeric input
+        defaultTeam.flatMap { team =>
+          trimmed.toIntOption.map(num => forGitHub(team, num))
+        }.getOrElse {
+          Left(s"Invalid issue ID format: $raw (expected: TEAM-123). For GitHub projects, configure team prefix with 'iw init'.")
+        }
 
   def forGitHub(teamPrefix: String, number: Int): Either[String, IssueId] =
     // Validate team prefix first
@@ -48,23 +36,16 @@ object IssueId:
         parse(composed)
 
   def fromBranch(branchName: String): Either[String, IssueId] =
-    // Try TEAM-NNN pattern first (uppercase for Linear/YouTrack)
+    // Try TEAM-NNN pattern (uppercase for Linear/YouTrack)
     val normalized = branchName.toUpperCase
     normalized match
       case BranchPattern(issueId) => Right(issueId)
       case _ =>
-        // Try numeric pattern with suffix (GitHub) - don't uppercase
-        branchName match
-          case NumericBranchPattern(issueId) => Right(issueId)
-          case NumericPattern() => Right(branchName) // Bare numeric branch (e.g., "48")
-          case _ => Left(s"Cannot extract issue ID from branch '$branchName' (expected: PROJECT-123[-description] or 123[-description])")
+        Left(s"Cannot extract issue ID from branch '$branchName' (expected: TEAM-123 or TEAM-123-description). Configure team prefix with 'iw init' for GitHub projects.")
 
   extension (issueId: IssueId)
     def value: String = issueId
     def toBranchName: String = issueId
     def team: String =
-      // GitHub numeric IDs don't have a team part
-      if issueId.contains("-") then
-        issueId.split("-").head
-      else
-        "" // Numeric GitHub ID has no team
+      // All issue IDs now have TEAM-NNN format
+      issueId.split("-").head

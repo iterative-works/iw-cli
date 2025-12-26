@@ -127,58 +127,12 @@ class IssueIdTest extends FunSuite:
     val id2 = IssueId.parse("IWLE-123").getOrElse(fail("Failed to parse"))
     assertEquals(id1, id2)
 
-  // ========== Numeric GitHub ID Tests ==========
-
-  test("IssueId.parse accepts numeric GitHub ID 132"):
-    val result = IssueId.parse("132")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("132"))
-
-  test("IssueId.parse accepts single digit numeric ID 1"):
-    val result = IssueId.parse("1")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("1"))
-
-  test("IssueId.parse accepts multi-digit numeric ID 999"):
-    val result = IssueId.parse("999")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("999"))
-
-  test("IssueId.parse trims whitespace from numeric ID"):
-    val result = IssueId.parse("  132  ")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("132"))
-
-  test("IssueId.parse does not uppercase numeric IDs"):
-    val result = IssueId.parse("132")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("132"))
-
-  test("IssueId.fromBranch extracts numeric prefix with dash separator"):
-    val result = IssueId.fromBranch("132-add-feature")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("132"))
-
-  test("IssueId.fromBranch extracts numeric prefix with underscore separator"):
-    val result = IssueId.fromBranch("123_bugfix")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("123"))
-
-  test("IssueId.fromBranch extracts single digit numeric prefix"):
-    val result = IssueId.fromBranch("1-test")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("1"))
-
   test("IssueId.fromBranch regression test for TEAM-NNN format"):
     val result = IssueId.fromBranch("IWLE-132-description")
     assert(result.isRight)
     assertEquals(result.map(_.value), Right("IWLE-132"))
 
-  test("IssueId.team returns empty string for numeric GitHub ID"):
-    val issueId = IssueId.parse("132").getOrElse(fail("Failed to parse numeric ID"))
-    assertEquals(issueId.team, "")
-
-  test("IssueId.team regression test returns team for TEAM-NNN format"):
+  test("IssueId.team returns team for TEAM-NNN format"):
     val issueId = IssueId.parse("IWLE-132").getOrElse(fail("Failed to parse TEAM-NNN ID"))
     assertEquals(issueId.team, "IWLE")
 
@@ -247,11 +201,6 @@ class IssueIdTest extends FunSuite:
     assert(result.isRight)
     assertEquals(result.map(_.value), Right("IWCLI-51"))
 
-  test("IssueId.parse without team prefix accepts numeric input (backward compat)"):
-    val result = IssueId.parse("51", None)
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("51"))
-
   test("IssueId.parse with team prefix accepts explicit TEAM-NNN format"):
     val result = IssueId.parse("IWCLI-51", Some("IWCLI"))
     assert(result.isRight)
@@ -290,5 +239,21 @@ class IssueIdTest extends FunSuite:
   test("IssueId.parse with invalid team prefix still composes (validation happens in forGitHub)"):
     // parse just composes the string; validation is separate
     val result = IssueId.parse("51", Some("invalid"))
-    // This will compose "invalid-51" which won't match Pattern or NumericPattern
+    // This will compose "invalid-51" which won't match Pattern
     assert(result.isLeft)
+
+  // ========== Phase 3: Rejection Tests for Bare Numeric ==========
+
+  test("IssueId.parse rejects bare numeric without team prefix"):
+    val result = IssueId.parse("51", None)
+    assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Invalid") && msg.contains("TEAM-123")
+    ))
+
+  test("IssueId.parse guides user to configure team prefix for bare numeric"):
+    val result = IssueId.parse("51")
+    assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("team prefix") && msg.contains("iw init")
+    ))
