@@ -489,4 +489,38 @@ object DashboardService:
     .pr-closed {
       background: #868e96;
     }
+
+    .review-artifacts {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+
+    .review-artifacts h4 {
+      margin: 0 0 10px 0;
+      font-size: 0.95em;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .artifact-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .artifact-list li {
+      margin: 4px 0;
+    }
+
+    .artifact-list a {
+      color: #0066cc;
+      text-decoration: none;
+      font-size: 0.9em;
+    }
+
+    .artifact-list a:hover {
+      text-decoration: underline;
+    }
   """

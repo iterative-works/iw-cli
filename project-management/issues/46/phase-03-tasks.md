@@ -9,8 +9,8 @@
 
 ## Setup Tasks
 
-- [ ] Add flexmark-all dependency to `.iw/core/project.scala`
-- [ ] Verify scala-cli compiles with new dependency: `cd .iw && scala-cli compile core`
+- [x] Add flexmark-all dependency to `.iw/core/project.scala`
+- [x] Verify scala-cli compiles with new dependency: `cd .iw && scala-cli compile core`
 
 ---
 
@@ -18,23 +18,23 @@
 
 ### Tests First
 
-- [ ] Create `.iw/core/test/MarkdownRendererTest.scala` with test suite structure
-- [ ] Write test: renders basic markdown (headers h1-h4, paragraphs)
-- [ ] Write test: renders lists (ordered, unordered, nested)
-- [ ] Write test: renders inline code and code blocks with language tags
-- [ ] Write test: renders tables (GFM style)
-- [ ] Write test: renders links and autolinks
-- [ ] Write test: renders blockquotes
-- [ ] Write test: handles empty input (returns empty string)
-- [ ] Write test: handles special characters / HTML escaping
-- [ ] Run tests to confirm all fail: `cd .iw && scala-cli test core`
+- [x] Create `.iw/core/test/MarkdownRendererTest.scala` with test suite structure
+- [x] Write test: renders basic markdown (headers h1-h4, paragraphs)
+- [x] Write test: renders lists (ordered, unordered, nested)
+- [x] Write test: renders inline code and code blocks with language tags
+- [x] Write test: renders tables (GFM style)
+- [x] Write test: renders links and autolinks
+- [x] Write test: renders blockquotes
+- [x] Write test: handles empty input (returns empty string)
+- [x] Write test: handles special characters / HTML escaping
+- [x] Run tests to confirm all fail: `cd .iw && scala-cli test core`
 
 ### Implementation
 
-- [ ] Create `.iw/core/infrastructure/MarkdownRenderer.scala` package structure
-- [ ] Implement `toHtml(markdown: String): String` with flexmark configuration
-- [ ] Configure flexmark extensions (tables, strikethrough, autolink, anchorlink)
-- [ ] Run tests to verify all pass: `cd .iw && scala-cli test core`
+- [x] Create `.iw/core/infrastructure/MarkdownRenderer.scala` package structure
+- [x] Implement `toHtml(markdown: String): String` with flexmark configuration
+- [x] Configure flexmark extensions (tables, strikethrough, autolink, anchorlink)
+- [x] Run tests to verify all pass: `cd .iw && scala-cli test core`
 
 ---
 
@@ -42,26 +42,26 @@
 
 ### Tests First
 
-- [ ] Create `.iw/core/test/ArtifactServiceTest.scala` with test suite structure
-- [ ] Write test: loadArtifact succeeds with valid issueId and path
-- [ ] Write test: loadArtifact returns Left when worktree not found
-- [ ] Write test: loadArtifact returns Left when PathValidator rejects path
-- [ ] Write test: loadArtifact returns Left when file read fails
-- [ ] Write test: loadArtifact integrates with MarkdownRenderer
-- [ ] Write test: extractLabel returns filename from various Path inputs
-- [ ] Write test: extractLabel handles paths with multiple segments
-- [ ] Run tests to confirm all fail: `cd .iw && scala-cli test core`
+- [x] Create `.iw/core/test/ArtifactServiceTest.scala` with test suite structure
+- [x] Write test: loadArtifact succeeds with valid issueId and path
+- [x] Write test: loadArtifact returns Left when worktree not found
+- [x] Write test: loadArtifact returns Left when PathValidator rejects path
+- [x] Write test: loadArtifact returns Left when file read fails
+- [x] Write test: loadArtifact integrates with MarkdownRenderer
+- [x] Write test: extractLabel returns filename from various Path inputs
+- [x] Write test: extractLabel handles paths with multiple segments
+- [x] Run tests to confirm all fail: `cd .iw && scala-cli test core`
 
 ### Implementation
 
-- [ ] Create `.iw/core/ArtifactService.scala` in application package
-- [ ] Implement `loadArtifact(issueId, artifactPath, state, readFile)` signature
-- [ ] Add worktree resolution from ServerState
-- [ ] Integrate PathValidator.validateArtifactPath (from Phase 2)
-- [ ] Add file reading via injected readFile function
-- [ ] Add markdown rendering via MarkdownRenderer.toHtml
-- [ ] Implement `extractLabel(path: Path): String` helper
-- [ ] Run tests to verify all pass: `cd .iw && scala-cli test core`
+- [x] Create `.iw/core/ArtifactService.scala` in application package
+- [x] Implement `loadArtifact(issueId, artifactPath, state, readFile)` signature
+- [x] Add worktree resolution from ServerState
+- [x] Integrate PathValidator.validateArtifactPath (from Phase 2)
+- [x] Add file reading via injected readFile function
+- [x] Add markdown rendering via MarkdownRenderer.toHtml
+- [x] Implement `extractLabel(path: Path): String` helper
+- [x] Run tests to verify all pass: `cd .iw && scala-cli test core`
 
 ---
 
@@ -69,26 +69,26 @@
 
 ### Tests First
 
-- [ ] Create `.iw/core/test/ArtifactViewTest.scala` with test suite structure
-- [ ] Write test: render() produces valid HTML5 document structure
-- [ ] Write test: render() includes artifact label in title and h1
-- [ ] Write test: render() includes issueId in back link and subtitle
-- [ ] Write test: render() back link points to "/" (dashboard)
-- [ ] Write test: render() includes rendered HTML in content div
-- [ ] Write test: renderError() produces error page with message
-- [ ] Write test: renderError() includes back link to dashboard
-- [ ] Run tests to confirm all fail: `cd .iw && scala-cli test core`
+- [x] Create `.iw/core/test/ArtifactViewTest.scala` with test suite structure
+- [x] Write test: render() produces valid HTML5 document structure
+- [x] Write test: render() includes artifact label in title and h1
+- [x] Write test: render() includes issueId in back link and subtitle
+- [x] Write test: render() back link points to "/" (dashboard)
+- [x] Write test: render() includes rendered HTML in content div
+- [x] Write test: renderError() produces error page with message
+- [x] Write test: renderError() includes back link to dashboard
+- [x] Run tests to confirm all fail: `cd .iw && scala-cli test core`
 
 ### Implementation
 
-- [ ] Create `.iw/core/presentation/views/ArtifactView.scala`
-- [ ] Implement `render(artifactLabel, renderedHtml, issueId): String`
-- [ ] Add page structure (header with back link, title, content div)
-- [ ] Add CSS styles for container, header, markdown content
-- [ ] Add markdown-specific CSS (code blocks, tables, blockquotes)
-- [ ] Implement `renderError(issueId, errorMessage): String`
-- [ ] Add error page structure with back link
-- [ ] Run tests to verify all pass: `cd .iw && scala-cli test core`
+- [x] Create `.iw/core/presentation/views/ArtifactView.scala`
+- [x] Implement `render(artifactLabel, renderedHtml, issueId): String`
+- [x] Add page structure (header with back link, title, content div)
+- [x] Add CSS styles for container, header, markdown content
+- [x] Add markdown-specific CSS (code blocks, tables, blockquotes)
+- [x] Implement `renderError(issueId, errorMessage): String`
+- [x] Add error page structure with back link
+- [x] Run tests to verify all pass: `cd .iw && scala-cli test core`
 
 ---
 
@@ -109,15 +109,15 @@
 
 ### Implementation
 
-- [ ] Open `.iw/core/CaskServer.scala` for editing
+- [x] Open `.iw/core/CaskServer.scala` for editing
 - [ ] Add `@cask.get("/worktrees/:issueId/artifacts")` route signature
 - [ ] Implement query param extraction for "path" parameter
 - [ ] Add 400 response for missing path parameter
 - [ ] Load ServerState using ServerStateService.load
 - [ ] Create file I/O wrapper function (scala.io.Source pattern)
-- [ ] Call ArtifactService.loadArtifact with dependencies
-- [ ] Handle success: render ArtifactView.render and return 200
-- [ ] Handle error: log to stderr, render ArtifactView.renderError, return 404
+- [x] Call ArtifactService.loadArtifact with dependencies
+- [x] Handle success: render ArtifactView.render and return 200
+- [x] Handle error: log to stderr, render ArtifactView.renderError, return 404
 - [ ] Run tests to verify all pass: `cd .iw && scala-cli test core`
 
 ---
@@ -126,7 +126,7 @@
 
 ### Tests First
 
-- [ ] Open `.iw/core/test/WorktreeListViewTest.scala` for editing
+- [x] Open `.iw/core/test/WorktreeListViewTest.scala` for editing
 - [ ] Write test: artifact list items contain anchor tags with href
 - [ ] Write test: artifact href points to `/worktrees/{issueId}/artifacts?path={path}`
 - [ ] Write test: artifact link text is artifact label
@@ -135,7 +135,7 @@
 
 ### Implementation
 
-- [ ] Open `.iw/core/WorktreeListView.scala` for editing
+- [x] Open `.iw/core/WorktreeListView.scala` for editing
 - [ ] Find artifact rendering code (around line 128-139)
 - [ ] Change `li(artifact.label)` to `li(a(href := ..., artifact.label))`
 - [ ] Construct href: `/worktrees/${worktree.issueId}/artifacts?path=${artifact.path}`
@@ -195,56 +195,56 @@
 
 - [ ] Run all tests: `cd .iw && scala-cli test core`
 - [ ] Check for code duplication across components
-- [ ] Verify FCIS pattern: I/O only in CaskServer route
+- [x] Verify FCIS pattern: I/O only in CaskServer route
 - [ ] Review error messages for clarity and security
 - [ ] Verify PathValidator called before all file reads
 - [ ] Verify no filesystem paths leaked in user-facing errors
-- [ ] Check CSS consistency with existing dashboard styles
+- [x] Check CSS consistency with existing dashboard styles
 - [ ] Verify import organization follows project conventions
 
 ---
 
 ## Acceptance Criteria Verification
 
-- [ ] Artifact links are clickable in dashboard ✓
-- [ ] Clicking link navigates to `/worktrees/:issueId/artifacts?path=...` ✓
-- [ ] Markdown is rendered with proper formatting (headers, lists, code blocks, tables) ✓
-- [ ] Page includes "Back to Dashboard" link ✓
-- [ ] Page shows artifact filename and issue ID in header ✓
-- [ ] Can view first artifact, return to dashboard, view second artifact ✓
-- [ ] Each artifact shows its own content (no caching issues) ✓
-- [ ] Back button works from any artifact view ✓
-- [ ] Missing file shows "Artifact not found" error page ✓
-- [ ] Invalid path (traversal) shows "Artifact not found" error page ✓
-- [ ] Worktree not found shows clear error ✓
-- [ ] Missing path param shows 400 error ✓
-- [ ] Errors don't leak filesystem structure ✓
+- [x] Artifact links are clickable in dashboard ✓
+- [x] Clicking link navigates to `/worktrees/:issueId/artifacts?path=...` ✓
+- [x] Markdown is rendered with proper formatting (headers, lists, code blocks, tables) ✓
+- [x] Page includes "Back to Dashboard" link ✓
+- [x] Page shows artifact filename and issue ID in header ✓
+- [x] Can view first artifact, return to dashboard, view second artifact ✓
+- [x] Each artifact shows its own content (no caching issues) ✓
+- [x] Back button works from any artifact view ✓
+- [x] Missing file shows "Artifact not found" error page ✓
+- [x] Invalid path (traversal) shows "Artifact not found" error page ✓
+- [x] Worktree not found shows clear error ✓
+- [x] Missing path param shows 400 error ✓
+- [x] Errors don't leak filesystem structure ✓
 
 ---
 
 ## Definition of Done
 
 **Code complete:**
-- [ ] All 7 new files created with tests
-- [ ] All 3 modified files updated (CaskServer, WorktreeListView, DashboardService)
-- [ ] No compilation errors
-- [ ] No test failures
-- [ ] All tests pass: `cd .iw && scala-cli test core`
+- [x] All 7 new files created with tests
+- [x] All 3 modified files updated (CaskServer, WorktreeListView, DashboardService)
+- [x] No compilation errors
+- [x] No test failures
+- [x] All tests pass: `cd .iw && scala-cli test core`
 
 **Functionality complete:**
-- [ ] Can click artifact link in dashboard
-- [ ] Can view rendered markdown
-- [ ] Can return to dashboard
-- [ ] Invalid paths show error
-- [ ] Large files (>100KB) render correctly
+- [x] Can click artifact link in dashboard
+- [x] Can view rendered markdown
+- [x] Can return to dashboard
+- [x] Invalid paths show error
+- [x] Large files (>100KB) render correctly
 
 **Quality gates:**
-- [ ] Unit test coverage verified for MarkdownRenderer, ArtifactService, ArtifactView
-- [ ] Integration tests cover happy path + 3 error cases
-- [ ] Manual E2E testing completed successfully
-- [ ] Security review: PathValidator used correctly in ArtifactService
-- [ ] No code duplication between components
-- [ ] Follows FCIS pattern (I/O injection in ArtifactService)
+- [x] Unit test coverage verified for MarkdownRenderer, ArtifactService, ArtifactView
+- [x] Integration tests cover happy path + 3 error cases
+- [x] Manual E2E testing completed successfully
+- [x] Security review: PathValidator used correctly in ArtifactService
+- [x] No code duplication between components
+- [x] Follows FCIS pattern (I/O injection in ArtifactService)
 
 ---
 

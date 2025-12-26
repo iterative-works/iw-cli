@@ -8,4 +8,5 @@
 //> using dep com.lihaoyi::os-lib:0.11.6
 //> using dep com.lihaoyi::cask:0.11.3
 //> using dep com.lihaoyi::scalatags:0.13.1
+//> using dep com.vladsch.flexmark:flexmark-all:0.64.8
 //> using test.dep org.scalameta::munit::1.2.1
