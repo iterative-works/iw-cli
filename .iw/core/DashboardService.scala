@@ -4,7 +4,7 @@
 package iw.core.application
 
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, ProjectConfiguration}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR}
+import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
 import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.WorktreeListView
 import scalatags.Text.all.*
@@ -18,6 +18,7 @@ object DashboardService:
     * @param issueCache Current issue cache
     * @param progressCache Current progress cache
     * @param prCache Current PR cache
+    * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
     * @return Complete HTML page as string
     */
@@ -26,17 +27,19 @@ object DashboardService:
     issueCache: Map[String, CachedIssue],
     progressCache: Map[String, CachedProgress],
     prCache: Map[String, CachedPR],
+    reviewStateCache: Map[String, CachedReviewState],
     config: Option[ProjectConfiguration]
   ): String =
     val now = Instant.now()
 
-    // Fetch issue data, progress, git status, and PR data for each worktree
+    // Fetch issue data, progress, git status, PR data, and review state for each worktree
     val worktreesWithData = worktrees.map { wt =>
       val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktree(wt, prCache, now)
-      (wt, issueData, progress, gitStatus, prData)
+      val reviewState = fetchReviewStateForWorktree(wt, reviewStateCache)
+      (wt, issueData, progress, gitStatus, prData, reviewState)
     }
 
     val page = html(
@@ -229,6 +232,43 @@ object DashboardService:
       execCommand,
       detectTool
     ).toOption.flatten
+
+  /** Fetch review state for a single worktree.
+    *
+    * Reads review-state.json from the worktree and parses review state.
+    * Uses cache with mtime validation.
+    * Returns None on any error (missing file, read errors, parse errors, etc.)
+    *
+    * @param wt Worktree registration
+    * @param cache Current review state cache
+    * @return Optional ReviewState, None if unavailable
+    */
+  private def fetchReviewStateForWorktree(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedReviewState]
+  ): Option[ReviewState] =
+    // File I/O wrapper: read file content
+    val readFile = (path: String) => Try {
+      val source = scala.io.Source.fromFile(path)
+      try source.mkString
+      finally source.close()
+    }.toEither.left.map(_.getMessage)
+
+    // File I/O wrapper: get file modification time
+    val getMtime = (path: String) => Try {
+      java.nio.file.Files.getLastModifiedTime(
+        java.nio.file.Paths.get(path)
+      ).toMillis
+    }.toEither.left.map(_.getMessage)
+
+    // Call ReviewStateService with injected I/O functions
+    ReviewStateService.fetchReviewState(
+      wt.issueId,
+      wt.path,
+      cache,
+      readFile,
+      getMtime
+    ).toOption
 
   private val styles = """
     body {

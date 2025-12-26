@@ -147,5 +147,41 @@ class ServerStateTest extends munit.FunSuite:
       worktrees = state.worktrees - "IWLE-999",
       issueCache = state.issueCache - "IWLE-999",
       progressCache = state.progressCache - "IWLE-999",
-      prCache = state.prCache - "IWLE-999"
+      prCache = state.prCache - "IWLE-999",
+      reviewStateCache = state.reviewStateCache - "IWLE-999"
     ))
+
+  test("ServerState includes reviewStateCache field"):
+    val state = ServerState(
+      worktrees = Map.empty,
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty
+    )
+
+    assertEquals(state.reviewStateCache.size, 0)
+
+  test("ServerState.removeWorktree clears review state cache entry"):
+    val now = Instant.now()
+    val worktree = WorktreeRegistration(
+      issueId = "IWLE-123",
+      path = "/path",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val reviewStateCache = Map("IWLE-123" -> iw.core.domain.CachedReviewState(
+      iw.core.domain.ReviewState(None, None, None, List.empty),
+      Map.empty
+    ))
+
+    val state = ServerState(
+      worktrees = Map("IWLE-123" -> worktree),
+      reviewStateCache = reviewStateCache
+    )
+
+    val newState = state.removeWorktree("IWLE-123")
+
+    assert(!newState.reviewStateCache.contains("IWLE-123"))
