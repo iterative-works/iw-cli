@@ -59,56 +59,48 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         )
 
   @cask.get("/worktrees/:issueId/artifacts")
-  def artifactPage(issueId: String, request: cask.Request): cask.Response[String] =
-    // Get artifact path from query param
-    val artifactPathOpt = request.queryParams.get("path").flatMap(_.headOption)
+  def artifactPage(issueId: String, path: String): cask.Response[String] =
+    // path comes from query param via cask binding
+    val artifactPath = path
 
-    artifactPathOpt match
-      case None =>
+    // Load current server state
+    val stateResult = ServerStateService.load(repository)
+
+    stateResult match
+      case Left(error) =>
+        System.err.println(s"Failed to load state: $error")
         cask.Response(
-          data = "Missing required parameter: path",
-          statusCode = 400
+          data = "Internal server error",
+          statusCode = 500
         )
 
-      case Some(artifactPath) =>
-        // Load current server state
-        val stateResult = ServerStateService.load(repository)
+      case Right(state) =>
+        // File I/O wrapper: read file content
+        val readFile = (filePath: java.nio.file.Path) => scala.util.Try {
+          val source = scala.io.Source.fromFile(filePath.toFile)
+          try source.mkString
+          finally source.close()
+        }.toEither.left.map(_.getMessage)
 
-        stateResult match
-          case Left(error) =>
-            System.err.println(s"Failed to load state: $error")
+        // Load and render artifact
+        ArtifactService.loadArtifact(issueId, artifactPath, state, readFile) match
+          case Right((label, html, worktreePath)) =>
+            val page = ArtifactView.render(label, html, issueId)
             cask.Response(
-              data = "Internal server error",
-              statusCode = 500
+              data = page,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
             )
 
-          case Right(state) =>
-            // File I/O wrapper: read file content
-            val readFile = (path: java.nio.file.Path) => scala.util.Try {
-              val source = scala.io.Source.fromFile(path.toFile)
-              try source.mkString
-              finally source.close()
-            }.toEither.left.map(_.getMessage)
+          case Left(error) =>
+            // Log error for debugging (may contain filesystem info)
+            System.err.println(s"Artifact error for $issueId/$artifactPath: $error")
 
-            // Load and render artifact
-            ArtifactService.loadArtifact(issueId, artifactPath, state, readFile) match
-              case Right((label, html, worktreePath)) =>
-                val page = ArtifactView.render(label, html, issueId)
-                cask.Response(
-                  data = page,
-                  headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-                )
-
-              case Left(error) =>
-                // Log error for debugging (may contain filesystem info)
-                System.err.println(s"Artifact error for $issueId/$artifactPath: $error")
-
-                // Return generic error to user (secure)
-                cask.Response(
-                  data = ArtifactView.renderError(issueId, error),
-                  statusCode = 404,
-                  headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-                )
+            // Return generic error to user (secure)
+            cask.Response(
+              data = ArtifactView.renderError(issueId, error),
+              statusCode = 404,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
 
   @cask.get("/health")
   def health(): ujson.Value =
