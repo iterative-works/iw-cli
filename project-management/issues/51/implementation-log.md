@@ -110,3 +110,49 @@ M  .iw/test/issue.bats
 ```
 
 ---
+
+## Phase 3: Remove numeric-only branch handling (2025-12-26)
+
+**What was built:**
+- Domain: Removed `NumericPattern` and `NumericBranchPattern` regexes from IssueId.scala
+- Domain: Simplified `parse` method - rejects bare numeric without team prefix context
+- Domain: Simplified `fromBranch` method - only accepts TEAM-NNN format
+- Domain: Simplified `team` extension method - removed empty string case
+- Infrastructure: Added `legacy-branches.hook-doctor.scala` - detects legacy numeric branches
+
+**Decisions made:**
+- Hard cutoff approach: immediately reject bare numeric branches (no deprecation period)
+- Error messages guide users to TEAM-123 format and mention `iw init`
+- Doctor check warns about legacy branches and provides migration instructions
+- Code removal prioritized over backward compatibility (small project, we're primary users)
+
+**Patterns applied:**
+- Code simplification: removed 2 regex patterns, ~20 lines of code
+- Functional Core: doctor check is pure function (`checkLegacyBranches`)
+- Clear error messages: actionable guidance in all rejection cases
+
+**Testing:**
+- Unit tests: 4 new rejection tests added
+- Unit tests: 12 obsolete numeric-only tests removed
+- Net reduction: -48 test lines (cleaner test suite)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20251226.md
+- Major findings: No critical issues, no warnings. 4 suggestions (minor style improvements)
+
+**Codebase improvements:**
+- IssueId.scala reduced from 71 to 51 lines (28% reduction)
+- 2 fewer regex patterns to maintain
+- All IssueIds now consistently use TEAM-NNN format
+- Simpler code paths in parse, fromBranch, and team methods
+
+**Files changed:**
+```
+M  .iw/core/IssueId.scala
+M  .iw/core/test/IssueIdTest.scala
+M  .iw/core/test/IssueIdFromBranchTest.scala
+A  .iw/commands/legacy-branches.hook-doctor.scala
+```
+
+---
