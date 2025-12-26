@@ -11,101 +11,110 @@ import iw.core.infrastructure.ServerClient
     sys.exit(1)
 
   val rawIssueId = args.head
-
-  // Validate issue ID format
-  IssueId.parse(rawIssueId) match
-    case Left(error) =>
-      Output.error(error)
-      sys.exit(1)
-    case Right(issueId) =>
-      createWorktreeForIssue(issueId)
-
-def createWorktreeForIssue(issueId: IssueId): Unit =
   val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 
-  // Read project config to get project name
-  ConfigFileRepository.read(configPath) match
+  // Read config to check tracker type and team prefix
+  val config = ConfigFileRepository.read(configPath) match
     case None =>
       Output.error("Cannot read configuration")
       Output.info("Run './iw init' to initialize the project")
       sys.exit(1)
-    case Some(config) =>
-      val currentDir = os.pwd
-      val worktreePath = WorktreePath(config.projectName, issueId)
-      val targetPath = worktreePath.resolve(currentDir)
-      val sessionName = worktreePath.sessionName
-      val branchName = issueId.toBranchName
+      throw RuntimeException("unreachable") // for type checker
+    case Some(c) => c
 
-      // Check for collisions
-      if os.exists(targetPath) then
-        Output.error(s"Directory ${worktreePath.directoryName} already exists")
-        if GitWorktreeAdapter.worktreeExists(targetPath, currentDir) then
-          Output.info(s"Use './iw open ${issueId.value}' to open existing worktree")
+  // Parse issue ID, applying team prefix for GitHub if needed
+  val issueIdResult = (config.trackerType, config.teamPrefix) match
+    case (IssueTrackerType.GitHub, Some(prefix)) if rawIssueId.matches("^[0-9]+$") =>
+      // GitHub tracker with numeric-only input: apply team prefix
+      IssueId.forGitHub(prefix, rawIssueId.toInt)
+    case _ =>
+      // All other cases: use normal parsing
+      IssueId.parse(rawIssueId)
+
+  issueIdResult match
+    case Left(error) =>
+      Output.error(error)
+      sys.exit(1)
+    case Right(issueId) =>
+      createWorktreeForIssue(issueId, config)
+
+def createWorktreeForIssue(issueId: IssueId, config: ProjectConfiguration): Unit =
+  val currentDir = os.pwd
+  val worktreePath = WorktreePath(config.projectName, issueId)
+  val targetPath = worktreePath.resolve(currentDir)
+  val sessionName = worktreePath.sessionName
+  val branchName = issueId.toBranchName
+
+  // Check for collisions
+  if os.exists(targetPath) then
+    Output.error(s"Directory ${worktreePath.directoryName} already exists")
+    if GitWorktreeAdapter.worktreeExists(targetPath, currentDir) then
+      Output.info(s"Use './iw open ${issueId.value}' to open existing worktree")
+    sys.exit(1)
+
+  if TmuxAdapter.sessionExists(sessionName) then
+    Output.error(s"Tmux session '$sessionName' already exists")
+    Output.info(s"Use './iw open ${issueId.value}' to attach to existing session")
+    sys.exit(1)
+
+  // Create worktree (with new branch or existing)
+  Output.info(s"Creating worktree ${worktreePath.directoryName}...")
+
+  val worktreeResult =
+    if GitWorktreeAdapter.branchExists(branchName, currentDir) then
+      Output.info(s"Using existing branch '$branchName'")
+      GitWorktreeAdapter.createWorktreeForBranch(targetPath, branchName, currentDir)
+    else
+      Output.info(s"Creating new branch '$branchName'")
+      GitWorktreeAdapter.createWorktree(targetPath, branchName, currentDir)
+
+  worktreeResult match
+    case Left(error) =>
+      Output.error(error)
+      sys.exit(1)
+    case Right(_) =>
+      Output.success(s"Worktree created at ${targetPath}")
+
+  // Register worktree with dashboard (best-effort)
+  ServerClient.registerWorktree(
+    issueId.value,
+    targetPath.toString,
+    config.trackerType.toString,
+    issueId.team
+  ) match
+    case Left(error) =>
+      Output.warning(s"Failed to register worktree with dashboard: $error")
+    case Right(_) =>
+      () // Silent success
+
+  // Create tmux session
+  Output.info(s"Creating tmux session '$sessionName'...")
+  TmuxAdapter.createSession(sessionName, targetPath) match
+    case Left(error) =>
+      Output.error(error)
+      // Cleanup: remove worktree on tmux failure
+      Output.info("Cleaning up worktree...")
+      ProcessAdapter.run(Seq("git", "worktree", "remove", targetPath.toString))
+      sys.exit(1)
+    case Right(_) =>
+      Output.success(s"Tmux session created")
+
+  // Join session (switch if inside tmux, attach if outside)
+  if TmuxAdapter.isInsideTmux then
+    Output.info(s"Switching to session '$sessionName'...")
+    TmuxAdapter.switchSession(sessionName) match
+      case Left(error) =>
+        Output.error(error)
+        Output.info(s"Session created. Switch manually with: tmux switch-client -t $sessionName")
         sys.exit(1)
-
-      if TmuxAdapter.sessionExists(sessionName) then
-        Output.error(s"Tmux session '$sessionName' already exists")
-        Output.info(s"Use './iw open ${issueId.value}' to attach to existing session")
+      case Right(_) =>
+        () // Successfully switched
+  else
+    Output.info(s"Attaching to session...")
+    TmuxAdapter.attachSession(sessionName) match
+      case Left(error) =>
+        Output.error(error)
+        Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
         sys.exit(1)
-
-      // Create worktree (with new branch or existing)
-      Output.info(s"Creating worktree ${worktreePath.directoryName}...")
-
-      val worktreeResult =
-        if GitWorktreeAdapter.branchExists(branchName, currentDir) then
-          Output.info(s"Using existing branch '$branchName'")
-          GitWorktreeAdapter.createWorktreeForBranch(targetPath, branchName, currentDir)
-        else
-          Output.info(s"Creating new branch '$branchName'")
-          GitWorktreeAdapter.createWorktree(targetPath, branchName, currentDir)
-
-      worktreeResult match
-        case Left(error) =>
-          Output.error(error)
-          sys.exit(1)
-        case Right(_) =>
-          Output.success(s"Worktree created at ${targetPath}")
-
-      // Register worktree with dashboard (best-effort)
-      ServerClient.registerWorktree(
-        issueId.value,
-        targetPath.toString,
-        config.trackerType.toString,
-        issueId.team
-      ) match
-        case Left(error) =>
-          Output.warning(s"Failed to register worktree with dashboard: $error")
-        case Right(_) =>
-          () // Silent success
-
-      // Create tmux session
-      Output.info(s"Creating tmux session '$sessionName'...")
-      TmuxAdapter.createSession(sessionName, targetPath) match
-        case Left(error) =>
-          Output.error(error)
-          // Cleanup: remove worktree on tmux failure
-          Output.info("Cleaning up worktree...")
-          ProcessAdapter.run(Seq("git", "worktree", "remove", targetPath.toString))
-          sys.exit(1)
-        case Right(_) =>
-          Output.success(s"Tmux session created")
-
-      // Join session (switch if inside tmux, attach if outside)
-      if TmuxAdapter.isInsideTmux then
-        Output.info(s"Switching to session '$sessionName'...")
-        TmuxAdapter.switchSession(sessionName) match
-          case Left(error) =>
-            Output.error(error)
-            Output.info(s"Session created. Switch manually with: tmux switch-client -t $sessionName")
-            sys.exit(1)
-          case Right(_) =>
-            () // Successfully switched
-      else
-        Output.info(s"Attaching to session...")
-        TmuxAdapter.attachSession(sessionName) match
-          case Left(error) =>
-            Output.error(error)
-            Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
-            sys.exit(1)
-          case Right(_) =>
-            () // Successfully attached and detached
+      case Right(_) =>
+        () // Successfully attached and detached

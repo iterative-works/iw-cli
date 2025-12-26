@@ -27,6 +27,16 @@ object IssueId:
           case NumericPattern() => Right(trimmed)
           case _ => Left(s"Invalid issue ID format: $raw (expected: PROJECT-123 or 123)")
 
+  def forGitHub(teamPrefix: String, number: Int): Either[String, IssueId] =
+    // Validate team prefix first
+    TeamPrefixValidator.validate(teamPrefix) match
+      case Left(err) => Left(err)
+      case Right(validPrefix) =>
+        // Compose TEAM-NNN format
+        val composed = s"$validPrefix-$number"
+        // Validate through existing parse method to ensure consistency
+        parse(composed)
+
   def fromBranch(branchName: String): Either[String, IssueId] =
     // Try TEAM-NNN pattern first (uppercase for Linear/YouTrack)
     val normalized = branchName.toUpperCase

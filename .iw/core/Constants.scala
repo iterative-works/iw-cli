@@ -18,6 +18,7 @@ object Constants:
     val TrackerTeam = "tracker.team"
     val TrackerBaseUrl = "tracker.baseUrl"
     val TrackerRepository = "tracker.repository"
+    val TrackerTeamPrefix = "tracker.teamPrefix"
     val ProjectName = "project.name"
     val Version = "version"
 

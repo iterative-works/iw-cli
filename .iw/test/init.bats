@@ -176,8 +176,8 @@ teardown() {
     git config user.name "Test User"
     git remote add origin https://github.com/iterative-works/iw-cli.git
 
-    # Run init with github tracker
-    run "$PROJECT_ROOT/iw" init --tracker=github
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
 
     # Assert success
     [ "$status" -eq 0 ]
@@ -188,6 +188,7 @@ teardown() {
     [ -f ".iw/config.conf" ]
     grep -q "type = github" .iw/config.conf
     grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+    grep -q 'teamPrefix = "IWCLI"' .iw/config.conf
     ! grep -q "team = " .iw/config.conf
 }
 
@@ -198,8 +199,8 @@ teardown() {
     git config user.name "Test User"
     git remote add origin git@github.com:iterative-works/iw-cli.git
 
-    # Run init with github tracker
-    run "$PROJECT_ROOT/iw" init --tracker=github
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
 
     # Assert success
     [ "$status" -eq 0 ]
@@ -209,6 +210,7 @@ teardown() {
     [ -f ".iw/config.conf" ]
     grep -q "type = github" .iw/config.conf
     grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+    grep -q 'teamPrefix = "IWCLI"' .iw/config.conf
 }
 
 @test "init shows gh CLI hint for github tracker" {
@@ -218,8 +220,8 @@ teardown() {
     git config user.name "Test User"
     git remote add origin https://github.com/iterative-works/iw-cli.git
 
-    # Run init with github tracker
-    run "$PROJECT_ROOT/iw" init --tracker=github
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
 
     # Assert output contains gh CLI hint (not API token)
     [ "$status" -eq 0 ]
@@ -297,8 +299,8 @@ teardown() {
     git remote add origin https://github.com/iterative-works/iw-cli.git
     git remote add upstream https://github.com/otheruser/iw-cli.git
 
-    # Run init with github tracker
-    run "$PROJECT_ROOT/iw" init --tracker=github
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
 
     # Assert success and that origin was used (not upstream)
     [ "$status" -eq 0 ]
@@ -307,6 +309,7 @@ teardown() {
     # Assert config file has repository from origin
     [ -f ".iw/config.conf" ]
     grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+    grep -q 'teamPrefix = "IWCLI"' .iw/config.conf
 }
 
 @test "init with github and no remote shows error" {
@@ -331,8 +334,8 @@ teardown() {
     git config user.name "Test User"
     git remote add origin https://github.com/iterative-works/iw-cli/
 
-    # Run init with github tracker
-    run "$PROJECT_ROOT/iw" init --tracker=github
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
 
     # Assert success - trailing slash should be handled correctly
     [ "$status" -eq 0 ]
@@ -341,6 +344,7 @@ teardown() {
     # Assert config file has correct repository (without trailing slash)
     [ -f ".iw/config.conf" ]
     grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+    grep -q 'teamPrefix = "IWCLI"' .iw/config.conf
 }
 
 @test "init with github and HTTPS URL with username prefix" {
@@ -350,8 +354,8 @@ teardown() {
     git config user.name "Test User"
     git remote add origin https://testuser@github.com/iterative-works/iw-cli.git
 
-    # Run init with github tracker
-    run "$PROJECT_ROOT/iw" init --tracker=github
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
 
     # Assert success - username prefix should be handled correctly
     [ "$status" -eq 0 ]
@@ -360,8 +364,144 @@ teardown() {
     # Assert config file has correct repository
     [ -f ".iw/config.conf" ]
     grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+    grep -q 'teamPrefix = "IWCLI"' .iw/config.conf
 }
 
 # NOTE: Interactive test for "init --tracker=github without any git remote"
 # requires manual verification or stdin mocking, which is not supported in this test suite.
 # The scenario is covered by unit tests for GitRemote.repositoryOwnerAndName.
+
+# ========== Team Prefix Tests for GitHub ==========
+
+@test "init with github and --team-prefix creates config with team prefix" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with github tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IWCLI
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Configuration created"* ]]
+
+    # Assert config file has team prefix
+    [ -f ".iw/config.conf" ]
+    grep -q "type = github" .iw/config.conf
+    grep -q 'repository = "iterative-works/iw-cli"' .iw/config.conf
+    grep -q 'teamPrefix = "IWCLI"' .iw/config.conf
+}
+
+@test "init with github validates team prefix format" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with invalid team prefix (lowercase)
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=iwcli
+
+    # Assert failure
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid team prefix"* ]]
+    [[ "$output" == *"uppercase"* ]]
+
+    # Assert no config created
+    [ ! -f ".iw/config.conf" ]
+}
+
+@test "init with github validates team prefix length - too short" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with too short team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=I
+
+    # Assert failure
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid team prefix"* ]]
+    [[ "$output" == *"2-10 characters"* ]]
+
+    # Assert no config created
+    [ ! -f ".iw/config.conf" ]
+}
+
+@test "init with github validates team prefix length - too long" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with too long team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=VERYLONGPREFIX
+
+    # Assert failure
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid team prefix"* ]]
+    [[ "$output" == *"2-10 characters"* ]]
+
+    # Assert no config created
+    [ ! -f ".iw/config.conf" ]
+}
+
+@test "init with github rejects team prefix with numbers" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with team prefix containing numbers
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IW2CLI
+
+    # Assert failure
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid team prefix"* ]]
+    [[ "$output" == *"uppercase"* ]]
+
+    # Assert no config created
+    [ ! -f ".iw/config.conf" ]
+}
+
+@test "init with github and valid short team prefix" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with valid short team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=IW
+
+    # Assert success
+    [ "$status" -eq 0 ]
+
+    # Assert config file has team prefix
+    [ -f ".iw/config.conf" ]
+    grep -q 'teamPrefix = "IW"' .iw/config.conf
+}
+
+@test "init with github and valid long team prefix" {
+    # Setup: create a git repo with GitHub remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/iterative-works/iw-cli.git
+
+    # Run init with valid long team prefix (10 chars)
+    run "$PROJECT_ROOT/iw" init --tracker=github --team-prefix=VERYLONGPR
+
+    # Assert success
+    [ "$status" -eq 0 ]
+
+    # Assert config file has team prefix
+    [ -f ".iw/config.conf" ]
+    grep -q 'teamPrefix = "VERYLONGPR"' .iw/config.conf
+}
