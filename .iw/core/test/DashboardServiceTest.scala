@@ -53,7 +53,7 @@ class DashboardServiceTest extends FunSuite:
       )
     )
 
-    val html = DashboardService.renderDashboard(
+    val (html, _) = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -70,7 +70,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard handles missing review state gracefully"):
     val worktree = createWorktree("IWLE-456")
 
-    val html = DashboardService.renderDashboard(
+    val (html, _) = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -84,7 +84,7 @@ class DashboardServiceTest extends FunSuite:
     assert(html.contains("IWLE-456"))
 
   test("renderDashboard with empty worktree list"):
-    val html = DashboardService.renderDashboard(
+    val (html, _) = DashboardService.renderDashboard(
       worktrees = List.empty,
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -117,7 +117,7 @@ class DashboardServiceTest extends FunSuite:
       )
     )
 
-    val html = DashboardService.renderDashboard(
+    val (html, _) = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2, worktree3),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -148,7 +148,7 @@ class DashboardServiceTest extends FunSuite:
       )
     )
 
-    val html = DashboardService.renderDashboard(
+    val (html, _) = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
