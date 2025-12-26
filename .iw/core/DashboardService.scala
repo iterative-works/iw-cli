@@ -34,23 +34,29 @@ object DashboardService:
 
     // Fetch data for each worktree and accumulate updated review state cache
     val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
-      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[ReviewState])], reviewStateCache)
+      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
     ) { case ((acc, cache), wt) =>
       val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktree(wt, prCache, now)
-      val cachedReviewState = fetchReviewStateForWorktree(wt, cache)
+      val cachedReviewStateResult = fetchReviewStateForWorktree(wt, cache)
 
       // Extract ReviewState for view and update cache
-      val (reviewState, newCache) = cachedReviewState match {
-        case Some(cached) =>
-          (Some(cached.state), cache + (wt.issueId -> cached))
+      // Only update cache for valid states (Some(Right))
+      val (reviewStateResult, newCache) = cachedReviewStateResult match {
         case None =>
+          // No review state file
           (None, cache)
+        case Some(Left(error)) =>
+          // Invalid review state - pass error to view, don't update cache
+          (Some(Left(error)), cache)
+        case Some(Right(cached)) =>
+          // Valid review state - pass to view and update cache
+          (Some(Right(cached.state)), cache + (wt.issueId -> cached))
       }
 
-      val worktreeData = (wt, issueData, progress, gitStatus, prData, reviewState)
+      val worktreeData = (wt, issueData, progress, gitStatus, prData, reviewStateResult)
       (worktreeData :: acc, newCache)
     }
 
@@ -249,16 +255,22 @@ object DashboardService:
     *
     * Reads review-state.json from the worktree and parses review state.
     * Uses cache with mtime validation.
-    * Returns None on any error (missing file, read errors, parse errors, etc.)
+    *
+    * Returns:
+    * - None: No review state file (normal case, not an error)
+    * - Some(Left(error)): File exists but is invalid (parse error, malformed JSON)
+    * - Some(Right(cached)): Valid review state
+    *
+    * Invalid states are logged to stderr for debugging.
     *
     * @param wt Worktree registration
     * @param cache Current review state cache
-    * @return Optional CachedReviewState, None if unavailable
+    * @return Option[Either[String, CachedReviewState]]
     */
   private def fetchReviewStateForWorktree(
     wt: WorktreeRegistration,
     cache: Map[String, CachedReviewState]
-  ): Option[CachedReviewState] =
+  ): Option[Either[String, CachedReviewState]] =
     // File I/O wrapper: read file content
     val readFile = (path: String) => Try {
       val source = scala.io.Source.fromFile(path)
@@ -274,13 +286,26 @@ object DashboardService:
     }.toEither.left.map(_.getMessage)
 
     // Call ReviewStateService with injected I/O functions
+    val reviewStatePath = s"${wt.path}/project-management/issues/${wt.issueId}/review-state.json"
+
     ReviewStateService.fetchReviewState(
       wt.issueId,
       wt.path,
       cache,
       readFile,
       getMtime
-    ).toOption
+    ) match {
+      case Left(err) if err == reviewStatePath || err.contains("NoSuchFileException") || err.contains("File not found") =>
+        // Normal case - no review state file (error message is just the path or explicit "not found")
+        None
+      case Left(err) =>
+        // Invalid state file - log warning and return error
+        System.err.println(s"[WARN] Failed to load review state for ${wt.issueId}: $err")
+        Some(Left(err))
+      case Right(cached) =>
+        // Valid state
+        Some(Right(cached))
+    }
 
   private val styles = """
     body {
@@ -590,5 +615,25 @@ object DashboardService:
       font-size: 0.9em;
       color: #495057;
       border-radius: 4px;
+    }
+
+    /* Error state for invalid review state files */
+    .review-error {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .review-error-message {
+      font-weight: bold;
+      color: #856404;
+      margin: 0 0 8px 0;
+    }
+
+    .review-error-detail {
+      color: #856404;
+      font-size: 0.9em;
+      margin: 0;
     }
   """

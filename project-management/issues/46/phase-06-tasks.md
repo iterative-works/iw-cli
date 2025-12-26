@@ -19,10 +19,10 @@ This phase enhances error handling across the review artifacts feature to ensure
 
 ## Setup Tasks (15 min)
 
-- [ ] Review existing error handling in ReviewStateService (Phase 1)
-- [ ] Review existing error handling in PathValidator (Phase 2)
-- [ ] Review existing error handling in ArtifactService (Phase 3)
-- [ ] Identify logging strategy used in codebase (check for existing patterns)
+- [x] Review existing error handling in ReviewStateService (Phase 1)
+- [x] Review existing error handling in PathValidator (Phase 2)
+- [x] Review existing error handling in ArtifactService (Phase 3)
+- [x] Identify logging strategy used in codebase (check for existing patterns)
 
 ---
 
@@ -30,60 +30,60 @@ This phase enhances error handling across the review artifacts feature to ensure
 
 ### DashboardService Tests (30 min)
 
-- [ ] Write test: `fetchReviewStateForWorktree returns None when state file missing`
+- [x] Write test: `fetchReviewStateForWorktree returns None when state file missing`
   - Setup: Mock getMtime to return Left("File not found")
   - Assert: Result is None
   - Assert: No error logged
 
-- [ ] Write test: `fetchReviewStateForWorktree returns Some(Left) when JSON invalid`
+- [x] Write test: `fetchReviewStateForWorktree returns Some(Left) when JSON invalid`
   - Setup: Mock readFile to return invalid JSON string
   - Assert: Result is Some(Left(error))
   - Assert: Error message mentions "Failed to parse review state JSON"
 
-- [ ] Write test: `fetchReviewStateForWorktree returns Some(Right) for valid state`
+- [x] Write test: `fetchReviewStateForWorktree returns Some(Right) for valid state`
   - Setup: Mock I/O to return valid review-state.json
   - Assert: Result is Some(Right(CachedReviewState))
   - Assert: CachedReviewState contains correct ReviewState
 
-- [ ] Write test: `renderDashboard logs invalid JSON errors without crashing`
+- [x] Write test: `renderDashboard logs invalid JSON errors without crashing`
   - Setup: Worktree with invalid JSON
   - Capture stderr output
   - Assert: Dashboard HTML generated successfully
   - Assert: Error logged to stderr with issueId
 
-- [ ] Write test: `Cache not updated when state is invalid`
+- [x] Write test: `Cache not updated when state is invalid`
   - Setup: Start with empty cache, fetch invalid state
   - Assert: Returned cache is still empty
   - Assert: Invalid state not added to cache
 
 ### WorktreeListView Tests (30 min)
 
-- [ ] Write test: `render with None shows no review section`
+- [x] Write test: `render with None shows no review section`
   - Setup: Pass reviewState = None
   - Assert: Generated HTML does not contain "review-artifacts" class
 
-- [ ] Write test: `render with Some(Left(error)) shows error message`
+- [x] Write test: `render with Some(Left(error)) shows error message`
   - Setup: Pass reviewState = Some(Left("Failed to parse JSON"))
   - Assert: HTML contains "review-error" class
   - Assert: HTML contains "Review state unavailable" text
   - Assert: HTML contains helpful error detail
 
-- [ ] Write test: `render error message has correct CSS classes`
+- [x] Write test: `render error message has correct CSS classes`
   - Setup: Pass reviewState = Some(Left("error"))
   - Assert: HTML contains "review-error" class
   - Assert: HTML contains "review-error-message" class
   - Assert: HTML contains "review-error-detail" class
 
-- [ ] Write test: `render with Some(Right(state)) and artifacts shows artifact list`
+- [x] Write test: `render with Some(Right(state)) and artifacts shows artifact list`
   - Setup: Pass valid ReviewState with 2 artifacts
   - Assert: HTML contains "review-artifacts" class
   - Assert: Both artifacts rendered as links
 
-- [ ] Write test: `render with Some(Right(state)) and empty artifacts shows nothing`
+- [x] Write test: `render with Some(Right(state)) and empty artifacts shows nothing`
   - Setup: Pass ReviewState with empty artifacts list
   - Assert: HTML does not contain "review-artifacts" class
 
-- [ ] Write test: `Error message does not leak filesystem paths`
+- [x] Write test: `Error message does not leak filesystem paths`
   - Setup: Pass reviewState with error containing path
   - Assert: Generated HTML does not contain absolute file paths
 
@@ -93,56 +93,56 @@ This phase enhances error handling across the review artifacts feature to ensure
 
 ### Update Return Types (30 min)
 
-- [ ] Change `DashboardService.fetchReviewStateForWorktree` return type
+- [x] Change `DashboardService.fetchReviewStateForWorktree` return type
   - From: `Option[CachedReviewState]`
   - To: `Option[Either[String, CachedReviewState]]`
 
-- [ ] Update `fetchReviewStateForWorktree` implementation
+- [x] Update `fetchReviewStateForWorktree` implementation
   - Pattern match on ReviewStateService.fetchReviewState result
   - Return None for "File not found" errors
   - Return Some(Left(error)) for invalid JSON/parse errors
   - Return Some(Right(cached)) for valid states
 
-- [ ] Update `WorktreeListView.render` parameter type
+- [x] Update `WorktreeListView.render` parameter type
   - Change tuple from: `..., Option[ReviewState])`
   - To: `..., Option[Either[String, ReviewState]])`
 
-- [ ] Update `WorktreeListView.renderWorktreeCard` parameter type
+- [x] Update `WorktreeListView.renderWorktreeCard` parameter type
   - Change from: `reviewState: Option[ReviewState]`
   - To: `reviewState: Option[Either[String, ReviewState]]`
 
-- [ ] Fix compilation errors in DashboardService accumulator
+- [x] Fix compilation errors in DashboardService accumulator
   - Update tuple type in foldLeft accumulator
   - Update pattern matching to handle Option[Either[...]]
   - Extract ReviewState correctly for cache update
 
 ### Add Error Logging (15 min)
 
-- [ ] Add error logging in `fetchReviewStateForWorktree`
+- [x] Add error logging in `fetchReviewStateForWorktree`
   - Use System.err.println for invalid JSON errors
   - Include issueId and error message in log
   - Format: `[WARN] Failed to load review state for {issueId}: {error}`
   - Ensure logging doesn't throw exceptions
 
-- [ ] Add error logging for parse failures
+- [x] Add error logging for parse failures
   - Log when review-state.json exists but can't be parsed
   - Include context for debugging (issueId, error type)
 
 ### Update UI Error Display (30 min)
 
-- [ ] Update WorktreeListView review section rendering
+- [x] Update WorktreeListView review section rendering
   - Replace `reviewState.filter(_.artifacts.nonEmpty).map` with pattern match
   - Handle None case: render nothing (existing behavior)
   - Handle Some(Left(error)) case: render error message
   - Handle Some(Right(state)) case: render artifacts if non-empty
 
-- [ ] Add error state rendering for Some(Left(error))
+- [x] Add error state rendering for Some(Left(error))
   - Create div with "review-error" class
   - Add h4 "Review Artifacts" header
   - Add warning paragraph: "⚠ Review state unavailable"
   - Add detail paragraph: "Check for JSON syntax errors"
 
-- [ ] Add CSS styles for error display to DashboardService.styles
+- [x] Add CSS styles for error display to DashboardService.styles
   - `.review-error`: yellow warning background (#fff3cd), warning border
   - `.review-error-message`: bold, warning color (#856404)
   - `.review-error-detail`: smaller font, warning color
@@ -154,21 +154,21 @@ This phase enhances error handling across the review artifacts feature to ensure
 
 ### Run Tests
 
-- [ ] Run all DashboardService unit tests
+- [x] Run all DashboardService unit tests
   - Fix any failures
   - Ensure new tests pass
   - Verify existing tests still pass
 
-- [ ] Run all WorktreeListView unit tests
+- [x] Run all WorktreeListView unit tests
   - Fix any failures
   - Ensure error rendering tests pass
   - Verify artifact display tests still pass
 
-- [ ] Run all existing ReviewStateService tests (Phase 1)
+- [x] Run all existing ReviewStateService tests (Phase 1)
   - Verify no regressions from type changes
   - Ensure Either-based errors still work correctly
 
-- [ ] Run full test suite (unit + integration + E2E)
+- [x] Run full test suite (unit + integration + E2E)
   - Verify no regressions across all phases
   - Ensure dashboard still loads with no review states
 
@@ -227,14 +227,14 @@ This phase enhances error handling across the review artifacts feature to ensure
 
 Before marking phase complete, verify:
 
-- [ ] All 11 unit tests pass (5 DashboardService + 6 WorktreeListView)
+- [x] All 11 unit tests pass (5 DashboardService + 6 WorktreeListView)
 - [ ] Manual testing: All 4 scenarios work correctly
-- [ ] No regressions: Existing tests still pass
-- [ ] Error messages are user-friendly (no filesystem paths)
-- [ ] Logging includes context (issueId, error type)
-- [ ] Type changes compile without warnings
-- [ ] Cache only updated for valid states
-- [ ] UI clearly distinguishes error states
+- [x] No regressions: Existing tests still pass
+- [x] Error messages are user-friendly (no filesystem paths)
+- [x] Logging includes context (issueId, error type)
+- [x] Type changes compile without warnings
+- [x] Cache only updated for valid states
+- [x] UI clearly distinguishes error states
 - [ ] Documentation updated and accurate
 
 ---

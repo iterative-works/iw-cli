@@ -11,12 +11,17 @@ import java.time.Duration
 object WorktreeListView:
   /** Render worktree list with issue data, progress, git status, PR data, and review state.
     *
-    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data, optional review state)
+    * Review state parameter can be:
+    * - None: No review state file (no review section shown)
+    * - Some(Left(error)): Invalid review state file (error message shown)
+    * - Some(Right(state)): Valid review state (artifacts shown if present)
+    *
+    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data, optional review state result)
     * @param now Current timestamp for relative time formatting
     * @return HTML fragment
     */
   def render(
-    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[ReviewState])],
+    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])],
     now: Instant
   ): Frag =
     if worktreesWithData.isEmpty then
@@ -27,8 +32,8 @@ object WorktreeListView:
     else
       div(
         cls := "worktree-list",
-        worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewState) =>
-          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewState, now)
+        worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewStateResult) =>
+          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now)
         }
       )
 
@@ -38,7 +43,7 @@ object WorktreeListView:
     progress: Option[WorkflowProgress],
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
-    reviewState: Option[ReviewState],
+    reviewStateResult: Option[Either[String, ReviewState]],
     now: Instant
   ): Frag =
     div(
@@ -124,41 +129,57 @@ object WorktreeListView:
             ()
         )
       },
-      // Review artifacts section (if available)
-      reviewState.filter(_.artifacts.nonEmpty).map { state =>
-        div(
-          cls := "review-artifacts",
-          // Header with phase number (if available)
-          h4(
-            "Review Artifacts",
-            state.phase.map { phaseNum =>
-              span(cls := "review-phase", s" (Phase $phaseNum)")
-            }
-          ),
-          // Status badge (if available)
-          state.status.map { statusValue =>
-            div(
-              cls := s"review-status ${statusBadgeClass(statusValue)}",
-              span(cls := "review-status-label", formatStatusLabel(statusValue))
-            )
-          },
-          // Message (if available)
-          state.message.map { msg =>
-            p(cls := "review-message", msg)
-          },
-          // Artifacts list (existing)
-          ul(
-            cls := "artifact-list",
-            state.artifacts.map { artifact =>
-              li(
-                a(
-                  href := s"/worktrees/${worktree.issueId}/artifacts?path=${artifact.path}",
-                  artifact.label
-                )
-              )
-            }
+      // Review artifacts section (based on review state result)
+      reviewStateResult match {
+        case None =>
+          // No review state file - don't show anything
+          ()
+        case Some(Left(error)) =>
+          // Invalid review state file - show error message
+          div(
+            cls := "review-artifacts review-error",
+            h4("Review Artifacts"),
+            p(cls := "review-error-message", "⚠ Review state unavailable"),
+            p(cls := "review-error-detail", "The review state file exists but could not be loaded. Check for JSON syntax errors.")
           )
-        )
+        case Some(Right(state)) if state.artifacts.nonEmpty =>
+          // Valid review state with artifacts - show them
+          div(
+            cls := "review-artifacts",
+            // Header with phase number (if available)
+            h4(
+              "Review Artifacts",
+              state.phase.map { phaseNum =>
+                span(cls := "review-phase", s" (Phase $phaseNum)")
+              }
+            ),
+            // Status badge (if available)
+            state.status.map { statusValue =>
+              div(
+                cls := s"review-status ${statusBadgeClass(statusValue)}",
+                span(cls := "review-status-label", formatStatusLabel(statusValue))
+              )
+            },
+            // Message (if available)
+            state.message.map { msg =>
+              p(cls := "review-message", msg)
+            },
+            // Artifacts list
+            ul(
+              cls := "artifact-list",
+              state.artifacts.map { artifact =>
+                li(
+                  a(
+                    href := s"/worktrees/${worktree.issueId}/artifacts?path=${artifact.path}",
+                    artifact.label
+                  )
+                )
+              }
+            )
+          )
+        case Some(Right(state)) =>
+          // Valid review state but no artifacts - don't show anything
+          ()
       },
       // Last activity
       p(

@@ -33,7 +33,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   // Review Artifacts Section Tests
 
   test("WorktreeListView renders review section when reviewState provided with artifacts"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("awaiting_review"),
       phase = Some(1),
       message = Some("Ready for review"),
@@ -41,7 +41,7 @@ class WorktreeListViewTest extends munit.FunSuite:
         ReviewArtifact("Analysis", "project-management/issues/IWLE-123/analysis.md"),
         ReviewArtifact("Context", "project-management/issues/IWLE-123/phase-01-context.md")
       )
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -69,12 +69,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(!htmlStr.contains("artifact-list"), s"Should not contain 'artifact-list' class")
 
   test("WorktreeListView omits review section when artifacts list is empty"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("awaiting_review"),
       phase = Some(1),
       message = Some("Ready for review"),
       artifacts = List.empty  // Empty artifacts list
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -87,7 +87,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(!htmlStr.contains("review-artifacts"), s"Should not contain 'review-artifacts' class")
 
   test("WorktreeListView displays all artifact labels correctly"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = None,
       message = None,
@@ -96,7 +96,7 @@ class WorktreeListViewTest extends munit.FunSuite:
         ReviewArtifact("Phase Context", "path/to/context.md"),
         ReviewArtifact("Review Packet", "path/to/review-packet.md")
       )
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -124,7 +124,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val wt1 = sampleWorktree.copy(issueId = "IWLE-1")
     val wt2 = sampleWorktree.copy(issueId = "IWLE-2")
 
-    val reviewState1 = Some(ReviewState(None, None, None, List(ReviewArtifact("Doc1", "doc1.md"))))
+    val reviewState1 = Some(Right(ReviewState(None, None, None, List(ReviewArtifact("Doc1", "doc1.md")))))
     val reviewState2 = None  // No review state
 
     val worktreesWithData = List(
@@ -186,12 +186,12 @@ class WorktreeListViewTest extends munit.FunSuite:
   // Status Badge Rendering Tests
 
   test("renderWorktreeCard includes status badge when status is defined"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("awaiting_review"),
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -205,12 +205,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Awaiting Review"), "Should contain formatted status label")
 
   test("renderWorktreeCard includes status badge with correct class for in_progress"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("in_progress"),
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -223,12 +223,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("In Progress"), "Should contain In Progress label")
 
   test("renderWorktreeCard includes status badge with correct class for completed"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("completed"),
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -241,12 +241,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Completed"), "Should contain Completed label")
 
   test("renderWorktreeCard omits status badge when status is None"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -262,12 +262,12 @@ class WorktreeListViewTest extends munit.FunSuite:
   // Phase Number Display Tests
 
   test("renderWorktreeCard includes phase number when phase is defined"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = Some(8),
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -280,12 +280,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Phase 8"), "Should contain Phase 8 text")
 
   test("renderWorktreeCard displays phase 0 correctly"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = Some(0),
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -297,12 +297,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Phase 0"), "Should display Phase 0")
 
   test("renderWorktreeCard omits phase number when phase is None"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -317,12 +317,12 @@ class WorktreeListViewTest extends munit.FunSuite:
   // Message Display Tests
 
   test("renderWorktreeCard includes message when message is defined"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = None,
       message = Some("Phase 8 complete - Ready for review"),
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -335,12 +335,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Phase 8 complete - Ready for review"), "Should contain message text")
 
   test("renderWorktreeCard omits message when message is None"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -354,12 +354,12 @@ class WorktreeListViewTest extends munit.FunSuite:
   // Combined Rendering Tests
 
   test("renderWorktreeCard displays status, phase, and message together"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("awaiting_review"),
       phase = Some(8),
       message = Some("Ready for review"),
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -373,12 +373,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("Ready for review"), "Should contain message")
 
   test("renderWorktreeCard handles missing status, phase, and message gracefully"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = None,
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -397,12 +397,12 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(!htmlStr.contains("review-message"), "Should not render message")
 
   test("renderWorktreeCard displays partial fields correctly (only status)"):
-    val reviewState = Some(ReviewState(
+    val reviewState = Some(Right(ReviewState(
       status = Some("in_progress"),
       phase = None,
       message = None,
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
-    ))
+    )))
 
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
@@ -414,3 +414,103 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("review-status-in-progress"), "Should contain status badge")
     assert(!htmlStr.contains("Phase "), "Should not contain phase")
     assert(!htmlStr.contains("review-message"), "Should not contain message")
+
+  // Error Handling Tests (Phase 6)
+  // Note: These tests will fail until we change the type from Option[ReviewState] to Option[Either[String, ReviewState]]
+
+  test("render with None shows no review section (error handling)"):
+    // This test verifies that None (no review state file) doesn't show review section
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    // Should not show review section
+    assert(!htmlStr.contains("Review Artifacts"), "Should not show Review Artifacts heading")
+    assert(!htmlStr.contains("review-artifacts"), "Should not contain review-artifacts class")
+    assert(!htmlStr.contains("review-error"), "Should not contain review-error class")
+
+  test("render with Some(Left(error)) shows error message"):
+    val reviewState: Option[Either[String, ReviewState]] = Some(Left("Failed to parse review state JSON: unexpected token"))
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-error"), "Should contain review-error class")
+    assert(htmlStr.contains("Review state unavailable"), "Should show error message")
+    assert(htmlStr.contains("review-error-message"), "Should have error message class")
+    assert(htmlStr.contains("review-error-detail"), "Should have error detail class")
+
+  test("render error message has correct CSS classes"):
+    val reviewState: Option[Either[String, ReviewState]] = Some(Left("Some error"))
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    // Verify all required CSS classes are present
+    assert(htmlStr.contains("review-error"), "Should contain review-error class for container")
+    assert(htmlStr.contains("review-error-message"), "Should contain review-error-message class for main message")
+    assert(htmlStr.contains("review-error-detail"), "Should contain review-error-detail class for detail text")
+
+  test("render with Some(Right(state)) and artifacts shows artifact list"):
+    // This test verifies that Some(Right(state)) with artifacts shows the list
+    val reviewState: Option[Either[String, ReviewState]] = Some(Right(ReviewState(
+      status = Some("awaiting_review"),
+      phase = Some(3),
+      message = Some("Ready for review"),
+      artifacts = List(
+        ReviewArtifact("Analysis", "analysis.md"),
+        ReviewArtifact("Context", "context.md")
+      )
+    )))
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-artifacts"), "Should contain review-artifacts class")
+    assert(htmlStr.contains("artifact-list"), "Should contain artifact-list class")
+    assert(htmlStr.contains("Analysis"), "Should contain first artifact label")
+    assert(htmlStr.contains("Context"), "Should contain second artifact label")
+
+  test("render with Some(Right(state)) and empty artifacts shows nothing"):
+    // This test verifies Some(Right(state)) with empty artifacts list shows nothing
+    val reviewState: Option[Either[String, ReviewState]] = Some(Right(ReviewState(
+      status = Some("awaiting_review"),
+      phase = Some(3),
+      message = Some("Ready for review"),
+      artifacts = List.empty // Empty artifacts list
+    )))
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(!htmlStr.contains("review-artifacts"), "Should not contain review-artifacts class")
+    assert(!htmlStr.contains("artifact-list"), "Should not contain artifact-list class")
+
+  test("Error message does not leak filesystem paths"):
+    // Verify that error messages in UI don't expose sensitive filesystem paths
+    // The error from service contains path info, but UI shows generic message
+    val errorWithPath: Option[Either[String, ReviewState]] = Some(Left("Failed to parse /home/user/secret/review-state.json: syntax error"))
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, errorWithPath)
+    )
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    // Should show error container with generic message
+    assert(htmlStr.contains("review-error"), "Should show error container")
+    assert(htmlStr.contains("Review state unavailable"), "Should show generic error message")
+
+    // Should NOT leak the filesystem path from the error
+    assert(!htmlStr.contains("/home/user/secret"), "Should not leak filesystem paths in HTML")
+    assert(!htmlStr.contains("Failed to parse /home"), "Should not expose raw error message")
