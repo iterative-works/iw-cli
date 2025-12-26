@@ -140,3 +140,277 @@ class WorktreeListViewTest extends munit.FunSuite:
     // Count occurrences of "Review Artifacts" - should be exactly 1
     val reviewArtifactsCount = "Review Artifacts".r.findAllIn(htmlStr).length
     assertEquals(reviewArtifactsCount, 1, s"Should have exactly one 'Review Artifacts' section")
+
+  // Helper Function Tests
+
+  test("formatStatusLabel converts awaiting_review to Awaiting Review"):
+    val result = WorktreeListView.formatStatusLabel("awaiting_review")
+    assertEquals(result, "Awaiting Review")
+
+  test("formatStatusLabel converts in_progress to In Progress"):
+    val result = WorktreeListView.formatStatusLabel("in_progress")
+    assertEquals(result, "In Progress")
+
+  test("formatStatusLabel converts completed to Completed"):
+    val result = WorktreeListView.formatStatusLabel("completed")
+    assertEquals(result, "Completed")
+
+  test("formatStatusLabel handles arbitrary strings"):
+    val result = WorktreeListView.formatStatusLabel("custom_status_value")
+    assertEquals(result, "Custom Status Value")
+
+  test("statusBadgeClass maps awaiting_review to review-status-awaiting-review"):
+    val result = WorktreeListView.statusBadgeClass("awaiting_review")
+    assertEquals(result, "review-status-awaiting-review")
+
+  test("statusBadgeClass maps in_progress to review-status-in-progress"):
+    val result = WorktreeListView.statusBadgeClass("in_progress")
+    assertEquals(result, "review-status-in-progress")
+
+  test("statusBadgeClass maps completed to review-status-completed"):
+    val result = WorktreeListView.statusBadgeClass("completed")
+    assertEquals(result, "review-status-completed")
+
+  test("statusBadgeClass maps unknown status to review-status-default"):
+    val result = WorktreeListView.statusBadgeClass("unknown_status")
+    assertEquals(result, "review-status-default")
+
+  test("statusBadgeClass handles awaiting-review with hyphens"):
+    val result = WorktreeListView.statusBadgeClass("awaiting-review")
+    assertEquals(result, "review-status-awaiting-review")
+
+  test("statusBadgeClass handles in-progress with hyphens"):
+    val result = WorktreeListView.statusBadgeClass("in-progress")
+    assertEquals(result, "review-status-in-progress")
+
+  // Status Badge Rendering Tests
+
+  test("renderWorktreeCard includes status badge when status is defined"):
+    val reviewState = Some(ReviewState(
+      status = Some("awaiting_review"),
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-status"), "Should contain review-status class")
+    assert(htmlStr.contains("review-status-awaiting-review"), "Should contain specific status class")
+    assert(htmlStr.contains("Awaiting Review"), "Should contain formatted status label")
+
+  test("renderWorktreeCard includes status badge with correct class for in_progress"):
+    val reviewState = Some(ReviewState(
+      status = Some("in_progress"),
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-status-in-progress"), "Should contain in-progress status class")
+    assert(htmlStr.contains("In Progress"), "Should contain In Progress label")
+
+  test("renderWorktreeCard includes status badge with correct class for completed"):
+    val reviewState = Some(ReviewState(
+      status = Some("completed"),
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-status-completed"), "Should contain completed status class")
+    assert(htmlStr.contains("Completed"), "Should contain Completed label")
+
+  test("renderWorktreeCard omits status badge when status is None"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(!htmlStr.contains("review-status-awaiting-review"), "Should not contain status badge classes")
+    assert(!htmlStr.contains("review-status-in-progress"), "Should not contain status badge classes")
+    assert(!htmlStr.contains("review-status-completed"), "Should not contain status badge classes")
+
+  // Phase Number Display Tests
+
+  test("renderWorktreeCard includes phase number when phase is defined"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = Some(8),
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-phase"), "Should contain review-phase class")
+    assert(htmlStr.contains("Phase 8"), "Should contain Phase 8 text")
+
+  test("renderWorktreeCard displays phase 0 correctly"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = Some(0),
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("Phase 0"), "Should display Phase 0")
+
+  test("renderWorktreeCard omits phase number when phase is None"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(!htmlStr.contains("review-phase"), "Should not contain review-phase class when phase is None")
+    assert(!htmlStr.contains("Phase "), "Should not contain Phase text when phase is None")
+
+  // Message Display Tests
+
+  test("renderWorktreeCard includes message when message is defined"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = None,
+      message = Some("Phase 8 complete - Ready for review"),
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-message"), "Should contain review-message class")
+    assert(htmlStr.contains("Phase 8 complete - Ready for review"), "Should contain message text")
+
+  test("renderWorktreeCard omits message when message is None"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(!htmlStr.contains("review-message"), "Should not contain review-message class when message is None")
+
+  // Combined Rendering Tests
+
+  test("renderWorktreeCard displays status, phase, and message together"):
+    val reviewState = Some(ReviewState(
+      status = Some("awaiting_review"),
+      phase = Some(8),
+      message = Some("Ready for review"),
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-status-awaiting-review"), "Should contain status badge")
+    assert(htmlStr.contains("Phase 8"), "Should contain phase number")
+    assert(htmlStr.contains("Ready for review"), "Should contain message")
+
+  test("renderWorktreeCard handles missing status, phase, and message gracefully"):
+    val reviewState = Some(ReviewState(
+      status = None,
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    // Should still render artifacts section
+    assert(htmlStr.contains("Review Artifacts"), "Should contain Review Artifacts heading")
+    assert(htmlStr.contains("Analysis"), "Should contain artifact")
+
+    // Should NOT render status/phase/message elements
+    assert(!htmlStr.contains("review-status-"), "Should not render status badge")
+    assert(!htmlStr.contains("review-phase"), "Should not render phase")
+    assert(!htmlStr.contains("review-message"), "Should not render message")
+
+  test("renderWorktreeCard displays partial fields correctly (only status)"):
+    val reviewState = Some(ReviewState(
+      status = Some("in_progress"),
+      phase = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
+    ))
+
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("review-status-in-progress"), "Should contain status badge")
+    assert(!htmlStr.contains("Phase "), "Should not contain phase")
+    assert(!htmlStr.contains("review-message"), "Should not contain message")
