@@ -223,3 +223,114 @@ session_exists() {
     [[ "$output" == *"Creating worktree"* ]]
     [[ "$output" == *"Creating"* ]] || [[ "$output" == *"branch"* ]]
 }
+
+# ========== GitHub Team Prefix Tests ==========
+
+@test "start with github tracker and numeric ID applies team prefix" {
+    # Setup config for GitHub with team prefix
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IWCLI"
+}
+EOF
+
+    # Store parent directory for assertions
+    local parent_dir="$(dirname "$(pwd)")"
+    local expected_worktree="$parent_dir/testproject-IWCLI-51"
+
+    # Run start with numeric ID
+    run "$PROJECT_ROOT/iw" start 51
+
+    # Worktree should be created with IWCLI-51 format
+    [ -d "$expected_worktree" ]
+
+    # Branch should be IWCLI-51
+    git branch --list IWCLI-51 | grep -q IWCLI-51
+
+    # Verify worktree is on that branch
+    local branch_in_worktree
+    branch_in_worktree="$(cd "$expected_worktree" && git branch --show-current)"
+    [ "$branch_in_worktree" = "IWCLI-51" ]
+}
+
+@test "start with github tracker and full TEAM-NNN format works" {
+    # Setup config for GitHub with team prefix
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IWCLI"
+}
+EOF
+
+    # Store parent directory for assertions
+    local parent_dir="$(dirname "$(pwd)")"
+    local expected_worktree="$parent_dir/testproject-IWCLI-99"
+
+    # Run start with full IWCLI-99 format
+    run "$PROJECT_ROOT/iw" start IWCLI-99
+
+    # Worktree should be created
+    [ -d "$expected_worktree" ]
+
+    # Branch should be IWCLI-99
+    git branch --list IWCLI-99 | grep -q IWCLI-99
+}
+
+@test "start with github applies team prefix to large issue numbers" {
+    # Setup config for GitHub with team prefix
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IWCLI"
+}
+EOF
+
+    # Run start with large numeric ID
+    run "$PROJECT_ROOT/iw" start 99999
+
+    # Branch should be IWCLI-99999
+    git branch --list IWCLI-99999 | grep -q IWCLI-99999
+
+    # Worktree should exist
+    [ -d "../testproject-IWCLI-99999" ]
+}
+
+@test "start with github and single-digit issue number" {
+    # Setup config for GitHub with team prefix
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IWCLI"
+}
+EOF
+
+    # Run start with single-digit numeric ID
+    run "$PROJECT_ROOT/iw" start 1
+
+    # Branch should be IWCLI-1
+    git branch --list IWCLI-1 | grep -q IWCLI-1
+
+    # Worktree should exist
+    [ -d "../testproject-IWCLI-1" ]
+}

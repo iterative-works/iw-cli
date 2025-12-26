@@ -62,12 +62,6 @@ class IssueIdFromBranchTest extends FunSuite:
     assert(result.isLeft)
     assert(result.left.exists(_.contains("Cannot extract issue ID from branch 'feature-branch'")))
 
-  test("IssueId.fromBranch extracts from numeric branch with numeric suffix (123-456)"):
-    // 123-456 matches NumericBranchPattern and extracts 123 (description happens to be numbers)
-    val result = IssueId.fromBranch("123-456")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("123"))
-
   test("IssueId.fromBranch rejects empty string"):
     val result = IssueId.fromBranch("")
     assert(result.isLeft)
@@ -83,7 +77,18 @@ class IssueIdFromBranchTest extends FunSuite:
     assert(result.isRight)
     assertEquals(result.map(_.value), Right("PROJECT-789"))
 
-  test("IssueId.fromBranch extracts from bare numeric branch (48)"):
+  // ========== Phase 3: Rejection Tests for Bare Numeric ==========
+
+  test("IssueId.fromBranch rejects bare numeric branch"):
     val result = IssueId.fromBranch("48")
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("48"))
+    assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Cannot extract") && msg.contains("TEAM-123")
+    ))
+
+  test("IssueId.fromBranch rejects numeric branch with description"):
+    val result = IssueId.fromBranch("51-add-feature")
+    assert(result.isLeft)
+    assert(result.left.exists(msg =>
+      msg.contains("Cannot extract") && msg.contains("TEAM-123")
+    ))

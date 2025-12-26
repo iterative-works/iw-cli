@@ -77,8 +77,28 @@ case class ProjectConfiguration(
   projectName: String,
   version: Option[String] = Some("latest"),
   youtrackBaseUrl: Option[String] = None,
-  repository: Option[String] = None
+  repository: Option[String] = None,
+  teamPrefix: Option[String] = None
 )
+
+object TeamPrefixValidator:
+  private val ValidPattern = """^[A-Z]{2,10}$""".r
+
+  def validate(prefix: String): Either[String, String] =
+    prefix match
+      case ValidPattern() => Right(prefix)
+      case _ if prefix.length < 2 || prefix.length > 10 =>
+        Left(s"Team prefix must be 2-10 characters, got ${prefix.length}")
+      case _ =>
+        Left("Team prefix must contain uppercase letters only (A-Z)")
+
+  def suggestFromRepository(repository: String): String =
+    // Extract repo name from owner/repo format
+    val repoName = repository.split("/").lastOption.getOrElse(repository)
+    // Remove hyphens and convert to uppercase
+    val cleaned = repoName.replace("-", "").toUpperCase
+    // Truncate to 10 characters
+    cleaned.take(10)
 
 object TrackerDetector:
   def suggestTracker(remote: GitRemote): Option[IssueTrackerType] =
@@ -97,10 +117,12 @@ object ConfigSerializer:
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
     val youtrackUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
 
-    // For GitHub, use repository instead of team
+    // For GitHub, use repository and teamPrefix instead of team
     val trackerDetails = config.trackerType match
       case IssueTrackerType.GitHub =>
-        config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
+        val repoLine = config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
+        val prefixLine = config.teamPrefix.map(p => s"""\n  teamPrefix = "$p"""").getOrElse("")
+        s"$repoLine$prefixLine"
       case _ =>
         s"team = ${config.team}$youtrackUrlLine"
 
@@ -125,8 +147,8 @@ object ConfigSerializer:
         case Constants.TrackerTypeValues.GitHub => IssueTrackerType.GitHub
         case other => return Left(s"Unknown tracker type: $other")
 
-      // For GitHub, read repository; for others, read team
-      val (team, repository) = trackerType match
+      // For GitHub, read repository and teamPrefix; for others, read team
+      val (team, repository, teamPrefix) = trackerType match
         case IssueTrackerType.GitHub =>
           if !config.hasPath(Constants.ConfigKeys.TrackerRepository) then
             return Left("repository required for GitHub tracker")
@@ -134,10 +156,17 @@ object ConfigSerializer:
           // Validate repository format: owner/repo
           if !repo.contains('/') || repo.count(_ == '/') != 1 || repo.split('/').exists(_.isEmpty) then
             return Left("repository must be in owner/repo format")
-          ("", Some(repo))
+
+          // Require and validate teamPrefix for GitHub
+          if !config.hasPath(Constants.ConfigKeys.TrackerTeamPrefix) then
+            return Left("teamPrefix required for GitHub tracker")
+          val prefix = config.getString(Constants.ConfigKeys.TrackerTeamPrefix)
+          TeamPrefixValidator.validate(prefix) match
+            case Left(err) => return Left(err)
+            case Right(validPrefix) => ("", Some(repo), Some(validPrefix))
         case _ =>
           val t = config.getString(Constants.ConfigKeys.TrackerTeam)
-          (t, None)
+          (t, None, None)
 
       val projectName = config.getString(Constants.ConfigKeys.ProjectName)
 
@@ -153,6 +182,6 @@ object ConfigSerializer:
       else
         None
 
-      Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl, repository))
+      Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl, repository, teamPrefix))
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")

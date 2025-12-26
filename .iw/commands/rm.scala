@@ -9,34 +9,40 @@ import iw.core.infrastructure.ServerClient
   // Parse arguments
   val (issueIdArg, forceFlag) = parseArgs(args.toList)
 
+  // Load config to get team prefix
+  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
+  val config = ConfigFileRepository.read(configPath) match
+    case None =>
+      Output.error("Cannot read configuration")
+      Output.info("Run './iw init' to initialize the project")
+      sys.exit(1)
+      throw RuntimeException("unreachable") // for type checker
+    case Some(c) => c
+
   issueIdArg match
     case None =>
       Output.error("Missing issue ID")
       Output.info("Usage: ./iw rm <issue-id> [--force]")
       sys.exit(1)
     case Some(rawId) =>
-      IssueId.parse(rawId) match
+      // Parse issue ID with team prefix from config (for GitHub tracker)
+      val teamPrefix = if config.trackerType == IssueTrackerType.GitHub then
+        config.teamPrefix
+      else
+        None
+      IssueId.parse(rawId, teamPrefix) match
         case Left(error) =>
           Output.error(error)
           sys.exit(1)
         case Right(issueId) =>
-          removeWorktree(issueId, forceFlag)
+          removeWorktree(issueId, forceFlag, config)
 
 def parseArgs(args: List[String]): (Option[String], Boolean) =
   val forceFlag = args.contains("--force")
   val issueIdArg = args.find(arg => !arg.startsWith("--"))
   (issueIdArg, forceFlag)
 
-def removeWorktree(issueId: IssueId, force: Boolean): Unit =
-  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
-
-  // Read project config
-  ConfigFileRepository.read(configPath) match
-    case None =>
-      Output.error("Cannot read configuration")
-      Output.info("Run './iw init' to initialize the project")
-      sys.exit(1)
-    case Some(config) =>
+def removeWorktree(issueId: IssueId, force: Boolean, config: ProjectConfiguration): Unit =
       val currentDir = os.pwd
       val worktreePath = WorktreePath(config.projectName, issueId)
       val targetPath = worktreePath.resolve(currentDir)
