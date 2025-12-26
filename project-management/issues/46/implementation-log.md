@@ -275,3 +275,56 @@ M  .iw/core/test/DashboardServiceTest.scala
 ```
 
 ---
+
+## Phase 6: Graceful error handling (2025-12-26)
+
+**What was built:**
+- Return type: Changed `fetchReviewStateForWorktree()` from `Option[CachedReviewState]` to `Option[Either[String, CachedReviewState]]`
+- Error logging: Added `System.err.println` for invalid JSON errors with issueId context
+- UI error display: Added yellow warning box for invalid review state files
+- CSS: Added `.review-error`, `.review-error-message`, `.review-error-detail` styles
+- Testing: Added 6 error handling tests for WorktreeListView
+
+**Decisions made:**
+- Three-State Pattern: `None` (no file), `Some(Left(error))` (invalid file), `Some(Right(cached))` (valid file)
+- String-based error detection: Distinguished "file not found" from "parse error" via string matching (acceptable for now)
+- Generic error messages: UI shows "Review state unavailable" without leaking filesystem paths
+- Yellow warning color: Data issues shown as warnings (not red errors) since they're fixable
+
+**Patterns applied:**
+- Option[Either[String, T]]: Encodes "absent", "error", "success" states cleanly
+- Pattern matching: WorktreeListView pattern matches all three states explicitly
+- Security through abstraction: Error details logged to stderr, generic message shown in UI
+- Functional accumulator: Cache only updated for `Some(Right(cached))` states
+
+**Testing:**
+- Unit tests: 6 new error handling tests
+  - `render with None shows no review section`
+  - `render with Some(Left(error)) shows error message`
+  - `render error message has correct CSS classes`
+  - `render with Some(Right(state)) and artifacts shows artifact list`
+  - `render with Some(Right(state)) and empty artifacts shows nothing`
+  - `Error message does not leak filesystem paths`
+- All existing tests updated to use new type signature
+
+**Code review:**
+- Iterations: 1
+- Critical issues: 0
+- Warnings: 3 (placeholder tests replaced, string-based error detection noted)
+- Suggestions: 5 (type improvements, documentation)
+- Review file: review-phase-06.md
+
+**For next phases:**
+- This is the final phase - feature complete
+- All 6 phases implemented and reviewed
+- Ready for final merge to main
+
+**Files changed:**
+```
+M  .iw/core/DashboardService.scala
+M  .iw/core/WorktreeListView.scala
+M  .iw/core/test/DashboardServiceTest.scala
+M  .iw/core/test/WorktreeListViewTest.scala
+```
+
+---
