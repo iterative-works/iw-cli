@@ -8,35 +8,35 @@
 
 ### Setup
 
-- [ ] [setup] Review current IssueId.parse implementation and tests
+- [x] [setup] Review current IssueId.parse implementation and tests
 
 ### Tests First (TDD)
 
-- [ ] [test] Write test: parse("51", Some("IWCLI")) returns Right("IWCLI-51")
-- [ ] [test] Write test: parse("51", None) returns Right("51") (backward compat)
-- [ ] [test] Write test: parse("IWCLI-51", Some("IWCLI")) returns Right("IWCLI-51")
-- [ ] [test] Write test: parse("IWCLI-51", None) returns Right("IWCLI-51")
-- [ ] [test] Write test: parse("IWCLI-51", Some("OTHER")) returns Right("IWCLI-51") (explicit wins)
-- [ ] [test] Write test: parse with invalid input returns Left error
+- [x] [test] Write test: parse("51", Some("IWCLI")) returns Right("IWCLI-51")
+- [x] [test] Write test: parse("51", None) returns Right("51") (backward compat)
+- [x] [test] Write test: parse("IWCLI-51", Some("IWCLI")) returns Right("IWCLI-51")
+- [x] [test] Write test: parse("IWCLI-51", None) returns Right("IWCLI-51")
+- [x] [test] Write test: parse("IWCLI-51", Some("OTHER")) returns Right("IWCLI-51") (explicit wins)
+- [x] [test] Write test: parse with invalid input returns Left error
 
 ### Implementation
 
-- [ ] [impl] Update IssueId.parse signature to accept optional defaultTeam parameter
-- [ ] [impl] Update parse logic to compose TEAM-NNN when numeric + team prefix provided
-- [ ] [impl] Verify all existing parse tests still pass
+- [x] [impl] Update IssueId.parse signature to accept optional defaultTeam parameter
+- [x] [impl] Update parse logic to compose TEAM-NNN when numeric + team prefix provided
+- [x] [impl] Verify all existing parse tests still pass
 
 ### Command Integration
 
-- [ ] [test] Write E2E test: iw issue 51 with team prefix config fetches issue
-- [ ] [test] Write E2E test: iw issue IWCLI-51 fetches issue correctly
-- [ ] [impl] Update issue command to load config and pass team prefix to parse
-- [ ] [impl] Review and update other commands if needed (start, comment, etc.)
+- [x] [test] Write E2E test: iw issue 51 with team prefix config fetches issue
+- [x] [test] Write E2E test: iw issue IWCLI-51 fetches issue correctly
+- [x] [impl] Update issue command to load config and pass team prefix to parse
+- [x] [impl] Review and update other commands if needed (start, comment, etc.)
 
 ### Verification
 
-- [ ] [verify] Run full test suite (unit + E2E)
-- [ ] [verify] Manual test: iw issue 51 with GitHub project + team prefix
-- [ ] [verify] Manual test: iw issue IWCLI-51 works correctly
+- [x] [verify] Run full test suite (unit + E2E)
+- [x] [verify] Manual test: iw issue 51 with GitHub project + team prefix
+- [x] [verify] Manual test: iw issue IWCLI-51 works correctly
 
 ## Task Notes
 

@@ -6,9 +6,25 @@ import iw.core.*
 import iw.core.infrastructure.ServerClient
 
 @main def open(args: String*): Unit =
+  // Load config first to get team prefix
+  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
+  val config = ConfigFileRepository.read(configPath) match
+    case None =>
+      Output.error("Cannot read configuration")
+      Output.info("Run './iw init' to initialize the project")
+      sys.exit(1)
+      throw RuntimeException("unreachable") // for type checker
+    case Some(c) => c
+
   // Resolve issue ID (from args or current branch)
   val issueIdResult = args.headOption match
-    case Some(rawId) => IssueId.parse(rawId)
+    case Some(rawId) =>
+      // Parse explicit issue ID with team prefix from config (for GitHub tracker)
+      val teamPrefix = if config.trackerType == IssueTrackerType.GitHub then
+        config.teamPrefix
+      else
+        None
+      IssueId.parse(rawId, teamPrefix)
     case None => inferIssueFromBranch()
 
   issueIdResult match
@@ -16,22 +32,13 @@ import iw.core.infrastructure.ServerClient
       Output.error(error)
       sys.exit(1)
     case Right(issueId) =>
-      openWorktreeSession(issueId)
+      openWorktreeSession(issueId, config)
 
 def inferIssueFromBranch(): Either[String, IssueId] =
   val currentDir = os.pwd
   GitAdapter.getCurrentBranch(currentDir).flatMap(IssueId.fromBranch)
 
-def openWorktreeSession(issueId: IssueId): Unit =
-  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
-
-  // Read project config
-  ConfigFileRepository.read(configPath) match
-    case None =>
-      Output.error("Cannot read configuration")
-      Output.info("Run './iw init' to initialize the project")
-      sys.exit(1)
-    case Some(config) =>
+def openWorktreeSession(issueId: IssueId, config: ProjectConfiguration): Unit =
       val currentDir = os.pwd
       val worktreePath = WorktreePath(config.projectName, issueId)
       val targetPath = worktreePath.resolve(currentDir)

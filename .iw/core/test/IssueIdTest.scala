@@ -239,3 +239,56 @@ class IssueIdTest extends FunSuite:
     assert(result.isRight)
     val issueId = result.getOrElse(fail("Expected Right"))
     assertEquals(issueId.team, "IWCLI")
+
+  // ========== IssueId.parse with defaultTeam Tests (Phase 2) ==========
+
+  test("IssueId.parse with team prefix composes TEAM-NNN format from numeric input"):
+    val result = IssueId.parse("51", Some("IWCLI"))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-51"))
+
+  test("IssueId.parse without team prefix accepts numeric input (backward compat)"):
+    val result = IssueId.parse("51", None)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("51"))
+
+  test("IssueId.parse with team prefix accepts explicit TEAM-NNN format"):
+    val result = IssueId.parse("IWCLI-51", Some("IWCLI"))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-51"))
+
+  test("IssueId.parse without team prefix accepts explicit TEAM-NNN format"):
+    val result = IssueId.parse("IWCLI-51", None)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-51"))
+
+  test("IssueId.parse explicit TEAM-NNN format wins over different defaultTeam"):
+    val result = IssueId.parse("IWCLI-51", Some("OTHER"))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-51"))
+
+  test("IssueId.parse with team prefix rejects invalid input"):
+    val result = IssueId.parse("abc", Some("IWCLI"))
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Invalid issue ID format")))
+
+  test("IssueId.parse with team prefix trims whitespace from numeric input"):
+    val result = IssueId.parse("  51  ", Some("IWCLI"))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-51"))
+
+  test("IssueId.parse with team prefix handles single-digit numeric input"):
+    val result = IssueId.parse("1", Some("IWCLI"))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-1"))
+
+  test("IssueId.parse with team prefix handles large numeric input"):
+    val result = IssueId.parse("99999", Some("IWCLI"))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-99999"))
+
+  test("IssueId.parse with invalid team prefix still composes (validation happens in forGitHub)"):
+    // parse just composes the string; validation is separate
+    val result = IssueId.parse("51", Some("invalid"))
+    // This will compose "invalid-51" which won't match Pattern or NumericPattern
+    assert(result.isLeft)

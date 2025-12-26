@@ -9,8 +9,8 @@ import iw.core.infrastructure.ServerClient
 
 @main def issue(args: String*): Unit =
   val result = for {
-    issueId <- getIssueId(args)
     config <- loadConfig()
+    issueId <- getIssueId(args, config)
     issue <- fetchIssue(issueId, config)
   } yield (issue, issueId, config)
 
@@ -37,7 +37,7 @@ import iw.core.infrastructure.ServerClient
       Output.error(error)
       sys.exit(1)
 
-def getIssueId(args: Seq[String]): Either[String, IssueId] =
+def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, IssueId] =
   if args.isEmpty then
     // Infer from current branch
     val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
@@ -46,8 +46,12 @@ def getIssueId(args: Seq[String]): Either[String, IssueId] =
       issueId <- IssueId.fromBranch(branch)
     } yield issueId
   else
-    // Parse explicit issue ID
-    IssueId.parse(args.head)
+    // Parse explicit issue ID with team prefix from config (for GitHub tracker)
+    val teamPrefix = if config.trackerType == IssueTrackerType.GitHub then
+      config.teamPrefix
+    else
+      None
+    IssueId.parse(args.head, teamPrefix)
 
 def loadConfig(): Either[String, ProjectConfiguration] =
   val configPath = os.Path(System.getProperty(Constants.SystemProps.UserDir)) / Constants.Paths.IwDir / "config.conf"
