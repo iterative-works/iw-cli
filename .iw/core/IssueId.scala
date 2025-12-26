@@ -15,7 +15,7 @@ object IssueId:
   // Branch pattern for numeric GitHub: NNN-description or NNN_description
   private val NumericBranchPattern = """^([0-9]+)[-_].*""".r
 
-  def parse(raw: String): Either[String, IssueId] =
+  def parse(raw: String, defaultTeam: Option[String] = None): Either[String, IssueId] =
     val trimmed = raw.trim
     // Try TEAM-NNN pattern first (uppercase it for Linear/YouTrack)
     val normalized = trimmed.toUpperCase
@@ -24,7 +24,17 @@ object IssueId:
       case _ =>
         // Try numeric pattern (GitHub) - don't uppercase
         trimmed match
-          case NumericPattern() => Right(trimmed)
+          case NumericPattern() =>
+            // If we have a default team prefix, compose TEAM-NNN format
+            defaultTeam match
+              case Some(team) =>
+                // Use forGitHub to compose and validate
+                trimmed.toIntOption match
+                  case Some(number) => forGitHub(team, number)
+                  case None => Left(s"Invalid issue ID format: $raw (expected: PROJECT-123 or 123)")
+              case None =>
+                // Backward compatibility: return bare numeric
+                Right(trimmed)
           case _ => Left(s"Invalid issue ID format: $raw (expected: PROJECT-123 or 123)")
 
   def forGitHub(teamPrefix: String, number: Int): Either[String, IssueId] =

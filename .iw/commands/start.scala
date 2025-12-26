@@ -23,13 +23,11 @@ import iw.core.infrastructure.ServerClient
     case Some(c) => c
 
   // Parse issue ID, applying team prefix for GitHub if needed
-  val issueIdResult = (config.trackerType, config.teamPrefix) match
-    case (IssueTrackerType.GitHub, Some(prefix)) if rawIssueId.matches("^[0-9]+$") =>
-      // GitHub tracker with numeric-only input: apply team prefix
-      IssueId.forGitHub(prefix, rawIssueId.toInt)
-    case _ =>
-      // All other cases: use normal parsing
-      IssueId.parse(rawIssueId)
+  val teamPrefix = if config.trackerType == IssueTrackerType.GitHub then
+    config.teamPrefix
+  else
+    None
+  val issueIdResult = IssueId.parse(rawIssueId, teamPrefix)
 
   issueIdResult match
     case Left(error) =>
