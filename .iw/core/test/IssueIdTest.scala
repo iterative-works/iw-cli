@@ -181,3 +181,61 @@ class IssueIdTest extends FunSuite:
   test("IssueId.team regression test returns team for TEAM-NNN format"):
     val issueId = IssueId.parse("IWLE-132").getOrElse(fail("Failed to parse TEAM-NNN ID"))
     assertEquals(issueId.team, "IWLE")
+
+  // ========== IssueId.forGitHub Factory Method Tests ==========
+
+  test("IssueId.forGitHub creates valid TEAM-NNN format"):
+    val result = IssueId.forGitHub("IWCLI", 51)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-51"))
+
+  test("IssueId.forGitHub creates valid format with short prefix"):
+    val result = IssueId.forGitHub("IW", 123)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IW-123"))
+
+  test("IssueId.forGitHub creates valid format with long prefix"):
+    val result = IssueId.forGitHub("VERYLONGPR", 99)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("VERYLONGPR-99"))
+
+  test("IssueId.forGitHub rejects lowercase prefix"):
+    val result = IssueId.forGitHub("iwcli", 51)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("IssueId.forGitHub rejects too short prefix"):
+    val result = IssueId.forGitHub("X", 1)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("2-10 characters"))
+
+  test("IssueId.forGitHub rejects too long prefix"):
+    val result = IssueId.forGitHub("VERYLONGPREFIX", 1)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("2-10 characters"))
+
+  test("IssueId.forGitHub rejects prefix with numbers"):
+    val result = IssueId.forGitHub("IW2CLI", 51)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("IssueId.forGitHub rejects prefix with special characters"):
+    val result = IssueId.forGitHub("IW-CLI", 51)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("IssueId.forGitHub works with single-digit issue number"):
+    val result = IssueId.forGitHub("IWCLI", 1)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-1"))
+
+  test("IssueId.forGitHub works with large issue number"):
+    val result = IssueId.forGitHub("IWCLI", 99999)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("IWCLI-99999"))
+
+  test("IssueId.forGitHub extracts correct team from created ID"):
+    val result = IssueId.forGitHub("IWCLI", 51)
+    assert(result.isRight)
+    val issueId = result.getOrElse(fail("Expected Right"))
+    assertEquals(issueId.team, "IWCLI")

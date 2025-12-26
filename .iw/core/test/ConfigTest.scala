@@ -109,6 +109,7 @@ class ConfigTest extends munit.FunSuite:
       tracker {
         type = github
         repository = "iterative-works/iw-cli"
+        teamPrefix = "IWCLI"
       }
       project {
         name = test-project
@@ -119,13 +120,15 @@ class ConfigTest extends munit.FunSuite:
     val config = result.getOrElse(fail("Expected Right"))
     assertEquals(config.trackerType, IssueTrackerType.GitHub)
     assertEquals(config.repository, Some("iterative-works/iw-cli"))
+    assertEquals(config.teamPrefix, Some("IWCLI"))
 
   test("ConfigSerializer round-trip for GitHub config"):
     val original = ProjectConfiguration(
       trackerType = IssueTrackerType.GitHub,
       team = "",
       repository = Some("iterative-works/iw-cli"),
-      projectName = "test-project"
+      projectName = "test-project",
+      teamPrefix = Some("IWCLI")
     )
     val hocon = ConfigSerializer.toHocon(original)
     val result = ConfigSerializer.fromHocon(hocon)
@@ -133,6 +136,7 @@ class ConfigTest extends munit.FunSuite:
     val roundTripped = result.getOrElse(fail("Expected Right"))
     assertEquals(roundTripped.trackerType, original.trackerType)
     assertEquals(roundTripped.repository, original.repository)
+    assertEquals(roundTripped.teamPrefix, original.teamPrefix)
     assertEquals(roundTripped.projectName, original.projectName)
 
   test("ConfigSerializer fails when GitHub config missing repository"):
@@ -231,3 +235,212 @@ class ConfigTest extends munit.FunSuite:
   test("GitRemote returns error for malformed SSH URL without colon"):
     val remote = GitRemote("git@github.com/iterative-works/iw-cli.git")
     assert(remote.repositoryOwnerAndName.isLeft)
+
+  // ========== Team Prefix Tests ==========
+
+  test("ConfigSerializer serializes GitHub config with team prefix"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "",
+      repository = Some("iterative-works/iw-cli"),
+      projectName = "test-project",
+      teamPrefix = Some("IWCLI")
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(hocon.contains("type = github"))
+    assert(hocon.contains("repository = \"iterative-works/iw-cli\""))
+    assert(hocon.contains("teamPrefix = \"IWCLI\""))
+    assert(!hocon.contains("team ="))
+
+  test("ConfigSerializer deserializes GitHub config with team prefix"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+        teamPrefix = "IWCLI"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitHub)
+    assertEquals(config.repository, Some("iterative-works/iw-cli"))
+    assertEquals(config.teamPrefix, Some("IWCLI"))
+
+  test("ConfigSerializer requires team prefix for GitHub tracker"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("teamPrefix required for GitHub tracker"))
+
+  test("ConfigSerializer validates team prefix format - rejects lowercase"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+        teamPrefix = "iwcli"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("ConfigSerializer validates team prefix format - rejects too short"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+        teamPrefix = "I"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("2-10 characters"))
+
+  test("ConfigSerializer validates team prefix format - rejects too long"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+        teamPrefix = "VERYLONGPREFIX"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("2-10 characters"))
+
+  test("ConfigSerializer validates team prefix format - rejects with numbers"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+        teamPrefix = "IW2CLI"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("ConfigSerializer validates team prefix format - rejects with special chars"):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "iterative-works/iw-cli"
+        teamPrefix = "IW-CLI"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("ConfigSerializer round-trip for GitHub config with team prefix"):
+    val original = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "",
+      repository = Some("iterative-works/iw-cli"),
+      projectName = "test-project",
+      teamPrefix = Some("IWCLI")
+    )
+    val hocon = ConfigSerializer.toHocon(original)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.trackerType, original.trackerType)
+    assertEquals(roundTripped.repository, original.repository)
+    assertEquals(roundTripped.teamPrefix, original.teamPrefix)
+    assertEquals(roundTripped.projectName, original.projectName)
+
+  test("ConfigSerializer omits team prefix for Linear config"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.Linear,
+      team = "IWLE",
+      projectName = "test-project"
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(hocon.contains("type = linear"))
+    assert(hocon.contains("team = IWLE"))
+    assert(!hocon.contains("teamPrefix"))
+
+  test("ConfigSerializer omits team prefix for YouTrack config"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.YouTrack,
+      team = "TEST",
+      projectName = "test-project"
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(hocon.contains("type = youtrack"))
+    assert(hocon.contains("team = TEST"))
+    assert(!hocon.contains("teamPrefix"))
+
+  test("TeamPrefixValidator accepts valid uppercase prefix"):
+    val result = TeamPrefixValidator.validate("IWCLI")
+    assert(result.isRight)
+    assertEquals(result, Right("IWCLI"))
+
+  test("TeamPrefixValidator rejects lowercase prefix"):
+    val result = TeamPrefixValidator.validate("iwcli")
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("TeamPrefixValidator rejects too short prefix"):
+    val result = TeamPrefixValidator.validate("I")
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("2-10 characters"))
+
+  test("TeamPrefixValidator rejects too long prefix"):
+    val result = TeamPrefixValidator.validate("VERYLONGPREFIX")
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("2-10 characters"))
+
+  test("TeamPrefixValidator rejects prefix with numbers"):
+    val result = TeamPrefixValidator.validate("IW2CLI")
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("TeamPrefixValidator rejects prefix with special characters"):
+    val result = TeamPrefixValidator.validate("IW-CLI")
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("uppercase letters only"))
+
+  test("TeamPrefixValidator suggests prefix from repository owner/repo"):
+    val suggested = TeamPrefixValidator.suggestFromRepository("iterative-works/iw-cli")
+    assertEquals(suggested, "IWCLI")
+
+  test("TeamPrefixValidator suggests prefix from repository with multiple hyphens"):
+    val suggested = TeamPrefixValidator.suggestFromRepository("my-org/my-awesome-app")
+    assertEquals(suggested, "MYAWESOMEA")
+
+  test("TeamPrefixValidator suggests prefix from single-word repo"):
+    val suggested = TeamPrefixValidator.suggestFromRepository("owner/project")
+    assertEquals(suggested, "PROJECT")
+
+  test("TeamPrefixValidator truncates very long suggested prefix to 10 chars"):
+    val suggested = TeamPrefixValidator.suggestFromRepository("owner/very-long-repository-name")
+    assert(suggested.length <= 10)
+    assert(suggested == "VERYLONGRE")

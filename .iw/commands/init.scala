@@ -1,12 +1,13 @@
 // PURPOSE: Initialize iw-cli configuration for the project
-// USAGE: iw init [--force] [--tracker=linear|youtrack|github] [--team=TEAM]
+// USAGE: iw init [--force] [--tracker=linear|youtrack|github] [--team=TEAM] [--team-prefix=PREFIX]
 // ARGS:
 //   --force: Overwrite existing configuration
 //   --tracker=linear|youtrack|github: Set tracker type (skips prompt)
 //   --team=TEAM: Set team identifier for Linear/YouTrack (skips prompt)
+//   --team-prefix=PREFIX: Set team prefix for GitHub (skips prompt)
 // EXAMPLE: iw init
 // EXAMPLE: iw init --tracker=linear --team=IWLE
-// EXAMPLE: iw init --tracker=github
+// EXAMPLE: iw init --tracker=github --team-prefix=IWCLI
 
 import iw.core.*
 
@@ -33,6 +34,7 @@ def askForTrackerType(): IssueTrackerType =
   val force = args.contains("--force")
   val trackerArg = parseArg(args, "--tracker=")
   val teamArg = parseArg(args, "--team=")
+  val teamPrefixArg = parseArg(args, "--team-prefix=")
   val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
 
   // Check if we're in a git repository
@@ -76,8 +78,8 @@ def askForTrackerType(): IssueTrackerType =
           Output.info("Could not detect tracker from git remote")
           askForTrackerType()
 
-  // For GitHub, extract repository from git remote; for others, get team
-  val (team, repository) = trackerType match
+  // For GitHub, extract repository from git remote and get team prefix; for others, get team
+  val (team, repository, teamPrefix) = trackerType match
     case IssueTrackerType.GitHub =>
       // Extract repository from git remote
       val remote = GitAdapter.getRemoteUrl(currentDir)
@@ -89,20 +91,45 @@ def askForTrackerType(): IssueTrackerType =
             None
       }
 
-      repo match
+      val ownerRepo = repo match
         case Some(ownerRepo) =>
           Output.info(s"Auto-detected repository: $ownerRepo")
-          ("", Some(ownerRepo))
+          ownerRepo
         case None =>
-          val manual = Prompt.ask("Enter GitHub repository (owner/repo format)")
-          ("", Some(manual))
+          Prompt.ask("Enter GitHub repository (owner/repo format)")
+
+      // Get team prefix for GitHub
+      val prefix = teamPrefixArg match
+        case Some(p) =>
+          // Validate provided prefix
+          TeamPrefixValidator.validate(p) match
+            case Left(err) =>
+              Output.error(s"Invalid team prefix: $err")
+              System.exit(1)
+              throw RuntimeException("unreachable") // for type checker
+            case Right(validated) => validated
+        case None =>
+          // Suggest prefix from repository name
+          val suggested = TeamPrefixValidator.suggestFromRepository(ownerRepo)
+          Output.info(s"Suggested team prefix: $suggested")
+          val input = Prompt.ask(s"Enter team prefix (2-10 uppercase letters) [$suggested]")
+          val chosen = if input.trim.isEmpty then suggested else input.trim
+          // Validate chosen prefix
+          TeamPrefixValidator.validate(chosen) match
+            case Left(err) =>
+              Output.error(s"Invalid team prefix: $err")
+              System.exit(1)
+              throw RuntimeException("unreachable") // for type checker
+            case Right(validated) => validated
+
+      ("", Some(ownerRepo), Some(prefix))
 
     case _ =>
       // Linear/YouTrack: get team
       val t = teamArg.getOrElse {
         Prompt.ask("Enter team/project identifier (e.g., IWLE, TEST)")
       }
-      (t, None)
+      (t, None, None)
 
   // Auto-detect project name from directory
   val projectName = currentDir.last
@@ -112,7 +139,8 @@ def askForTrackerType(): IssueTrackerType =
     trackerType = trackerType,
     team = team,
     projectName = projectName,
-    repository = repository
+    repository = repository,
+    teamPrefix = teamPrefix
   )
 
   // Write configuration
