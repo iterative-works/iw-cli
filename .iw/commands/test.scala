@@ -61,9 +61,9 @@ def runUnitTests(): Boolean =
 
   Output.section("Running Unit Tests")
 
-  // Pass directories to scala-cli so it properly recognizes test vs main sources
+  // Pass entire core directory to scala-cli to include subdirectories like presentation/views
   // Use streaming to show output in real-time
-  val command = Seq("scala-cli", "test", testDir.toString, coreDir.toString)
+  val command = Seq("scala-cli", "test", coreDir.toString)
   val exitCode = ProcessAdapter.runStreaming(command)
   exitCode == 0
 

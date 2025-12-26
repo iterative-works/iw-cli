@@ -4,8 +4,9 @@
 package iw.core.infrastructure
 
 import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService}
 import iw.core.domain.ServerState
+import iw.core.presentation.views.ArtifactView
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
@@ -32,14 +33,19 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
         val config = ConfigFileRepository.read(configPath)
 
-        // Render dashboard with issue data, progress, and PR data
-        val html = DashboardService.renderDashboard(
+        // Render dashboard with issue data, progress, PR data, and review state
+        val (html, updatedReviewStateCache) = DashboardService.renderDashboard(
           worktrees,
           state.issueCache,
           state.progressCache,
           state.prCache,
+          state.reviewStateCache,
           config
         )
+
+        // Update server state with new review state cache and persist
+        val updatedState = state.copy(reviewStateCache = updatedReviewStateCache)
+        repository.write(updatedState) // Best-effort save, ignore errors
 
         cask.Response(
           data = html,
@@ -51,6 +57,50 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           data = "Internal server error",
           statusCode = 500
         )
+
+  @cask.get("/worktrees/:issueId/artifacts")
+  def artifactPage(issueId: String, path: String): cask.Response[String] =
+    // path comes from query param via cask binding
+    val artifactPath = path
+
+    // Load current server state
+    val stateResult = ServerStateService.load(repository)
+
+    stateResult match
+      case Left(error) =>
+        System.err.println(s"Failed to load state: $error")
+        cask.Response(
+          data = "Internal server error",
+          statusCode = 500
+        )
+
+      case Right(state) =>
+        // File I/O wrapper: read file content
+        val readFile = (filePath: java.nio.file.Path) => scala.util.Try {
+          val source = scala.io.Source.fromFile(filePath.toFile)
+          try source.mkString
+          finally source.close()
+        }.toEither.left.map(_.getMessage)
+
+        // Load and render artifact
+        ArtifactService.loadArtifact(issueId, artifactPath, state, readFile) match
+          case Right((label, html, worktreePath)) =>
+            val page = ArtifactView.render(label, html, issueId)
+            cask.Response(
+              data = page,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+          case Left(error) =>
+            // Log error for debugging (may contain filesystem info)
+            System.err.println(s"Artifact error for $issueId/$artifactPath: $error")
+
+            // Return generic error to user (secure)
+            cask.Response(
+              data = ArtifactView.renderError(issueId, error),
+              statusCode = 404,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
 
   @cask.get("/health")
   def health(): ujson.Value =

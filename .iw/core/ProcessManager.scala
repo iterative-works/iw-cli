@@ -97,8 +97,8 @@ object ProcessManager:
       // Use scala-cli to run the server-daemon script with core library
       val hostsArg = hosts.mkString(",")
       val coreDir = os.pwd / ".iw" / "core"
-      val coreFiles = os.list(coreDir)
-        .filter(_.ext == "scala")
+      val coreFiles = os.walk(coreDir)
+        .filter(p => p.ext == "scala" && !p.toString.contains("/test/"))
         .map(_.toString)
         .toSeq
 

@@ -162,7 +162,7 @@ execute_command() {
 
     # Find core files excluding test directory
     local core_files
-    core_files=$(find "$CORE_DIR" -maxdepth 1 -name "*.scala" | tr '\n' ' ')
+    core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
 
     # Execute with scala-cli, including core library and any discovered hook files
     # IW_HOOK_CLASSES tells the command which hook objects to initialize

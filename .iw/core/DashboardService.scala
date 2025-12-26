@@ -4,7 +4,7 @@
 package iw.core.application
 
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, ProjectConfiguration}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR}
+import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
 import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.WorktreeListView
 import scalatags.Text.all.*
@@ -18,25 +18,46 @@ object DashboardService:
     * @param issueCache Current issue cache
     * @param progressCache Current progress cache
     * @param prCache Current PR cache
+    * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
-    * @return Complete HTML page as string
+    * @return Tuple of (HTML page as string, updated review state cache)
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
     issueCache: Map[String, CachedIssue],
     progressCache: Map[String, CachedProgress],
     prCache: Map[String, CachedPR],
+    reviewStateCache: Map[String, CachedReviewState],
     config: Option[ProjectConfiguration]
-  ): String =
+  ): (String, Map[String, CachedReviewState]) =
     val now = Instant.now()
 
-    // Fetch issue data, progress, git status, and PR data for each worktree
-    val worktreesWithData = worktrees.map { wt =>
+    // Fetch data for each worktree and accumulate updated review state cache
+    val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
+      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
+    ) { case ((acc, cache), wt) =>
       val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktree(wt, prCache, now)
-      (wt, issueData, progress, gitStatus, prData)
+      val cachedReviewStateResult = fetchReviewStateForWorktree(wt, cache)
+
+      // Extract ReviewState for view and update cache
+      // Only update cache for valid states (Some(Right))
+      val (reviewStateResult, newCache) = cachedReviewStateResult match {
+        case None =>
+          // No review state file
+          (None, cache)
+        case Some(Left(error)) =>
+          // Invalid review state - pass error to view, don't update cache
+          (Some(Left(error)), cache)
+        case Some(Right(cached)) =>
+          // Valid review state - pass to view and update cache
+          (Some(Right(cached.state)), cache + (wt.issueId -> cached))
+      }
+
+      val worktreeData = (wt, issueData, progress, gitStatus, prData, reviewStateResult)
+      (worktreeData :: acc, newCache)
     }
 
     val page = html(
@@ -49,12 +70,12 @@ object DashboardService:
         div(
           cls := "container",
           h1("iw Dashboard"),
-          WorktreeListView.render(worktreesWithData, now)
+          WorktreeListView.render(worktreesWithData.reverse, now)
         )
       )
     )
 
-    "<!DOCTYPE html>\n" + page.render
+    ("<!DOCTYPE html>\n" + page.render, updatedReviewStateCache)
 
   /** Fetch issue data for a single worktree using cache or API.
     *
@@ -229,6 +250,62 @@ object DashboardService:
       execCommand,
       detectTool
     ).toOption.flatten
+
+  /** Fetch review state for a single worktree.
+    *
+    * Reads review-state.json from the worktree and parses review state.
+    * Uses cache with mtime validation.
+    *
+    * Returns:
+    * - None: No review state file (normal case, not an error)
+    * - Some(Left(error)): File exists but is invalid (parse error, malformed JSON)
+    * - Some(Right(cached)): Valid review state
+    *
+    * Invalid states are logged to stderr for debugging.
+    *
+    * @param wt Worktree registration
+    * @param cache Current review state cache
+    * @return Option[Either[String, CachedReviewState]]
+    */
+  private def fetchReviewStateForWorktree(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedReviewState]
+  ): Option[Either[String, CachedReviewState]] =
+    // File I/O wrapper: read file content
+    val readFile = (path: String) => Try {
+      val source = scala.io.Source.fromFile(path)
+      try source.mkString
+      finally source.close()
+    }.toEither.left.map(_.getMessage)
+
+    // File I/O wrapper: get file modification time
+    val getMtime = (path: String) => Try {
+      java.nio.file.Files.getLastModifiedTime(
+        java.nio.file.Paths.get(path)
+      ).toMillis
+    }.toEither.left.map(_.getMessage)
+
+    // Call ReviewStateService with injected I/O functions
+    val reviewStatePath = s"${wt.path}/project-management/issues/${wt.issueId}/review-state.json"
+
+    ReviewStateService.fetchReviewState(
+      wt.issueId,
+      wt.path,
+      cache,
+      readFile,
+      getMtime
+    ) match {
+      case Left(err) if err == reviewStatePath || err.contains("NoSuchFileException") || err.contains("File not found") =>
+        // Normal case - no review state file (error message is just the path or explicit "not found")
+        None
+      case Left(err) =>
+        // Invalid state file - log warning and return error
+        System.err.println(s"[WARN] Failed to load review state for ${wt.issueId}: $err")
+        Some(Left(err))
+      case Right(cached) =>
+        // Valid state
+        Some(Right(cached))
+    }
 
   private val styles = """
     body {
@@ -448,5 +525,115 @@ object DashboardService:
 
     .pr-closed {
       background: #868e96;
+    }
+
+    .review-artifacts {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+
+    .review-artifacts h4 {
+      margin: 0 0 10px 0;
+      font-size: 0.95em;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .artifact-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .artifact-list li {
+      margin: 4px 0;
+    }
+
+    .artifact-list a {
+      color: #0066cc;
+      text-decoration: none;
+      font-size: 0.9em;
+    }
+
+    .artifact-list a:hover {
+      text-decoration: underline;
+    }
+
+    /* Review phase number */
+    .review-phase {
+      font-size: 0.85em;
+      color: #666;
+      font-weight: normal;
+      margin-left: 8px;
+    }
+
+    /* Review status badge */
+    .review-status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin: 8px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .review-status-label {
+      color: white;
+    }
+
+    /* Status-specific colors */
+    .review-status-awaiting-review {
+      background-color: #28a745;
+    }
+
+    .review-status-in-progress {
+      background-color: #ffc107;
+    }
+
+    .review-status-in-progress .review-status-label {
+      color: #333;
+    }
+
+    .review-status-completed {
+      background-color: #6c757d;
+    }
+
+    .review-status-default {
+      background-color: #007bff;
+    }
+
+    /* Review message */
+    .review-message {
+      margin: 8px 0;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-left: 3px solid #007bff;
+      font-size: 0.9em;
+      color: #495057;
+      border-radius: 4px;
+    }
+
+    /* Error state for invalid review state files */
+    .review-error {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .review-error-message {
+      font-weight: bold;
+      color: #856404;
+      margin: 0 0 8px 0;
+    }
+
+    .review-error-detail {
+      color: #856404;
+      font-size: 0.9em;
+      margin: 0;
     }
   """
