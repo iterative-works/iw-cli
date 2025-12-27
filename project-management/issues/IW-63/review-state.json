@@ -4,6 +4,7 @@
   "message": "Phase 1 complete - Register current worktree to dashboard",
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/65",
   "artifacts": [
+    {"label": "Review Packet", "path": "project-management/issues/IW-63/review-packet-phase-01.md"},
     {"label": "Analysis", "path": "project-management/issues/IW-63/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-63/implementation-log.md"},
     {"label": "Phase 1 Context", "path": "project-management/issues/IW-63/phase-01-context.md"},
