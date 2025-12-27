@@ -1,0 +1,16 @@
+{
+  "status": "final_review",
+  "phase": 1,
+  "message": "All phases complete - Final PR to main ready for review",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/66",
+  "phase_prs": [
+    {"phase": 1, "url": "https://github.com/iterative-works/iw-cli/pull/65", "status": "merged"}
+  ],
+  "artifacts": [
+    {"label": "Review Packet", "path": "project-management/issues/IW-63/review-packet-phase-01.md"},
+    {"label": "Analysis", "path": "project-management/issues/IW-63/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-63/implementation-log.md"},
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-63/phase-01-context.md"},
+    {"label": "Phase 1 Tasks", "path": "project-management/issues/IW-63/phase-01-tasks.md"}
+  ]
+}
