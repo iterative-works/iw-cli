@@ -1,8 +1,11 @@
 {
-  "status": "awaiting_review",
+  "status": "final_review",
   "phase": 1,
-  "message": "Phase 1 complete - Register current worktree to dashboard",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/65",
+  "message": "All phases complete - Final PR to main ready for review",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/66",
+  "phase_prs": [
+    {"phase": 1, "url": "https://github.com/iterative-works/iw-cli/pull/65", "status": "merged"}
+  ],
   "artifacts": [
     {"label": "Review Packet", "path": "project-management/issues/IW-63/review-packet-phase-01.md"},
     {"label": "Analysis", "path": "project-management/issues/IW-63/analysis.md"},
