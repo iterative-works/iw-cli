@@ -23,9 +23,14 @@ fi
 bootstrap() {
     echo "Bootstrapping iw-cli installation at $INSTALL_DIR..." >&2
 
+    # Find core files excluding test directory
+    local core_files
+    core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
+
     # Compile a simple command to trigger dependency download and compilation
     # This ensures subsequent runs work offline
-    scala-cli compile "$COMMANDS_DIR/version.scala" "$CORE_DIR"/*.scala --server=false > /dev/null 2>&1
+    # shellcheck disable=SC2086
+    scala-cli compile "$COMMANDS_DIR/version.scala" $core_files --server=false > /dev/null 2>&1
 
     echo "Bootstrap complete. iw-cli is ready for offline use." >&2
 }
@@ -241,9 +246,14 @@ execute_command() {
             exit 1
         fi
 
+        # Find core files excluding test directory
+        local core_files
+        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
+
         # Project commands: Execute with core library, NO hook discovery
         cd "$PROJECT_DIR"
-        exec scala-cli run "$cmd_file" "$CORE_DIR"/*.scala -- "$@"
+        # shellcheck disable=SC2086
+        exec scala-cli run "$cmd_file" $core_files -- "$@"
 
     else
         # Shared command
@@ -292,13 +302,17 @@ execute_command() {
             hook_classes=$(extract_hook_classes "$hook_files")
         fi
 
+        # Find core files excluding test directory
+        local core_files
+        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
+
         # Change to project directory for command execution
         cd "$PROJECT_DIR"
 
         # Execute with scala-cli, including core library and any discovered hook files
         # IW_HOOK_CLASSES tells the command which hook objects to initialize
         # shellcheck disable=SC2086
-        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files "$CORE_DIR"/*.scala -- "$@"
+        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files $core_files -- "$@"
     fi
 }
 
