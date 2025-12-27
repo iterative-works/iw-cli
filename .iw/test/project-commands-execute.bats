@@ -16,11 +16,11 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/iw-run"
     chmod +x "$TEST_DIR/iw-run"
 
-    # Copy shared commands and core
+    # Copy shared commands and core (including subdirectories, excluding test/)
     mkdir -p .iw-install/commands
-    mkdir -p .iw-install/core
     cp -r "$BATS_TEST_DIRNAME/../commands"/*.scala .iw-install/commands/
-    cp -r "$BATS_TEST_DIRNAME/../core"/*.scala .iw-install/core/
+    cp -r "$BATS_TEST_DIRNAME/../core" .iw-install/
+    rm -rf .iw-install/core/test
 
     # Set environment variables to point to our test installation
     export IW_COMMANDS_DIR="$TEST_DIR/.iw-install/commands"

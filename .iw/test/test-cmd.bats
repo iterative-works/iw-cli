@@ -15,6 +15,7 @@ setup() {
     # Copy the iw infrastructure
     cp -r "$BATS_TEST_DIRNAME/../.." "$TEST_DIR/.iw-src"
     cp "$BATS_TEST_DIRNAME/../../iw" "$TEST_DIR/iw"
+    cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/iw-run"
     mkdir -p .iw
     cp -r "$BATS_TEST_DIRNAME/../commands" .iw/
     cp -r "$BATS_TEST_DIRNAME/../core" .iw/
