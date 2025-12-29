@@ -8,8 +8,8 @@
 
 ## Setup Tasks
 
-- [ ] Verify existing test files can be modified (read current test structure)
-- [ ] Verify MarkdownRenderer.scala and ArtifactView.scala locations
+- [x] Verify existing test files can be modified (read current test structure)
+- [x] Verify MarkdownRenderer.scala and ArtifactView.scala locations
 
 ---
 
@@ -17,21 +17,21 @@
 
 ### Unit Tests for MarkdownRenderer (HTML transformation)
 
-- [ ] [test] Write test: basic Mermaid code block transforms to `<div class="mermaid">`
-- [ ] [test] Write test: Mermaid div contains unescaped diagram syntax (arrows `-->` not `--&gt;`)
-- [ ] [test] Write test: multiple Mermaid blocks are all transformed
-- [ ] [test] Write test: non-Mermaid code blocks (scala, javascript) remain unchanged
-- [ ] [test] Write test: empty Mermaid block is handled correctly
-- [ ] [test] Write test: Mermaid block with special characters preserves content
+- [x] [test] [x] [reviewed] Write test: basic Mermaid code block transforms to `<div class="mermaid">`
+- [x] [test] [x] [reviewed] Write test: Mermaid div contains unescaped diagram syntax (arrows `-->` not `--&gt;`)
+- [x] [test] [x] [reviewed] Write test: multiple Mermaid blocks are all transformed
+- [x] [test] [x] [reviewed] Write test: non-Mermaid code blocks (scala, javascript) remain unchanged
+- [x] [test] [x] [reviewed] Write test: empty Mermaid block is handled correctly
+- [x] [test] [x] [reviewed] Write test: Mermaid block with special characters preserves content
 
 ### Unit Tests for ArtifactView (Script inclusion)
 
-- [ ] [test] Write test: rendered HTML includes Mermaid.js script tag from CDN
-- [ ] [test] Write test: script tag uses correct version (v10.9.4)
-- [ ] [test] Write test: rendered HTML includes Mermaid initialization script
-- [ ] [test] Write test: initialization script configures `neutral` theme
-- [ ] [test] Write test: initialization script sets `startOnLoad: true`
-- [ ] [test] Write test: Mermaid scripts are in `<head>` section before `</head>`
+- [x] [test] [x] [reviewed] Write test: rendered HTML includes Mermaid.js script tag from CDN
+- [x] [test] [x] [reviewed] Write test: script tag uses correct version (v10.9.4)
+- [x] [test] [x] [reviewed] Write test: rendered HTML includes Mermaid initialization script
+- [x] [test] [x] [reviewed] Write test: initialization script configures `neutral` theme
+- [x] [test] [x] [reviewed] Write test: initialization script sets `startOnLoad: true`
+- [x] [test] [x] [reviewed] Write test: Mermaid scripts are in `<head>` section before `</head>`
 
 ---
 
@@ -39,34 +39,34 @@
 
 ### MarkdownRenderer Implementation
 
-- [ ] [impl] Add HTML post-processing function to MarkdownRenderer.toHtml()
-- [ ] [impl] Implement regex/parser to find `<pre><code class="language-mermaid">` blocks
-- [ ] [impl] Extract and decode HTML entities from code block content
-- [ ] [impl] Replace matched blocks with `<div class="mermaid">` containing decoded content
-- [ ] [impl] Handle multiple Mermaid blocks in same document
-- [ ] [impl] Verify all MarkdownRenderer tests pass (run test suite)
+- [x] [impl] [x] [reviewed] Add HTML post-processing function to MarkdownRenderer.toHtml()
+- [x] [impl] [x] [reviewed] Implement regex/parser to find `<pre><code class="language-mermaid">` blocks
+- [x] [impl] [x] [reviewed] Extract and decode HTML entities from code block content
+- [x] [impl] [x] [reviewed] Replace matched blocks with `<div class="mermaid">` containing decoded content
+- [x] [impl] [x] [reviewed] Handle multiple Mermaid blocks in same document
+- [x] [impl] [x] [reviewed] Verify all MarkdownRenderer tests pass (run test suite)
 
 ### ArtifactView Implementation
 
-- [ ] [impl] Add Mermaid.js CDN script tag to ArtifactView.render() `<head>` section
-- [ ] [impl] Add Mermaid initialization script with config object
-- [ ] [impl] Configure Mermaid with `startOnLoad: true` and `theme: 'neutral'`
-- [ ] [impl] Use scalatags `raw()` for script content to avoid escaping
-- [ ] [impl] Verify all ArtifactView tests pass (run test suite)
+- [x] [impl] [x] [reviewed] Add Mermaid.js CDN script tag to ArtifactView.render() `<head>` section
+- [x] [impl] [x] [reviewed] Add Mermaid initialization script with config object
+- [x] [impl] [x] [reviewed] Configure Mermaid with `startOnLoad: true` and `theme: 'neutral'`
+- [x] [impl] [x] [reviewed] Use scalatags `raw()` for script content to avoid escaping
+- [x] [impl] [x] [reviewed] Verify all ArtifactView tests pass (run test suite)
 
 ---
 
 ## Integration Tasks
 
-- [ ] Run full unit test suite: `./iw test unit`
-- [ ] Verify no regressions in existing markdown rendering tests
-- [ ] Verify no regressions in existing ArtifactView rendering tests
+- [x] Run full unit test suite: `./iw test unit`
+- [x] Verify no regressions in existing markdown rendering tests
+- [x] Verify no regressions in existing ArtifactView rendering tests
 
 ---
 
 ## E2E Verification Tasks (Manual)
 
-- [ ] Create test markdown file in project-management/issues/IW-67/test-mermaid.md with:
+- [x] Create test markdown file in project-management/issues/IW-67/test-mermaid.md with:
   - Mermaid flowchart with decision diamond
   - Regular Scala code block (regression check)
   - Multiple Mermaid diagrams
@@ -102,6 +102,6 @@
 
 ---
 
-**Phase Status:** Ready for Implementation
+**Phase Status:** Complete
 
 **Total Tasks:** 35 tasks across Setup (2), Tests (12), Implementation (11), Integration (3), E2E (7)

@@ -149,3 +149,80 @@ class MarkdownRendererTest extends munit.FunSuite:
     assert(html.nonEmpty)
     assert(html.contains("<h1>"))
     assert(html.contains("Section"))
+
+  // Mermaid diagram rendering tests
+  test("transforms mermaid code block to mermaid div"):
+    val markdown = """```mermaid
+                     |graph TD
+                     |  A[Start] --> B[End]
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("graph TD"))
+    assert(html.contains("A[Start] --> B[End]"))
+    assert(!html.contains("<pre><code class=\"language-mermaid\">"))
+
+  test("mermaid div contains unescaped diagram syntax"):
+    val markdown = """```mermaid
+                     |graph TD
+                     |  A[Start] --> B[End]
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("-->"))
+    assert(!html.contains("--&gt;"))
+    assert(html.contains("A[Start]"))
+    assert(!html.contains("A&lt;Start&gt;"))
+
+  test("transforms multiple mermaid blocks"):
+    val markdown = """```mermaid
+                     |graph TD
+                     |  A --> B
+                     |```
+                     |
+                     |Text between diagrams.
+                     |
+                     |```mermaid
+                     |graph LR
+                     |  C --> D
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    // Count occurrences of mermaid div
+    val count = html.split("<div class=\"mermaid\">").length - 1
+    assertEquals(count, 2)
+    assert(html.contains("A --> B"))
+    assert(html.contains("C --> D"))
+
+  test("preserves non-mermaid code blocks"):
+    val markdown = """```scala
+                     |def hello = "world"
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<pre>") || html.contains("<code>"))
+    assert(!html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("def hello"))
+
+  test("handles empty mermaid block"):
+    val markdown = """```mermaid
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+
+  test("mermaid block with special characters preserves content"):
+    val markdown = """```mermaid
+                     |graph TD
+                     |  A[Start] -->|Yes| B{Decision}
+                     |  B -->|No| C[End]
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("-->|Yes|"))
+    assert(html.contains("-->|No|"))
+    assert(html.contains("B{Decision}"))
+    assert(!html.contains("&gt;"))
+    assert(!html.contains("&lt;"))

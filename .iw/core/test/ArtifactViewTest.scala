@@ -128,3 +128,66 @@ class ArtifactViewTest extends munit.FunSuite:
 
     assert(html.contains("phase-03-context.md"))
     assert(html.contains("IWLE-72"))
+
+  // Mermaid.js integration tests
+  test("render includes mermaid.js script tag from CDN"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains("<script src=\"https://cdn.jsdelivr.net/npm/mermaid@10.9.4/dist/mermaid.min.js\"></script>"))
+
+  test("script tag uses correct version v10.9.4"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains("mermaid@10.9.4"))
+
+  test("render includes mermaid initialization script"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains("mermaid.initialize"))
+
+  test("initialization script configures neutral theme"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains("theme: 'neutral'"))
+
+  test("initialization script sets startOnLoad true"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains("startOnLoad: true"))
+
+  test("mermaid scripts are in head section"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    val headEnd = html.indexOf("</head>")
+    val mermaidScriptPos = html.indexOf("mermaid@10.9.4")
+    val mermaidInitPos = html.indexOf("mermaid.initialize")
+
+    assert(headEnd > 0, "Should have closing </head> tag")
+    assert(mermaidScriptPos > 0, "Should have mermaid script")
+    assert(mermaidInitPos > 0, "Should have mermaid initialization")
+    assert(mermaidScriptPos < headEnd, "Mermaid script should be in <head>")
+    assert(mermaidInitPos < headEnd, "Mermaid init should be in <head>")

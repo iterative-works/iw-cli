@@ -37,4 +37,42 @@ object MarkdownRenderer:
 
     // Parse and render
     val document = parser.parse(markdown)
-    renderer.render(document)
+    val html = renderer.render(document)
+
+    // Post-process to transform Mermaid code blocks
+    transformMermaidBlocks(html)
+
+  /** Transform Mermaid code blocks from flexmark format to Mermaid.js format.
+    *
+    * Converts:
+    *   <pre><code class="language-mermaid">content</code></pre>
+    * To:
+    *   <div class="mermaid">content</div>
+    *
+    * HTML entities in the content are decoded (e.g., &gt; becomes >).
+    *
+    * @param html HTML output from flexmark
+    * @return HTML with Mermaid blocks transformed
+    */
+  private def transformMermaidBlocks(html: String): String =
+    // Use DOTALL flag to match across newlines
+    val mermaidPattern = """(?s)<pre><code class="language-mermaid">(.*?)</code></pre>""".r
+
+    mermaidPattern.replaceAllIn(html, m => {
+      val encodedContent = m.group(1)
+      val decodedContent = decodeHtmlEntities(encodedContent)
+      s"""<div class="mermaid">$decodedContent</div>"""
+    })
+
+  /** Decode common HTML entities.
+    *
+    * @param text Text with HTML entities
+    * @return Text with entities decoded
+    */
+  private def decodeHtmlEntities(text: String): String =
+    text
+      .replace("&lt;", "<")
+      .replace("&gt;", ">")
+      .replace("&amp;", "&")
+      .replace("&quot;", "\"")
+      .replace("&#39;", "'")

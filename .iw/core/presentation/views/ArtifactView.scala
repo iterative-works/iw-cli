@@ -18,7 +18,10 @@ object ArtifactView:
       head(
         meta(charset := "UTF-8"),
         tag("title")(s"$artifactLabel - $issueId"),
-        tag("style")(raw(styles))
+        tag("style")(raw(styles)),
+        // Mermaid.js for diagram rendering
+        tag("script")(src := "https://cdn.jsdelivr.net/npm/mermaid@10.9.4/dist/mermaid.min.js"),
+        tag("script")(raw(mermaidInitScript))
       ),
       body(
         div(
@@ -44,6 +47,10 @@ object ArtifactView:
     )
 
     "<!DOCTYPE html>\n" + page.render
+
+  private val mermaidInitScript = """
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  """
 
   /** Render error page for artifact loading failures. */
   def renderError(issueId: String, errorMessage: String): String =
