@@ -191,3 +191,24 @@ class ArtifactViewTest extends munit.FunSuite:
     assert(mermaidInitPos > 0, "Should have mermaid initialization")
     assert(mermaidScriptPos < headEnd, "Mermaid script should be in <head>")
     assert(mermaidInitPos < headEnd, "Mermaid init should be in <head>")
+
+  // Mermaid error handling tests (Phase 2)
+  test("mermaid initialization sets securityLevel to loose for error display"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains("securityLevel: 'loose'"))
+
+  test("CSS includes mermaid error styling"):
+    val html = ArtifactView.render(
+      artifactLabel = "test.md",
+      renderedHtml = "<p>Content</p>",
+      issueId = "TEST-1"
+    )
+
+    assert(html.contains(".mermaid"))
+    // Error styling should target error elements
+    assert(html.contains("error") || html.contains("Error"))

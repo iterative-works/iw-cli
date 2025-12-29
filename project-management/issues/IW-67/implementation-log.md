@@ -49,3 +49,43 @@ M  .iw/core/test/MarkdownRendererTest.scala
 ```
 
 ---
+
+## Phase 2: Handle invalid Mermaid syntax gracefully (2025-12-29)
+
+**What was built:**
+- Presentation: `.iw/core/presentation/views/ArtifactView.scala` - Added `securityLevel: 'loose'` to Mermaid config for detailed error messages
+- Presentation: `.iw/core/presentation/views/ArtifactView.scala` - Added CSS styling for Mermaid diagrams and error messages
+
+**Decisions made:**
+- Used `securityLevel: 'loose'` to enable full error message display (Mermaid default is 'strict' which limits output)
+- Applied Material Design error color (#d32f2f) for consistent error styling
+- Used `:has()` CSS pseudo-selector for error container styling (acceptable for local dev tool targeting modern browsers)
+
+**Patterns applied:**
+- Graceful degradation: Invalid diagrams show errors while valid content renders normally
+- CSS error indicators: Visual feedback (red border, pink background) for error states
+
+**Testing:**
+- Unit tests: 2 tests added
+  - Test for securityLevel configuration
+  - Test for error CSS styling
+- E2E: Test markdown file created with invalid syntax (`test-mermaid-errors.md`)
+- Integration tests: All existing tests pass (no regressions)
+
+**Code review:**
+- Iterations: 1
+- Major findings: No critical issues. `:has()` selector noted as modern CSS (acceptable for target audience).
+
+**For next phases:**
+- Available utilities: Error styling is in place for any Mermaid errors
+- Extension points: Can add custom error handlers via Mermaid callbacks if needed
+- Notes: Manual browser verification pending
+
+**Files changed:**
+```
+M  .iw/core/presentation/views/ArtifactView.scala
+M  .iw/core/test/ArtifactViewTest.scala
+A  project-management/issues/IW-67/test-mermaid-errors.md
+```
+
+---

@@ -49,7 +49,11 @@ object ArtifactView:
     "<!DOCTYPE html>\n" + page.render
 
   private val mermaidInitScript = """
-    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'loose'
+    });
   """
 
   /** Render error page for artifact loading failures. */
@@ -215,5 +219,31 @@ object ArtifactView:
       border: none;
       border-top: 1px solid #ddd;
       margin: 24px 0;
+    }
+
+    /* Mermaid diagram styling */
+    .mermaid {
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    /* Mermaid error styling */
+    .mermaid .error-text,
+    .mermaid .error-message {
+      fill: #d32f2f;
+      font-family: 'Source Code Pro', 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .mermaid .error-icon {
+      fill: #d32f2f;
+    }
+
+    .mermaid[data-processed="true"]:has(.error-text),
+    .mermaid[data-processed="true"]:has(.error-message) {
+      border: 2px solid #d32f2f;
+      border-radius: 4px;
+      padding: 12px;
+      background: #ffebee;
     }
   """
