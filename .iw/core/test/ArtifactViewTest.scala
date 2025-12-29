@@ -166,14 +166,15 @@ class ArtifactViewTest extends munit.FunSuite:
 
     assert(html.contains("theme: 'neutral'"))
 
-  test("initialization script sets startOnLoad true"):
+  test("initialization script sets startOnLoad false for custom error handling"):
     val html = ArtifactView.render(
       artifactLabel = "test.md",
       renderedHtml = "<p>Content</p>",
       issueId = "TEST-1"
     )
 
-    assert(html.contains("startOnLoad: true"))
+    // startOnLoad is false because we use custom rendering with detailed error messages
+    assert(html.contains("startOnLoad: false"))
 
   test("mermaid scripts are in head section"):
     val html = ArtifactView.render(

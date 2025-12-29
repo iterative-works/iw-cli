@@ -50,9 +50,39 @@ object ArtifactView:
 
   private val mermaidInitScript = """
     mermaid.initialize({
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'neutral',
       securityLevel: 'loose'
+    });
+
+    // Custom rendering with detailed error messages
+    document.addEventListener('DOMContentLoaded', async () => {
+      const diagrams = document.querySelectorAll('.mermaid');
+      for (const el of diagrams) {
+        const code = el.textContent;
+        const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+        try {
+          const { svg } = await mermaid.render(id, code);
+          el.innerHTML = svg;
+        } catch (e) {
+          // Clean up any orphan SVG created by failed render
+          const orphan = document.getElementById(id);
+          if (orphan) orphan.remove();
+
+          // Show detailed error message
+          const errorMsg = e.message || 'Unknown error';
+          el.innerHTML = `
+            <div style="background: #ffebee; border: 2px solid #d32f2f; border-radius: 4px; padding: 16px; text-align: left;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 24px;">💣</span>
+                <div>
+                  <strong style="color: #d32f2f;">Mermaid Syntax Error</strong>
+                  <pre style="margin: 8px 0 0 0; font-size: 12px; white-space: pre-wrap; color: #333; background: #fff; padding: 8px; border-radius: 4px; overflow-x: auto;">${errorMsg.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                </div>
+              </div>
+            </div>`;
+        }
+      }
     });
   """
 
