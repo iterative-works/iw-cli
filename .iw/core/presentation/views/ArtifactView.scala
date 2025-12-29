@@ -230,20 +230,28 @@ object ArtifactView:
     /* Mermaid error styling */
     .mermaid .error-text,
     .mermaid .error-message {
-      fill: #d32f2f;
+      fill: #d32f2f !important;
       font-family: 'Source Code Pro', 'Courier New', monospace;
-      font-size: 12px;
+      /* Use large font-size to compensate for SVG viewBox scaling */
+      font-size: 64px !important;
     }
 
     .mermaid .error-icon {
       fill: #d32f2f;
     }
 
-    .mermaid[data-processed="true"]:has(.error-text),
-    .mermaid[data-processed="true"]:has(.error-message) {
+    /* Error container styling */
+    .mermaid:has(.error-text),
+    .mermaid:has(.error-message) {
       border: 2px solid #d32f2f;
       border-radius: 4px;
       padding: 12px;
       background: #ffebee;
+    }
+
+    /* Constrain error SVG to show text properly */
+    .mermaid:has(.error-text) svg,
+    .mermaid:has(.error-message) svg {
+      min-height: 150px;
     }
   """
