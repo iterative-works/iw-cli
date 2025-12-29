@@ -226,3 +226,81 @@ class MarkdownRendererTest extends munit.FunSuite:
     assert(html.contains("B{Decision}"))
     assert(!html.contains("&gt;"))
     assert(!html.contains("&lt;"))
+
+  // Tests for different Mermaid diagram types (Phase 3)
+  test("transforms sequence diagram code block"):
+    val markdown = """```mermaid
+                     |sequenceDiagram
+                     |  participant A as Alice
+                     |  participant B as Bob
+                     |  A->>B: Hello Bob
+                     |  B->>A: Hello Alice
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("sequenceDiagram"))
+    assert(html.contains("participant A as Alice"))
+    assert(html.contains("participant B as Bob"))
+    assert(html.contains("A->>B: Hello Bob"))
+    assert(html.contains("B->>A: Hello Alice"))
+    assert(!html.contains("<pre><code class=\"language-mermaid\">"))
+
+  test("transforms class diagram code block"):
+    val markdown = """```mermaid
+                     |classDiagram
+                     |  class Animal {
+                     |    +String name
+                     |    +int age
+                     |    +makeSound()
+                     |  }
+                     |  class Dog {
+                     |    +bark()
+                     |  }
+                     |  Animal <|-- Dog
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("classDiagram"))
+    assert(html.contains("class Animal"))
+    assert(html.contains("+String name"))
+    assert(html.contains("+makeSound()"))
+    assert(html.contains("Animal <|-- Dog"))
+    assert(!html.contains("<pre><code class=\"language-mermaid\">"))
+
+  test("transforms state diagram code block"):
+    val markdown = """```mermaid
+                     |stateDiagram-v2
+                     |  [*] --> Idle
+                     |  Idle --> Processing
+                     |  Processing --> Complete
+                     |  Processing --> Error
+                     |  Complete --> [*]
+                     |  Error --> [*]
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("stateDiagram-v2"))
+    assert(html.contains("[*] --> Idle"))
+    assert(html.contains("Idle --> Processing"))
+    assert(html.contains("Processing --> Complete"))
+    assert(!html.contains("<pre><code class=\"language-mermaid\">"))
+
+  test("transforms pie chart code block"):
+    val markdown = """```mermaid
+                     |pie title Distribution of Work
+                     |  "Development" : 40
+                     |  "Testing" : 30
+                     |  "Documentation" : 20
+                     |  "Meetings" : 10
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("pie title Distribution of Work"))
+    assert(html.contains("\"Development\" : 40"))
+    assert(html.contains("\"Testing\" : 30"))
+    assert(html.contains("\"Documentation\" : 20"))
+    assert(!html.contains("<pre><code class=\"language-mermaid\">"))

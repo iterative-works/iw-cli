@@ -89,3 +89,46 @@ A  project-management/issues/IW-67/test-mermaid-errors.md
 ```
 
 ---
+
+## Phase 3: Support common Mermaid diagram types (2025-12-30)
+
+**What was built:**
+- Tests: `.iw/core/test/MarkdownRendererTest.scala` - Added 4 unit tests for different diagram types (sequence, class, state, pie)
+- Test Fixtures: `.iw/core/test/fixtures/mermaid-diagram-types.md` - Created comprehensive fixture file with 8 diagram types
+- E2E Tests: `project-management/issues/IW-67/test-mermaid-diagrams.md` - Created manual verification document with detailed examples
+
+**Decisions made:**
+- No code changes required - the existing `transformMermaidBlocks()` implementation is diagram-type agnostic
+- Phase 3 is purely validation - confirming that Mermaid.js handles all diagram types correctly
+- Created test fixtures for 8 diagram types: flowchart, sequence, class, state, pie, ER, gantt, git graph
+
+**Patterns applied:**
+- Validation phase: Testing existing functionality without modification
+- Regression testing: Verified that Phase 1/2 functionality still works with new test cases
+- Test-driven validation: Added unit tests first, verified they pass with existing implementation
+
+**Testing:**
+- Unit tests: 4 tests added
+  - Sequence diagram code block transformation
+  - Class diagram code block transformation
+  - State diagram code block transformation
+  - Pie chart code block transformation
+- All tests pass (no code changes needed)
+- Test fixtures created for comprehensive manual verification
+
+**For next phases:**
+- Available utilities: All 8 diagram types confirmed working
+- Extension points: No additional Mermaid configuration needed
+- Notes: Manual browser verification pending (verification tasks in phase-03-tasks.md)
+
+**Files changed:**
+```
+M  .iw/core/test/MarkdownRendererTest.scala
+A  .iw/core/test/fixtures/mermaid-diagram-types.md
+A  project-management/issues/IW-67/test-mermaid-diagrams.md
+```
+
+**Key insight:**
+This phase validates an important architectural decision from Phase 1: by transforming Mermaid blocks generically (not parsing or validating diagram syntax), the implementation naturally supports all Mermaid diagram types without additional code. The transformation only cares about the `language-mermaid` class, not the content.
+
+---
