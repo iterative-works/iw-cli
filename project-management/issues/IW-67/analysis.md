@@ -11,6 +11,38 @@ Users need to create visual diagrams (flowcharts, sequence diagrams, class diagr
 
 Adding Mermaid.js support enables users to define diagrams as text directly in markdown using a well-established syntax. This improves documentation by making diagrams version-controllable, easier to update, and eliminates the need for external diagram tools.
 
+## Research Findings
+
+### Alternatives Evaluated
+
+| Tool | Rendering | Verdict |
+|------|-----------|---------|
+| **Mermaid.js** | Client-side | **Best choice** - Zero-config, most popular, GitHub/VS Code native support |
+| **D2** | Client/server | Better aesthetics but harder to integrate, newer/less mature |
+| **PlantUML** | Server-side (Java) | Most diagram types but requires Java server - overkill for our use |
+| **Kroki** | Server-side | Aggregates 50+ tools but needs server/container |
+| **Graphviz** | Server-side | Powerful but dated visuals, harder setup |
+
+**Decision:** Mermaid.js is the clear choice for client-side dashboard rendering.
+
+### Flexmark Integration Research
+
+- **No official flexmark extension for Mermaid exists** (checked flexmark-java 0.64.8 docs)
+- Standard approach used by other projects:
+  1. Parse markdown normally (flexmark preserves code blocks with language info)
+  2. Post-process HTML to convert `<pre><code class="language-mermaid">` to `<div class="mermaid">`
+  3. Include Mermaid.js and initialize with `mermaid.initialize({startOnLoad:true})`
+- Alternative: Use JavaScript to detect and transform mermaid blocks on page load
+
+### Mermaid.js Version & CDN Research
+
+- **Latest stable:** v10.9.4 (v10.x branch with security backports, production-ready)
+- v11.x exists but is more experimental
+- **Recommended CDN:** jsDelivr (fastest, most reliable)
+- **Best practice:** Pin to exact version in production (e.g., `mermaid@10.9.4`)
+- **Script approach:** Traditional `<script>` tag is simpler for our case (no build system)
+- ESM modules available but unnecessary for this use case
+
 ## User Stories
 
 ### Story 1: Render Mermaid flowchart diagram
@@ -176,101 +208,74 @@ Straightforward because:
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions (Research-Informed)
 
-### CLARIFY: Mermaid.js version and CDN source
+### RESOLVED: Mermaid.js version and CDN source
 
-**Questions to answer:**
-1. Which Mermaid.js version should we use? (Latest stable vs specific version)
-2. Which CDN should we use? (jsDelivr, unpkg, cdnjs, or self-hosted?)
-3. Should we pin to a specific version or use a version range (e.g., `@10` vs `@10.6.1`)?
+**Research findings:** v10.9.4 is the latest stable with security backports. jsDelivr is the recommended CDN.
 
-**Options:**
-- **Option A**: Use latest version from jsDelivr CDN with major version pin (`mermaid@11/dist/mermaid.min.js`)
-  - Pros: Automatic minor/patch updates, widely used CDN
-  - Cons: Potential breaking changes in minor versions (rare but possible)
+**Recommendation:** Pin to v10.9.4 from jsDelivr CDN
+```html
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.4/dist/mermaid.min.js"></script>
+```
 
-- **Option B**: Pin to specific version from jsDelivr CDN (`mermaid@11.4.1/dist/mermaid.min.js`)
-  - Pros: Fully reproducible, no unexpected changes
-  - Cons: Manual updates needed for bug fixes/features
+**Rationale:**
+- Exact version pin ensures reproducibility
+- v10.9.4 has critical security fixes (XSS vulnerabilities patched)
+- jsDelivr is fast and reliable
+- Traditional script tag is simpler than ESM for our no-build-system setup
 
-- **Option C**: Self-host Mermaid.js in the project
-  - Pros: No external dependencies, works offline
-  - Cons: Adds to repository size, manual updates needed
-
-**Impact:** Affects reliability, maintenance burden, and offline functionality. Story 1 implementation depends on this decision.
+**CLARIFY:** Is offline support needed? If yes, we should self-host instead of CDN.
 
 ---
 
-### CLARIFY: Content Security Policy considerations
+### RESOLVED: Content Security Policy considerations
 
-**Questions to answer:**
-1. Does the project have or need a Content Security Policy (CSP)?
-2. If yes, do we need to whitelist the CDN for script sources?
-3. Should we use Subresource Integrity (SRI) hashes for CDN scripts?
+**Current state:** The dashboard is a local development tool running on localhost. No CSP is currently configured.
 
-**Options:**
-- **Option A**: No CSP, include script directly
-  - Pros: Simple, works immediately
-  - Cons: Potential security concern if CSP is added later
+**Recommendation:** No CSP needed for initial implementation
+- Local dashboard doesn't face external threats
+- Can add SRI hash later if security requirements change
 
-- **Option B**: Add SRI hash for CDN script
-  - Pros: Verifies script integrity, security best practice
-  - Cons: Hash must be updated when Mermaid version changes
-
-- **Option C**: Self-host to avoid CSP issues
-  - Pros: Full control, no external dependencies
-  - Cons: Maintenance overhead
-
-**Impact:** Affects security posture and Story 1 implementation approach.
+**CLARIFY:** Do you want SRI hashes for defense-in-depth, or keep it simple?
 
 ---
 
-### CLARIFY: Mermaid theme and styling integration
+### RESOLVED: Mermaid theme and styling integration
 
-**Questions to answer:**
-1. Should Mermaid diagrams use default theme or custom theme?
-2. Should diagram styling match the existing artifact viewer styles?
-3. Do we need to support dark mode for diagrams?
+**Recommendation:** Use Mermaid's `neutral` theme
+```javascript
+mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+```
 
-**Options:**
-- **Option A**: Use Mermaid default theme
-  - Pros: Zero configuration, works immediately
-  - Cons: May not match artifact viewer aesthetics
-
-- **Option B**: Configure Mermaid to use neutral/minimal theme
-  - Pros: Better integration with existing styles
-  - Cons: Requires additional configuration in JavaScript
-
-- **Option C**: Create custom Mermaid theme CSS
-  - Pros: Perfect aesthetic match with artifact viewer
-  - Cons: Significant additional effort, maintenance burden
-
-**Impact:** Affects visual consistency and potentially adds to Story 1 complexity.
+**Rationale:**
+- `neutral` theme uses grayscale/minimal colors that work with any background
+- Better visual consistency with artifact viewer's clean aesthetic
+- Single line of configuration, no custom CSS needed
+- Dark mode not needed (dashboard is light theme only)
 
 ---
 
-### CLARIFY: Markdown code block processing
+### RESOLVED: Markdown code block processing
 
-**Questions to answer:**
-1. Should we transform ` ```mermaid ` blocks before passing to Mermaid.js?
-2. Should we use `<pre class="mermaid">` or `<div class="mermaid">`?
-3. Does flexmark need configuration changes to preserve mermaid code blocks?
+**Research findings:** No flexmark extension exists. Standard approach is client-side JavaScript transformation.
 
-**Options:**
-- **Option A**: Keep markdown code blocks as-is, let Mermaid.js find and render them
-  - Pros: Simple, minimal changes
-  - Cons: May not work if flexmark wraps code blocks in complex HTML
+**Recommendation:** Option B - Post-process HTML in MarkdownRenderer
 
-- **Option B**: Post-process HTML to transform mermaid code blocks to `<div class="mermaid">`
-  - Pros: Guaranteed to work, explicit control
-  - Cons: Additional HTML processing step, slightly more complex
+**Approach:**
+1. Flexmark renders ` ```mermaid ` as `<pre><code class="language-mermaid">...</code></pre>`
+2. Add post-processing in `MarkdownRenderer.toHtml()` to convert these to `<div class="mermaid">...</div>`
+3. Mermaid.js auto-renders elements with class `mermaid` on page load
 
-- **Option C**: Configure flexmark to handle mermaid blocks specially
-  - Pros: Clean separation of concerns
-  - Cons: May require flexmark extension or custom processor
+**Rationale:**
+- Server-side transformation is more reliable than client-side JavaScript manipulation
+- Keeps Mermaid initialization simple (`startOnLoad: true`)
+- Testable at the unit level (can verify HTML output)
+- Follows existing flexmark extension patterns
 
-**Impact:** This is critical for Story 1 - we need to know HOW the HTML will be structured before implementing.
+**Alternative considered:** Client-side JavaScript to transform code blocks
+- Pros: No changes to MarkdownRenderer
+- Cons: Harder to test, potential flash of unstyled content, more fragile
 
 ---
 
@@ -400,7 +405,7 @@ If Mermaid.js causes issues in production:
 **Analysis Status:** Ready for Review
 
 **Next Steps:**
-1. Resolve CLARIFY markers with Michal (especially code block processing approach and CDN choice)
+1. Review remaining CLARIFY items (offline support? SRI hashes?)
 2. Run `/iterative-works:ag-create-tasks IW-67` to map stories to implementation phases
 3. Run `/iterative-works:ag-implement IW-67` for iterative story-by-story implementation
 
@@ -408,10 +413,15 @@ If Mermaid.js causes issues in production:
 
 ## Analysis Summary
 
-This is a **Simple** enhancement (5-7 hours total) that adds significant value to documentation capabilities. The implementation is primarily additive (adding Mermaid.js library to HTML template) with minimal risk to existing functionality. The main technical decisions (CLARIFY markers) are around:
+This is a **Simple** enhancement (5-7 hours total) that adds significant value to documentation capabilities. The implementation is primarily additive (adding Mermaid.js library to HTML template) with minimal risk to existing functionality.
 
-1. **Integration approach**: How to process mermaid code blocks (critical for implementation)
-2. **CDN vs self-hosting**: Affects reliability and maintenance
-3. **Theming**: Affects visual integration quality
+**Research confirmed:**
+- Mermaid.js is the right choice (client-side, most popular, zero-config)
+- No flexmark extension exists - use HTML post-processing approach
+- v10.9.4 from jsDelivr CDN is recommended
 
-Once these decisions are made, implementation is straightforward following established patterns in the codebase.
+**Remaining decisions:**
+1. **Offline support?** - If needed, self-host instead of CDN
+2. **SRI hashes?** - For defense-in-depth or keep simple?
+
+Once these minor decisions are confirmed, implementation is straightforward following established patterns in the codebase.
