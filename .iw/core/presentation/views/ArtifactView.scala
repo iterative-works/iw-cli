@@ -18,7 +18,10 @@ object ArtifactView:
       head(
         meta(charset := "UTF-8"),
         tag("title")(s"$artifactLabel - $issueId"),
-        tag("style")(raw(styles))
+        tag("style")(raw(styles)),
+        // Mermaid.js for diagram rendering
+        tag("script")(src := "https://cdn.jsdelivr.net/npm/mermaid@10.9.4/dist/mermaid.min.js"),
+        tag("script")(raw(mermaidInitScript))
       ),
       body(
         div(
@@ -44,6 +47,44 @@ object ArtifactView:
     )
 
     "<!DOCTYPE html>\n" + page.render
+
+  private val mermaidInitScript = """
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'neutral',
+      securityLevel: 'loose'
+    });
+
+    // Custom rendering with detailed error messages
+    document.addEventListener('DOMContentLoaded', async () => {
+      const diagrams = document.querySelectorAll('.mermaid');
+      for (const el of diagrams) {
+        const code = el.textContent;
+        const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+        try {
+          const { svg } = await mermaid.render(id, code);
+          el.innerHTML = svg;
+        } catch (e) {
+          // Clean up any orphan SVG created by failed render
+          const orphan = document.getElementById(id);
+          if (orphan) orphan.remove();
+
+          // Show detailed error message
+          const errorMsg = e.message || 'Unknown error';
+          el.innerHTML = `
+            <div style="background: #ffebee; border: 2px solid #d32f2f; border-radius: 4px; padding: 16px; text-align: left;">
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 24px;">💣</span>
+                <div>
+                  <strong style="color: #d32f2f;">Mermaid Syntax Error</strong>
+                  <pre style="margin: 8px 0 0 0; font-size: 12px; white-space: pre-wrap; color: #333; background: #fff; padding: 8px; border-radius: 4px; overflow-x: auto;">${errorMsg.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                </div>
+              </div>
+            </div>`;
+        }
+      }
+    });
+  """
 
   /** Render error page for artifact loading failures. */
   def renderError(issueId: String, errorMessage: String): String =
@@ -208,5 +249,39 @@ object ArtifactView:
       border: none;
       border-top: 1px solid #ddd;
       margin: 24px 0;
+    }
+
+    /* Mermaid diagram styling */
+    .mermaid {
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    /* Mermaid error styling */
+    .mermaid .error-text,
+    .mermaid .error-message {
+      fill: #d32f2f !important;
+      font-family: 'Source Code Pro', 'Courier New', monospace;
+      /* Use large font-size to compensate for SVG viewBox scaling */
+      font-size: 64px !important;
+    }
+
+    .mermaid .error-icon {
+      fill: #d32f2f;
+    }
+
+    /* Error container styling */
+    .mermaid:has(.error-text),
+    .mermaid:has(.error-message) {
+      border: 2px solid #d32f2f;
+      border-radius: 4px;
+      padding: 12px;
+      background: #ffebee;
+    }
+
+    /* Constrain error SVG to show text properly */
+    .mermaid:has(.error-text) svg,
+    .mermaid:has(.error-message) svg {
+      min-height: 150px;
     }
   """
