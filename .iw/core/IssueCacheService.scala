@@ -64,25 +64,52 @@ object IssueCacheService:
 
   /** Build issue URL from tracker type and issue ID.
     *
-    * @param issueId Issue identifier (e.g., "IWLE-123", "PROJ-456")
-    * @param trackerType Tracker type ("Linear" or "YouTrack")
-    * @param baseUrl Optional base URL (required for YouTrack)
+    * @param issueId Issue identifier (e.g., "IWLE-123", "PROJ-456", "72")
+    * @param trackerType Tracker type ("Linear", "YouTrack", or "GitHub")
+    * @param configValue Optional config value (baseUrl for YouTrack, repository for GitHub)
     * @return Direct link to issue in tracker
     */
-  def buildIssueUrl(issueId: String, trackerType: String, baseUrl: Option[String]): String =
-    trackerType match
-      case "Linear" =>
+  def buildIssueUrl(issueId: String, trackerType: String, configValue: Option[String]): String =
+    trackerType.toLowerCase match
+      case "linear" =>
         // Linear URL format: https://linear.app/issue/{issueId}
         // Alternative format: https://linear.app/team/{team}/issue/{issueId}
         // We use the simpler format that redirects automatically
         s"https://linear.app/issue/$issueId"
 
-      case "YouTrack" =>
+      case "youtrack" =>
         // YouTrack URL format: {baseUrl}/issue/{issueId}
-        baseUrl match
+        configValue match
           case Some(url) => s"$url/issue/$issueId"
           case None => s"https://youtrack.example.com/issue/$issueId" // Fallback
+
+      case "github" =>
+        // GitHub URL format: https://github.com/{repository}/issues/{number}
+        val issueNumber = extractGitHubIssueNumber(issueId)
+        configValue match
+          case Some(repository) => s"https://github.com/$repository/issues/$issueNumber"
+          case None => s"https://github.com/unknown/repo/issues/$issueNumber" // Fallback
 
       case _ =>
         // Unknown tracker: return generic placeholder
         s"#unknown-tracker-$issueId"
+
+  /** Extract GitHub issue number from various issueId formats.
+    *
+    * Handles formats like:
+    * - "72" -> "72"
+    * - "IW-72" -> "72"
+    * - "#72" -> "72"
+    *
+    * @param issueId Issue identifier (may have prefix)
+    * @return Numeric issue number as string
+    */
+  private def extractGitHubIssueNumber(issueId: String): String =
+    // Remove # prefix if present
+    val withoutHash = if issueId.startsWith("#") then issueId.drop(1) else issueId
+    // Extract number after hyphen if present (e.g., "IW-72" -> "72")
+    val hyphenIndex = withoutHash.lastIndexOf('-')
+    if hyphenIndex >= 0 then
+      withoutHash.substring(hyphenIndex + 1)
+    else
+      withoutHash

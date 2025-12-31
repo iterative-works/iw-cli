@@ -3,7 +3,7 @@
 
 package iw.core.application
 
-import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, ProjectConfiguration}
+import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, GitHubClient, ProjectConfiguration, ConfigFileRepository, Constants}
 import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
 import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.WorktreeListView
@@ -36,7 +36,7 @@ object DashboardService:
     val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
       (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
     ) { case ((acc, cache), wt) =>
-      val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
+      val issueData = fetchIssueForWorktree(wt, issueCache, now)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktree(wt, prCache, now)
@@ -79,18 +79,23 @@ object DashboardService:
 
   /** Fetch issue data for a single worktree using cache or API.
     *
+    * Loads config from the worktree's path to get correct tracker settings
+    * (e.g., youtrackBaseUrl for YouTrack, repository for GitHub).
+    *
     * @param wt Worktree registration
     * @param cache Current issue cache
     * @param now Current timestamp
-    * @param config Optional project configuration
     * @return Optional tuple of (IssueData, fromCache flag)
     */
   private def fetchIssueForWorktree(
     wt: WorktreeRegistration,
     cache: Map[String, CachedIssue],
-    now: Instant,
-    config: Option[ProjectConfiguration]
+    now: Instant
   ): Option[(IssueData, Boolean)] =
+    // Load config from worktree's path to get correct tracker settings
+    val configPath = os.Path(wt.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val config = ConfigFileRepository.read(configPath)
+
     // Build fetch function based on tracker type
     val fetchFn: String => Either[String, Issue] = id =>
       buildFetchFunction(wt.trackerType, config)(id)
@@ -147,8 +152,40 @@ object DashboardService:
             case (_, Left(error)) =>
               Left(error)
 
+        case "github" =>
+          // Get repository from config
+          val repositoryOpt = config.flatMap(_.repository)
+          // Extract issue number from issueId (handles "72", "IW-72", "#72")
+          val issueNumber = extractGitHubIssueNumber(issueId)
+
+          repositoryOpt match
+            case Some(repository) =>
+              GitHubClient.fetchIssue(issueNumber, repository)
+            case None =>
+              Left("GitHub repository not configured")
+
         case _ =>
           Left(s"Unknown tracker type: $trackerType")
+
+  /** Extract GitHub issue number from various issueId formats.
+    *
+    * Handles formats like:
+    * - "72" -> "72"
+    * - "IW-72" -> "72"
+    * - "#72" -> "72"
+    *
+    * @param issueId Issue identifier (may have prefix)
+    * @return Numeric issue number as string
+    */
+  private def extractGitHubIssueNumber(issueId: String): String =
+    // Remove # prefix if present
+    val withoutHash = if issueId.startsWith("#") then issueId.drop(1) else issueId
+    // Extract number after hyphen if present (e.g., "IW-72" -> "72")
+    val hyphenIndex = withoutHash.lastIndexOf('-')
+    if hyphenIndex >= 0 then
+      withoutHash.substring(hyphenIndex + 1)
+    else
+      withoutHash
 
   /** Build URL builder based on tracker type.
     *
@@ -161,8 +198,12 @@ object DashboardService:
     config: Option[ProjectConfiguration]
   ): String => String =
     (issueId: String) =>
-      val baseUrl = config.flatMap(_.youtrackBaseUrl)
-      IssueCacheService.buildIssueUrl(issueId, trackerType, baseUrl)
+      // Pass appropriate config value based on tracker type
+      val configValue = trackerType.toLowerCase match
+        case "github" => config.flatMap(_.repository)
+        case "youtrack" => config.flatMap(_.youtrackBaseUrl)
+        case _ => None
+      IssueCacheService.buildIssueUrl(issueId, trackerType, configValue)
 
   /** Fetch workflow progress for a single worktree.
     *
