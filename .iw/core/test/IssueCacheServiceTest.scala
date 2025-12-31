@@ -170,3 +170,32 @@ class IssueCacheServiceTest extends FunSuite:
     val (issueData, fromCache) = result.getOrElse((null, true))
     assert(!fromCache, "Should fetch fresh data when not in cache")
     assertEquals(issueData.id, "IWLE-2")
+
+  test("buildIssueUrl generates GitHub URL correctly with repository"):
+    val repository = "iterative-works/iw-cli"
+    val url = IssueCacheService.buildIssueUrl("72", "GitHub", Some(repository))
+
+    assertEquals(url, "https://github.com/iterative-works/iw-cli/issues/72")
+
+  test("buildIssueUrl extracts number from IW-72 format for GitHub"):
+    val repository = "iterative-works/iw-cli"
+    val url = IssueCacheService.buildIssueUrl("IW-72", "GitHub", Some(repository))
+
+    assertEquals(url, "https://github.com/iterative-works/iw-cli/issues/72")
+
+  test("buildIssueUrl extracts number from #72 format for GitHub"):
+    val repository = "iterative-works/iw-cli"
+    val url = IssueCacheService.buildIssueUrl("#72", "GitHub", Some(repository))
+
+    assertEquals(url, "https://github.com/iterative-works/iw-cli/issues/72")
+
+  test("buildIssueUrl handles lowercase tracker types"):
+    // Ensure case-insensitive matching works
+    val linearUrl = IssueCacheService.buildIssueUrl("PROJ-1", "linear", None)
+    assert(linearUrl.contains("linear.app"))
+
+    val youtrackUrl = IssueCacheService.buildIssueUrl("PROJ-1", "youtrack", Some("https://yt.example.com"))
+    assert(youtrackUrl.contains("yt.example.com"))
+
+    val githubUrl = IssueCacheService.buildIssueUrl("72", "github", Some("owner/repo"))
+    assertEquals(githubUrl, "https://github.com/owner/repo/issues/72")
