@@ -3,7 +3,7 @@
 
 package iw.core.application
 
-import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, GitHubClient, ProjectConfiguration}
+import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, GitHubClient, ProjectConfiguration, ConfigFileRepository, Constants}
 import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
 import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.WorktreeListView
@@ -36,7 +36,7 @@ object DashboardService:
     val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
       (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
     ) { case ((acc, cache), wt) =>
-      val issueData = fetchIssueForWorktree(wt, issueCache, now, config)
+      val issueData = fetchIssueForWorktree(wt, issueCache, now)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktree(wt, prCache, now)
@@ -79,18 +79,23 @@ object DashboardService:
 
   /** Fetch issue data for a single worktree using cache or API.
     *
+    * Loads config from the worktree's path to get correct tracker settings
+    * (e.g., youtrackBaseUrl for YouTrack, repository for GitHub).
+    *
     * @param wt Worktree registration
     * @param cache Current issue cache
     * @param now Current timestamp
-    * @param config Optional project configuration
     * @return Optional tuple of (IssueData, fromCache flag)
     */
   private def fetchIssueForWorktree(
     wt: WorktreeRegistration,
     cache: Map[String, CachedIssue],
-    now: Instant,
-    config: Option[ProjectConfiguration]
+    now: Instant
   ): Option[(IssueData, Boolean)] =
+    // Load config from worktree's path to get correct tracker settings
+    val configPath = os.Path(wt.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val config = ConfigFileRepository.read(configPath)
+
     // Build fetch function based on tracker type
     val fetchFn: String => Either[String, Issue] = id =>
       buildFetchFunction(wt.trackerType, config)(id)
