@@ -1,13 +1,15 @@
 // PURPOSE: Initialize iw-cli configuration for the project
-// USAGE: iw init [--force] [--tracker=linear|youtrack|github] [--team=TEAM] [--team-prefix=PREFIX]
+// USAGE: iw init [--force] [--tracker=linear|youtrack|github] [--team=TEAM] [--team-prefix=PREFIX] [--base-url=URL]
 // ARGS:
 //   --force: Overwrite existing configuration
 //   --tracker=linear|youtrack|github: Set tracker type (skips prompt)
 //   --team=TEAM: Set team identifier for Linear/YouTrack (skips prompt)
 //   --team-prefix=PREFIX: Set team prefix for GitHub (skips prompt)
+//   --base-url=URL: Set YouTrack base URL (skips prompt)
 // EXAMPLE: iw init
 // EXAMPLE: iw init --tracker=linear --team=IWLE
 // EXAMPLE: iw init --tracker=github --team-prefix=IWCLI
+// EXAMPLE: iw init --tracker=youtrack --team=MEDH --base-url=https://youtrack.example.com
 
 import iw.core.*
 
@@ -35,6 +37,7 @@ def askForTrackerType(): IssueTrackerType =
   val trackerArg = parseArg(args, "--tracker=")
   val teamArg = parseArg(args, "--team=")
   val teamPrefixArg = parseArg(args, "--team-prefix=")
+  val baseUrlArg = parseArg(args, "--base-url=")
   val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
 
   // Check if we're in a git repository
@@ -79,7 +82,7 @@ def askForTrackerType(): IssueTrackerType =
           askForTrackerType()
 
   // For GitHub, extract repository from git remote and get team prefix; for others, get team
-  val (team, repository, teamPrefix) = trackerType match
+  val (team, repository, teamPrefix, youtrackBaseUrl) = trackerType match
     case IssueTrackerType.GitHub =>
       // Extract repository from git remote
       val remote = GitAdapter.getRemoteUrl(currentDir)
@@ -122,14 +125,24 @@ def askForTrackerType(): IssueTrackerType =
               throw RuntimeException("unreachable") // for type checker
             case Right(validated) => validated
 
-      ("", Some(ownerRepo), Some(prefix))
+      ("", Some(ownerRepo), Some(prefix), None)
 
-    case _ =>
-      // Linear/YouTrack: get team
+    case IssueTrackerType.YouTrack =>
+      // YouTrack: get team and base URL
+      val t = teamArg.getOrElse {
+        Prompt.ask("Enter team/project identifier (e.g., MEDH, IWSD)")
+      }
+      val baseUrl = baseUrlArg.getOrElse {
+        Prompt.ask("Enter YouTrack base URL (e.g., https://youtrack.example.com)")
+      }
+      (t, None, None, Some(baseUrl))
+
+    case IssueTrackerType.Linear =>
+      // Linear: get team only
       val t = teamArg.getOrElse {
         Prompt.ask("Enter team/project identifier (e.g., IWLE, TEST)")
       }
-      (t, None, None)
+      (t, None, None, None)
 
   // Auto-detect project name from directory
   val projectName = currentDir.last
@@ -140,7 +153,8 @@ def askForTrackerType(): IssueTrackerType =
     team = team,
     projectName = projectName,
     repository = repository,
-    teamPrefix = teamPrefix
+    teamPrefix = teamPrefix,
+    youtrackBaseUrl = youtrackBaseUrl
   )
 
   // Write configuration
