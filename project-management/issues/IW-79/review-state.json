@@ -1,7 +1,7 @@
 {
-  "status": "analysis_ready",
+  "status": "analysis_approved",
   "phase": 0,
-  "message": "Analysis complete - ready for review",
+  "message": "Analysis complete - technical decisions resolved, ready for task generation",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-79/analysis.md"}
   ]

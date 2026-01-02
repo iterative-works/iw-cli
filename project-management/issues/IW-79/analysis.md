@@ -491,151 +491,74 @@ Moderate complexity:
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions (Resolved)
 
-### CLARIFY: Tmux session creation from web context
+### Decision 1: Tmux session creation from web context
 
-The existing `./iw start` CLI command creates a tmux session and attaches to it. When creating a worktree from the dashboard (web UI), we cannot directly create or attach to a tmux session.
+**Decision:** Option B - Create tmux session but don't attach
 
-**Questions to answer:**
-1. Should the dashboard skip tmux session creation entirely?
-2. Should we create the tmux session but not attach (user attaches manually)?
-3. Should we provide a separate "open" workflow that instructs user to attach?
-4. Should we create a daemon/background process that handles tmux creation?
+The dashboard will create both the worktree AND the tmux session (detached). User attaches manually with `tmux attach -t <session>` or `./iw open <issue-id>`.
 
-**Options:**
-- **Option A: Skip tmux creation from dashboard** - Dashboard only creates worktree and registers it. User manually creates tmux session with `./iw open <issue-id>` or `tmux new-session -s <name> -c <path>`.
-  - Pros: Simple, no complexity around tmux from web context
-  - Cons: Inconsistent with CLI workflow, user needs extra step
-
-- **Option B: Create tmux session but don't attach** - Dashboard creates worktree AND tmux session, but user must attach manually.
-  - Pros: Full parity with CLI, tmux session ready
-  - Cons: Creates tmux session user may not use, requires server to run tmux commands
-
-- **Option C: Defer to "open" command** - Dashboard creates worktree, shows instructions to run `./iw open <issue-id>` which handles tmux.
-  - Pros: Reuses existing `open` command, clear user journey
-  - Cons: User needs to switch to terminal anyway
-
-**Impact:** Affects Story 2 (worktree creation) and Story 6 (opening worktrees). If we choose Option A or C, the web workflow is simpler but requires terminal interaction. Option B provides full automation but adds server-side tmux complexity.
-
-**Recommendation:** Start with Option C for MVP - dashboard creates worktree and shows clear instructions to run `./iw open <issue-id>`. This keeps the web implementation simple while providing full functionality.
+**Rationale:** Full parity with CLI workflow. The server can run `tmux new-session -d` (detached mode) without issues. User gets everything ready, just needs to attach.
 
 ---
 
-### CLARIFY: Issue list scope and filtering
+### Decision 2: Issue list scope and filtering
 
-The dashboard needs to fetch and display issues from the issue tracker. We need to decide what subset of issues to show.
+**Decision:** Option B - Recent 50 open issues
 
-**Questions to answer:**
-1. Which issues should be shown by default (all open? assigned to me? specific labels?)?
-2. How many issues to fetch (10? 50? 100? all open issues?)?
-3. Should we paginate if there are many issues?
-4. Which issue trackers should support this (GitHub? Linear? YouTrack? all?)?
-5. How do we handle private issues or permission restrictions?
+Fetch the most recently updated 50 open issues by default. Client-side filtering (Story 3) allows users to narrow down further.
 
-**Options:**
-- **Option A: All open issues** - Fetch all open issues from repository
-  - Pros: Complete view, no filtering complexity
-  - Cons: May be too many issues (100+), slow API calls, overwhelming UI
-
-- **Option B: Recent open issues (limit 50)** - Fetch most recently updated 50 open issues
-  - Pros: Reasonable default, faster, manageable UI
-  - Cons: May miss older issues, "most recent" depends on tracker API
-
-- **Option C: Filtered by assignee/label** - Only show issues assigned to current user or with specific labels
-  - Pros: Focused, relevant issues only
-  - Cons: Requires user configuration, may hide available work, needs auth to determine "me"
-
-**Impact:** Affects Story 1 (issue display) and Story 3 (filtering). Choice impacts API performance, caching strategy, and UI complexity.
-
-**Recommendation:** Start with Option B for MVP - fetch most recent 50 open issues, with client-side filtering (Story 3) to narrow down. Add configuration for custom filters in future iteration.
+**Rationale:** Reasonable default that covers most use cases. Keeps API calls fast and UI manageable. Can add configuration for custom limits later if needed.
 
 ---
 
-### CLARIFY: Dashboard architecture - server-side vs client-side rendering
+### Decision 3: Dashboard architecture - server-side vs client-side rendering
 
-Currently the dashboard uses server-side rendering (ScalaTags generates HTML). Adding interactive features (buttons, filtering, auto-refresh) requires client-side JavaScript.
+**Decision:** Option B (Hybrid) with HTMX
 
-**Questions to answer:**
-1. Should we keep server-side rendering and add progressive enhancement with JavaScript?
-2. Should we move to client-side rendering (SPA) with API endpoints?
-3. How much JavaScript complexity are we willing to add?
-4. Should we use a JavaScript framework (React, Vue, Alpine.js) or vanilla JS?
+Server continues to render HTML via ScalaTags. HTMX handles interactivity:
+- Button clicks trigger `hx-post` requests
+- Server returns HTML fragments
+- HTMX swaps content in place
+- Polling via `hx-trigger="every 10s"` for auto-refresh
 
-**Options:**
-- **Option A: Progressive enhancement** - Keep ScalaTags server rendering, add vanilla JavaScript for interactivity
-  - Pros: Minimal change, no build tooling, works without JS
-  - Cons: State management gets messy, mixing rendering paradigms
+**Rationale:** HTMX is perfect for this use case:
+- No build tooling (just a script tag)
+- Server keeps rendering HTML (no JSON API duplication)
+- Declarative attributes instead of JavaScript
+- Built-in loading indicators (`hx-indicator`)
+- Trivial polling support
 
-- **Option B: Hybrid approach** - Server renders initial page, client-side JS handles updates via API
-  - Pros: Fast initial load, clean separation, good for incremental updates
-  - Cons: Duplicate rendering logic, more complex state sync
-
-- **Option C: Full client-side SPA** - Migrate dashboard to React/Vue SPA, server only provides JSON APIs
-  - Pros: Rich interactivity, modern patterns, better UX
-  - Cons: Major rewrite, build tooling, breaks without JS
-
-**Impact:** Affects all stories. Choice determines development approach, testing strategy, and user experience.
-
-**Recommendation:** Start with Option B (hybrid) for MVP - server-side rendering for initial page, JavaScript + JSON APIs for interactive features. Keep vanilla JS for MVP (no framework complexity).
-
----
-
-### CLARIFY: Worktree creation as async operation
-
-Worktree creation can take several seconds (git commands, file I/O). Web requests should ideally return quickly.
-
-**Questions to answer:**
-1. Should worktree creation be synchronous (block HTTP request until done)?
-2. Should we use async/background job processing?
-3. How do we handle timeouts?
-4. How does the UI show progress?
-
-**Options:**
-- **Option A: Synchronous with timeout** - POST /api/worktrees/:issueId/create blocks until worktree created or timeout (30s)
-  - Pros: Simple implementation, immediate result
-  - Cons: Long HTTP requests, browser timeout risk, blocks server thread
-
-- **Option B: Async with polling** - POST returns immediately with job ID, client polls GET /api/worktrees/:issueId/status for completion
-  - Pros: Responsive, handles long operations, can show progress
-  - Cons: More complex, requires job tracking, client polling logic
-
-- **Option C: Async with WebSocket** - POST starts creation, WebSocket pushes status updates to client
-  - Pros: Real-time updates, no polling overhead
-  - Cons: Adds WebSocket complexity, may be overkill for this use case
-
-**Impact:** Affects Story 2 (worktree creation) and Story 7 (concurrent creation). Choice impacts API design, client-side implementation, and perceived performance.
-
-**Recommendation:** Start with Option A (synchronous with 30s timeout) for MVP - worktree creation is usually fast (5-10s). Add Option B (async with polling) if we find timeout issues in practice.
+Example button:
+```html
+<button hx-post="/api/worktrees/IW-79/create"
+        hx-swap="outerHTML"
+        hx-target="closest .issue-card"
+        hx-indicator=".spinner">
+  Start Worktree
+</button>
+```
 
 ---
 
-### CLARIFY: Authentication and authorization
+### Decision 4: Worktree creation as async operation
 
-Dashboard is currently unauthenticated (runs on localhost). If we're calling issue tracker APIs on behalf of the user, we need to consider auth.
+**Decision:** Option A - Synchronous with 30s timeout
 
-**Questions to answer:**
-1. Whose credentials should be used for issue tracker API calls?
-2. Should dashboard require user login?
-3. How do we handle multiple users on same machine?
-4. Should we use personal access tokens from environment variables?
+POST `/api/worktrees/:issueId/create` blocks until worktree is created or timeout. UI shows loading state via HTMX's `hx-indicator`.
 
-**Options:**
-- **Option A: Use environment variables (current approach)** - Read LINEAR_API_TOKEN, YOUTRACK_API_TOKEN, use gh CLI for GitHub
-  - Pros: Consistent with current CLI approach, no auth flow needed
-  - Cons: Single user per machine, can't distinguish between users
+**Rationale:** Worktree creation typically takes 5-10 seconds. Synchronous is simpler and sufficient. If timeout issues arise in practice, can add async polling later.
 
-- **Option B: User-specific tokens** - Dashboard asks for access token on first use, stores in browser localStorage
-  - Pros: Multiple users can use same dashboard, user controls their token
-  - Cons: Requires auth UI, token management, security concerns (XSS)
+---
 
-- **Option C: OAuth flow** - Dashboard redirects to GitHub/Linear/YouTrack for OAuth authentication
-  - Pros: Proper auth, scoped permissions, secure
-  - Cons: Complex implementation, requires callback URL, token refresh
+### Decision 5: Authentication and authorization
 
-**Impact:** Affects Story 1 (fetching issues) and all stories that interact with issue tracker. Choice impacts security model and multi-user support.
+**Decision:** Option A - Use environment variables (current approach)
 
-**Recommendation:** Keep Option A (environment variables) for MVP - this matches current iw-cli design (single user, local tool). Document that dashboard inherits the user's configured tokens. Defer multi-user support to future iteration.
+Dashboard uses the same credentials as CLI: `LINEAR_API_TOKEN`, `YOUTRACK_API_TOKEN`, `gh` CLI auth for GitHub.
+
+**Rationale:** This is a local development tool, not a multi-user web app. Consistent with existing iw-cli design. Dashboard inherits whatever credentials the user has configured.
 
 ---
 
@@ -852,15 +775,8 @@ Potential external risks:
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
 
 **Next Steps:**
-1. **CRITICAL**: Resolve CLARIFY markers before proceeding:
-   - Decide on tmux creation strategy (Story 2)
-   - Define issue list scope and filtering defaults (Story 1)
-   - Choose rendering architecture (server vs client)
-   - Decide on sync vs async worktree creation (Story 2)
-   - Confirm authentication approach (environment variables)
-2. Review estimates and story scope with Michal
-3. Run `/iterative-works:ag-create-tasks IW-79` to map stories to implementation phases
-4. Run `/iterative-works:ag-implement IW-79` for iterative story-by-story implementation
+1. Run `/iterative-works:ag-create-tasks IW-79` to map stories to implementation phases
+2. Run `/iterative-works:ag-implement IW-79` for iterative story-by-story implementation
