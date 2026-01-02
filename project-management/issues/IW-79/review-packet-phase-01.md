@@ -89,16 +89,16 @@ graph TD
     end
 
     UI -->|Click Button| HTMX
-    HTMX -->|GET /api/modal/create-worktree| CS
-    CS -->|render()| Views
+    HTMX -->|"GET /api/modal/create-worktree"| CS
+    CS -->|render| Views
 
     UI -->|Type in Search| HTMX
-    HTMX -->|GET /api/issues/search?q=...| CS
-    CS -->|search()| ISS
+    HTMX -->|"GET /api/issues/search"| CS
+    CS -->|search| ISS
     ISS -->|fetchIssue| LN
     ISS -->|fetchIssue| GH
     ISS -->|fetchIssue| YT
-    CS -->|render()| Views
+    CS -->|render| Views
 ```
 
 ### Component Relationships
