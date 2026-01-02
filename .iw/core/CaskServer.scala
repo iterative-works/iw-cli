@@ -3,10 +3,10 @@
 
 package iw.core.infrastructure
 
-import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService}
+import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService}
 import iw.core.domain.ServerState
-import iw.core.presentation.views.ArtifactView
+import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
@@ -272,6 +272,104 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           ujson.Obj("code" -> "LOAD_ERROR", "message" -> err),
           statusCode = 500
         )
+
+  @cask.get("/api/issues/search")
+  def searchIssues(q: String): cask.Response[String] =
+    // Load project configuration
+    val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val configOpt = ConfigFileRepository.read(configPath)
+
+    configOpt match
+      case None =>
+        // No config - return empty results
+        val html = SearchResultsView.render(List.empty).render
+        cask.Response(
+          data = html,
+          statusCode = 200,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(config) =>
+        // Build fetch function based on tracker type
+        val fetchIssue = buildFetchFunction(config)
+
+        // Call search service
+        IssueSearchService.search(q, config, fetchIssue) match
+          case Right(results) =>
+            val html = SearchResultsView.render(results).render
+            cask.Response(
+              data = html,
+              statusCode = 200,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+          case Left(error) =>
+            System.err.println(s"Search error: $error")
+            val html = SearchResultsView.render(List.empty).render
+            cask.Response(
+              data = html,
+              statusCode = 200,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+  @cask.get("/api/modal/create-worktree")
+  def createWorktreeModal(): cask.Response[String] =
+    val html = CreateWorktreeModal.render().render
+    cask.Response(
+      data = html,
+      statusCode = 200,
+      headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+    )
+
+  /** Build fetch function for IssueSearchService based on tracker type.
+    *
+    * @param config Project configuration
+    * @return Function that fetches issue by ID
+    */
+  private def buildFetchFunction(config: ProjectConfiguration): IssueId => Either[String, iw.core.Issue] =
+    (issueId: IssueId) =>
+      config.trackerType.toString.toLowerCase match
+        case "linear" =>
+          ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+            case Some(token) =>
+              LinearClient.fetchIssue(issueId, token)
+            case None =>
+              Left("LINEAR_API_TOKEN environment variable not set")
+
+        case "github" =>
+          config.repository match
+            case Some(repository) =>
+              // Extract issue number from issueId (e.g., "IW-79" -> "79")
+              val number = extractGitHubIssueNumber(issueId.value)
+              GitHubClient.fetchIssue(number, repository)
+            case None =>
+              Left("GitHub repository not configured")
+
+        case "youtrack" =>
+          val baseUrl = config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+          ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
+            case Some(token) =>
+              YouTrackClient.fetchIssue(issueId, baseUrl, token)
+            case None =>
+              Left("YOUTRACK_API_TOKEN environment variable not set")
+
+        case _ =>
+          Left(s"Unknown tracker type: ${config.trackerType}")
+
+  /** Extract GitHub issue number from issue ID.
+    *
+    * @param issueId Issue identifier (may have prefix)
+    * @return Numeric issue number as string
+    */
+  private def extractGitHubIssueNumber(issueId: String): String =
+    // Remove # prefix if present
+    val withoutHash = if issueId.startsWith("#") then issueId.drop(1) else issueId
+    // Extract number after hyphen if present (e.g., "IW-79" -> "79")
+    val hyphenIndex = withoutHash.lastIndexOf('-')
+    if hyphenIndex >= 0 then
+      withoutHash.substring(hyphenIndex + 1)
+    else
+      withoutHash
 
   initialize()
 
