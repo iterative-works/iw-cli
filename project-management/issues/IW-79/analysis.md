@@ -179,6 +179,83 @@ Straightforward:
 
 ---
 
+### Story 4: Show main projects with create buttons
+
+```gherkin
+Feature: Main project listing with worktree creation
+  As a developer
+  I want to see my main projects in the dashboard with create buttons
+  So that I can create worktrees without knowing which project to use
+
+Scenario: Dashboard shows main projects derived from worktrees
+  Given I have worktrees registered for projects "iw-cli" and "kanon"
+  When I open the dashboard
+  Then I see a "Main Projects" section above the worktree list
+  And I see "iw-cli" with its tracker info (GitHub: iterative-works/iw-cli)
+  And I see "kanon" with its tracker info (Linear: IWSD)
+  And each project has a "[+ Create]" button
+
+Scenario: Create button opens modal scoped to project
+  Given the dashboard shows main project "iw-cli" (GitHub)
+  When I click the "[+ Create]" button for "iw-cli"
+  Then a modal opens with title "Create Worktree - iw-cli"
+  And the search uses the GitHub tracker for iterative-works/iw-cli
+  And I can search for issues in that repository
+
+Scenario: Search uses correct tracker for each project
+  Given I have projects "iw-cli" (GitHub) and "kanon" (Linear)
+  When I click "[+ Create]" for "kanon"
+  And I type "IWSD-100" in the search field
+  Then the search queries the Linear API (not GitHub)
+  And I see results from Linear
+
+Scenario: Main project directory no longer exists
+  Given I have a worktree "/projects/iw-cli-IW-79" registered
+  But the main project "/projects/iw-cli" no longer exists on disk
+  When I open the dashboard
+  Then I do not see "iw-cli" in the main projects section
+  And the orphaned worktree is still shown in the worktree list
+
+Scenario: No worktrees registered
+  Given I have no worktrees registered
+  When I open the dashboard
+  Then I see "No main projects found" message
+  And I see hint "Run './iw start <issue-id>' from a project to register it"
+
+Scenario: Multiple worktrees from same project
+  Given I have worktrees "IW-79" and "IW-80" both from project "iw-cli"
+  When I open the dashboard
+  Then I see "iw-cli" listed once in main projects (not duplicated)
+  And both worktrees appear in the worktree list
+```
+
+**Estimated Effort:** 3-4h
+**Complexity:** Moderate
+
+**Technical Feasibility:**
+Moderate complexity:
+- Derive main project paths from registered worktree paths
+- Read `.iw/config.conf` from each main project to get tracker info
+- Store/cache project configs for modal use
+- Pass project context to modal and search endpoint
+
+Key considerations:
+- Worktree path pattern: `{mainProjectPath}-{issueId}`
+- Need to validate main project still exists with valid config
+- Group worktrees by main project to avoid duplicates
+- Modal needs project ID/path to know which config to use
+
+**Acceptance:**
+- Main projects section visible above worktree list
+- Projects derived from registered worktrees (no manual registration)
+- Each project shows tracker type and identifier
+- Create button opens modal scoped to that project
+- Search uses correct tracker API for selected project
+- Missing/invalid main projects handled gracefully
+- Empty state when no worktrees registered
+
+---
+
 ## Architectural Sketch
 
 ### For Story 1: Create worktree via modal search
@@ -239,6 +316,29 @@ Straightforward:
 
 **Presentation Layer:**
 - Disabled state in modal during creation
+
+---
+
+### For Story 4: Main projects listing
+
+**Domain Layer:**
+- `MainProject` value object (path, projectName, config)
+- `MainProjectDerivation` service - derive main project path from worktree path
+
+**Application Layer:**
+- `MainProjectService.deriveFromWorktrees(worktrees)` - extract unique main projects
+- `MainProjectService.loadConfig(mainProjectPath)` - load project config from path
+
+**Infrastructure Layer:**
+- Filesystem check for main project existence
+- Config file reading from arbitrary paths (not just cwd)
+
+**Presentation Layer:**
+- `MainProjectsView.render(projects)` - list of main projects with create buttons
+- `CreateWorktreeModal.render(projectPath)` - modal now takes project context
+- API endpoint `GET /api/modal/create-worktree?project=...` - project-scoped modal
+- API endpoint `GET /api/issues/search?q=...&project=...` - project-scoped search
+- API endpoint `POST /api/worktrees/create` - already has project context from modal
 
 ---
 
@@ -307,8 +407,9 @@ Dashboard uses same credentials as CLI: `LINEAR_API_TOKEN`, `YOUTRACK_API_TOKEN`
 - Story 1 (Modal search + creation): 8-10 hours
 - Story 2 (Error handling): 2-3 hours
 - Story 3 (Concurrent protection): 2-3 hours
+- Story 4 (Main projects listing): 3-4 hours
 
-**Total Range:** 12 - 16 hours
+**Total Range:** 15 - 20 hours
 
 **Confidence:** Medium-High
 
@@ -317,6 +418,7 @@ Dashboard uses same credentials as CLI: `LINEAR_API_TOKEN`, `YOUTRACK_API_TOKEN`
 - Reuses existing worktree creation logic from CLI
 - HTMX simplifies client-side interactions
 - Main complexity is search API integration across 3 tracker types
+- Story 4 requires path derivation and multi-project config handling
 
 ---
 
@@ -338,6 +440,13 @@ Dashboard uses same credentials as CLI: `LINEAR_API_TOKEN`, `YOUTRACK_API_TOKEN`
 - Unit: Test lock acquisition/release
 - Integration: Test concurrent API requests
 - E2E: Double-click prevention
+
+**Story 4: Main projects listing**
+- Unit: Test path derivation from worktree paths
+- Unit: Test main project deduplication
+- Integration: Test config loading from arbitrary paths
+- Integration: Test project-scoped search endpoint
+- E2E: Dashboard shows main projects, create button works
 
 ---
 
@@ -366,6 +475,13 @@ Dashboard uses same credentials as CLI: `LINEAR_API_TOKEN`, `YOUTRACK_API_TOKEN`
    - Add server-side locking
    - Disable UI during creation
    - Handle timeout/cleanup
+
+5. **Phase 5: Main Projects Listing** (3-4h)
+   - Derive main project paths from registered worktrees
+   - Load config from each main project
+   - Render main projects section with create buttons
+   - Scope modal and search to selected project
+   - Remove global "Create Worktree" button from header
 
 ---
 

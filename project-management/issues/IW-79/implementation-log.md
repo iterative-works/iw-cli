@@ -188,6 +188,36 @@ M .iw/core/test/WorktreeCreationServiceTest.scala
 
 ---
 
+## Human Review: Phase 4 - UX Gap Identified (2026-01-03)
+
+**Reviewer:** Michal
+
+**Context:** Reviewing the Create Worktree modal functionality after Phase 4 completion.
+
+**Issue identified:**
+The "Create Worktree" button in the dashboard header uses the server's current working directory config (`os.pwd/.iw/config.conf`). This doesn't make sense in a multi-project dashboard context - the dashboard can show worktrees from multiple projects, but the create button only works for one project.
+
+**Root cause:**
+The implementation assumed single-project context, but the dashboard manages worktrees across multiple projects. Each registered worktree has its own `trackerType` and `team`, but the modal ignores this and uses hardcoded server CWD config.
+
+**Decision made:**
+Add Phase 5 to fix this by:
+1. Deriving "main projects" from registered worktree paths
+2. Showing a main projects section with per-project create buttons
+3. Scoping the modal and search to the selected project
+4. Removing the global create button from header
+
+**Impact on stories:**
+- Story 4 added: "Show main projects with create buttons"
+- Phases 1-4 remain valid but Phase 5 will modify the modal to be project-scoped
+
+**Action items:**
+- [x] Add Story 4 with Gherkin scenarios to analysis.md
+- [x] Add Phase 5 to tasks.md
+- [ ] Generate phase-05-context.md and implement
+
+---
+
 ## Phase 4: Concurrent Creation Protection (2026-01-03)
 
 **What was built:**
