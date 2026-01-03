@@ -61,3 +61,18 @@ class CreateWorktreeModalTest extends FunSuite:
     // Should not throw when rendered
     val html = frag.render
     assert(html.nonEmpty, "Should produce non-empty HTML")
+
+  test("render includes loading indicator element"):
+    val html = CreateWorktreeModal.render().render
+
+    assert(html.contains("id=\"creation-spinner\""), "Should have creation spinner element")
+
+  test("loading indicator has htmx-indicator class"):
+    val html = CreateWorktreeModal.render().render
+
+    assert(html.contains("htmx-indicator"), "Should have htmx-indicator class for auto show/hide")
+
+  test("modal body has wrapper div for content swap"):
+    val html = CreateWorktreeModal.render().render
+
+    assert(html.contains("id=\"modal-body-content\""), "Should have modal-body-content div for HTMX target")

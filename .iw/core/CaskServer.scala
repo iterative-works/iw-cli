@@ -3,10 +3,10 @@
 
 package iw.core.infrastructure
 
-import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService}
-import iw.core.domain.ServerState
-import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView}
+import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService}
+import iw.core.domain.{ServerState, IssueData}
+import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
@@ -320,6 +320,126 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       statusCode = 200,
       headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
     )
+
+  @cask.post("/api/worktrees/create")
+  def createWorktree(request: cask.Request): cask.Response[String] =
+    // Parse JSON request body
+    val bodyBytes = request.readAllBytes()
+    val bodyStr = new String(bodyBytes, "UTF-8")
+    val requestJson = try
+      ujson.read(bodyStr)
+    catch
+      case e: Exception =>
+        return cask.Response(
+          data = renderErrorView("Invalid request format"),
+          statusCode = 400,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+    val issueId = requestJson("issueId").str
+
+    // Load project configuration
+    val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val configOpt = ConfigFileRepository.read(configPath)
+
+    configOpt match
+      case None =>
+        cask.Response(
+          data = renderErrorView("Project not configured. Run './iw init' first."),
+          statusCode = 500,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(config) =>
+        // Build I/O functions for WorktreeCreationService
+        val currentDir = os.pwd
+
+        // Fetch issue function
+        val fetchIssue = (id: String) =>
+          IssueId.parse(id, config.teamPrefix).flatMap { parsedId =>
+            val issueResult = buildFetchFunction(config)(parsedId)
+            issueResult.map { issue =>
+              // Convert Issue to IssueData
+              val url = buildIssueUrl(parsedId, config)
+              IssueData.fromIssue(issue, url, Instant.now())
+            }
+          }
+
+        // Create worktree function
+        val createWorktreeOp = (path: String, branchName: String) =>
+          val actualPath = currentDir / os.up / os.RelPath(path.stripPrefix("../"))
+          GitWorktreeAdapter.createWorktree(actualPath, branchName, currentDir)
+
+        // Create tmux session function
+        val createTmuxOp = (sessionName: String, workPath: String) =>
+          val actualPath = currentDir / os.up / os.RelPath(workPath.stripPrefix("../"))
+          TmuxAdapter.createSession(sessionName, actualPath)
+
+        // Register worktree function
+        val registerWorktreeOp = (issueId: String, path: String, trackerType: String, team: String) =>
+          val actualPath = currentDir / os.up / os.RelPath(path.stripPrefix("../"))
+          ServerClient.registerWorktree(issueId, actualPath.toString, trackerType, team)
+
+        // Call WorktreeCreationService
+        WorktreeCreationService.create(
+          issueId,
+          config,
+          fetchIssue,
+          createWorktreeOp,
+          createTmuxOp,
+          registerWorktreeOp
+        ) match
+          case Right(result) =>
+            val html = CreationSuccessView.render(result).render
+            cask.Response(
+              data = html,
+              statusCode = 200,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+          case Left(error) =>
+            System.err.println(s"Worktree creation error: $error")
+            cask.Response(
+              data = renderErrorView(error),
+              statusCode = 500,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+  /** Render error message as HTML fragment.
+    *
+    * @param message Error message
+    * @return HTML string
+    */
+  private def renderErrorView(message: String): String =
+    import scalatags.Text.all.*
+    div(
+      cls := "creation-error",
+      h3("Error"),
+      p(message)
+    ).render
+
+  /** Build issue URL based on tracker type.
+    *
+    * @param issueId Parsed issue ID
+    * @param config Project configuration
+    * @return Issue URL
+    */
+  private def buildIssueUrl(issueId: IssueId, config: ProjectConfiguration): String =
+    config.trackerType.toString.toLowerCase match
+      case "linear" =>
+        s"https://linear.app/issue/${issueId.value}"
+      case "github" =>
+        config.repository match
+          case Some(repo) =>
+            val number = extractGitHubIssueNumber(issueId.value)
+            s"https://github.com/$repo/issues/$number"
+          case None =>
+            s"https://github.com/issues/${issueId.value}"
+      case "youtrack" =>
+        val baseUrl = config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+        s"$baseUrl/issue/${issueId.value}"
+      case _ =>
+        s"https://example.com/issue/${issueId.value}"
 
   /** Build fetch function for IssueSearchService based on tracker type.
     *
