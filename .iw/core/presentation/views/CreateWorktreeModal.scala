@@ -40,20 +40,26 @@ object CreateWorktreeModal:
         // Body
         div(
           cls := "modal-body",
-          // Search input
-          input(
-            id := "issue-search-input",
-            `type` := "text",
-            placeholder := "Search by issue ID or title...",
-            attr("hx-get") := "/api/issues/search",
-            attr("hx-trigger") := "keyup changed delay:300ms",
-            attr("hx-target") := "#search-results",
-            name := "q"
-          ),
-          // Search results container
+          // Loading indicator (hidden by default, shown by HTMX during requests)
+          CreationLoadingView.render(),
+          // Modal body content (for HTMX content swapping)
           div(
-            id := "search-results",
-            cls := "search-results"
+            id := "modal-body-content",
+            // Search input
+            input(
+              id := "issue-search-input",
+              `type` := "text",
+              placeholder := "Search by issue ID or title...",
+              attr("hx-get") := "/api/issues/search",
+              attr("hx-trigger") := "keyup changed delay:300ms",
+              attr("hx-target") := "#search-results",
+              name := "q"
+            ),
+            // Search results container
+            div(
+              id := "search-results",
+              cls := "search-results"
+            )
           )
         )
       )

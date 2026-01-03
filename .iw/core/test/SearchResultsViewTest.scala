@@ -102,3 +102,44 @@ class SearchResultsViewTest extends FunSuite:
     // Should not throw when rendered
     val html = frag.render
     assert(html.nonEmpty, "Should produce non-empty HTML")
+
+  test("result item has hx-post attribute for worktree creation"):
+    val result = IssueSearchResult("TEST-1", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-post"), "Should have hx-post attribute")
+    assert(html.contains("/api/worktrees/create"), "Should POST to creation endpoint")
+
+  test("result item has hx-vals with issue ID"):
+    val result = IssueSearchResult("IW-79", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-vals"), "Should have hx-vals attribute")
+    assert(html.contains("issueId"), "Should include issueId in vals")
+    assert(html.contains("IW-79"), "Should include actual issue ID")
+
+  test("result item has hx-target for modal body"):
+    val result = IssueSearchResult("TEST-1", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-target"), "Should have hx-target attribute")
+    assert(html.contains("#modal-body-content"), "Should target modal body")
+
+  test("result item has hx-swap set to innerHTML"):
+    val result = IssueSearchResult("TEST-1", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-swap"), "Should have hx-swap attribute")
+    assert(html.contains("innerHTML"), "Should use innerHTML swap strategy")
+
+  test("result item has hx-indicator for loading spinner"):
+    val result = IssueSearchResult("TEST-1", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-indicator"), "Should have hx-indicator attribute")
+    assert(html.contains("#creation-spinner"), "Should reference creation spinner")

@@ -2,7 +2,7 @@
 
 **Issue:** IW-79
 **Phase:** 2 of 4
-**Status:** Not Started
+**Status:** Complete
 
 ## Implementation Tasks
 
@@ -14,68 +14,68 @@ Tasks organized by functional area with TDD approach (tests before implementatio
 - [ ] [setup] Review GitWorktreeAdapter, TmuxAdapter, and WorktreeRegistrationService APIs
 
 ### Domain Model
-- [ ] [test] Write unit test for WorktreeCreationResult value object construction
-- [ ] [test] Write unit test for WorktreeCreationResult field validation (issueId, paths, commands)
-- [ ] [impl] Create `.iw/core/domain/WorktreeCreationResult.scala` with case class definition
-- [ ] [impl] Add fields: issueId, worktreePath, tmuxSessionName, tmuxAttachCommand
+- [x] [test] Write unit test for WorktreeCreationResult value object construction
+- [x] [test] Write unit test for WorktreeCreationResult field validation (issueId, paths, commands)
+- [x] [impl] Create `.iw/core/domain/WorktreeCreationResult.scala` with case class definition
+- [x] [impl] Add fields: issueId, worktreePath, tmuxSessionName, tmuxAttachCommand
 
 ### Service Layer
-- [ ] [test] Write unit test for WorktreeCreationService.create with all dependencies succeeding
-- [ ] [test] Write unit test for WorktreeCreationService.create when fetchIssue fails
-- [ ] [test] Write unit test for WorktreeCreationService.create when createWorktree fails
-- [ ] [test] Write unit test for WorktreeCreationService.create when createTmuxSession fails
-- [ ] [test] Write unit test for branch name generation (prefix-issueId-slug pattern)
-- [ ] [test] Write unit test for tmux session name generation from branch name
-- [ ] [test] Write unit test for worktree path calculation from branch name
-- [ ] [impl] Create `.iw/core/application/WorktreeCreationService.scala`
-- [ ] [impl] Implement create method with function injection for all I/O dependencies
-- [ ] [impl] Extract and adapt branch name generation logic from start.scala
-- [ ] [impl] Extract and adapt worktree path generation logic from start.scala
-- [ ] [impl] Extract and adapt tmux session naming logic from start.scala
-- [ ] [impl] Implement for-comprehension to sequence all creation steps
-- [ ] [impl] Return Either[String, WorktreeCreationResult] with proper error messages
+- [x] [test] Write unit test for WorktreeCreationService.create with all dependencies succeeding
+- [x] [test] Write unit test for WorktreeCreationService.create when fetchIssue fails
+- [x] [test] Write unit test for WorktreeCreationService.create when createWorktree fails
+- [x] [test] Write unit test for WorktreeCreationService.create when createTmuxSession fails
+- [x] [test] Write unit test for branch name generation (prefix-issueId-slug pattern)
+- [x] [test] Write unit test for tmux session name generation from branch name
+- [x] [test] Write unit test for worktree path calculation from branch name
+- [x] [impl] Create `.iw/core/application/WorktreeCreationService.scala`
+- [x] [impl] Implement create method with function injection for all I/O dependencies
+- [x] [impl] Extract and adapt branch name generation logic from start.scala
+- [x] [impl] Extract and adapt worktree path generation logic from start.scala
+- [x] [impl] Extract and adapt tmux session naming logic from start.scala
+- [x] [impl] Implement for-comprehension to sequence all creation steps
+- [x] [impl] Return Either[String, WorktreeCreationResult] with proper error messages
 
 ### View Components
-- [ ] [test] Write unit test for CreationSuccessView rendering success message
-- [ ] [test] Write unit test for CreationSuccessView rendering tmux attach command
-- [ ] [test] Write unit test for CreationSuccessView rendering copy button with correct onclick
-- [ ] [test] Write unit test for CreationSuccessView rendering close button with HTMX attrs
-- [ ] [test] Write unit test for CreationSuccessView rendering worktree path
-- [ ] [impl] Create `.iw/core/presentation/views/CreationSuccessView.scala`
-- [ ] [impl] Implement render method with success icon (checkmark)
-- [ ] [impl] Add tmux command display in code block
-- [ ] [impl] Add copy button with clipboard.writeText onclick handler
-- [ ] [impl] Add close button with hx-get to dismiss modal
-- [ ] [impl] Display worktree path information
-- [ ] [test] Write unit test for CreationLoadingView rendering spinner element
-- [ ] [test] Write unit test for CreationLoadingView rendering "Creating worktree..." message
-- [ ] [impl] Create `.iw/core/presentation/views/CreationLoadingView.scala`
-- [ ] [impl] Implement render method with spinner div
-- [ ] [impl] Add loading message text
+- [x] [test] Write unit test for CreationSuccessView rendering success message
+- [x] [test] Write unit test for CreationSuccessView rendering tmux attach command
+- [x] [test] Write unit test for CreationSuccessView rendering copy button with correct onclick
+- [x] [test] Write unit test for CreationSuccessView rendering close button with HTMX attrs
+- [x] [test] Write unit test for CreationSuccessView rendering worktree path
+- [x] [impl] Create `.iw/core/presentation/views/CreationSuccessView.scala`
+- [x] [impl] Implement render method with success icon (checkmark)
+- [x] [impl] Add tmux command display in code block
+- [x] [impl] Add copy button with clipboard.writeText onclick handler
+- [x] [impl] Add close button with hx-get to dismiss modal
+- [x] [impl] Display worktree path information
+- [x] [test] Write unit test for CreationLoadingView rendering spinner element
+- [x] [test] Write unit test for CreationLoadingView rendering "Creating worktree..." message
+- [x] [impl] Create `.iw/core/presentation/views/CreationLoadingView.scala`
+- [x] [impl] Implement render method with spinner div
+- [x] [impl] Add loading message text
 - [ ] [impl] Add CSS for success state (success icon, command box styling)
 - [ ] [impl] Add CSS for loading spinner (rotation animation)
 - [ ] [impl] Add CSS for copy button hover states
 
 ### Search Results Update
-- [ ] [test] Write unit test for SearchResultsView with hx-post attribute on result items
-- [ ] [test] Write unit test for SearchResultsView with hx-vals containing issueId
-- [ ] [test] Write unit test for SearchResultsView with hx-target pointing to modal body
-- [ ] [test] Write unit test for SearchResultsView with hx-indicator attribute
-- [ ] [impl] Modify `.iw/core/presentation/views/SearchResultsView.scala` to add click handler
-- [ ] [impl] Add hx-post="/api/worktrees/create" attribute to result items
-- [ ] [impl] Add hx-vals with JSON containing issueId
-- [ ] [impl] Add hx-target="#modal-body-content" for content swap
-- [ ] [impl] Add hx-swap="innerHTML" for replacement strategy
-- [ ] [impl] Add hx-indicator="#creation-spinner" for loading state
+- [x] [test] Write unit test for SearchResultsView with hx-post attribute on result items
+- [x] [test] Write unit test for SearchResultsView with hx-vals containing issueId
+- [x] [test] Write unit test for SearchResultsView with hx-target pointing to modal body
+- [x] [test] Write unit test for SearchResultsView with hx-indicator attribute
+- [x] [impl] Modify `.iw/core/presentation/views/SearchResultsView.scala` to add click handler
+- [x] [impl] Add hx-post="/api/worktrees/create" attribute to result items
+- [x] [impl] Add hx-vals with JSON containing issueId
+- [x] [impl] Add hx-target="#modal-body-content" for content swap
+- [x] [impl] Add hx-swap="innerHTML" for replacement strategy
+- [x] [impl] Add hx-indicator="#creation-spinner" for loading state
 - [ ] [impl] Add cursor:pointer CSS for hover feedback
 
 ### Modal Update
-- [ ] [test] Write unit test for CreateWorktreeModal containing loading indicator element
-- [ ] [test] Write unit test for CreateWorktreeModal with htmx-indicator class on spinner
-- [ ] [impl] Modify `.iw/core/presentation/views/CreateWorktreeModal.scala`
-- [ ] [impl] Add loading indicator div with id="creation-spinner"
-- [ ] [impl] Add htmx-indicator class to spinner for automatic show/hide
-- [ ] [impl] Wrap modal body content in div with id="modal-body-content" for targeting
+- [x] [test] Write unit test for CreateWorktreeModal containing loading indicator element
+- [x] [test] Write unit test for CreateWorktreeModal with htmx-indicator class on spinner
+- [x] [impl] Modify `.iw/core/presentation/views/CreateWorktreeModal.scala`
+- [x] [impl] Add loading indicator div with id="creation-spinner"
+- [x] [impl] Add htmx-indicator class to spinner for automatic show/hide
+- [x] [impl] Wrap modal body content in div with id="modal-body-content" for targeting
 
 ### API Endpoint
 - [ ] [test] Write integration test for POST /api/worktrees/create returning 200 on success
@@ -83,19 +83,19 @@ Tasks organized by functional area with TDD approach (tests before implementatio
 - [ ] [test] Write integration test verifying success response contains tmux command
 - [ ] [test] Write integration test verifying success response contains worktree path
 - [ ] [test] Write integration test verifying error response contains error message
-- [ ] [impl] Add POST route "/api/worktrees/create" to `.iw/core/CaskServer.scala`
-- [ ] [impl] Parse JSON request body to extract issueId
-- [ ] [impl] Load project configuration from ConfigFileRepository
-- [ ] [impl] Return 500 error HTML if config not found
-- [ ] [impl] Create actual I/O functions for WorktreeCreationService dependencies
-- [ ] [impl] Wire fetchIssue function using existing IssueTrackerClient
-- [ ] [impl] Wire createWorktree function using GitWorktreeAdapter
-- [ ] [impl] Wire createTmuxSession function using TmuxAdapter
-- [ ] [impl] Wire registerWorktree function using WorktreeRegistrationService
-- [ ] [impl] Call WorktreeCreationService.create with all dependencies
-- [ ] [impl] On success: render CreationSuccessView and return 200
-- [ ] [impl] On failure: render error message and return 500
-- [ ] [impl] Add basic error view for displaying error messages
+- [x] [impl] Add POST route "/api/worktrees/create" to `.iw/core/CaskServer.scala`
+- [x] [impl] Parse JSON request body to extract issueId
+- [x] [impl] Load project configuration from ConfigFileRepository
+- [x] [impl] Return 500 error HTML if config not found
+- [x] [impl] Create actual I/O functions for WorktreeCreationService dependencies
+- [x] [impl] Wire fetchIssue function using existing IssueTrackerClient
+- [x] [impl] Wire createWorktree function using GitWorktreeAdapter
+- [x] [impl] Wire createTmuxSession function using TmuxAdapter
+- [x] [impl] Wire registerWorktree function using ServerClient
+- [x] [impl] Call WorktreeCreationService.create with all dependencies
+- [x] [impl] On success: render CreationSuccessView and return 200
+- [x] [impl] On failure: render error message and return 500
+- [x] [impl] Add basic error view for displaying error messages
 
 ### Integration
 - [ ] [test] Write E2E test: click search result triggers creation endpoint

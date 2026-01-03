@@ -52,7 +52,7 @@ object SearchResultsView:
     * - Issue title
     * - Issue status
     *
-    * Future: Will be clickable to create worktree (Phase 2)
+    * When clicked, triggers worktree creation via HTMX POST to /api/worktrees/create.
     *
     * @param result Search result
     * @return HTML fragment for result item
@@ -60,6 +60,11 @@ object SearchResultsView:
   private def renderResultItem(result: IssueSearchResult): Frag =
     div(
       cls := "search-result-item",
+      attr("hx-post") := "/api/worktrees/create",
+      attr("hx-vals") := s"""{"issueId": "${result.id}"}""",
+      attr("hx-target") := "#modal-body-content",
+      attr("hx-swap") := "innerHTML",
+      attr("hx-indicator") := "#creation-spinner",
       div(
         cls := "search-result-id",
         result.id

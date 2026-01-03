@@ -58,3 +58,68 @@ M .iw/core/DashboardService.scala
 ```
 
 ---
+
+## Phase 2: Worktree Creation from Modal (2026-01-03)
+
+**What was built:**
+- Domain: `WorktreeCreationResult.scala` - Value object for creation result (issueId, worktreePath, tmuxSessionName, tmuxAttachCommand)
+- Application: `WorktreeCreationService.scala` - Pure function orchestrating worktree creation with injected I/O dependencies
+- Presentation: `CreationSuccessView.scala` - Success state with tmux command and copy button
+- Presentation: `CreationLoadingView.scala` - Loading spinner with HTMX indicator
+- Infrastructure: Added `POST /api/worktrees/create` endpoint to CaskServer
+- Modified: `SearchResultsView.scala` - Added HTMX click handlers (hx-post, hx-vals, hx-target, hx-indicator)
+- Modified: `CreateWorktreeModal.scala` - Added loading indicator and content swap target
+
+**Decisions made:**
+- Pure function with DI: WorktreeCreationService accepts all I/O operations as function parameters for testability
+- Reuse existing domain: Leverages IssueId and WorktreePath opaque types from Phase 1
+- HTMX content swap: Success/loading states replace modal body content via hx-target
+- Sibling directory worktrees: Path uses "../project-IW-79" relative to main project
+
+**Patterns applied:**
+- Functional Core, Imperative Shell: Pure WorktreeCreationService, effects in CaskServer endpoint
+- Either monad for errors: For-comprehension chains all creation steps with error short-circuiting
+- ScalaTags HTML: Type-safe success/loading views
+- HTMX indicators: Automatic show/hide via htmx-indicator class
+
+**Testing:**
+- Unit tests: 36 tests added
+  - WorktreeCreationResult: 3 tests
+  - WorktreeCreationService: 9 tests (happy path + all error paths)
+  - CreationSuccessView: 12 tests
+  - CreationLoadingView: 5 tests
+  - SearchResultsView HTMX: 5 tests
+  - CreateWorktreeModal updates: 3 tests
+- Integration tests: 0 (endpoint manually testable)
+- All 903 tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-packet-phase-02.md
+- Findings: 0 critical, 5 warnings, 10 suggestions
+- Warnings: Primitive obsession (acceptable), CaskServer mixing concerns (acceptable), missing endpoint tests (future phase)
+- Verdict: APPROVED
+
+**For next phases:**
+- Available utilities: `WorktreeCreationService.create()` for worktree creation
+- Extension points: Error handling can be enhanced (Phase 3), concurrent protection (Phase 4)
+- Notes: Basic errors returned; detailed error messages and "already has worktree" detection deferred to Phase 3
+
+**Files changed:**
+```
+A .iw/core/application/WorktreeCreationService.scala
+A .iw/core/domain/WorktreeCreationResult.scala
+A .iw/core/presentation/views/CreationSuccessView.scala
+A .iw/core/presentation/views/CreationLoadingView.scala
+A .iw/core/test/WorktreeCreationServiceTest.scala
+A .iw/core/test/WorktreeCreationResultTest.scala
+A .iw/core/test/CreationSuccessViewTest.scala
+A .iw/core/test/CreationLoadingViewTest.scala
+M .iw/core/CaskServer.scala
+M .iw/core/presentation/views/SearchResultsView.scala
+M .iw/core/presentation/views/CreateWorktreeModal.scala
+M .iw/core/test/SearchResultsViewTest.scala
+M .iw/core/test/CreateWorktreeModalTest.scala
+```
+
+---
