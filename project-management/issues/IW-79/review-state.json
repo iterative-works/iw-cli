@@ -1,8 +1,8 @@
 {
-  "status": "awaiting_review",
+  "status": "final_review",
   "phase": 4,
-  "message": "Phase 4 complete - Concurrent Creation Protection",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/85",
+  "message": "All phases complete - Final PR to main created",
+  "final_pr_url": "https://github.com/iterative-works/iw-cli/pull/86",
   "completed_phases": [
     {
       "phase": 1,
@@ -21,12 +21,16 @@
       "title": "Error Handling",
       "pr_url": "https://github.com/iterative-works/iw-cli/pull/84",
       "status": "merged"
+    },
+    {
+      "phase": 4,
+      "title": "Concurrent Creation Protection",
+      "pr_url": "https://github.com/iterative-works/iw-cli/pull/85",
+      "status": "merged"
     }
   ],
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-79/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-79/implementation-log.md"},
-    {"label": "Phase 4 Context", "path": "project-management/issues/IW-79/phase-04-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-79/review-packet-phase-04.md"}
+    {"label": "Implementation Log", "path": "project-management/issues/IW-79/implementation-log.md"}
   ]
 }
