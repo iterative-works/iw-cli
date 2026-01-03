@@ -4,7 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.{IssueData, WorktreeCreationResult}
+import iw.core.domain.{IssueData, WorktreeCreationResult, WorktreeCreationError}
 import iw.core.{ProjectConfiguration, IssueTrackerType}
 import java.time.Instant
 
@@ -69,7 +69,7 @@ class WorktreeCreationServiceTest extends FunSuite:
 
     assert(result.isLeft)
     result.swap.foreach { error =>
-      assert(error.contains("Issue not found"))
+      assert(error.isInstanceOf[WorktreeCreationError.IssueNotFound])
     }
 
   test("create when createWorktree fails returns Left with error"):
@@ -89,7 +89,7 @@ class WorktreeCreationServiceTest extends FunSuite:
 
     assert(result.isLeft)
     result.swap.foreach { error =>
-      assert(error.contains("Git worktree creation failed"))
+      assert(error.isInstanceOf[WorktreeCreationError.GitError])
     }
 
   test("create when createTmuxSession fails returns Left with error"):
@@ -109,7 +109,7 @@ class WorktreeCreationServiceTest extends FunSuite:
 
     assert(result.isLeft)
     result.swap.foreach { error =>
-      assert(error.contains("Tmux session creation failed"))
+      assert(error.isInstanceOf[WorktreeCreationError.TmuxError])
     }
 
   test("create when registerWorktree fails returns Left with error"):
@@ -130,7 +130,7 @@ class WorktreeCreationServiceTest extends FunSuite:
 
     assert(result.isLeft)
     result.swap.foreach { error =>
-      assert(error.contains("Registration failed"))
+      assert(error.isInstanceOf[WorktreeCreationError.ApiError])
     }
 
   test("create generates branch name with issue ID"):
@@ -241,3 +241,116 @@ class WorktreeCreationServiceTest extends FunSuite:
     assertEquals(capturedIssueId, Some("IW-79"))
     assertEquals(capturedTrackerType, Some("GitHub"))
     assertEquals(capturedTeam, Some("IW"))
+
+  // Group D: Tests for specific error types
+
+  test("create returns DirectoryExists error when directory check fails"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Right(())
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+    val checkDirectoryExists = (path: String) => true
+
+    val result = WorktreeCreationService.create(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree,
+      checkDirectoryExists
+    )
+
+    assert(result.isLeft)
+    result.swap.foreach { error =>
+      assert(error.isInstanceOf[WorktreeCreationError.DirectoryExists])
+      error match
+        case WorktreeCreationError.DirectoryExists(path) =>
+          assert(path.contains("iw-cli-IW-79"))
+        case _ => fail("Expected DirectoryExists error")
+    }
+
+  test("create returns AlreadyHasWorktree error when worktree already registered"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Right(())
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+    val checkDirectoryExists = (path: String) => false
+    val checkWorktreeExists = (issueId: String) => Some("../iw-cli-IW-79")
+
+    val result = WorktreeCreationService.create(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree,
+      checkDirectoryExists,
+      checkWorktreeExists
+    )
+
+    assert(result.isLeft)
+    result.swap.foreach { error =>
+      assert(error.isInstanceOf[WorktreeCreationError.AlreadyHasWorktree])
+      error match
+        case WorktreeCreationError.AlreadyHasWorktree(issueId, existingPath) =>
+          assertEquals(issueId, "IW-79")
+          assert(existingPath.contains("iw-cli-IW-79"))
+        case _ => fail("Expected AlreadyHasWorktree error")
+    }
+
+  test("create returns GitError when git worktree creation fails"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Left("fatal: git worktree add failed")
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+    val checkDirectoryExists = (path: String) => false
+    val checkWorktreeExists = (issueId: String) => None
+
+    val result = WorktreeCreationService.create(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree,
+      checkDirectoryExists,
+      checkWorktreeExists
+    )
+
+    assert(result.isLeft)
+    result.swap.foreach { error =>
+      assert(error.isInstanceOf[WorktreeCreationError.GitError])
+      error match
+        case WorktreeCreationError.GitError(message) =>
+          assert(message.contains("git worktree add failed"))
+        case _ => fail("Expected GitError")
+    }
+
+  test("create returns TmuxError when tmux session creation fails"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Right(())
+    val createTmux = (name: String, path: String) => Left("tmux: session already exists")
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+    val checkDirectoryExists = (path: String) => false
+    val checkWorktreeExists = (issueId: String) => None
+
+    val result = WorktreeCreationService.create(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree,
+      checkDirectoryExists,
+      checkWorktreeExists
+    )
+
+    assert(result.isLeft)
+    result.swap.foreach { error =>
+      assert(error.isInstanceOf[WorktreeCreationError.TmuxError])
+      error match
+        case WorktreeCreationError.TmuxError(message) =>
+          assert(message.contains("session already exists"))
+        case _ => fail("Expected TmuxError")
+    }

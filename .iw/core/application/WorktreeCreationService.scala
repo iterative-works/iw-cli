@@ -4,7 +4,7 @@
 package iw.core.application
 
 import iw.core.{ProjectConfiguration, IssueId, WorktreePath}
-import iw.core.domain.{IssueData, WorktreeCreationResult}
+import iw.core.domain.{IssueData, WorktreeCreationResult, WorktreeCreationError}
 
 object WorktreeCreationService:
   /**
@@ -20,7 +20,9 @@ object WorktreeCreationService:
    * @param createWorktree Function to create git worktree (path, branchName) => Either[error, ()]
    * @param createTmuxSession Function to create tmux session (sessionName, workDir) => Either[error, ()]
    * @param registerWorktree Function to register worktree in state (issueId, path, trackerType, team) => Either[error, ()]
-   * @return Either error message or WorktreeCreationResult with paths and commands
+   * @param checkDirectoryExists Function to check if directory already exists on disk
+   * @param checkWorktreeExists Function to check if issue already has registered worktree
+   * @return Either WorktreeCreationError or WorktreeCreationResult with paths and commands
    */
   def create(
     issueId: String,
@@ -28,14 +30,16 @@ object WorktreeCreationService:
     fetchIssue: String => Either[String, IssueData],
     createWorktree: (String, String) => Either[String, Unit],
     createTmuxSession: (String, String) => Either[String, Unit],
-    registerWorktree: (String, String, String, String) => Either[String, Unit]
-  ): Either[String, WorktreeCreationResult] =
+    registerWorktree: (String, String, String, String) => Either[String, Unit],
+    checkDirectoryExists: String => Boolean = _ => false,
+    checkWorktreeExists: String => Option[String] = _ => None
+  ): Either[WorktreeCreationError, WorktreeCreationResult] =
     for
       // Fetch issue data from tracker
-      issueData <- fetchIssue(issueId)
+      issueData <- fetchIssue(issueId).left.map(err => WorktreeCreationError.IssueNotFound(issueId))
 
       // Parse issue ID for branch naming
-      parsedIssueId <- IssueId.parse(issueId, config.teamPrefix)
+      parsedIssueId <- IssueId.parse(issueId, config.teamPrefix).left.map(err => WorktreeCreationError.ApiError(err))
 
       // Generate paths and names using existing domain logic
       worktreePath = WorktreePath(config.projectName, parsedIssueId)
@@ -47,16 +51,29 @@ object WorktreeCreationService:
       // For now, we construct a relative path string that will be resolved by the caller
       fullPath = s"../${worktreePath.directoryName}"
 
+      // Check if directory already exists
+      _ <- if checkDirectoryExists(fullPath) then
+        Left(WorktreeCreationError.DirectoryExists(fullPath))
+      else
+        Right(())
+
+      // Check if worktree already registered for this issue
+      _ <- checkWorktreeExists(issueId) match
+        case Some(existingPath) =>
+          Left(WorktreeCreationError.AlreadyHasWorktree(issueId, existingPath))
+        case None =>
+          Right(())
+
       // Create git worktree with branch
-      _ <- createWorktree(fullPath, branchName)
+      _ <- createWorktree(fullPath, branchName).left.map(err => WorktreeCreationError.GitError(err))
 
       // Create detached tmux session
-      _ <- createTmuxSession(sessionName, fullPath)
+      _ <- createTmuxSession(sessionName, fullPath).left.map(err => WorktreeCreationError.TmuxError(err))
 
       // Register worktree in state file
       trackerTypeStr = config.trackerType.toString
       team = parsedIssueId.team
-      _ <- registerWorktree(issueId, fullPath, trackerTypeStr, team)
+      _ <- registerWorktree(issueId, fullPath, trackerTypeStr, team).left.map(err => WorktreeCreationError.ApiError(err))
 
       // Build attach command
       attachCommand = s"tmux attach -t $sessionName"

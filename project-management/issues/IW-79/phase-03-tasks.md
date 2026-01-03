@@ -8,53 +8,53 @@
 ## Task Groups
 
 ### Group A: Domain Error Types
-- [ ] [test] Write tests for WorktreeCreationError sealed trait hierarchy
-- [ ] [impl] Create WorktreeCreationError.scala with all error cases (DirectoryExists, AlreadyHasWorktree, GitError, TmuxError, IssueNotFound, ApiError)
-- [ ] [test] Write tests for UserFriendlyError model
-- [ ] [impl] Create UserFriendlyError.scala with title, message, suggestion, canRetry fields
+- [x] [test] Write tests for WorktreeCreationError sealed trait hierarchy
+- [x] [impl] Create WorktreeCreationError.scala with all error cases (DirectoryExists, AlreadyHasWorktree, GitError, TmuxError, IssueNotFound, ApiError)
+- [x] [test] Write tests for UserFriendlyError model
+- [x] [impl] Create UserFriendlyError.scala with title, message, suggestion, canRetry fields
 
 ### Group B: Error Mapping Service
-- [ ] [test] Write tests for DirectoryExists → UserFriendlyError mapping
-- [ ] [test] Write tests for AlreadyHasWorktree → UserFriendlyError mapping
-- [ ] [test] Write tests for GitError → UserFriendlyError mapping
-- [ ] [test] Write tests for TmuxError → UserFriendlyError mapping
-- [ ] [test] Write tests for IssueNotFound → UserFriendlyError mapping
-- [ ] [test] Write tests for ApiError → UserFriendlyError mapping
-- [ ] [impl] Add error mapping function to WorktreeCreationError companion object
+- [x] [test] Write tests for DirectoryExists → UserFriendlyError mapping
+- [x] [test] Write tests for AlreadyHasWorktree → UserFriendlyError mapping
+- [x] [test] Write tests for GitError → UserFriendlyError mapping
+- [x] [test] Write tests for TmuxError → UserFriendlyError mapping
+- [x] [test] Write tests for IssueNotFound → UserFriendlyError mapping
+- [x] [test] Write tests for ApiError → UserFriendlyError mapping
+- [x] [impl] Add error mapping function to WorktreeCreationError companion object
 
 ### Group C: Error View Component
-- [ ] [test] Write tests for CreationErrorView rendering error title and message
-- [ ] [test] Write tests for CreationErrorView showing suggestion when present
-- [ ] [test] Write tests for CreationErrorView showing retry button when canRetry=true
-- [ ] [test] Write tests for CreationErrorView showing dismiss button
-- [ ] [impl] Create CreationErrorView.scala with render method
-- [ ] [impl] Add HTMX attributes for retry button (hx-post to /api/worktrees/create)
-- [ ] [impl] Add HTMX attributes for dismiss button (closes modal)
+- [x] [test] Write tests for CreationErrorView rendering error title and message
+- [x] [test] Write tests for CreationErrorView showing suggestion when present
+- [x] [test] Write tests for CreationErrorView showing retry button when canRetry=true
+- [x] [test] Write tests for CreationErrorView showing dismiss button
+- [x] [impl] Create CreationErrorView.scala with render method
+- [x] [impl] Add HTMX attributes for retry button (hx-post to /api/worktrees/create)
+- [x] [impl] Add HTMX attributes for dismiss button (closes modal)
 
 ### Group D: Service Layer Error Handling
-- [ ] [test] Write tests for WorktreeCreationService returning DirectoryExists error
-- [ ] [test] Write tests for WorktreeCreationService returning AlreadyHasWorktree error
-- [ ] [test] Write tests for WorktreeCreationService returning GitError on git failure
-- [ ] [test] Write tests for WorktreeCreationService returning TmuxError on tmux failure
-- [ ] [impl] Update WorktreeCreationService.create to catch exceptions and map to domain errors
-- [ ] [impl] Add directory existence check before worktree creation
-- [ ] [impl] Add worktree registration check before creation
+- [x] [test] Write tests for WorktreeCreationService returning DirectoryExists error
+- [x] [test] Write tests for WorktreeCreationService returning AlreadyHasWorktree error
+- [x] [test] Write tests for WorktreeCreationService returning GitError on git failure
+- [x] [test] Write tests for WorktreeCreationService returning TmuxError on tmux failure
+- [x] [impl] Update WorktreeCreationService.create to catch exceptions and map to domain errors
+- [x] [impl] Add directory existence check before worktree creation
+- [x] [impl] Add worktree registration check before creation
 
 ### Group E: API Layer Error Handling
-- [ ] [test] Write tests for POST /api/worktrees/create returning 409 for AlreadyHasWorktree
-- [ ] [test] Write tests for POST /api/worktrees/create returning 422 for DirectoryExists
-- [ ] [test] Write tests for POST /api/worktrees/create returning 500 for GitError/TmuxError
-- [ ] [test] Write tests for error responses containing CreationErrorView HTML
-- [ ] [impl] Update CaskServer POST /api/worktrees/create to map errors to HTTP status codes
-- [ ] [impl] Update CaskServer to return CreationErrorView HTML in error responses
+- [x] [test] Write tests for POST /api/worktrees/create returning 409 for AlreadyHasWorktree
+- [x] [test] Write tests for POST /api/worktrees/create returning 422 for DirectoryExists
+- [x] [test] Write tests for POST /api/worktrees/create returning 500 for GitError/TmuxError
+- [x] [test] Write tests for error responses containing CreationErrorView HTML
+- [x] [impl] Update CaskServer POST /api/worktrees/create to map errors to HTTP status codes
+- [x] [impl] Update CaskServer to return CreationErrorView HTML in error responses
 
 ### Group F: Search Results Enhancement
-- [ ] [test] Write tests for SearchResultsView showing "Already has worktree" badge
-- [ ] [test] Write tests for badge appearing only for issues with existing worktrees
-- [ ] [test] Write tests for "Open existing" action instead of "Create" for existing worktrees
-- [ ] [impl] Add hasWorktree check to SearchResultsView rendering logic
-- [ ] [impl] Add badge styling and different click handler for existing worktrees
-- [ ] [impl] Update IssueSearchService to include hasWorktree flag in results
+- [x] [test] Write tests for SearchResultsView showing "Already has worktree" badge
+- [x] [test] Write tests for badge appearing only for issues with existing worktrees
+- [x] [test] Write tests for "Open existing" action instead of "Create" for existing worktrees
+- [x] [impl] Add hasWorktree check to SearchResultsView rendering logic
+- [x] [impl] Add badge styling and different click handler for existing worktrees
+- [x] [impl] Update IssueSearchService to include hasWorktree flag in results
 
 ### Group G: Integration and Manual Testing
 - [ ] [test] E2E test: Create worktree for issue that already has one → sees error

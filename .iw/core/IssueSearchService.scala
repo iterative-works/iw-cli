@@ -15,12 +15,14 @@ object IssueSearchService:
     * @param query Search query (expected to be an issue ID like "IW-79")
     * @param config Project configuration with tracker type and settings
     * @param fetchIssue Function to fetch an issue by ID from the tracker
+    * @param checkWorktreeExists Function to check if issue already has a registered worktree
     * @return Either error message or list of search results (max 1 for Phase 1)
     */
   def search(
     query: String,
     config: ProjectConfiguration,
-    fetchIssue: IssueId => Either[String, Issue]
+    fetchIssue: IssueId => Either[String, Issue],
+    checkWorktreeExists: String => Boolean = _ => false
   ): Either[String, List[IssueSearchResult]] =
     // Validate query is not empty
     val trimmedQuery = query.trim
@@ -36,12 +38,16 @@ object IssueSearchService:
             // Build URL for the issue
             val url = buildIssueUrl(issueId.value, config)
 
+            // Check if worktree already exists for this issue
+            val hasWorktree = checkWorktreeExists(issue.id)
+
             // Convert to search result
             val result = IssueSearchResult(
               id = issue.id,
               title = issue.title,
               status = issue.status,
-              url = url
+              url = url,
+              hasWorktree = hasWorktree
             )
             Right(List(result))
 

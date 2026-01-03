@@ -123,3 +123,67 @@ M .iw/core/test/CreateWorktreeModalTest.scala
 ```
 
 ---
+
+## Phase 3: Error Handling (2026-01-03)
+
+**What was built:**
+- Domain: `WorktreeCreationError.scala` - Scala 3 enum with 6 error cases (DirectoryExists, AlreadyHasWorktree, GitError, TmuxError, IssueNotFound, ApiError)
+- Domain: `UserFriendlyError.scala` - Case class for user-facing errors with title, message, suggestion, canRetry flag, and issueId
+- Domain: `WorktreeCreationError.toUserFriendly()` - Mapping function from domain errors to user-friendly errors with generic messages (no info disclosure)
+- Presentation: `CreationErrorView.scala` - Error state view with retry/dismiss buttons, HTMX integration, issueId in hx-vals for retry
+- Modified: `WorktreeCreationService.scala` - Returns `Either[WorktreeCreationError, WorktreeCreationResult]` with precondition checks
+- Modified: `SearchResultsView.scala` - Added hasWorktree badge for existing worktrees
+- Modified: `CaskServer.scala` - Error handling with domain error to HTTP status mapping (422, 409, 500, 404, 502)
+
+**Decisions made:**
+- Scala 3 enum for errors: Modern ADT pattern instead of sealed trait + case objects
+- Generic error messages: Internal details (paths, stack traces) never exposed to users; logged server-side only
+- Precondition checks before I/O: Directory existence and existing worktree checks happen before git/tmux operations
+- HTTP status mapping: 422 for DirectoryExists/AlreadyHasWorktree, 500 for Git/Tmux errors, 404 for IssueNotFound, 502 for ApiError
+- issueId in retry button: Enables proper retry without client-side state
+
+**Patterns applied:**
+- Scala 3 enum with parameters: Clean ADT definition with exhaustive pattern matching
+- Error mapping to presentation: Domain errors translated to user-friendly messages at boundary
+- Defense in depth: No information disclosure in user-facing errors, proper escaping of issueId in JSON
+
+**Testing:**
+- Unit tests: 55 tests added
+  - WorktreeCreationErrorTest: 7 tests (enum construction + pattern matching)
+  - UserFriendlyErrorTest: 4 tests (case class construction)
+  - WorktreeCreationErrorMappingTest: 24 tests (mapping all error cases, verifying no info disclosure)
+  - CreationErrorViewTest: 16 tests (rendering with/without retry, issueId in hx-vals)
+  - WorktreeCreationServiceTest updates: 4 tests (error scenarios)
+- All 230+ tests passing
+
+**Code review:**
+- Iterations: 2
+- Review file: review-phase-03-20260103.md
+- Iteration 1: 3 critical issues found (Scala 2 pattern instead of enum, missing issueId in retry, info disclosure)
+- Iteration 2: All critical issues fixed, 0 critical, 10 warnings, 21 suggestions
+- Verdict: APPROVED
+
+**For next phases:**
+- Available utilities: `WorktreeCreationError.toUserFriendly()` for error mapping, `CreationErrorView.render()` for error display
+- Extension points: Rate limiting, CSRF protection, security headers
+- Notes: Phase 4 could add concurrency protection (semaphore for worktree creation)
+
+**Files changed:**
+```
+A .iw/core/domain/WorktreeCreationError.scala
+A .iw/core/domain/UserFriendlyError.scala
+A .iw/core/presentation/views/CreationErrorView.scala
+A .iw/core/test/WorktreeCreationErrorTest.scala
+A .iw/core/test/UserFriendlyErrorTest.scala
+A .iw/core/test/WorktreeCreationErrorMappingTest.scala
+A .iw/core/test/CreationErrorViewTest.scala
+M .iw/core/CaskServer.scala
+M .iw/core/IssueSearchResult.scala
+M .iw/core/IssueSearchService.scala
+M .iw/core/application/WorktreeCreationService.scala
+M .iw/core/presentation/views/SearchResultsView.scala
+M .iw/core/test/SearchResultsViewTest.scala
+M .iw/core/test/WorktreeCreationServiceTest.scala
+```
+
+---

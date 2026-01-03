@@ -51,20 +51,32 @@ object SearchResultsView:
     * - Issue ID
     * - Issue title
     * - Issue status
+    * - "Already has worktree" badge (if applicable)
     *
-    * When clicked, triggers worktree creation via HTMX POST to /api/worktrees/create.
+    * When clicked, triggers worktree creation via HTMX POST to /api/worktrees/create,
+    * unless the issue already has a worktree.
     *
     * @param result Search result
     * @return HTML fragment for result item
     */
   private def renderResultItem(result: IssueSearchResult): Frag =
+    val baseAttrs = Seq(
+      cls := "search-result-item"
+    )
+
+    val htmxAttrs = if !result.hasWorktree then
+      Seq(
+        attr("hx-post") := "/api/worktrees/create",
+        attr("hx-vals") := s"""{"issueId": "${result.id}"}""",
+        attr("hx-target") := "#modal-body-content",
+        attr("hx-swap") := "innerHTML",
+        attr("hx-indicator") := "#creation-spinner"
+      )
+    else
+      Seq.empty
+
     div(
-      cls := "search-result-item",
-      attr("hx-post") := "/api/worktrees/create",
-      attr("hx-vals") := s"""{"issueId": "${result.id}"}""",
-      attr("hx-target") := "#modal-body-content",
-      attr("hx-swap") := "innerHTML",
-      attr("hx-indicator") := "#creation-spinner",
+      baseAttrs ++ htmxAttrs,
       div(
         cls := "search-result-id",
         result.id
@@ -76,5 +88,19 @@ object SearchResultsView:
       div(
         cls := "search-result-status",
         result.status
-      )
+      ),
+      if result.hasWorktree then
+        renderWorktreeBadge()
+      else
+        frag()
+    )
+
+  /** Render "Already has worktree" badge.
+    *
+    * @return HTML fragment for badge
+    */
+  private def renderWorktreeBadge(): Frag =
+    span(
+      cls := "worktree-badge",
+      "Already has worktree"
     )
