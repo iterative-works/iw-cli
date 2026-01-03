@@ -17,13 +17,14 @@ object SearchResultsView:
     * - List of result items (max 10)
     *
     * @param results List of search results
+    * @param projectPath Optional project path to scope worktree creation
     * @return HTML fragment for results
     */
-  def render(results: List[IssueSearchResult]): Frag =
+  def render(results: List[IssueSearchResult], projectPath: Option[String] = None): Frag =
     if results.isEmpty then
       renderEmptyState()
     else
-      renderResults(results.take(MaxResults))
+      renderResults(results.take(MaxResults), projectPath)
 
   /** Render empty state when no results found.
     *
@@ -38,13 +39,14 @@ object SearchResultsView:
   /** Render list of search results.
     *
     * @param results List of results (already limited to max)
+    * @param projectPath Optional project path to scope worktree creation
     * @return HTML fragment for results list
     */
-  private def renderResults(results: List[IssueSearchResult]): Frag =
+  private def renderResults(results: List[IssueSearchResult], projectPath: Option[String]): Frag =
     div(
       attr("hx-on::before-request") := "this.classList.add('disabled')",
       attr("hx-on::after-request") := "this.classList.remove('disabled')",
-      results.map(renderResultItem)
+      results.map(result => renderResultItem(result, projectPath))
     )
 
   /** Render a single search result item.
@@ -59,17 +61,25 @@ object SearchResultsView:
     * unless the issue already has a worktree.
     *
     * @param result Search result
+    * @param projectPath Optional project path to scope worktree creation
     * @return HTML fragment for result item
     */
-  private def renderResultItem(result: IssueSearchResult): Frag =
+  private def renderResultItem(result: IssueSearchResult, projectPath: Option[String]): Frag =
     val baseAttrs = Seq(
       cls := "search-result-item"
     )
 
     val htmxAttrs = if !result.hasWorktree then
+      // Build hx-vals JSON with issueId and optional projectPath
+      val valsJson = projectPath match
+        case Some(path) =>
+          s"""{"issueId": "${result.id}", "projectPath": "$path"}"""
+        case None =>
+          s"""{"issueId": "${result.id}"}"""
+
       Seq(
         attr("hx-post") := "/api/worktrees/create",
-        attr("hx-vals") := s"""{"issueId": "${result.id}"}""",
+        attr("hx-vals") := valsJson,
         attr("hx-target") := "#modal-body-content",
         attr("hx-swap") := "innerHTML",
         attr("hx-indicator") := "#creation-spinner"

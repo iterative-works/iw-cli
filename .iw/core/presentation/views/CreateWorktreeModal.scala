@@ -14,9 +14,10 @@ object CreateWorktreeModal:
     * - Search input with HTMX debounced search
     * - Results container for search results
     *
+    * @param projectPath Optional project path to scope the modal to a specific project
     * @return HTML fragment for modal
     */
-  def render(): Frag =
+  def render(projectPath: Option[String] = None): Frag =
     div(
       id := "create-worktree-modal",
       cls := "modal",
@@ -28,7 +29,14 @@ object CreateWorktreeModal:
         // Header
         div(
           cls := "modal-header",
-          h2("Create Worktree"),
+          h2(
+            "Create Worktree",
+            projectPath.map { path =>
+              // Extract project name from path (last component)
+              val projectName = path.split('/').lastOption.getOrElse(path)
+              span(cls := "modal-project-name", s" - $projectName")
+            }
+          ),
           button(
             cls := "modal-close",
             attr("hx-get") := "/",
@@ -50,7 +58,10 @@ object CreateWorktreeModal:
               id := "issue-search-input",
               `type` := "text",
               placeholder := "Search by issue ID or title...",
-              attr("hx-get") := "/api/issues/search",
+              attr("hx-get") := projectPath.fold("/api/issues/search") { projPath =>
+                val encodedPath = java.net.URLEncoder.encode(projPath, "UTF-8")
+                s"/api/issues/search?project=$encodedPath"
+              },
               attr("hx-trigger") := "keyup changed delay:300ms",
               attr("hx-target") := "#search-results",
               name := "q"

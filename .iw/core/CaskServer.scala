@@ -274,15 +274,16 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         )
 
   @cask.get("/api/issues/search")
-  def searchIssues(q: String): cask.Response[String] =
-    // Load project configuration
-    val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+  def searchIssues(q: String, project: Option[String] = None): cask.Response[String] =
+    // Load project configuration from specified path or CWD
+    val projectPath = project.map(p => os.Path(p)).getOrElse(os.pwd)
+    val configPath = projectPath / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
     val configOpt = ConfigFileRepository.read(configPath)
 
     configOpt match
       case None =>
         // No config - return empty results
-        val html = SearchResultsView.render(List.empty).render
+        val html = SearchResultsView.render(List.empty, project).render
         cask.Response(
           data = html,
           statusCode = 200,
@@ -296,7 +297,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         // Call search service
         IssueSearchService.search(q, config, fetchIssue) match
           case Right(results) =>
-            val html = SearchResultsView.render(results).render
+            val html = SearchResultsView.render(results, project).render
             cask.Response(
               data = html,
               statusCode = 200,
@@ -305,7 +306,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
           case Left(error) =>
             System.err.println(s"Search error: $error")
-            val html = SearchResultsView.render(List.empty).render
+            val html = SearchResultsView.render(List.empty, project).render
             cask.Response(
               data = html,
               statusCode = 200,
@@ -313,8 +314,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
             )
 
   @cask.get("/api/modal/create-worktree")
-  def createWorktreeModal(): cask.Response[String] =
-    val html = CreateWorktreeModal.render().render
+  def createWorktreeModal(project: Option[String] = None): cask.Response[String] =
+    val html = CreateWorktreeModal.render(project).render
     cask.Response(
       data = html,
       statusCode = 200,
@@ -337,9 +338,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         )
 
     val issueId = requestJson("issueId").str
+    val projectPathOpt = requestJson.obj.get("projectPath").map(_.str)
 
-    // Load project configuration
-    val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    // Load project configuration from specified path or CWD
+    val projectPath = projectPathOpt.map(p => os.Path(p)).getOrElse(os.pwd)
+    val configPath = projectPath / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
     val configOpt = ConfigFileRepository.read(configPath)
 
     configOpt match
@@ -352,7 +355,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
       case Some(config) =>
         // Build I/O functions for WorktreeCreationService
-        val currentDir = os.pwd
+        // Use the specified project path instead of CWD
 
         // Fetch issue function
         val fetchIssue = (id: String) =>
@@ -367,17 +370,17 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
         // Create worktree function
         val createWorktreeOp = (path: String, branchName: String) =>
-          val actualPath = currentDir / os.up / os.RelPath(path.stripPrefix("../"))
-          GitWorktreeAdapter.createWorktree(actualPath, branchName, currentDir)
+          val actualPath = projectPath / os.up / os.RelPath(path.stripPrefix("../"))
+          GitWorktreeAdapter.createWorktree(actualPath, branchName, projectPath)
 
         // Create tmux session function
         val createTmuxOp = (sessionName: String, workPath: String) =>
-          val actualPath = currentDir / os.up / os.RelPath(workPath.stripPrefix("../"))
+          val actualPath = projectPath / os.up / os.RelPath(workPath.stripPrefix("../"))
           TmuxAdapter.createSession(sessionName, actualPath)
 
         // Register worktree function
         val registerWorktreeOp = (issueId: String, path: String, trackerType: String, team: String) =>
-          val actualPath = currentDir / os.up / os.RelPath(path.stripPrefix("../"))
+          val actualPath = projectPath / os.up / os.RelPath(path.stripPrefix("../"))
           ServerClient.registerWorktree(issueId, actualPath.toString, trackerType, team)
 
         // Call WorktreeCreationService with lock protection

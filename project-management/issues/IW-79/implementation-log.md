@@ -282,3 +282,57 @@ M .iw/core/test/SearchResultsViewTest.scala
 ```
 
 ---
+
+## Phase 5: Main Projects Listing (2026-01-04)
+
+**What was built:**
+- Domain: `MainProject.scala` - Case class with path, projectName, trackerType, team; path derivation logic
+- Application: `MainProjectService.scala` - deriveFromWorktrees for extracting unique projects from worktrees, loadConfig for arbitrary paths
+- Presentation: `MainProjectsView.scala` - Renders main projects section with create buttons per project
+- Modified: `CreateWorktreeModal.scala` - Accepts optional project path parameter
+- Modified: `SearchResultsView.scala` - Includes project path in HTMX hx-vals for creation context
+- Modified: `DashboardService.scala` - Removed global create button, added main projects section with CSS
+- Modified: `CaskServer.scala` - Added project parameter to modal and search endpoints
+
+**Decisions made:**
+- Path derivation via regex: `-([A-Z]+-\d+|\d+)$` matches IW-79, IWLE-123, and numeric 123 formats
+- Project-scoped modal flow: Each main project has its own create button that opens modal with project context
+- URL encoding for project path: Project paths are URL-encoded in query parameters
+- Config loading on-demand: No caching, reload config from project path each time
+
+**Patterns applied:**
+- Functional Core, Imperative Shell: Pure deriveMainProjectPath function, effects in CaskServer
+- Dependency Injection via function params: loadConfig function injected for testability
+- ScalaTags for HTML: Type-safe main projects section and cards
+
+**Testing:**
+- Unit tests: 25 tests added (12 domain, 6 service, 7 view)
+- Integration tests: 0 (endpoint manually testable)
+- All tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-05-20260103.md
+- Findings: 0 critical, 2 warnings (testing edge cases), 5 suggestions
+- Verdict: APPROVED
+
+**For next phases:**
+- Available utilities: `MainProjectService.deriveFromWorktrees()` for project extraction, `MainProject.deriveMainProjectPath()` for path parsing
+- Extension points: Config caching could be added if performance becomes an issue
+- Notes: Phase 5 completes IW-79 - dashboard now supports multi-project worktree creation
+
+**Files changed:**
+```
+A .iw/core/domain/MainProject.scala
+A .iw/core/application/MainProjectService.scala
+A .iw/core/presentation/views/MainProjectsView.scala
+A .iw/core/test/MainProjectTest.scala
+A .iw/core/test/MainProjectServiceTest.scala
+A .iw/core/test/MainProjectsViewTest.scala
+M .iw/core/CaskServer.scala
+M .iw/core/DashboardService.scala
+M .iw/core/presentation/views/CreateWorktreeModal.scala
+M .iw/core/presentation/views/SearchResultsView.scala
+```
+
+---
