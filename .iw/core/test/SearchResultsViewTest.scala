@@ -143,3 +143,32 @@ class SearchResultsViewTest extends FunSuite:
 
     assert(html.contains("hx-indicator"), "Should have hx-indicator attribute")
     assert(html.contains("#creation-spinner"), "Should reference creation spinner")
+
+  // Group F: Badge tests for issues with existing worktrees
+
+  test("render with hasWorktree flag shows Already has worktree badge"):
+    val result = IssueSearchResult("IW-79", "Title", "In Progress", "url", hasWorktree = true)
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("Already has worktree"), "Should show worktree badge")
+    assert(html.contains("worktree-badge"), "Should have badge class")
+
+  test("render without hasWorktree flag shows no badge"):
+    val result = IssueSearchResult("IW-79", "Title", "In Progress", "url", hasWorktree = false)
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(!html.contains("Already has worktree"), "Should not show worktree badge")
+    assert(!html.contains("worktree-badge"), "Should not have badge class")
+
+  test("result with existing worktree does not have hx-post attribute"):
+    val result = IssueSearchResult("IW-79", "Title", "In Progress", "url", hasWorktree = true)
+
+    val html = SearchResultsView.render(List(result)).render
+
+    // The item should still be rendered but without create action
+    assert(html.contains("IW-79"), "Should show issue ID")
+    // Should not have creation POST endpoint
+    val itemPattern = "IW-79.*?hx-post.*?/api/worktrees/create".r
+    assert(itemPattern.findFirstIn(html).isEmpty, "Should not have create action for existing worktree")

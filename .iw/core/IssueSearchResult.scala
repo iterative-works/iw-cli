@@ -9,10 +9,12 @@ package iw.core.domain
   * @param title Issue title
   * @param status Issue status (e.g., "In Progress", "Done", "Open")
   * @param url Direct link to issue in tracker
+  * @param hasWorktree Whether this issue already has a registered worktree
   */
 case class IssueSearchResult(
   id: String,
   title: String,
   status: String,
-  url: String
+  url: String,
+  hasWorktree: Boolean = false
 )

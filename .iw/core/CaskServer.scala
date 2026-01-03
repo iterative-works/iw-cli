@@ -5,8 +5,8 @@ package iw.core.infrastructure
 
 import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath}
 import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService}
-import iw.core.domain.{ServerState, IssueData}
-import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView}
+import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
+import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
@@ -398,14 +398,35 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
             )
 
           case Left(error) =>
-            System.err.println(s"Worktree creation error: $error")
+            // Log error type only (not details) to avoid information disclosure
+            System.err.println(s"Worktree creation error for $issueId: ${error.getClass.getSimpleName}")
+            val statusCode = errorToStatusCode(error)
+            val userFriendlyError = WorktreeCreationError.toUserFriendly(error, issueId)
+            val html = CreationErrorView.render(userFriendlyError).render
             cask.Response(
-              data = renderErrorView(error),
-              statusCode = 500,
+              data = html,
+              statusCode = statusCode,
               headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
             )
 
-  /** Render error message as HTML fragment.
+  /** Map domain error to appropriate HTTP status code.
+    *
+    * @param error Domain error from worktree creation
+    * @return HTTP status code
+    */
+  private def errorToStatusCode(error: WorktreeCreationError): Int =
+    error match
+      case WorktreeCreationError.DirectoryExists(_) => 422 // Unprocessable Entity
+      case WorktreeCreationError.AlreadyHasWorktree(_, _) => 409 // Conflict
+      case WorktreeCreationError.GitError(_) => 500 // Internal Server Error
+      case WorktreeCreationError.TmuxError(_) => 500 // Internal Server Error
+      case WorktreeCreationError.IssueNotFound(_) => 404 // Not Found
+      case WorktreeCreationError.ApiError(_) => 502 // Bad Gateway
+
+  /** Render simple error message as HTML fragment.
+    *
+    * Used for validation errors and other simple error cases outside of
+    * worktree creation flow.
     *
     * @param message Error message
     * @return HTML string
