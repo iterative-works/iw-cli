@@ -354,3 +354,93 @@ class WorktreeCreationServiceTest extends FunSuite:
           assert(message.contains("session already exists"))
         case _ => fail("Expected TmuxError")
     }
+
+  // Group D: Tests for createWithLock
+
+  override def beforeEach(context: BeforeEach): Unit =
+    iw.core.infrastructure.CreationLockRegistry.clear()
+
+  test("createWithLock acquires lock before creation"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Right(())
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+
+    val result = WorktreeCreationService.createWithLock(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree
+    )
+
+    assert(result.isRight, "createWithLock should succeed when lock is acquired")
+
+  test("createWithLock returns CreationInProgress when already locked"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Right(())
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+
+    // First creation acquires lock
+    iw.core.infrastructure.CreationLockRegistry.tryAcquire("IW-79")
+
+    // Second creation should fail with CreationInProgress
+    val result = WorktreeCreationService.createWithLock(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree
+    )
+
+    assert(result.isLeft, "createWithLock should fail when lock already held")
+    result.swap.foreach { error =>
+      assert(error.isInstanceOf[WorktreeCreationError.CreationInProgress],
+        "Error should be CreationInProgress")
+      error match
+        case WorktreeCreationError.CreationInProgress(issueId) =>
+          assertEquals(issueId, "IW-79")
+        case _ => fail("Expected CreationInProgress error")
+    }
+
+  test("createWithLock releases lock on success"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Right(())
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+
+    WorktreeCreationService.createWithLock(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree
+    )
+
+    // Lock should be released after successful creation
+    assert(!iw.core.infrastructure.CreationLockRegistry.isLocked("IW-79"),
+      "Lock should be released after successful creation")
+
+  test("createWithLock releases lock on failure"):
+    val fetchIssue = (id: String) => Right(testIssueData)
+    val createWorktree = (path: String, branch: String) => Left("Git error")
+    val createTmux = (name: String, path: String) => Right(())
+    val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
+
+    val result = WorktreeCreationService.createWithLock(
+      "IW-79",
+      testConfig,
+      fetchIssue,
+      createWorktree,
+      createTmux,
+      registerWorktree
+    )
+
+    assert(result.isLeft, "Creation should fail")
+    // Lock should be released even on failure
+    assert(!iw.core.infrastructure.CreationLockRegistry.isLocked("IW-79"),
+      "Lock should be released even after failed creation")

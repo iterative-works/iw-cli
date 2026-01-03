@@ -10,6 +10,7 @@ enum WorktreeCreationError:
   case TmuxError(message: String)
   case IssueNotFound(issueId: String)
   case ApiError(message: String)
+  case CreationInProgress(issueId: String)
 
 object WorktreeCreationError:
   /** Map domain error to user-friendly error with actionable message.
@@ -79,6 +80,15 @@ object WorktreeCreationError:
           title = "Connection Error",
           message = "Could not connect to issue tracker. Please try again.",
           suggestion = Some("Check your internet connection"),
+          canRetry = true,
+          issueId = Some(issueId)
+        )
+
+      case CreationInProgress(_) =>
+        UserFriendlyError(
+          title = "Creation In Progress",
+          message = "A worktree is already being created for this issue.",
+          suggestion = Some("Please wait for the current creation to complete."),
           canRetry = true,
           issueId = Some(issueId)
         )

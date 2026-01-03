@@ -380,8 +380,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           val actualPath = currentDir / os.up / os.RelPath(path.stripPrefix("../"))
           ServerClient.registerWorktree(issueId, actualPath.toString, trackerType, team)
 
-        // Call WorktreeCreationService
-        WorktreeCreationService.create(
+        // Call WorktreeCreationService with lock protection
+        WorktreeCreationService.createWithLock(
           issueId,
           config,
           fetchIssue,
@@ -422,6 +422,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       case WorktreeCreationError.TmuxError(_) => 500 // Internal Server Error
       case WorktreeCreationError.IssueNotFound(_) => 404 // Not Found
       case WorktreeCreationError.ApiError(_) => 502 // Bad Gateway
+      case WorktreeCreationError.CreationInProgress(_) => 423 // Locked
 
   /** Render simple error message as HTML fragment.
     *

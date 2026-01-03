@@ -835,6 +835,11 @@ object DashboardService:
       background: #f8f9fa;
     }
 
+    .disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
     .search-result-id {
       font-size: 14px;
       color: #228be6;

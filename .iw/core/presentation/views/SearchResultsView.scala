@@ -42,6 +42,8 @@ object SearchResultsView:
     */
   private def renderResults(results: List[IssueSearchResult]): Frag =
     div(
+      attr("hx-on::before-request") := "this.classList.add('disabled')",
+      attr("hx-on::after-request") := "this.classList.remove('disabled')",
       results.map(renderResultItem)
     )
 

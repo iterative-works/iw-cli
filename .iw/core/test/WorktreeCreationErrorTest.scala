@@ -56,6 +56,14 @@ class WorktreeCreationErrorTest extends FunSuite:
       case _ =>
         fail("Should be ApiError")
 
+  test("CreationInProgress error holds issue ID"):
+    val error = WorktreeCreationError.CreationInProgress("IW-79")
+    error match
+      case WorktreeCreationError.CreationInProgress(issueId) =>
+        assertEquals(issueId, "IW-79")
+      case _ =>
+        fail("Should be CreationInProgress")
+
   test("all error types extend WorktreeCreationError"):
     val errors: List[WorktreeCreationError] = List(
       WorktreeCreationError.DirectoryExists("/path"),
@@ -63,7 +71,8 @@ class WorktreeCreationErrorTest extends FunSuite:
       WorktreeCreationError.GitError("error"),
       WorktreeCreationError.TmuxError("error"),
       WorktreeCreationError.IssueNotFound("IW-1"),
-      WorktreeCreationError.ApiError("error")
+      WorktreeCreationError.ApiError("error"),
+      WorktreeCreationError.CreationInProgress("IW-1")
     )
 
-    assertEquals(errors.length, 6)
+    assertEquals(errors.length, 7)
