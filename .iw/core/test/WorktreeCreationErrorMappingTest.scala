@@ -175,3 +175,39 @@ class WorktreeCreationErrorMappingTest extends FunSuite:
     val friendly = WorktreeCreationError.toUserFriendly(error, testIssueId)
 
     assert(friendly.issueId.contains(testIssueId), "Should include issueId for retry button")
+
+  test("CreationInProgress maps to user-friendly error"):
+    val error = WorktreeCreationError.CreationInProgress("IW-79")
+    val friendly = WorktreeCreationError.toUserFriendly(error, testIssueId)
+
+    assert(friendly.title.nonEmpty, "Should have a title")
+    assert(friendly.title.toLowerCase.contains("progress") || friendly.title.toLowerCase.contains("creation"),
+      "Title should indicate creation in progress")
+
+  test("CreationInProgress maps with descriptive message"):
+    val error = WorktreeCreationError.CreationInProgress("IW-79")
+    val friendly = WorktreeCreationError.toUserFriendly(error, testIssueId)
+
+    assert(friendly.message.nonEmpty, "Should have a message")
+    assert(friendly.message.toLowerCase.contains("already") || friendly.message.toLowerCase.contains("progress"),
+      "Message should indicate creation is already in progress")
+
+  test("CreationInProgress maps with helpful suggestion"):
+    val error = WorktreeCreationError.CreationInProgress("IW-79")
+    val friendly = WorktreeCreationError.toUserFriendly(error, testIssueId)
+
+    assert(friendly.suggestion.isDefined, "Should have a suggestion")
+    assert(friendly.suggestion.get.toLowerCase.contains("wait") || friendly.suggestion.get.toLowerCase.contains("complete"),
+      "Suggestion should advise waiting for completion")
+
+  test("CreationInProgress is retryable"):
+    val error = WorktreeCreationError.CreationInProgress("IW-79")
+    val friendly = WorktreeCreationError.toUserFriendly(error, testIssueId)
+
+    assert(friendly.canRetry, "Should be retryable after current creation completes")
+
+  test("CreationInProgress includes issueId for retry"):
+    val error = WorktreeCreationError.CreationInProgress("IW-79")
+    val friendly = WorktreeCreationError.toUserFriendly(error, testIssueId)
+
+    assert(friendly.issueId.contains(testIssueId), "Should include issueId for retry button")

@@ -5,6 +5,7 @@ package iw.core.application
 
 import iw.core.{ProjectConfiguration, IssueId, WorktreePath}
 import iw.core.domain.{IssueData, WorktreeCreationResult, WorktreeCreationError}
+import iw.core.infrastructure.CreationLockRegistry
 
 object WorktreeCreationService:
   /**
@@ -83,3 +84,50 @@ object WorktreeCreationService:
       tmuxSessionName = sessionName,
       tmuxAttachCommand = attachCommand
     )
+
+  /**
+   * Creates a worktree with lock protection to prevent concurrent creation.
+   *
+   * This wraps the create method with lock acquisition/release using CreationLockRegistry.
+   * If the lock cannot be acquired, returns CreationInProgress error immediately.
+   * The lock is always released after creation completes (success or failure).
+   *
+   * @param issueId The issue identifier (e.g., "IW-79")
+   * @param config Project configuration with tracker and project details
+   * @param fetchIssue Function to fetch issue data from tracker API
+   * @param createWorktree Function to create git worktree (path, branchName) => Either[error, ()]
+   * @param createTmuxSession Function to create tmux session (sessionName, workDir) => Either[error, ()]
+   * @param registerWorktree Function to register worktree in state (issueId, path, trackerType, team) => Either[error, ()]
+   * @param checkDirectoryExists Function to check if directory already exists on disk
+   * @param checkWorktreeExists Function to check if issue already has registered worktree
+   * @return Either WorktreeCreationError or WorktreeCreationResult with paths and commands
+   */
+  def createWithLock(
+    issueId: String,
+    config: ProjectConfiguration,
+    fetchIssue: String => Either[String, IssueData],
+    createWorktree: (String, String) => Either[String, Unit],
+    createTmuxSession: (String, String) => Either[String, Unit],
+    registerWorktree: (String, String, String, String) => Either[String, Unit],
+    checkDirectoryExists: String => Boolean = _ => false,
+    checkWorktreeExists: String => Option[String] = _ => None
+  ): Either[WorktreeCreationError, WorktreeCreationResult] =
+    // Try to acquire lock
+    if !CreationLockRegistry.tryAcquire(issueId) then
+      Left(WorktreeCreationError.CreationInProgress(issueId))
+    else
+      try
+        // Perform creation with all dependencies
+        create(
+          issueId,
+          config,
+          fetchIssue,
+          createWorktree,
+          createTmuxSession,
+          registerWorktree,
+          checkDirectoryExists,
+          checkWorktreeExists
+        )
+      finally
+        // Always release lock, even if creation failed
+        CreationLockRegistry.release(issueId)

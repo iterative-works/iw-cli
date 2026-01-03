@@ -187,3 +187,68 @@ M .iw/core/test/WorktreeCreationServiceTest.scala
 ```
 
 ---
+
+## Phase 4: Concurrent Creation Protection (2026-01-03)
+
+**What was built:**
+- Domain: `CreationLock.scala` - Case class for tracking in-progress creation with issueId and startedAt timestamp
+- Infrastructure: `CreationLockRegistry.scala` - Thread-safe lock registry using ConcurrentHashMap with tryAcquire, release, isLocked, and cleanupExpired methods
+- Domain: Added `CreationInProgress(issueId)` case to WorktreeCreationError enum
+- Domain: Added error mapping for CreationInProgress → UserFriendlyError with retry capability
+- Application: Added `createWithLock()` method to WorktreeCreationService wrapping create with lock acquisition/release
+- Infrastructure: Updated CaskServer to use createWithLock and map CreationInProgress to HTTP 423 Locked
+- Presentation: Added HTMX hx-on::before-request/after-request attributes to SearchResultsView for UI disabling
+- Presentation: Added `.disabled` CSS class to DashboardService with pointer-events:none and opacity:0.5
+
+**Decisions made:**
+- ConcurrentHashMap for thread safety: Uses putIfAbsent for atomic lock acquisition
+- try-finally for guaranteed release: Lock always released even on creation failure
+- HTTP 423 Locked status: Standard HTTP status code for "resource temporarily locked"
+- HTMX event handlers for UI: No custom JavaScript needed, CSS class toggle on request lifecycle
+- Global registry object: Acceptable for single-server local tool, clear() method for test isolation
+
+**Patterns applied:**
+- Thread-safe concurrent collection: ConcurrentHashMap.putIfAbsent for atomic check-and-set
+- Resource management with try-finally: Ensures lock release regardless of success/failure
+- HTMX progressive enhancement: Server-side rendering with client-side state management
+- Functional Core, Imperative Shell: Pure domain models, effects contained in registry/server
+
+**Testing:**
+- Unit tests: 26 tests added
+  - CreationLockTest: 4 tests (construction, field access, equality)
+  - CreationLockRegistryTest: 11 tests (acquire, release, isLocked, cleanupExpired, isolation)
+  - WorktreeCreationServiceTest: 4 tests (createWithLock lock/release semantics)
+  - WorktreeCreationErrorMappingTest: 5 tests (CreationInProgress mapping)
+  - SearchResultsViewTest: 2 tests (HTMX UI state attributes)
+- All tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-04-20260103.md
+- Findings: 0 critical, 5 warnings, 9 suggestions
+- Warnings: Global mutable state (acceptable), direct infrastructure import (acceptable), no automatic cleanup trigger (noted), no concurrent stress test (noted), test isolation via clear() (acceptable)
+- Verdict: APPROVED
+
+**For next phases:**
+- Available utilities: `CreationLockRegistry` for any operation needing mutual exclusion, `createWithLock()` for protected creation
+- Extension points: Lock cleanup scheduling, lock timeout configuration
+- Notes: Feature complete - all 4 phases implemented for IW-79
+
+**Files changed:**
+```
+A .iw/core/domain/CreationLock.scala
+A .iw/core/infrastructure/CreationLockRegistry.scala
+A .iw/core/test/CreationLockTest.scala
+A .iw/core/test/CreationLockRegistryTest.scala
+M .iw/core/domain/WorktreeCreationError.scala
+M .iw/core/application/WorktreeCreationService.scala
+M .iw/core/CaskServer.scala
+M .iw/core/presentation/views/SearchResultsView.scala
+M .iw/core/DashboardService.scala
+M .iw/core/test/WorktreeCreationErrorTest.scala
+M .iw/core/test/WorktreeCreationErrorMappingTest.scala
+M .iw/core/test/WorktreeCreationServiceTest.scala
+M .iw/core/test/SearchResultsViewTest.scala
+```
+
+---

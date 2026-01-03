@@ -172,3 +172,21 @@ class SearchResultsViewTest extends FunSuite:
     // Should not have creation POST endpoint
     val itemPattern = "IW-79.*?hx-post.*?/api/worktrees/create".r
     assert(itemPattern.findFirstIn(html).isEmpty, "Should not have create action for existing worktree")
+
+  // Group F: UI state management tests
+
+  test("results container has hx-on::before-request to disable UI"):
+    val result = IssueSearchResult("IW-79", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-on::before-request"), "Should have before-request handler")
+    assert(html.contains("classList.add('disabled')"), "Should add disabled class on request start")
+
+  test("results container has hx-on::after-request to re-enable UI"):
+    val result = IssueSearchResult("IW-79", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-on::after-request"), "Should have after-request handler")
+    assert(html.contains("classList.remove('disabled')"), "Should remove disabled class on request end")
