@@ -49,7 +49,7 @@ class CreationSuccessViewTest extends FunSuite:
   test("close button has HTMX attributes to dismiss modal"):
     val html = CreationSuccessView.render(testResult).render
 
-    assert(html.contains("hx-get"), "Should have hx-get attribute")
+    assert(html.contains("hx-on:click"), "Should have hx-on:click for client-side close")
 
   test("render includes worktree path"):
     val html = CreationSuccessView.render(testResult).render

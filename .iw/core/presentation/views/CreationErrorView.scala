@@ -100,8 +100,6 @@ object CreationErrorView:
   private def renderDismissButton(): Frag =
     button(
       cls := "btn-secondary close-modal-btn",
-      attr("hx-get") := "/",
-      attr("hx-target") := "#modal-container",
-      attr("hx-swap") := "innerHTML",
+      attr("hx-on:click") := "document.getElementById('modal-container').innerHTML = ''",
       "Dismiss"
     )
