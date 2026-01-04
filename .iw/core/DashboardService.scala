@@ -222,6 +222,14 @@ object DashboardService:
       val configValue = trackerType.toLowerCase match
         case "github" => config.flatMap(_.repository)
         case "youtrack" => config.flatMap(_.youtrackBaseUrl)
+        case "gitlab" =>
+          // GitLab needs both repository and optional baseUrl
+          // Format: "repository" or "repository|baseUrl"
+          config.flatMap(_.repository).map { repo =>
+            config.flatMap(_.youtrackBaseUrl) match
+              case Some(baseUrl) => s"$repo|$baseUrl"
+              case None => repo
+          }
         case _ => None
       IssueCacheService.buildIssueUrl(issueId, trackerType, configValue)
 

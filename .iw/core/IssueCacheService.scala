@@ -90,6 +90,23 @@ object IssueCacheService:
           case Some(repository) => s"https://github.com/$repository/issues/$issueNumber"
           case None => s"https://github.com/unknown/repo/issues/$issueNumber" // Fallback
 
+      case "gitlab" =>
+        // GitLab URL format: https://gitlab.com/{group}/{project}/-/issues/{number}
+        // configValue format: "repository" or "repository|baseUrl"
+        val issueNumber = extractGitHubIssueNumber(issueId) // Same number extraction logic
+        configValue match
+          case Some(value) if value.contains("|") =>
+            // Format: "repository|baseUrl"
+            val parts = value.split("\\|", 2)
+            val repository = parts(0)
+            val baseUrl = parts(1).stripSuffix("/")
+            s"$baseUrl/$repository/-/issues/$issueNumber"
+          case Some(repository) =>
+            // Default to gitlab.com
+            s"https://gitlab.com/$repository/-/issues/$issueNumber"
+          case None =>
+            s"https://gitlab.com/unknown/repo/-/issues/$issueNumber" // Fallback
+
       case _ =>
         // Unknown tracker: return generic placeholder
         s"#unknown-tracker-$issueId"

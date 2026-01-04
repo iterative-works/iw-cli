@@ -8,27 +8,27 @@
 
 ## Setup
 
-- [ ] [setup] Read phase context and understand GitLab URL format (`/-/issues/`)
-- [ ] [setup] Review existing buildIssueUrl implementations in codebase
+- [x] [setup] Read phase context and understand GitLab URL format (`/-/issues/`)
+- [x] [setup] Review existing buildIssueUrl implementations in codebase
 
 ## Tests
 
-- [ ] [test] Add unit test for gitlab.com URL generation (default baseUrl)
-- [ ] [test] Add unit test for self-hosted GitLab URL with custom baseUrl
-- [ ] [test] Add unit test for nested groups (company/team/project)
-- [ ] [test] Add unit test for issue number extraction from various formats (123, IW-123, #123)
+- [x] [test] Add unit test for gitlab.com URL generation (default baseUrl)
+- [x] [test] Add unit test for self-hosted GitLab URL with custom baseUrl
+- [x] [test] Add unit test for nested groups (company/team/project)
+- [x] [test] Add unit test for issue number extraction from various formats (123, IW-123, #123)
 
 ## Implementation
 
-- [ ] [impl] Add GitLab case to IssueSearchService.buildIssueUrl
-- [ ] [impl] Add GitLab case to IssueCacheService.buildIssueUrl
-- [ ] [impl] Add GitLab case to DashboardService.buildUrlBuilder
-- [ ] [impl] Ensure correct URL format: `{baseUrl}/{repository}/-/issues/{number}`
+- [x] [impl] Add GitLab case to IssueSearchService.buildIssueUrl
+- [x] [impl] Add GitLab case to IssueCacheService.buildIssueUrl
+- [x] [impl] Add GitLab case to DashboardService.buildUrlBuilder
+- [x] [impl] Ensure correct URL format: `{baseUrl}/{repository}/-/issues/{number}`
 
 ## Integration
 
-- [ ] [integration] Run all tests to verify no regressions
-- [ ] [integration] Verify compilation has no warnings
+- [x] [integration] Run all tests to verify no regressions
+- [x] [integration] Verify compilation has no warnings
 
 ---
 

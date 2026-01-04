@@ -6,6 +6,50 @@ This log tracks the evolution of implementation across phases.
 
 ---
 
+## Phase 4: GitLab issue URL generation in search and dashboard (2026-01-04)
+
+**What was built:**
+- IssueSearchService: Added GitLab case to `buildIssueUrl` using `/-/issues/` path format
+- IssueCacheService: Added GitLab case to `buildIssueUrl` with `repository|baseUrl` config format
+- DashboardService: Added GitLab case to `buildUrlBuilder` to pass repository and optional baseUrl
+
+**Decisions made:**
+- GitLab URLs use `/-/issues/` path (different from GitHub's `/issues/`)
+- Config value format: "repository" for gitlab.com, "repository|baseUrl" for self-hosted
+- Reused `extractGitHubIssueNumber` for number extraction (same logic works for GitLab)
+- Reused `youtrackBaseUrl` field for GitLab baseUrl (semantic naming debt carried forward)
+
+**Patterns applied:**
+- Pattern matching for tracker type routing
+- Pipe-delimited string for compound config value (repository + optional baseUrl)
+- Same number extraction logic as GitHub (handles IW-123, #123, 123 formats)
+
+**Testing:**
+- Unit tests: 8 tests added
+  - IssueCacheServiceTest: 6 new tests for GitLab URL generation
+  - IssueSearchServiceTest: 2 new tests for GitLab search with URL verification
+- Test coverage: gitlab.com default, self-hosted baseUrl, nested groups, number extraction
+
+**Code review:**
+- Iterations: 0 (pending)
+- All unit tests passing: 346 total tests
+
+**For next phases:**
+- Available utilities: GitLab URL generation in all services
+- Extension points: Same pattern can be used for future trackers
+- Notes: Phase 5 will add GitLab issue creation via glab CLI
+
+**Files changed:**
+```
+M  .iw/core/IssueSearchService.scala
+M  .iw/core/IssueCacheService.scala
+M  .iw/core/DashboardService.scala
+M  .iw/core/test/IssueCacheServiceTest.scala
+M  .iw/core/test/IssueSearchServiceTest.scala
+```
+
+---
+
 ## Phase 3: Configure GitLab tracker during iw init (2026-01-04)
 
 **What was built:**
