@@ -199,3 +199,29 @@ class IssueCacheServiceTest extends FunSuite:
 
     val githubUrl = IssueCacheService.buildIssueUrl("72", "github", Some("owner/repo"))
     assertEquals(githubUrl, "https://github.com/owner/repo/issues/72")
+
+  // GitLab URL generation tests
+  test("buildIssueUrl generates GitLab URL with default gitlab.com"):
+    val url = IssueCacheService.buildIssueUrl("123", "GitLab", Some("my-org/my-project"))
+    assertEquals(url, "https://gitlab.com/my-org/my-project/-/issues/123")
+
+  test("buildIssueUrl generates self-hosted GitLab URL with custom baseUrl"):
+    // For GitLab, configValue contains "repository|baseUrl" format
+    val url = IssueCacheService.buildIssueUrl("456", "GitLab", Some("team/app|https://gitlab.company.com"))
+    assertEquals(url, "https://gitlab.company.com/team/app/-/issues/456")
+
+  test("buildIssueUrl generates GitLab URL for nested groups"):
+    val url = IssueCacheService.buildIssueUrl("789", "GitLab", Some("company/team/project"))
+    assertEquals(url, "https://gitlab.com/company/team/project/-/issues/789")
+
+  test("buildIssueUrl extracts number from IW-123 format for GitLab"):
+    val url = IssueCacheService.buildIssueUrl("IW-123", "GitLab", Some("my-org/my-project"))
+    assertEquals(url, "https://gitlab.com/my-org/my-project/-/issues/123")
+
+  test("buildIssueUrl extracts number from #123 format for GitLab"):
+    val url = IssueCacheService.buildIssueUrl("#123", "GitLab", Some("my-org/my-project"))
+    assertEquals(url, "https://gitlab.com/my-org/my-project/-/issues/123")
+
+  test("buildIssueUrl handles lowercase gitlab tracker type"):
+    val url = IssueCacheService.buildIssueUrl("42", "gitlab", Some("owner/repo"))
+    assertEquals(url, "https://gitlab.com/owner/repo/-/issues/42")

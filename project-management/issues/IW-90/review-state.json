@@ -1,9 +1,12 @@
 {
-  "status": "context_ready",
-  "phase": 3,
-  "message": "Phase 3 context ready for review",
+  "status": "awaiting_review",
+  "phase": 4,
+  "message": "Phase 4 implementation complete - GitLab issue URL generation",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/97",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
-    {"label": "Phase 3 Context", "path": "project-management/issues/IW-90/phase-03-context.md"}
+    {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
+    {"label": "Phase 4 Context", "path": "project-management/issues/IW-90/phase-04-context.md"},
+    {"label": "Phase 4 Tasks", "path": "project-management/issues/IW-90/phase-04-tasks.md"}
   ]
 }
