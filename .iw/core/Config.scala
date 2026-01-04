@@ -152,16 +152,20 @@ object ConfigSerializer:
       case IssueTrackerType.GitLab => Constants.TrackerTypeValues.GitLab
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
-    val youtrackUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
+    val baseUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
 
     // For GitHub and GitLab, use repository and teamPrefix instead of team
     val trackerDetails = config.trackerType match
-      case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+      case IssueTrackerType.GitHub =>
         val repoLine = config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
         val prefixLine = config.teamPrefix.map(p => s"""\n  teamPrefix = "$p"""").getOrElse("")
         s"$repoLine$prefixLine"
+      case IssueTrackerType.GitLab =>
+        val repoLine = config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
+        val prefixLine = config.teamPrefix.map(p => s"""\n  teamPrefix = "$p"""").getOrElse("")
+        s"$repoLine$prefixLine$baseUrlLine"
       case _ =>
-        s"team = ${config.team}$youtrackUrlLine"
+        s"team = ${config.team}$baseUrlLine"
 
     s"""tracker {
        |  type = $trackerTypeStr

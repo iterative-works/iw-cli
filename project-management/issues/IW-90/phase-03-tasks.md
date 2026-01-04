@@ -63,11 +63,11 @@ This phase enables GitLab configuration during `iw init`. Tasks follow TDD with 
 
 ### Test Task 4: TrackerDetector suggests GitLab (15-20 min)
 
-- [ ] Write test: TrackerDetector.suggestTracker returns Some(GitLab) for gitlab.com HTTPS remote
-- [ ] Write test: TrackerDetector.suggestTracker returns Some(GitLab) for gitlab.com SSH remote
-- [ ] Write test: TrackerDetector.suggestTracker returns Some(GitLab) for gitlab.company.com remote
-- [ ] Write test: TrackerDetector prioritizes GitHub over GitLab when multiple remotes present
-- [ ] Run tests - expect failures (TrackerDetector doesn't check for GitLab yet)
+- [x] Write test: TrackerDetector.suggestTracker returns Some(GitLab) for gitlab.com HTTPS remote
+- [x] Write test: TrackerDetector.suggestTracker returns Some(GitLab) for gitlab.com SSH remote
+- [x] Write test: TrackerDetector.suggestTracker returns Some(GitLab) for gitlab.company.com remote
+- [x] Write test: TrackerDetector prioritizes GitHub over GitLab when multiple remotes present
+- [x] Run tests - expect failures (TrackerDetector doesn't check for GitLab yet)
 
 ---
 
@@ -75,12 +75,12 @@ This phase enables GitLab configuration during `iw init`. Tasks follow TDD with 
 
 ### Implementation Task 2: Update TrackerDetector for GitLab (15-20 min)
 
-- [ ] Add GitLab detection to TrackerDetector.suggestTracker
-  - [ ] Check for host == "gitlab.com" → return Some(IssueTrackerType.GitLab)
-  - [ ] Check for host.contains("gitlab") → return Some(IssueTrackerType.GitLab)
-  - [ ] Ensure GitHub detection takes priority (remains first)
-- [ ] Run TrackerDetector tests to verify they pass
-- [ ] Commit: "feat(core): Add GitLab detection to TrackerDetector"
+- [x] Add GitLab detection to TrackerDetector.suggestTracker
+  - [x] Check for host == "gitlab.com" → return Some(IssueTrackerType.GitLab)
+  - [x] Check for host.contains("gitlab") → return Some(IssueTrackerType.GitLab)
+  - [x] Ensure GitHub detection takes priority (remains first)
+- [x] Run TrackerDetector tests to verify they pass
+- [x] Commit: "feat(core): Add GitLab detection to TrackerDetector"
 
 ---
 
