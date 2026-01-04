@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.{GitLabClient, Issue}
+import iw.core.{GitLabClient, Issue, FeedbackParser, CreatedIssue}
 
 class GitLabClientTest extends munit.FunSuite:
 
@@ -479,3 +479,275 @@ class GitLabClientTest extends munit.FunSuite:
     assert(!GitLabClient.isNetworkError("401 unauthorized"))
     assert(!GitLabClient.isNetworkError("404 not found"))
     assert(!GitLabClient.isNetworkError("internal server error"))
+
+  // ========== buildCreateIssueCommand Tests ==========
+
+  test("buildCreateIssueCommand generates correct glab CLI arguments for Bug type"):
+    val args = GitLabClient.buildCreateIssueCommand(
+      repository = "my-org/my-project",
+      title = "Login broken",
+      description = "Details",
+      issueType = FeedbackParser.IssueType.Bug
+    )
+
+    assertEquals(args(0), "issue")
+    assertEquals(args(1), "create")
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "my-org/my-project")
+    assertEquals(args(4), "--title")
+    assertEquals(args(5), "Login broken")
+    assertEquals(args(6), "--description")
+    assertEquals(args(7), "Details")
+    assertEquals(args(8), "--label")
+    assertEquals(args(9), "bug")
+
+  test("buildCreateIssueCommand generates correct glab CLI arguments for Feature type"):
+    val args = GitLabClient.buildCreateIssueCommand(
+      repository = "owner/repo",
+      title = "Add dark mode",
+      description = "Please add dark mode",
+      issueType = FeedbackParser.IssueType.Feature
+    )
+
+    assertEquals(args(0), "issue")
+    assertEquals(args(1), "create")
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "owner/repo")
+    assertEquals(args(4), "--title")
+    assertEquals(args(5), "Add dark mode")
+    assertEquals(args(6), "--description")
+    assertEquals(args(7), "Please add dark mode")
+    assertEquals(args(8), "--label")
+    assertEquals(args(9), "feature")
+
+  test("buildCreateIssueCommand handles empty description"):
+    val args = GitLabClient.buildCreateIssueCommand(
+      repository = "owner/repo",
+      title = "Test issue",
+      description = "",
+      issueType = FeedbackParser.IssueType.Bug
+    )
+
+    val descIndex = args.indexOf("--description")
+    assertEquals(args(descIndex + 1), "")
+
+  test("buildCreateIssueCommandWithoutLabel generates command without label flag"):
+    val args = GitLabClient.buildCreateIssueCommandWithoutLabel(
+      repository = "my-org/project",
+      title = "Issue",
+      description = "Details"
+    )
+
+    assertEquals(args(0), "issue")
+    assertEquals(args(1), "create")
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "my-org/project")
+    assertEquals(args(4), "--title")
+    assertEquals(args(5), "Issue")
+    assertEquals(args(6), "--description")
+    assertEquals(args(7), "Details")
+    assert(!args.contains("--label"))
+
+  // ========== parseCreateIssueResponse Tests ==========
+
+  test("parseCreateIssueResponse parses gitlab.com URL"):
+    val output = "https://gitlab.com/owner/project/-/issues/123\n"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "123")
+    assertEquals(issue.url, "https://gitlab.com/owner/project/-/issues/123")
+
+  test("parseCreateIssueResponse parses self-hosted GitLab URL"):
+    val output = "https://gitlab.company.com/team/app/-/issues/456"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "456")
+    assertEquals(issue.url, "https://gitlab.company.com/team/app/-/issues/456")
+
+  test("parseCreateIssueResponse handles URL with trailing newline"):
+    val output = "https://gitlab.e-bs.cz/owner/project/-/issues/789\n"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "789")
+    assertEquals(issue.url.trim, "https://gitlab.e-bs.cz/owner/project/-/issues/789")
+
+  test("parseCreateIssueResponse returns error for empty response"):
+    val output = ""
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isLeft)
+    assertEquals(result.left.getOrElse(""), "Empty response from glab CLI")
+
+  test("parseCreateIssueResponse returns error for invalid URL format"):
+    val output = "https://gitlab.com/not-an-issue-url"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Unexpected response format"))
+
+  test("parseCreateIssueResponse handles URL with whitespace"):
+    val output = "  https://gitlab.com/owner/project/-/issues/999  \n"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "999")
+
+  // ========== isLabelError Tests ==========
+
+  test("isLabelError detects label not found error"):
+    val error = "Error: label 'bug' not found in project"
+    assert(GitLabClient.isLabelError(error))
+
+  test("isLabelError detects does not exist error"):
+    val error = "label does not exist"
+    assert(GitLabClient.isLabelError(error))
+
+  test("isLabelError detects invalid label error"):
+    val error = "Error: invalid label specified"
+    assert(GitLabClient.isLabelError(error))
+
+  test("isLabelError returns false for network timeout"):
+    val error = "Network timeout"
+    assert(!GitLabClient.isLabelError(error))
+
+  test("isLabelError returns false for auth error"):
+    val error = "401 Unauthorized"
+    assert(!GitLabClient.isLabelError(error))
+
+  test("isLabelError returns false for generic error"):
+    val error = "Something went wrong"
+    assert(!GitLabClient.isLabelError(error))
+
+  // ========== createIssue Integration Tests ==========
+
+  test("createIssue validates prerequisites - glab not installed"):
+    val mockIsCommandAvailable = (cmd: String) => false
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      fail("Should not execute command when glab not installed")
+
+    val result = GitLabClient.createIssue(
+      repository = "owner/project",
+      title = "Test issue",
+      description = "Details",
+      issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("glab CLI is not installed"))
+
+  test("createIssue validates prerequisites - glab not authenticated"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("not logged in")
+      else
+        fail("Should not execute issue command when not authenticated")
+
+    val result = GitLabClient.createIssue(
+      repository = "owner/project",
+      title = "Test issue",
+      description = "Details",
+      issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("glab is not authenticated"))
+
+  test("createIssue success path with label"):
+    var commandCalls = 0
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in to gitlab.com")
+      else if args.contains("issue") && args.contains("create") then
+        commandCalls += 1
+        Right("https://gitlab.com/owner/project/-/issues/123\n")
+      else
+        Left(s"Unexpected command: $cmd ${args.mkString(" ")}")
+
+    val result = GitLabClient.createIssue(
+      repository = "owner/project",
+      title = "Bug report",
+      description = "Something is broken",
+      issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "123")
+    assertEquals(issue.url, "https://gitlab.com/owner/project/-/issues/123")
+    assertEquals(commandCalls, 1) // Only one attempt
+
+  test("createIssue retries without label on label error"):
+    var commandCalls = 0
+    var lastArgs: Array[String] = Array()
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("create") then
+        commandCalls += 1
+        lastArgs = args
+        if args.contains("--label") then
+          // First attempt with label fails
+          Left("Error: label 'bug' not found in project")
+        else
+          // Second attempt without label succeeds
+          Right("https://gitlab.com/owner/project/-/issues/456\n")
+      else
+        Left(s"Unexpected command: $cmd ${args.mkString(" ")}")
+
+    val result = GitLabClient.createIssue(
+      repository = "owner/project",
+      title = "Feature request",
+      description = "Add something",
+      issueType = FeedbackParser.IssueType.Feature,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "456")
+    assertEquals(commandCalls, 2) // Two attempts: with label, then without
+    assert(!lastArgs.contains("--label")) // Final attempt had no label
+
+  test("createIssue does not retry on non-label error"):
+    var commandCalls = 0
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("create") then
+        commandCalls += 1
+        Left("Network timeout")
+      else
+        Left(s"Unexpected command: $cmd ${args.mkString(" ")}")
+
+    val result = GitLabClient.createIssue(
+      repository = "owner/project",
+      title = "Test",
+      description = "Details",
+      issueType = FeedbackParser.IssueType.Bug,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    assertEquals(commandCalls, 1) // Only one attempt, no retry
+    assert(result.left.getOrElse("").contains("Network timeout"))

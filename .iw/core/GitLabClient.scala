@@ -1,5 +1,5 @@
-// PURPOSE: GitLab CLI client for issue fetching via glab CLI
-// PURPOSE: Provides fetchIssue to retrieve GitLab issues via glab command
+// PURPOSE: GitLab CLI client for issue management via glab CLI
+// PURPOSE: Provides fetchIssue and createIssue for GitLab issue operations
 
 package iw.core
 
@@ -220,3 +220,131 @@ Check your network connection and try again.""".stripMargin
       case Right(jsonOutput) =>
         // Parse JSON response
         parseFetchIssueResponse(jsonOutput, issueNumber)
+
+  /** Build glab CLI command arguments for creating an issue.
+    *
+    * @param repository GitLab repository in owner/project format
+    * @param title Issue title
+    * @param description Issue description (empty string if not provided)
+    * @param issueType Issue type (Bug or Feature) - mapped to GitLab labels
+    * @return Array of command arguments for glab CLI
+    */
+  def buildCreateIssueCommand(
+    repository: String,
+    title: String,
+    description: String,
+    issueType: FeedbackParser.IssueType
+  ): Array[String] =
+    // Map issue type to GitLab label
+    val label = issueType match
+      case FeedbackParser.IssueType.Bug => "bug"
+      case FeedbackParser.IssueType.Feature => "feature"
+
+    // Build command: glab issue create --repo <repo> --title <title> --description <desc> --label <label>
+    // Note: glab uses --description (not --body like gh)
+    Array(
+      "issue", "create",
+      "--repo", repository,
+      "--title", title,
+      "--description", description,
+      "--label", label
+    )
+
+  /** Build glab CLI command arguments without labels (for fallback).
+    *
+    * @param repository GitLab repository in owner/project format
+    * @param title Issue title
+    * @param description Issue description (empty string if not provided)
+    * @return Array of command arguments for glab CLI without label
+    */
+  def buildCreateIssueCommandWithoutLabel(
+    repository: String,
+    title: String,
+    description: String
+  ): Array[String] =
+    // Build command without label
+    Array(
+      "issue", "create",
+      "--repo", repository,
+      "--title", title,
+      "--description", description
+    )
+
+  /** Parse URL response from glab issue create command.
+    *
+    * Expected format: https://gitlab.com/owner/project/-/issues/123
+    * or self-hosted: https://gitlab.company.com/owner/project/-/issues/123
+    *
+    * @param output URL string from glab CLI (may have trailing newline)
+    * @return Right(CreatedIssue) on success, Left(error message) on failure
+    */
+  def parseCreateIssueResponse(output: String): Either[String, CreatedIssue] =
+    val url = output.trim
+    if url.isEmpty then
+      return Left("Empty response from glab CLI")
+
+    // Extract issue number from GitLab URL pattern: .*/-/issues/(\d+)$
+    val issuePattern = """.*/-/issues/(\d+)$""".r
+    url match
+      case issuePattern(number) =>
+        Right(CreatedIssue(number, url))
+      case _ =>
+        Left(s"Unexpected response format: $url")
+
+  /** Check if error is related to labels (for graceful fallback).
+    *
+    * @param error Error message from glab CLI
+    * @return true if error indicates label-related issue
+    */
+  def isLabelError(error: String): Boolean =
+    val lowerError = error.toLowerCase
+    lowerError.contains("label") && (
+      lowerError.contains("not found") ||
+      lowerError.contains("does not exist") ||
+      lowerError.contains("invalid")
+    )
+
+  /** Create a new GitLab issue via glab CLI.
+    *
+    * If issue creation fails with a label-related error, retries without labels.
+    *
+    * @param repository GitLab repository in owner/project format
+    * @param title Issue title
+    * @param description Issue description
+    * @param issueType Issue type (Bug or Feature)
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(CreatedIssue) on success, Left(error message) on failure
+    */
+  def createIssue(
+    repository: String,
+    title: String,
+    description: String,
+    issueType: FeedbackParser.IssueType,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, CreatedIssue] =
+    // Validate prerequisites before attempting creation
+    validateGlabPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GlabPrerequisiteError.GlabNotInstalled) =>
+        return Left(formatGlabNotInstalledError())
+      case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
+        return Left(formatGlabNotAuthenticatedError())
+      case Left(GlabPrerequisiteError.GlabError(msg)) =>
+        return Left(s"glab CLI error: $msg")
+      case Right(_) =>
+        // Proceed with issue creation
+
+    val args = buildCreateIssueCommand(repository, title, description, issueType)
+
+    // Execute glab command
+    execCommand("glab", args) match
+      case Left(error) if isLabelError(error) =>
+        // Retry without labels if label-related error
+        val argsWithoutLabel = buildCreateIssueCommandWithoutLabel(repository, title, description)
+        execCommand("glab", argsWithoutLabel) match
+          case Left(retryError) => Left(retryError)
+          case Right(output) => parseCreateIssueResponse(output)
+      case Left(error) => Left(error)
+      case Right(output) => parseCreateIssueResponse(output)

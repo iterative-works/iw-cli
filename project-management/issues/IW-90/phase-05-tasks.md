@@ -90,18 +90,18 @@
 
 ## Implementation - Command Building
 
-- [ ] [impl] Add `buildCreateIssueCommand` function to `GitLabClient.scala`
+- [x] [impl] [ ] [reviewed] Add `buildCreateIssueCommand` function to `GitLabClient.scala`
   - Map IssueType.Bug → "bug" label, IssueType.Feature → "feature" label
   - Build array: ["issue", "create", "--repo", repository, "--title", title, "--description", description, "--label", label]
   - Note: glab uses `--description` (not `--body` like gh)
 
-- [ ] [impl] Add `buildCreateIssueCommandWithoutLabel` function to `GitLabClient.scala`
+- [x] [impl] [ ] [reviewed] Add `buildCreateIssueCommandWithoutLabel` function to `GitLabClient.scala`
   - Same as `buildCreateIssueCommand` but without `--label` flag
   - Used for fallback when labels don't exist in project
 
 ## Implementation - Response Parsing
 
-- [ ] [impl] Add `parseCreateIssueResponse` function to `GitLabClient.scala`
+- [x] [impl] [ ] [reviewed] Add `parseCreateIssueResponse` function to `GitLabClient.scala`
   - Extract issue number from GitLab URL pattern: `.*/-/issues/(\d+)$`
   - Handle both gitlab.com and self-hosted URLs
   - Return Right(CreatedIssue(number, url)) on success
@@ -110,13 +110,13 @@
 
 ## Implementation - Label Error Detection
 
-- [ ] [impl] Add `isLabelError` private function to `GitLabClient.scala`
+- [x] [impl] [ ] [reviewed] Add `isLabelError` private function to `GitLabClient.scala`
   - Check if error.toLowerCase contains "label" AND ("not found" OR "does not exist" OR "invalid")
   - Used to trigger retry without label
 
 ## Implementation - Main Entry Point
 
-- [ ] [impl] Add `createIssue` function to `GitLabClient.scala`
+- [x] [impl] [ ] [reviewed] Add `createIssue` function to `GitLabClient.scala`
   - Signature: `def createIssue(repository: String, title: String, description: String, issueType: FeedbackParser.IssueType, isCommandAvailable: String => Boolean = ..., execCommand: (String, Array[String]) => Either[String, String] = ...): Either[String, CreatedIssue]`
   - Step 1: Call `validateGlabPrerequisites` and return formatted errors if fails
   - Step 2: Build command with `buildCreateIssueCommand`
@@ -126,13 +126,13 @@
 
 ## Integration - feedback.scala Command
 
-- [ ] [impl] Update `feedback.scala` to read `.iw/config.conf` and check tracker type
+- [x] [impl] [ ] [reviewed] Update `feedback.scala` to read `.iw/config.conf` and check tracker type
   - Import `Config` module
   - Call `Config.load(".iw/config.conf")` before creating issue
   - If Right(config) and config.trackerType == Some("gitlab"), use GitLabClient
   - Otherwise, use existing GitHubClient behavior (backward compatible)
 
-- [ ] [impl] Add GitLab issue creation logic to `feedback.scala`
+- [x] [impl] [ ] [reviewed] Add GitLab issue creation logic to `feedback.scala`
   - Extract repository from config.gitlabRepository (or config.repository if unified)
   - Call `GitLabClient.createIssue(repository, request.title, request.description, request.issueType)`
   - Handle result same as GitHub (success/error output)
