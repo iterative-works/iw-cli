@@ -1,14 +1,15 @@
 // PURPOSE: Initialize iw-cli configuration for the project
-// USAGE: iw init [--force] [--tracker=linear|youtrack|github] [--team=TEAM] [--team-prefix=PREFIX] [--base-url=URL]
+// USAGE: iw init [--force] [--tracker=linear|youtrack|github|gitlab] [--team=TEAM] [--team-prefix=PREFIX] [--base-url=URL]
 // ARGS:
 //   --force: Overwrite existing configuration
-//   --tracker=linear|youtrack|github: Set tracker type (skips prompt)
+//   --tracker=linear|youtrack|github|gitlab: Set tracker type (skips prompt)
 //   --team=TEAM: Set team identifier for Linear/YouTrack (skips prompt)
-//   --team-prefix=PREFIX: Set team prefix for GitHub (skips prompt)
-//   --base-url=URL: Set YouTrack base URL (skips prompt)
+//   --team-prefix=PREFIX: Set team prefix for GitHub/GitLab (skips prompt)
+//   --base-url=URL: Set YouTrack/GitLab base URL (skips prompt)
 // EXAMPLE: iw init
 // EXAMPLE: iw init --tracker=linear --team=IWLE
 // EXAMPLE: iw init --tracker=github --team-prefix=IWCLI
+// EXAMPLE: iw init --tracker=gitlab --team-prefix=PROJ --base-url=https://gitlab.company.com
 // EXAMPLE: iw init --tracker=youtrack --team=MEDH --base-url=https://youtrack.example.com
 
 import iw.core.*
@@ -21,15 +22,17 @@ def askForTrackerType(): IssueTrackerType =
   Output.info("  1. Linear")
   Output.info("  2. YouTrack")
   Output.info("  3. GitHub")
+  Output.info("  4. GitLab")
 
-  val choice = Prompt.ask("Select tracker (1, 2, or 3)")
+  val choice = Prompt.ask("Select tracker (1, 2, 3, or 4)")
 
   choice match
     case "1" | "linear" => IssueTrackerType.Linear
     case "2" | "youtrack" => IssueTrackerType.YouTrack
     case "3" | "github" => IssueTrackerType.GitHub
+    case "4" | "gitlab" => IssueTrackerType.GitLab
     case _ =>
-      Output.error("Invalid choice. Please select 1, 2, or 3.")
+      Output.error("Invalid choice. Please select 1, 2, 3, or 4.")
       askForTrackerType()
 
 @main def init(args: String*): Unit =
@@ -57,8 +60,9 @@ def askForTrackerType(): IssueTrackerType =
     case Some(Constants.TrackerTypeValues.Linear) => IssueTrackerType.Linear
     case Some(Constants.TrackerTypeValues.YouTrack) => IssueTrackerType.YouTrack
     case Some(Constants.TrackerTypeValues.GitHub) => IssueTrackerType.GitHub
+    case Some(Constants.TrackerTypeValues.GitLab) => IssueTrackerType.GitLab
     case Some(invalid) =>
-      Output.error(s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}', '${Constants.TrackerTypeValues.YouTrack}', or '${Constants.TrackerTypeValues.GitHub}'.")
+      Output.error(s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}', '${Constants.TrackerTypeValues.YouTrack}', '${Constants.TrackerTypeValues.GitHub}', or '${Constants.TrackerTypeValues.GitLab}'.")
       System.exit(1)
       throw RuntimeException("unreachable") // for type checker
     case None =>
@@ -72,6 +76,7 @@ def askForTrackerType(): IssueTrackerType =
             case IssueTrackerType.Linear => Constants.TrackerTypeValues.Linear
             case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
             case IssueTrackerType.GitHub => Constants.TrackerTypeValues.GitHub
+            case IssueTrackerType.GitLab => Constants.TrackerTypeValues.GitLab
 
           Output.info(s"Detected tracker: $trackerName (based on git remote)")
           val confirmed = Prompt.confirm(s"Use $trackerName?", default = true)
@@ -127,6 +132,63 @@ def askForTrackerType(): IssueTrackerType =
 
       ("", Some(ownerRepo), Some(prefix), None)
 
+    case IssueTrackerType.GitLab =>
+      // Extract repository from git remote
+      val remote = GitAdapter.getRemoteUrl(currentDir)
+      val repo = remote.flatMap { r =>
+        r.extractGitLabRepository match
+          case Right(ownerRepo) => Some(ownerRepo)
+          case Left(err) =>
+            Output.warning(s"Could not auto-detect repository: $err")
+            None
+      }
+
+      val ownerRepo = repo match
+        case Some(ownerRepo) =>
+          Output.info(s"Auto-detected repository: $ownerRepo")
+          ownerRepo
+        case None =>
+          Prompt.ask("Enter GitLab repository (owner/repo or group/subgroup/project format)")
+
+      // Get team prefix for GitLab
+      val prefix = teamPrefixArg match
+        case Some(p) =>
+          // Validate provided prefix
+          TeamPrefixValidator.validate(p) match
+            case Left(err) =>
+              Output.error(s"Invalid team prefix: $err")
+              System.exit(1)
+              throw RuntimeException("unreachable") // for type checker
+            case Right(validated) => validated
+        case None =>
+          // Suggest prefix from repository name (use last component for nested groups)
+          val suggested = TeamPrefixValidator.suggestFromRepository(ownerRepo)
+          Output.info(s"Suggested team prefix: $suggested")
+          val input = Prompt.ask(s"Enter team prefix (2-10 uppercase letters) [$suggested]")
+          val chosen = if input.trim.isEmpty then suggested else input.trim
+          // Validate chosen prefix
+          TeamPrefixValidator.validate(chosen) match
+            case Left(err) =>
+              Output.error(s"Invalid team prefix: $err")
+              System.exit(1)
+              throw RuntimeException("unreachable") // for type checker
+            case Right(validated) => validated
+
+      // Check if self-hosted GitLab
+      val baseUrl = baseUrlArg match
+        case Some(url) => Some(url)
+        case None =>
+          // Detect if self-hosted (not gitlab.com)
+          remote.flatMap(_.host.toOption) match
+            case Some(host) if host != "gitlab.com" =>
+              Output.info(s"Detected self-hosted GitLab at $host")
+              val url = Prompt.ask(s"Enter GitLab base URL (e.g., https://$host)")
+              Some(url)
+            case _ =>
+              None // gitlab.com, no baseUrl needed
+
+      ("", Some(ownerRepo), Some(prefix), baseUrl)
+
     case IssueTrackerType.YouTrack =>
       // YouTrack: get team and base URL
       val t = teamArg.getOrElse {
@@ -175,6 +237,13 @@ def askForTrackerType(): IssueTrackerType =
       Output.info("GitHub tracker configured.")
       Output.info("Ensure the gh CLI is installed and authenticated:")
       Output.info("  gh auth login")
+    case IssueTrackerType.GitLab =>
+      Output.info("GitLab tracker configured.")
+      Output.info("Ensure the glab CLI is installed and authenticated:")
+      Output.info("  brew install glab  (macOS)")
+      Output.info("  glab auth login")
+      Output.info("")
+      Output.info("For other platforms, see: https://gitlab.com/gitlab-org/cli")
 
   Output.info("")
   Output.info("Run './iw doctor' to verify your setup.")

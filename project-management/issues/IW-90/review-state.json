@@ -1,20 +1,9 @@
 {
-  "status": "awaiting_review",
-  "phase": 2,
-  "message": "Phase 2 complete - Handle GitLab-specific error conditions gracefully",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/95",
+  "status": "context_ready",
+  "phase": 3,
+  "message": "Phase 3 context ready for review",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
-    {"label": "Phase 2 Context", "path": "project-management/issues/IW-90/phase-02-context.md"},
-    {"label": "Phase 2 Tasks", "path": "project-management/issues/IW-90/phase-02-tasks.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-90/review-packet-phase-02.md"},
-    {"label": "Code Review", "path": "project-management/issues/IW-90/review-phase-02.md"}
-  ],
-  "review_verdict": "APPROVE",
-  "review_summary": {
-    "critical": 0,
-    "warnings": 4,
-    "suggestions": 7
-  }
+    {"label": "Phase 3 Context", "path": "project-management/issues/IW-90/phase-03-context.md"}
+  ]
 }

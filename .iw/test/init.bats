@@ -505,3 +505,209 @@ teardown() {
     [ -f ".iw/config.conf" ]
     grep -q 'teamPrefix = "VERYLONGPR"' .iw/config.conf
 }
+
+# ========== GitLab Tracker Tests ==========
+
+@test "init creates config with gitlab tracker and HTTPS remote" {
+    # Setup: create a git repo with GitLab HTTPS remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/owner/project.git
+
+    # Run init with gitlab tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Configuration created"* ]]
+    [[ "$output" == *"Auto-detected repository: owner/project"* ]]
+
+    # Assert config file exists and has correct content
+    [ -f ".iw/config.conf" ]
+    grep -q "type = gitlab" .iw/config.conf
+    grep -q 'repository = "owner/project"' .iw/config.conf
+    grep -q 'teamPrefix = "PROJ"' .iw/config.conf
+    ! grep -q "team = " .iw/config.conf
+}
+
+@test "init creates config with gitlab tracker and SSH remote" {
+    # Setup: create a git repo with GitLab SSH remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin git@gitlab.com:owner/project.git
+
+    # Run init with gitlab tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: owner/project"* ]]
+
+    # Assert config file has correct content
+    [ -f ".iw/config.conf" ]
+    grep -q "type = gitlab" .iw/config.conf
+    grep -q 'repository = "owner/project"' .iw/config.conf
+    grep -q 'teamPrefix = "PROJ"' .iw/config.conf
+}
+
+@test "init shows glab CLI hint for gitlab tracker" {
+    # Setup: create a git repo with GitLab remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/owner/project.git
+
+    # Run init with gitlab tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert output contains glab CLI hint (not API token)
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"glab auth login"* ]]
+    [[ "$output" != *"API token"* ]]
+}
+
+@test "init with gitlab validates tracker type in error message" {
+    # Setup: create a git repo
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+
+    # Run init with invalid tracker
+    run "$PROJECT_ROOT/iw" init --tracker=invalid --team=IWLE
+
+    # Assert failure and error message includes gitlab
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid tracker type"* ]]
+    [[ "$output" == *"gitlab"* ]]
+}
+
+@test "init with gitlab and nested group repository" {
+    # Setup: create a git repo with GitLab HTTPS remote with nested groups
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/group/subgroup/project.git
+
+    # Run init with gitlab tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: group/subgroup/project"* ]]
+
+    # Assert config file has nested group path
+    [ -f ".iw/config.conf" ]
+    grep -q 'repository = "group/subgroup/project"' .iw/config.conf
+}
+
+@test "init with gitlab and self-hosted instance with --base-url" {
+    # Setup: create a git repo with self-hosted GitLab remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.company.com/team/project.git
+
+    # Run init with gitlab tracker, team prefix, and base URL
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ --base-url=https://gitlab.company.com
+
+    # Assert success
+    [ "$status" -eq 0 ]
+
+    # Assert config file has baseUrl
+    [ -f ".iw/config.conf" ]
+    grep -q "type = gitlab" .iw/config.conf
+    grep -q 'repository = "team/project"' .iw/config.conf
+    grep -q 'baseUrl = "https://gitlab.company.com"' .iw/config.conf
+}
+
+@test "init with gitlab validates team prefix format" {
+    # Setup: create a git repo with GitLab remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/owner/project.git
+
+    # Run init with invalid team prefix (lowercase)
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=proj
+
+    # Assert failure
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid team prefix"* ]]
+    [[ "$output" == *"uppercase"* ]]
+
+    # Assert no config created
+    [ ! -f ".iw/config.conf" ]
+}
+
+@test "init with gitlab shows warning for non-GitLab remote" {
+    # Setup: create a git repo with a non-GitLab remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://github.com/user/project.git
+
+    # Run init with gitlab tracker - this will warn and prompt for manual input
+    # We use timeout to abort the interactive prompt after the warning is shown
+    run timeout 2s "$PROJECT_ROOT/iw" init --tracker=gitlab || true
+
+    # Assert warning about non-GitLab remote appears before the prompt
+    [[ "$output" == *"Could not auto-detect repository"* ]] || [[ "$output" == *"Not a GitLab URL"* ]]
+}
+
+@test "init with gitlab and multiple remotes uses origin" {
+    # Setup: create a git repo with multiple remotes (origin and upstream)
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/owner/project.git
+    git remote add upstream https://gitlab.com/otheruser/project.git
+
+    # Run init with gitlab tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert success and that origin was used (not upstream)
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: owner/project"* ]]
+
+    # Assert config file has repository from origin
+    [ -f ".iw/config.conf" ]
+    grep -q 'repository = "owner/project"' .iw/config.conf
+}
+
+@test "init with gitlab and HTTPS URL with trailing slash" {
+    # Setup: create a git repo with GitLab HTTPS remote with trailing slash
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/owner/project/
+
+    # Run init with gitlab tracker and team prefix
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert success - trailing slash should be handled correctly
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Auto-detected repository: owner/project"* ]]
+
+    # Assert config file has correct repository (without trailing slash)
+    [ -f ".iw/config.conf" ]
+    grep -q 'repository = "owner/project"' .iw/config.conf
+}
+
+@test "init with gitlab still works (regression test)" {
+    # Setup: create a git repo with GitLab remote
+    git init
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git remote add origin https://gitlab.com/owner/project.git
+
+    # Run init with gitlab tracker
+    run "$PROJECT_ROOT/iw" init --tracker=gitlab --team-prefix=PROJ
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    grep -q "type = gitlab" .iw/config.conf
+    grep -q 'repository = "owner/project"' .iw/config.conf
+    grep -q 'teamPrefix = "PROJ"' .iw/config.conf
+}
