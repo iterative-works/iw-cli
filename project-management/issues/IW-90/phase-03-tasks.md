@@ -2,7 +2,7 @@
 
 **Issue:** IW-90
 **Phase:** 3 of 7
-**Status:** Not Started
+**Status:** Complete
 
 ## Task Breakdown
 
@@ -165,42 +165,42 @@ NOTE: This is a manual E2E test (not automated BATS test)
 
 ### Implementation Task 5: Add GitLab to init.scala tracker menu (15-20 min)
 
-- [ ] Add "4. GitLab" to askForTrackerType() menu display (after GitHub)
-- [ ] Handle "4" and "gitlab" choices → return IssueTrackerType.GitLab
-- [ ] Add GitLab to trackerArg parsing in init() (line 56-63)
-- [ ] Update error message to include gitlab option
-- [ ] Update interactive tracker name display to handle GitLab (lines 71-74)
-- [ ] Test locally: verify menu displays GitLab option
-- [ ] Commit: "feat(init): Add GitLab to tracker type menu"
+- [x] Add "4. GitLab" to askForTrackerType() menu display (after GitHub)
+- [x] Handle "4" and "gitlab" choices → return IssueTrackerType.GitLab
+- [x] Add GitLab to trackerArg parsing in init() (line 56-63)
+- [x] Update error message to include gitlab option
+- [x] Update interactive tracker name display to handle GitLab (lines 71-74)
+- [x] Test locally: verify menu displays GitLab option
+- [x] Commit: "feat(init): Add GitLab to tracker type menu"
 
 ### Implementation Task 6: Implement GitLab repository and baseUrl prompts (25-30 min)
 
-- [ ] Add GitLab case to tracker-specific configuration block (after GitHub case, line 129)
-- [ ] Implement GitLab repository extraction/prompting:
-  - [ ] Try GitRemote.extractGitLabRepository from git remote
-  - [ ] Auto-detect and display if successful
-  - [ ] Prompt for repository if auto-detection fails
-- [ ] Implement GitLab teamPrefix prompting (same as GitHub):
-  - [ ] Check for --team-prefix arg
-  - [ ] Suggest prefix from repository name
-  - [ ] Validate prefix format
-- [ ] Implement GitLab baseUrl prompting:
-  - [ ] Detect if remote is NOT gitlab.com (self-hosted)
-  - [ ] Prompt for baseUrl if self-hosted
-  - [ ] Set baseUrl to None if gitlab.com (uses default)
-- [ ] Return (team="", repository=Some(repo), teamPrefix=Some(prefix), baseUrl=Option[String])
-- [ ] Test locally with gitlab.com remote
-- [ ] Test locally with self-hosted GitLab remote (mock)
-- [ ] Commit: "feat(init): Add GitLab repository and baseUrl configuration"
+- [x] Add GitLab case to tracker-specific configuration block (after GitHub case, line 129)
+- [x] Implement GitLab repository extraction/prompting:
+  - [x] Try GitRemote.extractGitLabRepository from git remote
+  - [x] Auto-detect and display if successful
+  - [x] Prompt for repository if auto-detection fails
+- [x] Implement GitLab teamPrefix prompting (same as GitHub):
+  - [x] Check for --team-prefix arg
+  - [x] Suggest prefix from repository name
+  - [x] Validate prefix format
+- [x] Implement GitLab baseUrl prompting:
+  - [x] Detect if remote is NOT gitlab.com (self-hosted)
+  - [x] Prompt for baseUrl if self-hosted
+  - [x] Set baseUrl to None if gitlab.com (uses default)
+- [x] Return (team="", repository=Some(repo), teamPrefix=Some(prefix), baseUrl=Option[String])
+- [x] Test locally with gitlab.com remote
+- [x] Test locally with self-hosted GitLab remote (mock)
+- [x] Commit: "feat(init): Add GitLab repository and baseUrl configuration"
 
 ### Implementation Task 7: Add GitLab next steps display (10-15 min)
 
-- [ ] Add IssueTrackerType.GitLab case to "Next steps" section (line 167)
-- [ ] Display glab CLI installation instructions
-- [ ] Display glab authentication command: glab auth login
-- [ ] Include link to glab CLI: https://gitlab.com/gitlab-org/cli
-- [ ] Test locally: verify next steps display after GitLab config
-- [ ] Commit: "feat(init): Add GitLab next steps with glab instructions"
+- [x] Add IssueTrackerType.GitLab case to "Next steps" section (line 167)
+- [x] Display glab CLI installation instructions
+- [x] Display glab authentication command: glab auth login
+- [x] Include link to glab CLI: https://gitlab.com/gitlab-org/cli
+- [x] Test locally: verify next steps display after GitLab config
+- [x] Commit: "feat(init): Add GitLab next steps with glab instructions"
 
 ---
 
@@ -208,12 +208,12 @@ NOTE: This is a manual E2E test (not automated BATS test)
 
 ### Integration Task 1: Run full unit test suite (10-15 min)
 
-- [ ] Run `./iw test unit` to execute all Scala/munit tests
-- [ ] Verify all GitRemote tests pass
-- [ ] Verify all TrackerDetector tests pass
-- [ ] Verify all ConfigSerializer tests pass
-- [ ] Fix any test failures
-- [ ] Commit any fixes
+- [x] Run `./iw test unit` to execute all Scala/munit tests
+- [x] Verify all GitRemote tests pass
+- [x] Verify all TrackerDetector tests pass
+- [x] Verify all ConfigSerializer tests pass
+- [x] Fix any test failures
+- [x] Commit any fixes
 
 ### Integration Task 2: Manual E2E validation - gitlab.com (15-20 min)
 

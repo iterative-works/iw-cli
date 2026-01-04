@@ -6,6 +6,58 @@ This log tracks the evolution of implementation across phases.
 
 ---
 
+## Phase 3: Configure GitLab tracker during iw init (2026-01-04)
+
+**What was built:**
+- GitRemote: `extractGitLabRepository()` - Extracts repository path from GitLab URLs (supports nested groups)
+- TrackerDetector: GitLab detection for gitlab.com and self-hosted instances
+- ConfigSerializer: GitLab baseUrl serialization/deserialization
+- init.scala: Full GitLab configuration flow with auto-detection, prompts, and next steps
+
+**Decisions made:**
+- Reused `youtrackBaseUrl` field for GitLab baseUrl (semantic naming debt noted for future)
+- GitLab allows nested groups (group/subgroup/project) unlike GitHub's owner/repo
+- Self-hosted GitLab detected by host != "gitlab.com" (prompts for baseUrl)
+- Team prefix validation same as GitHub (2-10 uppercase letters)
+
+**Patterns applied:**
+- Pure functions for repository extraction and host detection
+- Either-based error handling consistent with existing patterns
+- Pattern matching for tracker-specific configuration branches
+
+**Testing:**
+- Unit tests: 33 tests added
+  - GitRemote extraction: 17 tests (10 happy path + 7 error path)
+  - TrackerDetector: 4 tests
+  - ConfigSerializer: 12 tests (serialization, deserialization, round-trip)
+- E2E tests: 11 tests in init.bats
+  - HTTPS/SSH URL handling
+  - Nested groups
+  - Self-hosted with baseUrl
+  - Team prefix validation
+  - glab CLI hints
+
+**Code review:**
+- Iterations: 2
+- Iteration 1: 2 critical issues (missing E2E tests, missing error path tests)
+- Iteration 2: 0 critical, 7 warnings (acceptable technical debt)
+- Review files: review-phase-03-20260104-205224.md, review-phase-03-20260104-210836.md
+
+**For next phases:**
+- Available utilities: `extractGitLabRepository`, GitLab detection in TrackerDetector
+- Extension points: ConfigSerializer patterns for additional tracker types
+- Notes: Phase 4 will add GitLab issue URL generation for search/dashboard
+
+**Files changed:**
+```
+M  .iw/commands/init.scala
+M  .iw/core/Config.scala
+M  .iw/core/test/ConfigTest.scala
+M  .iw/test/init.bats
+```
+
+---
+
 ## Phase 2: Handle GitLab-specific error conditions gracefully (2026-01-04)
 
 **What was built:**
