@@ -26,8 +26,8 @@ class CreateWorktreeModalTest extends FunSuite:
 
     assert(html.contains("class=\"modal-close\""), "Should have close button")
     assert(html.contains("×"), "Should have × symbol")
-    // Close button should clear the modal
-    assert(html.contains("hx-swap=\"innerHTML\""), "Close button should use innerHTML swap")
+    // Close button clears modal container client-side
+    assert(html.contains("hx-on:click"), "Close button should use hx-on:click for client-side close")
 
   test("render includes search input with correct attributes"):
     val html = CreateWorktreeModal.render().render
