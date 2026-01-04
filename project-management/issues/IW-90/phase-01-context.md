@@ -93,24 +93,50 @@ object GitLabClient:
 glab issue view 123 --repo owner/project --output json
 ```
 
-**Expected JSON response:**
+**Verified JSON response** (validated 2026-01-04 with glab 1.72.0):
 ```json
 {
-  "iid": 123,
+  "id": 1202,
+  "iid": 1,
   "state": "opened",
-  "title": "Issue title",
-  "description": "Issue body",
-  "author": {"username": "user", "name": "Full Name"},
-  "assignees": [{"username": "dev", "name": "Developer"}],
-  "labels": ["bug"],
-  "web_url": "https://gitlab.com/org/repo/-/issues/123"
+  "title": "Issue title here",
+  "description": "Issue body/description here",
+  "author": {
+    "id": 82,
+    "username": "pkatolicky",
+    "name": "Petr Katolický",
+    "state": "active",
+    "web_url": "https://gitlab.e-bs.cz/pkatolicky",
+    "avatar_url": "..."
+  },
+  "assignees": [],
+  "labels": [],
+  "web_url": "https://gitlab.e-bs.cz/CMI/mdr/medeca-modul-ucet-zadatele/-/issues/1",
+  "created_at": "2024-01-30T08:04:47.727Z",
+  "updated_at": "2024-01-30T08:08:10.626Z",
+  "closed_at": null,
+  "milestone": null
 }
 ```
+
+**Key fields for parsing:**
+- `iid` - project-scoped issue number (use this, not `id`)
+- `state` - `"opened"` or `"closed"`
+- `title` - issue title
+- `description` - issue body (can be null/empty)
+- `author.username`, `author.name` - author info
+- `assignees` - array of objects with same structure as author
+- `labels` - array of label strings
+- `web_url` - full URL to issue
 
 **State mapping:**
 - `"opened"` → `IssueState.Open`
 - `"closed"` → `IssueState.Closed`
 - Other → `IssueState.Unknown`
+
+**Error responses:**
+- Issue not found: `ERROR: 404 Not Found` (exit code 1)
+- glab not installed: `command not found` (exit code 127)
 
 ### 3. Presentation Layer - issue.scala
 
@@ -174,5 +200,5 @@ case IssueTrackerType.GitLab =>
 
 - This phase focuses on the happy path. Detailed error handling comes in Phase 2.
 - Configuration support comes in Phase 3, so testing requires manual config file editing.
-- The glab CLI JSON format has been verified during analysis (see analysis.md Technical Decisions).
+- **glab CLI JSON format validated 2026-01-04** with glab v1.72.0 against real GitLab instance.
 - Follow TDD: write tests first, then implementation.
