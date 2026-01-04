@@ -88,29 +88,29 @@ This phase enables GitLab configuration during `iw init`. Tasks follow TDD with 
 
 ### Test Task 5: ConfigSerializer serializes GitLab config (20-25 min)
 
-- [ ] Write test: Serialize GitLab config without baseUrl (gitlab.com assumed)
-- [ ] Write test: Serialize GitLab config with baseUrl (self-hosted instance)
-- [ ] Write test: GitLab config includes repository field
-- [ ] Write test: GitLab config includes teamPrefix field
-- [ ] Write test: GitLab config omits team field
-- [ ] Run tests - expect some to fail (baseUrl handling may need updates)
+- [x] Write test: Serialize GitLab config without baseUrl (gitlab.com assumed)
+- [x] Write test: Serialize GitLab config with baseUrl (self-hosted instance)
+- [x] Write test: GitLab config includes repository field
+- [x] Write test: GitLab config includes teamPrefix field
+- [x] Write test: GitLab config omits team field
+- [x] Run tests - expect some to fail (baseUrl handling may need updates)
 
 ### Test Task 6: ConfigSerializer deserializes GitLab config (20-25 min)
 
-- [ ] Write test: Deserialize GitLab config with repository and teamPrefix
-- [ ] Write test: Deserialize GitLab config with optional baseUrl
-- [ ] Write test: Deserialize GitLab config validates repository format (must contain /)
-- [ ] Write test: Deserialize GitLab config validates teamPrefix (2-10 uppercase letters)
-- [ ] Write test: Error when GitLab config missing repository
-- [ ] Write test: Error when GitLab config missing teamPrefix
-- [ ] Run tests - expect failures (ConfigSerializer doesn't handle GitLab baseUrl yet)
+- [x] Write test: Deserialize GitLab config with repository and teamPrefix
+- [x] Write test: Deserialize GitLab config with optional baseUrl
+- [x] Write test: Deserialize GitLab config validates repository format (must contain /)
+- [x] Write test: Deserialize GitLab config validates teamPrefix (2-10 uppercase letters)
+- [x] Write test: Error when GitLab config missing repository
+- [x] Write test: Error when GitLab config missing teamPrefix
+- [x] Run tests - expect failures (ConfigSerializer doesn't handle GitLab baseUrl yet)
 
 ### Test Task 7: ConfigSerializer round-trip for GitLab (15-20 min)
 
-- [ ] Write test: Round-trip GitLab config without baseUrl
-- [ ] Write test: Round-trip GitLab config with baseUrl
-- [ ] Write test: Round-trip GitLab config with nested group repository
-- [ ] Run tests - expect failures until implementation complete
+- [x] Write test: Round-trip GitLab config without baseUrl
+- [x] Write test: Round-trip GitLab config with baseUrl
+- [x] Write test: Round-trip GitLab config with nested group repository
+- [x] Run tests - expect failures until implementation complete
 
 ---
 
@@ -118,20 +118,20 @@ This phase enables GitLab configuration during `iw init`. Tasks follow TDD with 
 
 ### Implementation Task 3: Update ConfigSerializer.toHocon for GitLab baseUrl (20-25 min)
 
-- [ ] Modify toHocon to handle optional baseUrl for GitLab (similar to youtrackBaseUrl)
-- [ ] Add baseUrl line to GitLab tracker section when present
-- [ ] Ensure baseUrl omitted when None (defaults to gitlab.com)
-- [ ] Run ConfigSerializer serialization tests to verify they pass
-- [ ] Commit: "feat(core): Add baseUrl serialization for GitLab tracker"
+- [x] Modify toHocon to handle optional baseUrl for GitLab (similar to youtrackBaseUrl)
+- [x] Add baseUrl line to GitLab tracker section when present
+- [x] Ensure baseUrl omitted when None (defaults to gitlab.com)
+- [x] Run ConfigSerializer serialization tests to verify they pass
+- [x] Commit: "feat(core): Add baseUrl serialization for GitLab tracker"
 
 ### Implementation Task 4: Update ConfigSerializer.fromHocon for GitLab baseUrl (20-25 min)
 
-- [ ] Read optional tracker.baseUrl for GitLab (same key as YouTrack)
-- [ ] Store baseUrl in ProjectConfiguration.youtrackBaseUrl field (reuse for GitLab)
-- [ ] Ensure baseUrl is None when not present in config
-- [ ] Run ConfigSerializer deserialization tests to verify they pass
-- [ ] Run all ConfigSerializer round-trip tests to verify they pass
-- [ ] Commit: "feat(core): Add baseUrl parsing for GitLab tracker"
+- [x] Read optional tracker.baseUrl for GitLab (same key as YouTrack)
+- [x] Store baseUrl in ProjectConfiguration.youtrackBaseUrl field (reuse for GitLab)
+- [x] Ensure baseUrl is None when not present in config
+- [x] Run ConfigSerializer deserialization tests to verify they pass
+- [x] Run all ConfigSerializer round-trip tests to verify they pass
+- [x] Commit: "feat(core): Add baseUrl parsing for GitLab tracker"
 
 ---
 
