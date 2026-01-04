@@ -322,27 +322,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
     )
 
-  @cask.post("/api/worktrees/create")
-  def createWorktree(request: cask.Request): cask.Response[String] =
-    // Parse JSON request body
-    val bodyBytes = request.readAllBytes()
-    val bodyStr = new String(bodyBytes, "UTF-8")
-    val requestJson = try
-      ujson.read(bodyStr)
-    catch
-      case e: Exception =>
-        return cask.Response(
-          data = renderErrorView("Invalid request format"),
-          statusCode = 400,
-          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-        )
-
-    val issueId = requestJson("issueId").str
-    val projectPathOpt = requestJson.obj.get("projectPath").map(_.str)
-
+  @cask.postForm("/api/worktrees/create")
+  def createWorktree(issueId: String, projectPath: Option[String] = None): cask.Response[String] =
     // Load project configuration from specified path or CWD
-    val projectPath = projectPathOpt.map(p => os.Path(p)).getOrElse(os.pwd)
-    val configPath = projectPath / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val projectPathResolved = projectPath.filter(_.nonEmpty).map(p => os.Path(p)).getOrElse(os.pwd)
+    val configPath = projectPathResolved / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
     val configOpt = ConfigFileRepository.read(configPath)
 
     configOpt match
@@ -370,17 +354,17 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
         // Create worktree function
         val createWorktreeOp = (path: String, branchName: String) =>
-          val actualPath = projectPath / os.up / os.RelPath(path.stripPrefix("../"))
-          GitWorktreeAdapter.createWorktree(actualPath, branchName, projectPath)
+          val actualPath = projectPathResolved / os.up / os.RelPath(path.stripPrefix("../"))
+          GitWorktreeAdapter.createWorktree(actualPath, branchName, projectPathResolved)
 
         // Create tmux session function
         val createTmuxOp = (sessionName: String, workPath: String) =>
-          val actualPath = projectPath / os.up / os.RelPath(workPath.stripPrefix("../"))
+          val actualPath = projectPathResolved / os.up / os.RelPath(workPath.stripPrefix("../"))
           TmuxAdapter.createSession(sessionName, actualPath)
 
         // Register worktree function
         val registerWorktreeOp = (issueId: String, path: String, trackerType: String, team: String) =>
-          val actualPath = projectPath / os.up / os.RelPath(path.stripPrefix("../"))
+          val actualPath = projectPathResolved / os.up / os.RelPath(path.stripPrefix("../"))
           ServerClient.registerWorktree(issueId, actualPath.toString, trackerType, team)
 
         // Call WorktreeCreationService with lock protection
