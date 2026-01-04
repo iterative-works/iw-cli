@@ -237,8 +237,8 @@ object GitHubClient:
       import ujson.*
       val json = read(jsonOutput)
 
-      // Use the full issue ID (e.g., "IWCLI-132")
-      val id = issueIdValue
+      // Use bare issue number as canonical ID (consistent with other trackers)
+      val id = issueIdValue.split("-").last
 
       // Extract title and state (lowercase state for consistency)
       val title = json("title").str
