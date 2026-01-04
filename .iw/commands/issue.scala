@@ -103,4 +103,11 @@ def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, I
           else
             issueId.value // 123 -> 123
 
-          GitLabClient.fetchIssue(issueNumber, repository)
+          GitLabClient.fetchIssue(issueNumber, repository) match
+            case Left(error) if GitLabClient.isNotFoundError(error) =>
+              Left(GitLabClient.formatIssueNotFoundError(issueNumber, repository))
+            case Left(error) if GitLabClient.isAuthenticationError(error) =>
+              Left(GitLabClient.formatGlabNotAuthenticatedError())
+            case Left(error) if GitLabClient.isNetworkError(error) =>
+              Left(GitLabClient.formatNetworkError(error))
+            case result => result
