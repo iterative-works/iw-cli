@@ -1,10 +1,12 @@
 {
-  "status": "context_ready",
+  "status": "awaiting_review",
   "phase": 1,
-  "message": "Phase 1 context generated - ready for review",
+  "message": "Phase 1 complete - Fetch and display GitLab issue via glab CLI",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/94",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
-    {"label": "Tasks", "path": "project-management/issues/IW-90/tasks.md"},
-    {"label": "Phase 1 Context", "path": "project-management/issues/IW-90/phase-01-context.md"}
+    {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-90/phase-01-context.md"},
+    {"label": "Phase 1 Tasks", "path": "project-management/issues/IW-90/phase-01-tasks.md"}
   ]
 }
