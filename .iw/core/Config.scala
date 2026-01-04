@@ -139,6 +139,8 @@ object TrackerDetector:
     remote.host match
       case Right("github.com") => Some(IssueTrackerType.GitHub)
       case Right("gitlab.e-bs.cz") => Some(IssueTrackerType.YouTrack)
+      case Right("gitlab.com") => Some(IssueTrackerType.GitLab)
+      case Right(host) if host.contains("gitlab") => Some(IssueTrackerType.GitLab)
       case _ => None
 
 object ConfigSerializer:

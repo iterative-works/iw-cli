@@ -486,3 +486,25 @@ class ConfigTest extends munit.FunSuite:
   test("GitRemote handles GitLab URL with trailing slash"):
     val remote = GitRemote("https://gitlab.com/owner/repo/")
     assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  // ========== TrackerDetector GitLab Tests ==========
+
+  test("TrackerDetector suggests GitLab for gitlab.com HTTPS remote"):
+    val suggestion = TrackerDetector.suggestTracker(GitRemote("https://gitlab.com/user/repo.git"))
+    assertEquals(suggestion, Some(IssueTrackerType.GitLab))
+
+  test("TrackerDetector suggests GitLab for gitlab.com SSH remote"):
+    val suggestion = TrackerDetector.suggestTracker(GitRemote("git@gitlab.com:user/repo.git"))
+    assertEquals(suggestion, Some(IssueTrackerType.GitLab))
+
+  test("TrackerDetector suggests GitLab for self-hosted GitLab"):
+    val suggestion = TrackerDetector.suggestTracker(GitRemote("https://gitlab.company.com/user/repo.git"))
+    assertEquals(suggestion, Some(IssueTrackerType.GitLab))
+
+  test("TrackerDetector prioritizes GitHub over GitLab"):
+    // This test verifies that if we check GitHub first, it wins
+    val githubSuggestion = TrackerDetector.suggestTracker(GitRemote("https://github.com/user/repo.git"))
+    assertEquals(githubSuggestion, Some(IssueTrackerType.GitHub))
+
+    val gitlabSuggestion = TrackerDetector.suggestTracker(GitRemote("https://gitlab.com/user/repo.git"))
+    assertEquals(gitlabSuggestion, Some(IssueTrackerType.GitLab))

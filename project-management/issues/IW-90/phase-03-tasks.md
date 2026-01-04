@@ -35,12 +35,12 @@ This phase enables GitLab configuration during `iw init`. Tasks follow TDD with 
 
 ### Test Task 3: GitRemote extracts GitLab repository paths (20-25 min)
 
-- [ ] Write test: Extract "owner/repo" from gitlab.com HTTPS URL
-- [ ] Write test: Extract "owner/repo" from gitlab.com SSH URL
-- [ ] Write test: Extract "group/subgroup/project" from nested GitLab path (HTTPS)
-- [ ] Write test: Extract "group/subgroup/project" from nested GitLab path (SSH)
-- [ ] Write test: Return error for non-GitLab URL when extracting GitLab repo
-- [ ] Run tests - expect failures (repositoryOwnerAndName currently GitHub-only)
+- [x] Write test: Extract "owner/repo" from gitlab.com HTTPS URL
+- [x] Write test: Extract "owner/repo" from gitlab.com SSH URL
+- [x] Write test: Extract "group/subgroup/project" from nested GitLab path (HTTPS)
+- [x] Write test: Extract "group/subgroup/project" from nested GitLab path (SSH)
+- [x] Write test: Return error for non-GitLab URL when extracting GitLab repo
+- [x] Run tests - expect failures (repositoryOwnerAndName currently GitHub-only)
 
 ---
 
@@ -48,14 +48,14 @@ This phase enables GitLab configuration during `iw init`. Tasks follow TDD with 
 
 ### Implementation Task 1: Add GitLab repository extraction (25-30 min)
 
-- [ ] Rename GitRemote.repositoryOwnerAndName to extractGitHubRepository (preserve GitHub-only logic)
-- [ ] Create new GitRemote.extractGitLabRepository function
-  - [ ] Verify host is gitlab.com or contains "gitlab"
-  - [ ] Extract repository path (supports nested groups: group/subgroup/project)
-  - [ ] Clean up .git suffix and trailing slashes
-  - [ ] Return Either[String, String]
-- [ ] Run GitRemote tests to verify they pass
-- [ ] Commit: "feat(core): Add GitLab repository extraction to GitRemote"
+- [x] Rename GitRemote.repositoryOwnerAndName to extractGitHubRepository (preserve GitHub-only logic)
+- [x] Create new GitRemote.extractGitLabRepository function
+  - [x] Verify host is gitlab.com or contains "gitlab"
+  - [x] Extract repository path (supports nested groups: group/subgroup/project)
+  - [x] Clean up .git suffix and trailing slashes
+  - [x] Return Either[String, String]
+- [x] Run GitRemote tests to verify they pass
+- [x] Commit: "feat(core): Add GitLab repository extraction to GitRemote"
 
 ---
 
