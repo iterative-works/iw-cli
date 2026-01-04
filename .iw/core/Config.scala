@@ -68,6 +68,40 @@ case class GitRemote(url: String):
         else
           Right(path)
 
+  def extractGitLabRepository: Either[String, String] =
+    // First verify this is a GitLab URL
+    host match
+      case Left(err) => Left(err)
+      case Right(h) if h != "gitlab.com" && !h.contains("gitlab") =>
+        Left("Not a GitLab URL")
+      case Right(_) =>
+        // Extract path component (after host)
+        val rawPath = if url.startsWith("git@") then
+          // SSH format: git@gitlab.com:owner/repo.git or git@gitlab.com:group/subgroup/project.git
+          val afterColon = url.dropWhile(_ != ':').drop(1)
+          afterColon
+        else
+          // HTTPS format: https://gitlab.com/owner/repo.git or https://gitlab.com/group/subgroup/project.git
+          val afterProtocol = url.dropWhile(_ != '/').drop(2) // remove protocol and //
+          // Skip username@ if present
+          val afterUsername = if afterProtocol.contains('@') then
+            afterProtocol.dropWhile(_ != '@').drop(1)
+          else
+            afterProtocol
+          // Extract path after host
+          afterUsername.dropWhile(_ != '/').drop(1)
+
+        // Clean up path: remove trailing slash and .git suffix
+        val path = rawPath.stripSuffix("/").stripSuffix(".git").stripSuffix("/")
+
+        // Validate format: should have at least one slash (owner/repo or group/subgroup/project)
+        if !path.contains('/') then
+          Left("Invalid repository format: expected at least owner/repo")
+        else if path.split("/", -1).exists(_.isEmpty) then
+          Left("Invalid repository format: path components cannot be empty")
+        else
+          Right(path)
+
 enum IssueTrackerType:
   case Linear, YouTrack, GitHub, GitLab
 

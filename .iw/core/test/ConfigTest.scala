@@ -444,3 +444,45 @@ class ConfigTest extends munit.FunSuite:
     val suggested = TeamPrefixValidator.suggestFromRepository("owner/very-long-repository-name")
     assert(suggested.length <= 10)
     assert(suggested == "VERYLONGRE")
+
+  // ========== GitLab Repository Extraction Tests ==========
+
+  test("GitRemote extracts owner/repo from GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.com/owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts owner/repo from GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.com:owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts nested group path from GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.com/group/subgroup/project.git")
+    assertEquals(remote.extractGitLabRepository, Right("group/subgroup/project"))
+
+  test("GitRemote extracts nested group path from GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.com:group/subgroup/project.git")
+    assertEquals(remote.extractGitLabRepository, Right("group/subgroup/project"))
+
+  test("GitRemote extracts repository from self-hosted GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.company.com/owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts repository from self-hosted GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.company.com:owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts nested groups from self-hosted GitLab"):
+    val remote = GitRemote("https://gitlab.company.com/team/subteam/project.git")
+    assertEquals(remote.extractGitLabRepository, Right("team/subteam/project"))
+
+  test("GitRemote returns error for non-GitLab URL when extracting GitLab repo"):
+    val remote = GitRemote("https://github.com/owner/repo.git")
+    assert(remote.extractGitLabRepository.isLeft)
+
+  test("GitRemote handles GitLab URL without .git suffix"):
+    val remote = GitRemote("https://gitlab.com/owner/repo")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote handles GitLab URL with trailing slash"):
+    val remote = GitRemote("https://gitlab.com/owner/repo/")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
