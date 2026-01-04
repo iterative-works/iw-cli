@@ -237,8 +237,8 @@ object GitHubClient:
       import ujson.*
       val json = read(jsonOutput)
 
-      // Format issue ID with # prefix (e.g., "#132")
-      val id = s"#$issueNumber"
+      // Use bare issue number as canonical ID (consistent with other trackers)
+      val id = issueNumber
 
       // Extract title and state (lowercase state for consistency)
       val title = json("title").str

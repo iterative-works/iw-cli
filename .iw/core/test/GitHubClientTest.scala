@@ -362,7 +362,7 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#132")
+    assertEquals(issue.id, "132")
     assertEquals(issue.title, "Add feature")
     assertEquals(issue.status, "open")
     assertEquals(issue.assignee, Some("user1"))
@@ -408,13 +408,13 @@ class GitHubClientTest extends munit.FunSuite:
     val issue = result.getOrElse(fail("Expected Right"))
     assertEquals(issue.status, "closed")
 
-  test("parseFetchIssueResponse formats issue ID with # prefix"):
+  test("parseFetchIssueResponse uses bare issue number as ID"):
     val json = """{"number": 999, "title": "Test", "state": "OPEN", "assignees": [], "body": null}"""
     val result = GitHubClient.parseFetchIssueResponse(json, "999")
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#999")
+    assertEquals(issue.id, "999")
 
   test("parseFetchIssueResponse returns error for malformed JSON"):
     val json = """{"invalid json"""
@@ -517,7 +517,7 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#132")
+    assertEquals(issue.id, "132")
     assertEquals(issue.title, "Add feature")
     assertEquals(issue.status, "open")
     assertEquals(issue.assignee, Some("user1"))
