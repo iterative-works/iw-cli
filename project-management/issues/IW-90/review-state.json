@@ -1,9 +1,20 @@
 {
-  "status": "context_ready",
+  "status": "awaiting_review",
   "phase": 3,
-  "message": "Phase 3 context ready for review",
+  "message": "Phase 3 complete - Configure GitLab tracker during iw init",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/96",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
-    {"label": "Phase 3 Context", "path": "project-management/issues/IW-90/phase-03-context.md"}
-  ]
+    {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
+    {"label": "Phase 3 Context", "path": "project-management/issues/IW-90/phase-03-context.md"},
+    {"label": "Phase 3 Tasks", "path": "project-management/issues/IW-90/phase-03-tasks.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-90/review-packet-phase-03.md"},
+    {"label": "Code Review", "path": "project-management/issues/IW-90/review-phase-03-20260104-210836.md"}
+  ],
+  "review_verdict": "APPROVE",
+  "review_summary": {
+    "critical": 0,
+    "warnings": 7,
+    "suggestions": 9
+  }
 }
