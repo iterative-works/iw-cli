@@ -1,0 +1,44 @@
+{
+  "status": "awaiting_review",
+  "phase": 5,
+  "message": "Phase 5 complete - Main Projects Listing",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/87",
+  "completed_phases": [
+    {
+      "phase": 1,
+      "title": "Modal UI + Issue Search",
+      "pr_url": "https://github.com/iterative-works/iw-cli/pull/81",
+      "status": "merged"
+    },
+    {
+      "phase": 2,
+      "title": "Worktree Creation from Modal",
+      "pr_url": "https://github.com/iterative-works/iw-cli/pull/83",
+      "status": "merged"
+    },
+    {
+      "phase": 3,
+      "title": "Error Handling",
+      "pr_url": "https://github.com/iterative-works/iw-cli/pull/84",
+      "status": "merged"
+    },
+    {
+      "phase": 4,
+      "title": "Concurrent Creation Protection",
+      "pr_url": "https://github.com/iterative-works/iw-cli/pull/85",
+      "status": "merged"
+    },
+    {
+      "phase": 5,
+      "title": "Main Projects Listing",
+      "pr_url": "https://github.com/iterative-works/iw-cli/pull/87",
+      "status": "awaiting_review"
+    }
+  ],
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-79/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-79/implementation-log.md"},
+    {"label": "Phase 5 Context", "path": "project-management/issues/IW-79/phase-05-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-79/review-packet-phase-05.md"}
+  ]
+}

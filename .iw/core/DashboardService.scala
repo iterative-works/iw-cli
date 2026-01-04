@@ -6,7 +6,7 @@ package iw.core.application
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, GitHubClient, ProjectConfiguration, ConfigFileRepository, Constants}
 import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
 import iw.core.infrastructure.CommandRunner
-import iw.core.presentation.views.WorktreeListView
+import iw.core.presentation.views.{WorktreeListView, MainProjectsView}
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try
@@ -31,6 +31,12 @@ object DashboardService:
     config: Option[ProjectConfiguration]
   ): (String, Map[String, CachedReviewState]) =
     val now = Instant.now()
+
+    // Derive main projects from registered worktrees
+    val mainProjects = MainProjectService.deriveFromWorktrees(
+      worktrees,
+      MainProjectService.loadConfig
+    )
 
     // Fetch data for each worktree and accumulate updated review state cache
     val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
@@ -64,13 +70,27 @@ object DashboardService:
       head(
         meta(charset := "UTF-8"),
         tag("title")("iw Dashboard"),
+        // Add HTMX library
+        tag("script")(
+          src := "https://unpkg.com/htmx.org@1.9.10",
+          attr("integrity") := "sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC",
+          attr("crossorigin") := "anonymous"
+        ),
         tag("style")(raw(styles))
       ),
       body(
         div(
           cls := "container",
-          h1("iw Dashboard"),
-          WorktreeListView.render(worktreesWithData.reverse, now)
+          // Header with title (no global Create Worktree button)
+          div(
+            cls := "dashboard-header",
+            h1("iw Dashboard")
+          ),
+          // Main projects section (above worktree list)
+          MainProjectsView.render(mainProjects),
+          WorktreeListView.render(worktreesWithData.reverse, now),
+          // Modal container (empty by default)
+          div(id := "modal-container")
         )
       )
     )
@@ -676,5 +696,273 @@ object DashboardService:
       color: #856404;
       font-size: 0.9em;
       margin: 0;
+    }
+
+    /* Dashboard header with Create Worktree button */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .dashboard-header h1 {
+      margin: 0;
+    }
+
+    .create-worktree-btn {
+      padding: 10px 20px;
+      background: #228be6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .create-worktree-btn:hover {
+      background: #1c7ed6;
+    }
+
+    /* Modal overlay */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+      position: relative;
+      background: white;
+      border-radius: 8px;
+      padding: 0;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 1001;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: #333;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 28px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .modal-close:hover {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .modal-body {
+      padding: 20px;
+      max-height: calc(80vh - 80px);
+      overflow-y: auto;
+    }
+
+    /* Search input */
+    #issue-search-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    #issue-search-input:focus {
+      border-color: #228be6;
+    }
+
+    /* Search results */
+    .search-results {
+      margin-top: 16px;
+    }
+
+    .search-result-item {
+      padding: 12px 16px;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .search-result-item:hover {
+      border-color: #228be6;
+      background: #f8f9fa;
+    }
+
+    .disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .search-result-id {
+      font-size: 14px;
+      color: #228be6;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .search-result-title {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .search-result-status {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .search-empty-state {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+      font-size: 14px;
+    }
+
+    /* Main projects section */
+    .main-projects-section {
+      margin-bottom: 40px;
+    }
+
+    .main-projects-section h2 {
+      margin: 0 0 20px 0;
+      font-size: 22px;
+      color: #333;
+    }
+
+    .main-projects-list {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .main-project-card {
+      background: white;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      transition: all 0.2s;
+    }
+
+    .main-project-card:hover {
+      border-color: #228be6;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    }
+
+    .main-project-card h3 {
+      margin: 0 0 12px 0;
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .project-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .tracker-type {
+      color: #495057;
+      font-weight: 500;
+    }
+
+    .team-info {
+      color: #868e96;
+    }
+
+    .create-worktree-button {
+      width: 100%;
+      padding: 10px 16px;
+      background: #228be6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .create-worktree-button:hover {
+      background: #1c7ed6;
+    }
+
+    .main-projects-empty {
+      background: white;
+      border: 2px dashed #dee2e6;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .main-projects-empty h3 {
+      margin: 0 0 10px 0;
+      color: #495057;
+      font-size: 18px;
+    }
+
+    .main-projects-empty p {
+      margin: 0;
+      color: #868e96;
+      font-size: 14px;
+    }
+
+    /* Modal project name in title */
+    .modal-project-name {
+      color: #868e96;
+      font-weight: normal;
+      font-size: 16px;
     }
   """
