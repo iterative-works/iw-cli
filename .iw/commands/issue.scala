@@ -90,3 +90,17 @@ def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, I
             issueId.value // 132 -> 132
 
           GitHubClient.fetchIssue(issueNumber, repository)
+
+    case IssueTrackerType.GitLab =>
+      config.repository match
+        case None =>
+          Left("GitLab repository not configured. Run 'iw init' first.")
+        case Some(repository) =>
+          // Extract numeric issue number from IssueId
+          // Handle both numeric GitLab IDs (e.g., "123") and potential TEAM-NNN format
+          val issueNumber = if issueId.value.contains("-") then
+            issueId.value.split("-")(1) // IWLE-123 -> 123
+          else
+            issueId.value // 123 -> 123
+
+          GitLabClient.fetchIssue(issueNumber, repository)

@@ -69,7 +69,7 @@ case class GitRemote(url: String):
           Right(path)
 
 enum IssueTrackerType:
-  case Linear, YouTrack, GitHub
+  case Linear, YouTrack, GitHub, GitLab
 
 case class ProjectConfiguration(
   trackerType: IssueTrackerType,
@@ -113,13 +113,14 @@ object ConfigSerializer:
       case IssueTrackerType.Linear => Constants.TrackerTypeValues.Linear
       case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
       case IssueTrackerType.GitHub => Constants.TrackerTypeValues.GitHub
+      case IssueTrackerType.GitLab => Constants.TrackerTypeValues.GitLab
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
     val youtrackUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
 
-    // For GitHub, use repository and teamPrefix instead of team
+    // For GitHub and GitLab, use repository and teamPrefix instead of team
     val trackerDetails = config.trackerType match
-      case IssueTrackerType.GitHub =>
+      case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
         val repoLine = config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
         val prefixLine = config.teamPrefix.map(p => s"""\n  teamPrefix = "$p"""").getOrElse("")
         s"$repoLine$prefixLine"
@@ -145,21 +146,23 @@ object ConfigSerializer:
         case Constants.TrackerTypeValues.Linear => IssueTrackerType.Linear
         case Constants.TrackerTypeValues.YouTrack => IssueTrackerType.YouTrack
         case Constants.TrackerTypeValues.GitHub => IssueTrackerType.GitHub
+        case Constants.TrackerTypeValues.GitLab => IssueTrackerType.GitLab
         case other => return Left(s"Unknown tracker type: $other")
 
-      // For GitHub, read repository and teamPrefix; for others, read team
+      // For GitHub and GitLab, read repository and teamPrefix; for others, read team
       val (team, repository, teamPrefix) = trackerType match
-        case IssueTrackerType.GitHub =>
+        case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+          val trackerName = if trackerType == IssueTrackerType.GitHub then "GitHub" else "GitLab"
           if !config.hasPath(Constants.ConfigKeys.TrackerRepository) then
-            return Left("repository required for GitHub tracker")
+            return Left(s"repository required for $trackerName tracker")
           val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
-          // Validate repository format: owner/repo
-          if !repo.contains('/') || repo.count(_ == '/') != 1 || repo.split('/').exists(_.isEmpty) then
+          // Validate repository format: owner/repo or owner/group/repo for GitLab
+          if !repo.contains('/') || repo.split('/').exists(_.isEmpty) then
             return Left("repository must be in owner/repo format")
 
-          // Require and validate teamPrefix for GitHub
+          // Require and validate teamPrefix for GitHub and GitLab
           if !config.hasPath(Constants.ConfigKeys.TrackerTeamPrefix) then
-            return Left("teamPrefix required for GitHub tracker")
+            return Left(s"teamPrefix required for $trackerName tracker")
           val prefix = config.getString(Constants.ConfigKeys.TrackerTeamPrefix)
           TeamPrefixValidator.validate(prefix) match
             case Left(err) => return Left(err)

@@ -41,6 +41,7 @@ object Constants:
     val Linear = "linear"
     val YouTrack = "youtrack"
     val GitHub = "github"
+    val GitLab = "gitlab"
 
   /** Character encoding names */
   object Encoding:
