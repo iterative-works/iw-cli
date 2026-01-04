@@ -2,7 +2,7 @@
 
 **Issue:** IW-90
 **Created:** 2026-01-04
-**Status:** Draft
+**Status:** Ready
 **Classification:** Feature
 
 ## Problem Statement
@@ -446,157 +446,78 @@ Moderate complexity because:
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions (Resolved)
 
-### CLARIFY: GitLab base URL configuration
+The following technical decisions were made during analysis review:
 
-**Description:** GitLab supports both gitlab.com (SaaS) and self-hosted instances. We need to decide how to handle base URLs in configuration.
+### Decision 1: GitLab base URL configuration
 
-**Questions to answer:**
-1. Should we reuse `tracker.baseUrl` field (like YouTrack) or add `tracker.gitlabBaseUrl`?
-2. Should gitlab.com be the default when baseUrl is not provided?
-3. Do we need to validate the base URL format during init?
-4. Should we detect self-hosted GitLab from git remote URL and prompt for baseUrl?
+**Decision:** Reuse `tracker.baseUrl` field (like YouTrack), default to `https://gitlab.com` when not set.
 
-**Options:**
-- **Option A: Reuse tracker.baseUrl field**
-  - Pros: Consistent with YouTrack, no new config fields
-  - Cons: baseUrl mixing across tracker types could be confusing
-  - Implementation: Default to "https://gitlab.com" if not set and tracker is GitLab
+**Rationale:** Consistent with existing YouTrack pattern, no new config fields needed. Both GitLab and YouTrack need custom base URLs for self-hosted instances.
 
-- **Option B: Add dedicated tracker.gitlabBaseUrl field**
-  - Pros: Explicit separation, clear configuration
-  - Cons: More config fields, not DRY
-  - Implementation: Optional field in ProjectConfiguration
-
-- **Option C: Make tracker.baseUrl generic "base URL for this tracker"**
-  - Pros: One field serves all trackers that need custom URLs
-  - Cons: Requires refactoring YouTrack usage
-  - Implementation: Rename youtrackBaseUrl to baseUrl in domain model
-
-**Impact:** Affects Story 3 (init configuration) and Story 4 (URL building). Decision impacts ProjectConfiguration schema and migration path for existing configs.
+**Config example:**
+```hocon
+tracker {
+  type = gitlab
+  repository = "my-org/my-project"
+  baseUrl = "https://gitlab.company.com"  # Optional, defaults to gitlab.com
+}
+```
 
 ---
 
-### CLARIFY: glab CLI JSON output format
+### Decision 2: glab CLI JSON output format
 
-**Description:** We need to understand glab's exact JSON output format for issue view and issue create commands to parse responses correctly.
+**Decision:** Follow GitHubClient pattern - glab CLI is very similar to gh CLI.
 
-**Questions to answer:**
-1. What is the exact JSON schema for `glab issue view --json` output?
-2. Does glab support custom --json field selection like gh does?
-3. What fields are available (state, assignee, labels, description, milestone, etc.)?
-4. What is the output format for `glab issue create` (URL only, or JSON)?
-5. How does glab represent null/empty fields in JSON?
+**Verified findings:**
+- `glab issue view <id> --output json` returns full JSON
+- Key fields: `iid` (issue number), `state` ("opened"/"closed"), `title`, `description`, `author`, `assignees`, `labels`, `web_url`
+- `glab issue create` returns just the URL on stdout
+- `glab auth status` works exactly like `gh auth status`
 
-**Options:**
-- **Option A: Research glab documentation first**
-  - Pros: Understand before implementing
-  - Cons: Documentation might be incomplete
-  - Implementation: Check glab --help and official docs
-
-- **Option B: Experiment with glab CLI directly**
-  - Pros: Get real output samples
-  - Cons: Requires authenticated GitLab access
-  - Implementation: Create test issue and inspect output
-
-- **Option C: Implement based on gh pattern and iterate**
-  - Pros: Fast start, similar CLI tools often have similar formats
-  - Cons: May require rework if assumptions wrong
-  - Implementation: Copy GitHubClient pattern, adjust during testing
-
-**Impact:** Affects Story 1 (parsing logic) and Story 5 (create response parsing). Critical for correct implementation.
+**Sample JSON schema:**
+```json
+{
+  "iid": 3,
+  "state": "opened",
+  "title": "Issue title",
+  "description": "Issue body",
+  "author": {"username": "user", "name": "Full Name"},
+  "assignees": [...],
+  "labels": [],
+  "web_url": "https://gitlab.com/org/repo/-/issues/3"
+}
+```
 
 ---
 
-### CLARIFY: GitLab issue type labels
+### Decision 3: GitLab issue type labels
 
-**Description:** GitLab and GitHub may have different label conventions for issue types (bug vs feature).
+**Decision:** Use "bug" and "feature" labels with fallback. If label assignment fails, create issue without labels (same pattern as GitHubClient).
 
-**Questions to answer:**
-1. What labels does GitLab use by default for issue types?
-2. Are labels "bug" and "feature" standard, or does GitLab use "enhancement", "incident", etc.?
-3. Should we make labels configurable per-tracker?
-4. Should we handle label creation if they don't exist (or just fail gracefully)?
-5. Does glab CLI support `--label` flag similar to gh?
-
-**Options:**
-- **Option A: Hardcode GitLab-specific labels**
-  - Pros: Simple, follows existing pattern
-  - Cons: Assumes standard labels exist
-  - Implementation: Map bug -> "bug", feature -> "feature" (or "enhancement")
-
-- **Option B: Make issue type labels configurable in config.conf**
-  - Pros: Flexible for different GitLab configurations
-  - Cons: More complex setup, more config surface
-  - Implementation: Add tracker.labels.bug and tracker.labels.feature to config
-
-- **Option C: Use glab's scoped labels (type::bug, type::feature)**
-  - Pros: Follows GitLab best practices
-  - Cons: Assumes scoped labels are set up
-  - Implementation: Use GitLab scoped label format
-
-**Impact:** Affects Story 5 (issue creation). Low risk - can implement fallback like GitHub (create without labels if label assignment fails).
+**Rationale:** Simple approach that works for most GitLab projects. Fallback ensures issue creation doesn't fail due to missing labels.
 
 ---
 
-### CLARIFY: GitLab repository URL extraction
+### Decision 4: GitLab repository URL extraction
 
-**Description:** GitLab URLs can have various formats including self-hosted instances, group/subgroup hierarchies.
+**Decision:** Support full GitLab paths including nested groups (e.g., `company/team/project`).
 
-**Questions to answer:**
-1. Should we support nested groups (e.g., "company/team/project")?
-2. How do we distinguish between gitlab.com and self-hosted GitLab in git remote?
-3. Do we need special handling for GitLab subgroups?
-4. Should repository path be the full path (group/subgroup/project) or shortened?
+**Rationale:** GitLab's nested groups are common in enterprise settings. The glab `--repo` flag already accepts `GROUP/NAMESPACE/REPO` format, so we just store the full path.
 
-**Options:**
-- **Option A: Support only two-level paths (owner/project)**
-  - Pros: Simple, matches GitHub pattern
-  - Cons: Doesn't work with GitLab nested groups
-  - Implementation: Validate path has exactly one slash
-
-- **Option B: Support full GitLab path (group/subgroup/project)**
-  - Pros: Works with GitLab's group structure
-  - Cons: More complex parsing and validation
-  - Implementation: Allow multiple slashes in repository path
-
-- **Option C: Extract full path, validate it exists via glab CLI**
-  - Pros: Accurate, handles all GitLab structures
-  - Cons: Requires glab during init (dependency)
-  - Implementation: Parse full path from URL, validate with `glab repo view`
-
-**Impact:** Affects Story 3 (init) and all GitLab URL/command building. Medium risk - GitLab's group structure is more complex than GitHub's.
+**Examples:**
+- `my-org/my-project` (simple)
+- `CMI/mdr/medeca-modul-poptavky` (nested groups)
 
 ---
 
-### CLARIFY: glab authentication check command
+### Decision 5: glab authentication check command
 
-**Description:** We need to validate glab authentication before attempting API calls, similar to gh auth status.
+**Decision:** Use `glab auth status` - it exists and works exactly like `gh auth status`.
 
-**Questions to answer:**
-1. Does glab have an equivalent to `gh auth status`?
-2. What exit codes does glab use for authentication failures?
-3. How do we check authentication without making actual API calls?
-4. Should we cache authentication status or check every time?
-
-**Options:**
-- **Option A: Use `glab auth status` if it exists**
-  - Pros: Direct check, consistent with gh pattern
-  - Cons: Command might not exist
-  - Implementation: Run `glab auth status`, check exit code
-
-- **Option B: Use `glab api user` as authentication probe**
-  - Pros: Actual API call validates auth fully
-  - Cons: Slower, makes unnecessary API call
-  - Implementation: Try simple API call, check for 401
-
-- **Option C: Skip authentication check, rely on error handling**
-  - Pros: Simpler, fewer commands
-  - Cons: Worse UX, unclear error messages
-  - Implementation: Let glab commands fail, parse errors
-
-**Impact:** Affects Story 1 and Story 2 (prerequisite validation). Medium risk - poor authentication checks lead to confusing errors.
+**Verified:** Command returns exit code 0 when authenticated, lists all configured hosts with token status.
 
 ---
 
