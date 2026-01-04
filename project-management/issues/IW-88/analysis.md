@@ -2,7 +2,7 @@
 
 **Issue:** IW-88
 **Created:** 2026-01-04
-**Status:** Draft
+**Status:** Ready for Implementation
 **Classification:** Feature
 
 ## Problem Statement
@@ -240,49 +240,42 @@ Scenario: YouTrack ID works (e.g., "PROJECT-123")
 
 ---
 
-### Story 7: Create Worktree modal UI with HTMX
+### Story 7: Load recent issues on modal open
 
 ```gherkin
-Feature: Interactive Create Worktree modal
+Feature: Recent issues displayed when modal opens
   As a developer
-  I want a modal interface for creating worktrees
-  So that I can search and select issues without leaving the dashboard
+  I want to see recent issues when I open the Create Worktree modal
+  So that I can quickly start work without searching
 
-Scenario: Open modal from dashboard
+Scenario: Modal opens with recent issues pre-loaded
   Given I am viewing the dashboard
   When I click "Create Worktree" button
   Then a modal overlay appears
-  And the modal shows a search input
-  And the modal displays 5 recent issues immediately
-  And I can interact with search without page reload
+  And the modal displays 5 most recent open issues immediately
+  And the search input is empty
+  And I can click an issue to create a worktree
 
-Scenario: Select issue and create worktree
+Scenario: Empty search shows recent issues again
   Given the Create Worktree modal is open
-  And I see recent issues listed
-  When I click on an issue
-  Then the issue ID is selected
-  And I can confirm worktree creation
-  And the modal closes after creation
+  And I have typed a search query
+  When I clear the search input
+  Then the recent issues are displayed again
 ```
 
-**Estimated Effort:** 8-12h
-**Complexity:** Complex
+**Estimated Effort:** 2-4h
+**Complexity:** Low
 
 **Technical Feasibility:**
-- Need to create modal HTML structure with Scalatags
-- HTMX for dynamic search: `hx-get="/api/issues/search?q={value}" hx-trigger="keyup changed delay:300ms"`
-- Need new API endpoints in CaskServer:
-  - `GET /api/issues/recent` - fetch recent issues
-  - `GET /api/issues/search?q=query` - search issues
-- CSS for modal overlay and styling
-- JavaScript for modal open/close behavior
+- Modal already exists with full HTMX integration
+- Need to add HTMX `hx-trigger="load"` to load recent issues on modal open
+- Or: modify modal endpoint to return HTML with recent issues pre-loaded
+- Need new API endpoint `GET /api/issues/recent` (calls through to tracker clients)
 
 **Acceptance:**
-- Modal opens/closes smoothly with overlay
-- Search input triggers HTMX requests with debounce
-- Issue list updates dynamically without page reload
-- Selected issue triggers worktree creation
-- Modal is accessible (keyboard navigation, ESC to close)
+- Modal shows 5 recent issues immediately on open (no user action required)
+- Clearing search input returns to showing recent issues
+- Existing search and worktree creation flow unchanged
 
 ---
 
@@ -402,118 +395,83 @@ Scenario: Select issue and create worktree
 
 ---
 
-### For Story 7: Create Worktree modal UI with HTMX
+### For Story 7: Load recent issues on modal open
 
 **Domain Layer:**
 - No new domain objects needed
 
 **Application Layer:**
-- No new application services (uses existing from Stories 1-6)
+- `IssueSearchService.fetchRecent()` - already defined in Story 1
 
 **Infrastructure Layer:**
-- No new infrastructure adapters
+- No new infrastructure adapters (reuse from Stories 1, 3, 5)
 
 **Presentation Layer:**
-- View: `CreateWorktreeModalView.render()` - Scalatags HTML for modal
-  - Modal overlay
-  - Search input with HTMX attributes
-  - Issue list container (target for HTMX swaps)
-  - Create button + cancel button
-- View: `IssueListView.render()` - HTML fragment for issue list
-  - Reusable for both recent issues and search results
-- API endpoints (already defined in Stories 1-2):
-  - `GET /api/issues/recent`
-  - `GET /api/issues/search?q={query}`
-- Dashboard modification: Add "Create Worktree" button that triggers modal
-
-**CSS:**
-- `.modal-overlay` - full-screen semi-transparent background
-- `.modal-content` - centered modal box
-- `.issue-search-input` - styled search input
-- `.issue-list-item` - clickable issue cards
-
-**JavaScript:**
-- Modal open/close handlers
-- ESC key listener to close modal
-- Click outside modal to close
+- Modify `CreateWorktreeModal.render()` to:
+  - Add HTMX `hx-trigger="load"` to search results container
+  - Or: pre-load recent issues in the initial HTML response
+- New API endpoint: `GET /api/issues/recent`
+  - Returns HTML fragment with recent issues (reuses `SearchResultsView`)
+- Modify search endpoint behavior:
+  - Empty query (`q=""`) returns recent issues instead of empty list
 
 ---
 
-## Technical Risks & Uncertainties
+## Resolved Design Decisions
 
-### CLARIFY: Modal implementation approach - new modal or build from scratch?
+### ✓ RESOLVED: Modal implementation
 
-The issue description references "Create Worktree modal" from IW-79, but I found no modal implementation in the current codebase. This creates uncertainty about what exists vs. what needs to be built.
+**Decision:** Modal already exists in `.iw/core/presentation/views/CreateWorktreeModal.scala`
 
-**Questions to answer:**
-1. Does a Create Worktree modal already exist in the codebase (possibly in a file I didn't examine)?
-2. If it exists, where is it located and what's its current structure?
-3. If it doesn't exist, should we build it as part of this issue or defer to a separate issue?
-4. What is the expected user flow: button on dashboard → modal → select issue → create worktree?
+The existing modal has:
+- HTMX integration with debounced search (300ms delay)
+- Search input calling `/api/issues/search?q={query}`
+- Results rendered via `SearchResultsView`
+- One-step flow: clicking a result POSTs to `/api/worktrees/create`
+- "Already has worktree" badge for existing worktrees
 
-**Options:**
-- **Option A**: Modal exists but wasn't found - User points to existing implementation
-- **Option B**: Modal doesn't exist yet - Build it in Story 7
-- **Option C**: Modal is partially implemented (stub) - Complete it
-
-**Impact:** Affects Story 7 scope significantly. If modal doesn't exist, Story 7 estimate may increase to 12-16h.
+**Impact:** Story 7 is significantly reduced - only need to add "load recent issues on modal open" behavior.
 
 ---
 
-### CLARIFY: Search API rate limiting and caching strategy
+### ✓ RESOLVED: Issue selection flow
 
-Each tracker has different rate limits and API characteristics. We need to decide on caching strategy for search results.
+**Decision:** One-step flow (click issue → worktree created immediately)
 
-**Questions to answer:**
-1. Should search results be cached? For how long?
-2. How do we handle API rate limiting for GitHub/Linear/YouTrack?
-3. Should we implement client-side debouncing, server-side debouncing, or both?
-4. What happens if API is unreachable or rate-limited during search?
-
-**Options:**
-- **Option A**: No search result caching - Always hit API
-- **Option B**: Short-term cache (5 minutes) - Cache per query
-- **Option C**: Client-side debouncing only - No server cache
-
-**Impact:** Affects Infrastructure Layer implementation for all search methods.
+This is already implemented in the existing modal. Clicking a search result triggers HTMX POST to `/api/worktrees/create`.
 
 ---
 
-### CLARIFY: Issue selection flow and worktree creation
+### ✓ RESOLVED: Caching strategy
 
-The acceptance criteria say "results update/filter as user types" but don't specify the complete flow from search to worktree creation.
+**Decision:** No search result caching - rely on HTMX debouncing only
 
-**Questions to answer:**
-1. After selecting an issue, does the modal stay open for confirmation or immediately create worktree?
-2. Do we need a worktree path input field in the modal, or auto-generate paths?
-3. Should the modal validate that a worktree doesn't already exist for that issue?
-4. What happens on error (e.g., git worktree add fails) - show error in modal or close modal?
-
-**Options:**
-- **Option A**: Two-step flow - Select issue → Confirm → Create
-- **Option B**: One-step flow - Select issue → Immediately create
-- **Option C**: Hybrid - Select issue → Show preview with path → Create
-
-**Impact:** Affects Story 7 UI design and API endpoint design.
+- HTMX debouncing (300ms) already prevents API spam during typing
+- Always hit API for fresh data
+- Simpler implementation, no cache invalidation complexity
 
 ---
 
-### CLARIFY: Recent issues definition - what makes an issue "recent"?
+### ✓ RESOLVED: Recent issues definition
 
-Stories 1, 3, 5 fetch "5 most recent issues" but don't specify the criteria.
+**Decision:** Recent = updated date, only open issues
 
-**Questions to answer:**
-1. Recent by creation date, or by last updated date?
-2. Should we filter by status (e.g., only open issues)?
-3. Should we respect issue assignment (e.g., only issues assigned to current user)?
-4. Do we need configuration for "recent issues count" (currently hardcoded to 5)?
+- Sort by last updated date (most active issues first)
+- Filter to open issues only (closed issues not relevant for new work)
+- All assignees (not filtered by current user)
+- Hardcoded to 5 issues (no configuration needed initially)
 
-**Options:**
-- **Option A**: Recent = created date, all statuses, all assignees
-- **Option B**: Recent = updated date, only open issues, all assignees
-- **Option C**: Recent = created date, only open issues, current user's team
+---
 
-**Recommendation:** Start with Option B (updated date, open only) as it's most useful for "recent work."
+## Remaining Technical Considerations
+
+### API behavior when query is empty
+
+When search input is empty (modal just opened), we should:
+1. Call `/api/issues/recent` to fetch 5 most recent open issues
+2. Display them in the same search results container
+
+This requires a new endpoint and client methods for listing recent issues.
 
 ---
 
@@ -526,18 +484,17 @@ Stories 1, 3, 5 fetch "5 most recent issues" but don't specify the criteria.
 - Story 4 (Search by title - Linear): 4-6 hours
 - Story 5 (Recent issues - YouTrack): 4-6 hours
 - Story 6 (Search by title - YouTrack): 4-6 hours
-- Story 7 (Create Worktree modal UI): 8-12 hours
+- Story 7 (Load recent on modal open): 2-4 hours
 
-**Total Range:** 36-52 hours
+**Total Range:** 30-44 hours
 
-**Confidence:** Medium
+**Confidence:** High
 
 **Reasoning:**
-- GitHub stories (1-2) take longer because they're first - establish patterns, create `IssueSearchService`, API endpoints, tests
+- GitHub stories (1-2) take longer because they're first - establish patterns, extend `IssueSearchService`, add API endpoints, tests
 - Linear stories (3-4) are faster because they follow established patterns from GitHub
 - YouTrack stories (5-6) similarly fast, just different API client
-- Story 7 (Modal UI) is complex because HTMX integration, CSS, JavaScript, accessibility considerations
-- CLARIFY markers add uncertainty - if modal doesn't exist, Story 7 could grow to 12-16h
+- Story 7 is minimal because modal already exists - just need to trigger recent issues load on open
 
 ---
 
@@ -551,7 +508,7 @@ Stories 1, 3, 5 fetch "5 most recent issues" but don't specify the criteria.
 - Story 4 follows Story 2 (can parallelize)
 - Story 5 follows Story 1 (can parallelize)
 - Story 6 follows Story 2 (can parallelize)
-- Story 7 depends on Stories 1-6 (needs API endpoints to exist)
+- Story 7 depends on Stories 1, 3, 5 (needs `fetchRecent` methods to exist)
 
 **Recommended sequence for single developer:**
 1. Story 1 (establish patterns)
@@ -574,13 +531,12 @@ Stories 1, 3, 5 fetch "5 most recent issues" but don't specify the criteria.
 4. **Story 4: Search by title (Linear)** - Completes Linear support
 5. **Story 5: Recent issues (YouTrack)** - Applies pattern to YouTrack
 6. **Story 6: Search by title (YouTrack)** - Completes YouTrack support
-7. **Story 7: Create Worktree modal UI** - Integrates all APIs into user-facing feature
+7. **Story 7: Load recent on modal open** - Triggers recent issues display when modal opens
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
 
 **Next Steps:**
-1. Resolve CLARIFY markers with Michal
-2. Run `/iterative-works:ag-create-tasks IW-88` to generate phase-based task index
-3. Run `/iterative-works:ag-implement IW-88` for iterative story-by-story implementation
+1. Run `/iterative-works:ag-create-tasks IW-88` to generate phase-based task index
+2. Run `/iterative-works:ag-implement IW-88` for iterative story-by-story implementation
