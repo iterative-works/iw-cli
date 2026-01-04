@@ -64,6 +64,57 @@ Run this command to authenticate:
 
 Follow the prompts to sign in with your GitLab account.""".stripMargin
 
+  /** Format error message for issue not found.
+    *
+    * @param issueId GitLab issue number
+    * @param repository GitLab repository in owner/project format
+    * @return User-friendly error message
+    */
+  def formatIssueNotFoundError(issueId: String, repository: String): String =
+    s"Issue $issueId not found in repository $repository."
+
+  /** Format error message for network errors.
+    *
+    * @param details Error details from glab CLI
+    * @return User-friendly error message with remediation
+    */
+  def formatNetworkError(details: String): String =
+    s"""Network error while connecting to GitLab.
+
+Details: $details
+
+Check your network connection and try again.""".stripMargin
+
+  /** Check if error message indicates authentication failure.
+    *
+    * @param error Error message from glab CLI
+    * @return true if error is authentication-related
+    */
+  def isAuthenticationError(error: String): Boolean =
+    error.contains("401") ||
+    error.toLowerCase.contains("unauthorized") ||
+    error.toLowerCase.contains("authentication")
+
+  /** Check if error message indicates resource not found.
+    *
+    * @param error Error message from glab CLI
+    * @return true if error indicates not found
+    */
+  def isNotFoundError(error: String): Boolean =
+    error.contains("404") ||
+    error.toLowerCase.contains("not found")
+
+  /** Check if error message indicates network connectivity issue.
+    *
+    * @param error Error message from glab CLI
+    * @return true if error is network-related
+    */
+  def isNetworkError(error: String): Boolean =
+    error.toLowerCase.contains("network") ||
+    error.toLowerCase.contains("connection") ||
+    error.toLowerCase.contains("timeout") ||
+    error.toLowerCase.contains("could not resolve")
+
   /** Build glab CLI command arguments for fetching an issue.
     *
     * @param issueNumber GitLab issue number (e.g., "123")

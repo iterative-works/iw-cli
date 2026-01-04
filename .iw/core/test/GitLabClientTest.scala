@@ -394,3 +394,88 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isLeft)
     assert(result.left.getOrElse("").contains("Failed to parse"))
+
+  // ========== Error Formatting Tests ==========
+
+  test("formatGlabNotInstalledError returns installation instructions"):
+    val error = GitLabClient.formatGlabNotInstalledError()
+
+    assert(error.contains("glab CLI is not installed"))
+    assert(error.contains("https://gitlab.com/gitlab-org/cli"))
+    assert(error.contains("glab auth login"))
+
+  test("formatGlabNotAuthenticatedError returns auth login instructions"):
+    val error = GitLabClient.formatGlabNotAuthenticatedError()
+
+    assert(error.contains("glab is not authenticated"))
+    assert(error.contains("glab auth login"))
+    assert(error.toLowerCase.contains("authenticate"))
+
+  test("formatIssueNotFoundError includes issue ID and repository"):
+    val error = GitLabClient.formatIssueNotFoundError("123", "owner/project")
+
+    assert(error.contains("123"))
+    assert(error.contains("owner/project"))
+    assert(error.toLowerCase.contains("not found"))
+
+  test("formatNetworkError includes details and suggestions"):
+    val error = GitLabClient.formatNetworkError("Connection timeout")
+
+    assert(error.contains("Connection timeout"))
+    assert(error.toLowerCase.contains("network"))
+    assert(error.toLowerCase.contains("connection"))
+
+  // ========== Error Detection Tests ==========
+
+  test("isAuthenticationError detects 401 status code"):
+    assert(GitLabClient.isAuthenticationError("HTTP Error 401"))
+    assert(GitLabClient.isAuthenticationError("Error: 401 Unauthorized"))
+
+  test("isAuthenticationError detects unauthorized string"):
+    assert(GitLabClient.isAuthenticationError("unauthorized access"))
+    assert(GitLabClient.isAuthenticationError("UNAUTHORIZED"))
+
+  test("isAuthenticationError detects authentication string"):
+    assert(GitLabClient.isAuthenticationError("authentication failed"))
+    assert(GitLabClient.isAuthenticationError("Authentication required"))
+
+  test("isNotFoundError detects 404 status code"):
+    assert(GitLabClient.isNotFoundError("HTTP Error 404"))
+    assert(GitLabClient.isNotFoundError("Error: 404 Not Found"))
+
+  test("isNotFoundError detects not found string"):
+    assert(GitLabClient.isNotFoundError("issue not found"))
+    assert(GitLabClient.isNotFoundError("NOT FOUND"))
+
+  test("isNetworkError detects network string"):
+    assert(GitLabClient.isNetworkError("network error occurred"))
+    assert(GitLabClient.isNetworkError("NETWORK failure"))
+
+  test("isNetworkError detects connection string"):
+    assert(GitLabClient.isNetworkError("connection refused"))
+    assert(GitLabClient.isNetworkError("Connection timeout"))
+
+  test("isNetworkError detects timeout string"):
+    assert(GitLabClient.isNetworkError("request timeout"))
+    assert(GitLabClient.isNetworkError("TIMEOUT"))
+
+  test("isNetworkError detects could not resolve"):
+    assert(GitLabClient.isNetworkError("could not resolve host"))
+    assert(GitLabClient.isNetworkError("Could not resolve"))
+
+  // ========== Negative Tests for Error Detection ==========
+
+  test("isAuthenticationError returns false for non-auth errors"):
+    assert(!GitLabClient.isAuthenticationError("network error"))
+    assert(!GitLabClient.isAuthenticationError("404 not found"))
+    assert(!GitLabClient.isAuthenticationError("internal server error"))
+
+  test("isNotFoundError returns false for non-404 errors"):
+    assert(!GitLabClient.isNotFoundError("401 unauthorized"))
+    assert(!GitLabClient.isNotFoundError("network error"))
+    assert(!GitLabClient.isNotFoundError("internal server error"))
+
+  test("isNetworkError returns false for non-network errors"):
+    assert(!GitLabClient.isNetworkError("401 unauthorized"))
+    assert(!GitLabClient.isNetworkError("404 not found"))
+    assert(!GitLabClient.isNetworkError("internal server error"))
