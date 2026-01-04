@@ -7,6 +7,13 @@
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
     {"label": "Phase 1 Context", "path": "project-management/issues/IW-90/phase-01-context.md"},
-    {"label": "Phase 1 Tasks", "path": "project-management/issues/IW-90/phase-01-tasks.md"}
-  ]
+    {"label": "Phase 1 Tasks", "path": "project-management/issues/IW-90/phase-01-tasks.md"},
+    {"label": "Code Review", "path": "project-management/issues/IW-90/review-phase-01.md"}
+  ],
+  "review_verdict": "APPROVE",
+  "review_summary": {
+    "critical": 0,
+    "warnings": 5,
+    "suggestions": 10
+  }
 }
