@@ -487,6 +487,41 @@ class ConfigTest extends munit.FunSuite:
     val remote = GitRemote("https://gitlab.com/owner/repo/")
     assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
 
+  // ========== GitLab Repository Extraction Error Path Tests ==========
+
+  test("GitRemote returns error for GitLab URL with empty path component"):
+    val remote = GitRemote("https://gitlab.com/owner//repo.git")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("empty"))
+
+  test("GitRemote returns error for GitLab URL with only owner (no repo)"):
+    val remote = GitRemote("https://gitlab.com/single-component")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("owner/repo"))
+
+  test("GitRemote returns error for GitLab URL with trailing slashes only"):
+    val remote = GitRemote("https://gitlab.com///")
+    assert(remote.extractGitLabRepository.isLeft)
+
+  test("GitRemote returns error for GitLab SSH URL with empty path component"):
+    val remote = GitRemote("git@gitlab.com:owner//repo.git")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("empty"))
+
+  test("GitRemote returns error for GitLab SSH URL with only owner"):
+    val remote = GitRemote("git@gitlab.com:single-component")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("owner/repo"))
+
+  test("GitRemote returns error for GitLab nested groups with empty component"):
+    val remote = GitRemote("https://gitlab.com/group//subgroup/project.git")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("empty"))
+
+  test("GitRemote returns error for self-hosted GitLab with malformed path"):
+    val remote = GitRemote("https://gitlab.company.com/")
+    assert(remote.extractGitLabRepository.isLeft)
+
   // ========== TrackerDetector GitLab Tests ==========
 
   test("TrackerDetector suggests GitLab for gitlab.com HTTPS remote"):
