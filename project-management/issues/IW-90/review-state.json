@@ -1,11 +1,12 @@
 {
-  "status": "phase_complete",
-  "phase": 6,
-  "message": "Phase 6 merged - GitLab issue ID parsing and validation",
+  "status": "awaiting_review",
+  "phase": 7,
+  "message": "Phase 7 complete - Integration testing with real glab CLI",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/101",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
-    {"label": "Phase 6 Context", "path": "project-management/issues/IW-90/phase-06-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-90/review-packet-phase-06.md"}
+    {"label": "Phase 7 Context", "path": "project-management/issues/IW-90/phase-07-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-90/review-packet-phase-07.md"}
   ]
 }
