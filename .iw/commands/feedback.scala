@@ -26,32 +26,13 @@ import iw.core.*
       sys.exit(1)
     case Right(r) => r
 
-  // Try to load project config to determine tracker type
-  val configPath = os.pwd / ".iw" / "config.conf"
-  val maybeConfig = ConfigFileRepository.read(configPath)
-
-  // Create issue using appropriate client based on config
-  val result = maybeConfig match
-    case Some(config) if config.trackerType == IssueTrackerType.GitLab =>
-      // GitLab tracker configured - use GitLabClient
-      config.repository match
-        case Some(repo) =>
-          GitLabClient.createIssue(
-            repository = repo,
-            title = request.title,
-            description = request.description,
-            issueType = request.issueType
-          )
-        case None =>
-          Left("GitLab tracker configured but repository not set in .iw/config.conf")
-    case _ =>
-      // No config or not GitLab - use default GitHub feedback repository
-      GitHubClient.createIssue(
-        repository = Constants.Feedback.Repository,
-        title = request.title,
-        description = request.description,
-        issueType = request.issueType
-      )
+  // Always create GitHub issue in the iw-cli repository
+  val result = GitHubClient.createIssue(
+    repository = Constants.Feedback.Repository,
+    title = request.title,
+    description = request.description,
+    issueType = request.issueType
+  )
 
   result match
     case Left(error) =>
