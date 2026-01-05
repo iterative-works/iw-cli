@@ -2,7 +2,7 @@
 
 **Issue:** IW-90
 **Created:** 2026-01-04
-**Status:** 5/7 phases complete (71%)
+**Status:** 6/7 phases complete (86%)
 
 ## Phase Index
 
@@ -11,12 +11,12 @@
 - [x] Phase 3: Configure GitLab tracker during iw init (Est: 4-6h) → `phase-03-context.md`
 - [x] Phase 4: GitLab issue URL generation in search and dashboard (Est: 2-3h) → `phase-04-context.md`
 - [x] Phase 5: Create GitLab issues via glab CLI (Est: 4-6h) → `phase-05-context.md`
-- [ ] Phase 6: GitLab issue ID parsing and validation (Est: 3-4h) → `phase-06-context.md`
+- [x] Phase 6: GitLab issue ID parsing and validation (Est: 3-4h) → `phase-06-context.md`
 - [ ] Phase 7: Integration testing with real glab CLI (Est: 4-6h) → `phase-07-context.md`
 
 ## Progress Tracker
 
-**Completed:** 5/7 phases
+**Completed:** 6/7 phases
 **Estimated Total:** 26-37 hours
 **Time Spent:** 0 hours
 

@@ -6,6 +6,66 @@ This log tracks the evolution of implementation across phases.
 
 ---
 
+## Phase 7: Integration testing with real glab CLI (2026-01-05)
+
+**What was built:**
+- E2E test file: `.iw/test/gitlab-issue.bats` - 13 tests for issue fetching
+- E2E test file: `.iw/test/gitlab-feedback.bats` - 15 tests for issue creation
+- Manual test log: `project-management/issues/IW-90/manual-test-log.md`
+- README documentation: Comprehensive GitLab integration section
+
+**E2E Test Coverage:**
+- Happy path: Issue fetching, branch inference, display formatting
+- Error scenarios: glab not installed, not authenticated, issue not found
+- Configuration: Simple repository, nested groups, self-hosted GitLab
+- Feedback: Bug/feature creation, label fallback, URL display
+- Regression: Verification of GitHub/Linear/YouTrack functionality
+
+**Documentation Added:**
+- GitLab repository auto-detection (HTTPS, SSH, nested groups, self-hosted)
+- glab CLI installation instructions (macOS, Linux, Windows)
+- Authentication setup (`glab auth login`)
+- Self-hosted GitLab configuration examples
+- Nested groups support documentation
+
+**Decisions made:**
+- E2E tests use mocked glab CLI for CI reliability
+- Tests skip gracefully when glab not available
+- Manual verification documented for real-world testing
+- README follows existing documentation structure
+
+**Patterns applied:**
+- BATS test patterns consistent with existing E2E tests
+- Setup/teardown with temp directories for test isolation
+- Mock scripts for external CLI dependencies
+
+**Testing:**
+- E2E tests: 28 tests added (13 issue + 15 feedback)
+- Unit tests: All 353+ existing tests passing (no regressions)
+- Manual verification: Documented in manual-test-log.md
+
+**Code review:**
+- Iterations: 1
+- Critical issues: 0
+- Warnings: 3 (minor stylistic)
+- Suggestions: 6 (nice to have)
+- Review file: review-phase-07.md
+
+**For future:**
+- E2E tests provide foundation for CI/CD integration
+- Manual test checklist available for live testing
+- Documentation enables users to set up GitLab integration
+
+**Files changed:**
+```
+A  .iw/test/gitlab-issue.bats
+A  .iw/test/gitlab-feedback.bats
+A  project-management/issues/IW-90/manual-test-log.md
+M  README.md
+```
+
+---
+
 ## Phase 6: GitLab issue ID parsing and validation (2026-01-05)
 
 **What was built:**
