@@ -358,11 +358,11 @@ class GitHubClientTest extends munit.FunSuite:
 
   test("parseFetchIssueResponse parses complete valid JSON"):
     val json = """{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [{"login": "user1"}], "body": "Description here"}"""
-    val result = GitHubClient.parseFetchIssueResponse(json, "132")
+    val result = GitHubClient.parseFetchIssueResponse(json, "IWCLI-132")
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#132")
+    assertEquals(issue.id, "IWCLI-132")
     assertEquals(issue.title, "Add feature")
     assertEquals(issue.status, "open")
     assertEquals(issue.assignee, Some("user1"))
@@ -408,13 +408,13 @@ class GitHubClientTest extends munit.FunSuite:
     val issue = result.getOrElse(fail("Expected Right"))
     assertEquals(issue.status, "closed")
 
-  test("parseFetchIssueResponse formats issue ID with # prefix"):
+  test("parseFetchIssueResponse preserves full issue ID value"):
     val json = """{"number": 999, "title": "Test", "state": "OPEN", "assignees": [], "body": null}"""
-    val result = GitHubClient.parseFetchIssueResponse(json, "999")
+    val result = GitHubClient.parseFetchIssueResponse(json, "TEAM-999")
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#999")
+    assertEquals(issue.id, "TEAM-999")
 
   test("parseFetchIssueResponse returns error for malformed JSON"):
     val json = """{"invalid json"""
@@ -444,7 +444,7 @@ class GitHubClientTest extends munit.FunSuite:
       fail("Should not execute command when gh not installed")
 
     val result = GitHubClient.fetchIssue(
-      issueNumber = "132",
+      issueIdValue = "TEAM-132",
       repository = "owner/repo",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -452,7 +452,7 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(result.isLeft)
     val error = result.left.getOrElse("")
-    assert(error.contains("gh CLI is not installed"))
+    assert(error.contains("gh CLI is not installed"), s"Error should mention gh not installed: $error")
 
   test("fetchIssue validates prerequisites first - gh not authenticated"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -463,7 +463,7 @@ class GitHubClientTest extends munit.FunSuite:
         fail("Should not execute issue command when not authenticated")
 
     val result = GitHubClient.fetchIssue(
-      issueNumber = "132",
+      issueIdValue = "TEAM-132",
       repository = "owner/repo",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -471,7 +471,7 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(result.isLeft)
     val error = result.left.getOrElse("")
-    assert(error.contains("gh is not authenticated"))
+    assert(error.contains("gh is not authenticated"), s"Error should mention gh not authenticated: $error")
 
   test("fetchIssue executes command with correct arguments"):
     var capturedCommand = ""
@@ -486,7 +486,7 @@ class GitHubClientTest extends munit.FunSuite:
         Right("""{"number": 132, "title": "Test", "state": "OPEN", "assignees": [], "body": null}""")
 
     val result = GitHubClient.fetchIssue(
-      issueNumber = "132",
+      issueIdValue = "TEAM-132",
       repository = "owner/repo",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -496,7 +496,7 @@ class GitHubClientTest extends munit.FunSuite:
     assertEquals(capturedCommand, "gh")
     assert(capturedArgs.contains("issue"))
     assert(capturedArgs.contains("view"))
-    assert(capturedArgs.contains("132"))
+    assert(capturedArgs.contains("132")) // API uses extracted numeric ID
     assert(capturedArgs.contains("--repo"))
     assert(capturedArgs.contains("owner/repo"))
 
@@ -509,7 +509,7 @@ class GitHubClientTest extends munit.FunSuite:
         Right("""{"number": 132, "title": "Add feature", "state": "OPEN", "assignees": [{"login": "user1"}], "body": "Description"}""")
 
     val result = GitHubClient.fetchIssue(
-      issueNumber = "132",
+      issueIdValue = "TEAM-132",
       repository = "owner/repo",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -517,7 +517,7 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#132")
+    assertEquals(issue.id, "TEAM-132") // Full issue ID format
     assertEquals(issue.title, "Add feature")
     assertEquals(issue.status, "open")
     assertEquals(issue.assignee, Some("user1"))
@@ -532,14 +532,14 @@ class GitHubClientTest extends munit.FunSuite:
         Left("issue not found")
 
     val result = GitHubClient.fetchIssue(
-      issueNumber = "999999",
+      issueIdValue = "TEAM-999999",
       repository = "owner/repo",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
     assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("Failed to fetch issue"))
+    assert(result.left.getOrElse("").contains("Failed to fetch issue"), "Error should mention failed to fetch")
 
   test("fetchIssue returns Left when JSON parsing fails"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -550,11 +550,11 @@ class GitHubClientTest extends munit.FunSuite:
         Right("""{"invalid json""")
 
     val result = GitHubClient.fetchIssue(
-      issueNumber = "132",
+      issueIdValue = "TEAM-132",
       repository = "owner/repo",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
     assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("Failed to parse"))
+    assert(result.left.getOrElse("").contains("Failed to parse"), "Error should mention failed to parse")

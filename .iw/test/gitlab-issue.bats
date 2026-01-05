@@ -70,7 +70,7 @@ SCRIPT
 
     # Assert success
     [ "$status" -eq 0 ]
-    [[ "$output" == *"#123:"* ]]
+    [[ "$output" == *"PROJ-123:"* ]]
     [[ "$output" == *"Test issue"* ]]
 }
 
@@ -94,8 +94,8 @@ EOF
     git add README.md
     git commit -m "Initial commit"
 
-    # Create and checkout issue branch
-    git checkout -b 456-feature-branch
+    # Create and checkout issue branch with TEAM-NNN format
+    git checkout -b PROJ-456-feature-branch
 
     # Mock glab command that returns success
     mkdir -p bin
@@ -129,7 +129,7 @@ SCRIPT
 
     # Assert success
     [ "$status" -eq 0 ]
-    [[ "$output" == *"#456"* ]]
+    [[ "$output" == *"PROJ-456"* ]]
     [[ "$output" == *"Feature from branch"* ]]
 }
 
@@ -180,7 +180,7 @@ SCRIPT
 
     # Assert all fields are displayed
     [ "$status" -eq 0 ]
-    [[ "$output" == *"#789"* ]]
+    [[ "$output" == *"PROJ-789"* ]]
     [[ "$output" == *"Full issue details"* ]]
     [[ "$output" == *"closed"* ]]
     [[ "$output" == *"assignee1"* ]]
@@ -234,7 +234,7 @@ SCRIPT
 
     # Assert success
     [ "$status" -eq 0 ]
-    [[ "$output" == *"#10"* ]]
+    [[ "$output" == *"PROJ-10"* ]]
     [[ "$output" == *"Nested group issue"* ]]
 }
 
@@ -447,7 +447,7 @@ SCRIPT
 
     # Assert success
     [ "$status" -eq 0 ]
-    [[ "$output" == *"#1"* ]]
+    [[ "$output" == *"PROJ-1"* ]]
 }
 
 @test "GitLab: issue returns error when config file missing" {
@@ -538,10 +538,10 @@ SCRIPT
 
     # Assert success
     [ "$status" -eq 0 ]
-    [[ "$output" == *"#999"* ]]
+    [[ "$output" == *"PROJ-999"* ]]
 }
 
-@test "GitLab: issue rejects TEAM-NNN format (requires numeric ID)" {
+@test "GitLab: issue accepts TEAM-NNN format" {
     # Setup: create GitLab config
     mkdir -p .iw
     cat > .iw/config.conf <<EOF
@@ -556,12 +556,26 @@ project {
 }
 EOF
 
-    # Mock glab command (shouldn't be called)
+    # Mock glab command that returns success
     mkdir -p bin
     cat > bin/glab <<'SCRIPT'
 #!/bin/bash
 if [[ "$1" == "auth" && "$2" == "status" ]]; then
     echo "Logged in to gitlab.com"
+    exit 0
+elif [[ "$1" == "issue" && "$2" == "view" && "$3" == "42" ]]; then
+    cat <<'JSON'
+{
+  "iid": 42,
+  "state": "opened",
+  "title": "TEAM-NNN format",
+  "description": null,
+  "author": {"username": "user1"},
+  "assignees": [],
+  "labels": [],
+  "web_url": "https://gitlab.com/owner/project/-/issues/42"
+}
+JSON
     exit 0
 fi
 exit 1
@@ -569,10 +583,11 @@ SCRIPT
     chmod +x bin/glab
     export PATH="$TEST_DIR/bin:$PATH"
 
-    # Run with TEAM-NNN format - should fail because GitLab only accepts numeric IDs
+    # Run with TEAM-NNN format - GitLab now uses same format as GitHub
     run "$PROJECT_ROOT/iw" issue PROJ-42
 
-    # Assert failure - GitLab tracker requires numeric ID
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"Invalid issue ID"* ]] || [[ "$output" == *"expected"* ]]
+    # Assert success - GitLab accepts TEAM-NNN format (extracts number for API)
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"PROJ-42"* ]]
+    [[ "$output" == *"TEAM-NNN format"* ]]
 }

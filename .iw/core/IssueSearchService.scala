@@ -30,7 +30,7 @@ object IssueSearchService:
       return Right(List.empty)
 
     // Try to parse query as issue ID
-    IssueId.parse(trimmedQuery, config.teamPrefix, Some(config.trackerType)) match
+    IssueId.parse(trimmedQuery, config.teamPrefix) match
       case Right(issueId) =>
         // Fetch the issue
         fetchIssue(issueId) match

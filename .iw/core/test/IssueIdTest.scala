@@ -258,54 +258,44 @@ class IssueIdTest extends FunSuite:
       msg.contains("team prefix") && msg.contains("iw init")
     ))
 
-  // ========== GitLab-Specific Parsing Tests (Phase 6) ==========
+  // ========== GitLab-Specific Parsing Tests (Phase 6 - Refactored R1) ==========
+  // GitLab now uses same TEAM-NNN format as GitHub (not #123)
 
-  test("IssueId.parse accepts bare numeric ID for GitLab tracker"):
-    val result = IssueId.parse("123", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix composes TEAM-NNN for GitLab"):
+    val result = IssueId.parse("123", Some("PROJ"))
     assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#123"))
+    assertEquals(result.map(_.value), Right("PROJ-123"))
 
-  test("IssueId.parse accepts single-digit ID for GitLab"):
-    val result = IssueId.parse("1", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix handles single-digit for GitLab"):
+    val result = IssueId.parse("1", Some("PROJ"))
     assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#1"))
+    assertEquals(result.map(_.value), Right("PROJ-1"))
 
-  test("IssueId.parse accepts large ID for GitLab"):
-    val result = IssueId.parse("99999", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix handles large number for GitLab"):
+    val result = IssueId.parse("99999", Some("PROJ"))
     assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#99999"))
+    assertEquals(result.map(_.value), Right("PROJ-99999"))
 
-  test("IssueId.parse rejects negative number for GitLab"):
-    val result = IssueId.parse("-123", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix rejects negative number"):
+    val result = IssueId.parse("-123", Some("PROJ"))
     assert(result.isLeft)
     assert(result.left.exists(_.contains("Invalid")))
 
-  test("IssueId.parse rejects decimal number for GitLab"):
-    val result = IssueId.parse("12.3", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix rejects decimal number"):
+    val result = IssueId.parse("12.3", Some("PROJ"))
     assert(result.isLeft)
     assert(result.left.exists(_.contains("Invalid")))
 
-  test("IssueId.parse rejects alphabetic input for GitLab"):
-    val result = IssueId.parse("abc", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix rejects alphabetic input"):
+    val result = IssueId.parse("abc", Some("PROJ"))
     assert(result.isLeft)
     assert(result.left.exists(_.contains("Invalid")))
 
-  test("IssueId.parse trims whitespace for GitLab numeric ID"):
-    val result = IssueId.parse("  123  ", None, Some(IssueTrackerType.GitLab))
+  test("IssueId.parse with team prefix trims whitespace"):
+    val result = IssueId.parse("  123  ", Some("PROJ"))
     assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#123"))
+    assertEquals(result.map(_.value), Right("PROJ-123"))
 
-  test("IssueId.forGitLab creates valid numeric format"):
-    val result = IssueId.forGitLab(123)
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#123"))
-
-  test("IssueId.forGitLab creates valid format for single-digit"):
-    val result = IssueId.forGitLab(1)
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#1"))
-
-  test("IssueId.forGitLab creates valid format for large number"):
-    val result = IssueId.forGitLab(99999)
-    assert(result.isRight)
-    assertEquals(result.map(_.value), Right("#99999"))
+  test("IssueId.team returns correct team for GitLab TEAM-NNN format"):
+    val issueId = IssueId.parse("123", Some("PROJ")).getOrElse(fail("Failed to parse"))
+    assertEquals(issueId.team, "PROJ")

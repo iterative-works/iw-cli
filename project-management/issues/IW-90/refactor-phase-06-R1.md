@@ -2,7 +2,7 @@
 
 **Phase:** 6
 **Created:** 2026-01-05
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -79,39 +79,41 @@ val issueNumber = issueId.value.split("-")(1)  // PROJ-123 -> 123
 ## Tasks
 
 ### Analysis
-- [ ] [impl] Review all usages of `trackerType` parameter in IssueId
-- [ ] [impl] List all commands that need teamPrefix handling update
+- [x] [impl] Review all usages of `trackerType` parameter in IssueId
+- [x] [impl] List all commands that need teamPrefix handling update
 
 ### Tests First (TDD - RED)
-- [ ] [impl] Update GitLab ID tests to expect `TEAM-NNN` format
-- [ ] [impl] Add test: `IssueId.parse("123", Some("PROJ"))` returns `PROJ-123`
-- [ ] [impl] Add test: `IssueId.fromBranch("PROJ-123-feature")` works for GitLab
-- [ ] [impl] Verify `.team` extension returns correct team for GitLab IDs
+- [x] [impl] Update GitLab ID tests to expect `TEAM-NNN` format
+- [x] [impl] Add test: `IssueId.parse("123", Some("PROJ"))` returns `PROJ-123`
+- [x] [impl] Add test: `IssueId.fromBranch("PROJ-123-feature")` works for GitLab
+- [x] [impl] Verify `.team` extension returns correct team for GitLab IDs
 
 ### Implementation (GREEN)
-- [ ] [impl] Remove `NumericPattern`, `NumericBranchPattern` from IssueId
-- [ ] [impl] Remove `forGitLab()` factory method
-- [ ] [impl] Remove `trackerType` parameter from `parse()` and `fromBranch()`
-- [ ] [impl] Update `issue.scala` to pass teamPrefix for GitLab (like GitHub)
-- [ ] [impl] Update `open.scala` to pass teamPrefix for GitLab
-- [ ] [impl] Update `start.scala` to pass teamPrefix for GitLab
-- [ ] [impl] Update `register.scala` to pass teamPrefix for GitLab
-- [ ] [impl] Update `rm.scala` to pass teamPrefix for GitLab
-- [ ] [impl] Update number extraction in fetchIssue for GitLab (same as GitHub)
+- [x] [impl] Remove `NumericPattern`, `NumericBranchPattern` from IssueId
+- [x] [impl] Remove `forGitLab()` factory method
+- [x] [impl] Remove `trackerType` parameter from `parse()` and `fromBranch()`
+- [x] [impl] Update `issue.scala` to pass teamPrefix for GitLab (like GitHub)
+- [x] [impl] Update `open.scala` to pass teamPrefix for GitLab
+- [x] [impl] Update `start.scala` to pass teamPrefix for GitLab
+- [x] [impl] Update `register.scala` to pass teamPrefix for GitLab
+- [x] [impl] Update `rm.scala` to pass teamPrefix for GitLab
+- [x] [impl] Update number extraction in fetchIssue for GitLab (same as GitHub)
+- [x] [impl] Update `IssueSearchService.scala` to remove trackerType parameter
 
 ### Cleanup
-- [ ] [impl] Remove GitLab-specific tests that test `#123` format
-- [ ] [impl] Update E2E tests in `gitlab-issue.bats` for TEAM-NNN format
-- [ ] [impl] Run full test suite to verify no regressions
+- [x] [impl] Update GitLab-specific unit tests to expect TEAM-NNN format
+- [x] [impl] Update E2E tests in `gitlab-issue.bats` for TEAM-NNN format
+- [x] [impl] Run full test suite to verify no regressions
 
 ## Verification
 
-- [ ] All 353+ existing tests pass
-- [ ] `IssueId.parse("123", Some("PROJ"))` returns `Right("PROJ-123")`
-- [ ] `IssueId.fromBranch("PROJ-123-feature")` returns `Right("PROJ-123")`
-- [ ] `issueId.team` returns `"PROJ"` for GitLab IDs
-- [ ] `iw issue 123` (with teamPrefix config) fetches GitLab issue correctly
-- [ ] Branch `PROJ-123-feature` correctly infers issue ID
+- [x] All unit tests pass
+- [x] `IssueId.parse("123", Some("PROJ"))` returns `Right("PROJ-123")`
+- [x] `IssueId.fromBranch("PROJ-123-feature")` returns `Right("PROJ-123")`
+- [x] `issueId.team` returns `"PROJ"` for GitLab IDs
+- [x] GitLab config requires `teamPrefix` same as GitHub
+- [x] Branch `PROJ-123-feature` correctly infers issue ID for GitLab
+- [x] `iw issue 123` (with teamPrefix config) composes to PROJ-123 and extracts 123 for API
 
 ## Related Changes Already Made
 

@@ -57,11 +57,11 @@ class GitLabClientTest extends munit.FunSuite:
       "web_url": "https://gitlab.e-bs.cz/CMI/mdr/medeca-modul-ucet-zadatele/-/issues/1"
     }"""
 
-    val result = GitLabClient.parseFetchIssueResponse(json, "1")
+    val result = GitLabClient.parseFetchIssueResponse(json, "PROJ-1")
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#1")
+    assertEquals(issue.id, "PROJ-1")
     assertEquals(issue.title, "Issue title here")
     assertEquals(issue.status, "open")
     assertEquals(issue.assignee, None)
@@ -79,11 +79,11 @@ class GitLabClientTest extends munit.FunSuite:
       "web_url": "https://gitlab.e-bs.cz/owner/project/-/issues/2"
     }"""
 
-    val result = GitLabClient.parseFetchIssueResponse(json, "2")
+    val result = GitLabClient.parseFetchIssueResponse(json, "PROJ-2")
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#2")
+    assertEquals(issue.id, "PROJ-2")
     assertEquals(issue.title, "Closed issue")
     assertEquals(issue.status, "closed")
     assertEquals(issue.assignee, Some("assignee1"))
@@ -147,7 +147,7 @@ class GitLabClientTest extends munit.FunSuite:
     val issue = result.getOrElse(fail("Expected Right"))
     assertEquals(issue.assignee, Some("assignee1"))
 
-  test("parseFetchIssueResponse formats issue ID with # prefix"):
+  test("parseFetchIssueResponse preserves full issue ID value"):
     val json = """{
       "iid": 999,
       "state": "opened",
@@ -159,11 +159,11 @@ class GitLabClientTest extends munit.FunSuite:
       "web_url": "https://gitlab.e-bs.cz/owner/project/-/issues/999"
     }"""
 
-    val result = GitLabClient.parseFetchIssueResponse(json, "999")
+    val result = GitLabClient.parseFetchIssueResponse(json, "TEAM-999")
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#999")
+    assertEquals(issue.id, "TEAM-999")
 
   test("parseFetchIssueResponse returns error for malformed JSON"):
     val json = """{"invalid json"""
@@ -262,7 +262,7 @@ class GitLabClientTest extends munit.FunSuite:
       fail("Should not execute command when glab not installed")
 
     val result = GitLabClient.fetchIssue(
-      issueNumber = "123",
+      issueIdValue = "PROJ-123",
       repository = "owner/project",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -270,7 +270,7 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isLeft)
     val error = result.left.getOrElse("")
-    assert(error.contains("glab CLI is not installed"))
+    assert(error.contains("glab CLI is not installed"), s"Error should mention glab not installed: $error")
 
   test("fetchIssue validates prerequisites first - glab not authenticated"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -281,7 +281,7 @@ class GitLabClientTest extends munit.FunSuite:
         fail("Should not execute issue command when not authenticated")
 
     val result = GitLabClient.fetchIssue(
-      issueNumber = "123",
+      issueIdValue = "PROJ-123",
       repository = "owner/project",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -289,7 +289,7 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isLeft)
     val error = result.left.getOrElse("")
-    assert(error.contains("glab is not authenticated"))
+    assert(error.contains("glab is not authenticated"), s"Error should mention glab not authenticated: $error")
 
   test("fetchIssue executes command with correct arguments"):
     var capturedCommand = ""
@@ -313,7 +313,7 @@ class GitLabClientTest extends munit.FunSuite:
         }""")
 
     val result = GitLabClient.fetchIssue(
-      issueNumber = "123",
+      issueIdValue = "PROJ-123",
       repository = "owner/project",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -323,7 +323,7 @@ class GitLabClientTest extends munit.FunSuite:
     assertEquals(capturedCommand, "glab")
     assert(capturedArgs.contains("issue"))
     assert(capturedArgs.contains("view"))
-    assert(capturedArgs.contains("123"))
+    assert(capturedArgs.contains("123")) // API uses extracted numeric ID
     assert(capturedArgs.contains("--repo"))
     assert(capturedArgs.contains("owner/project"))
 
@@ -345,7 +345,7 @@ class GitLabClientTest extends munit.FunSuite:
         }""")
 
     val result = GitLabClient.fetchIssue(
-      issueNumber = "123",
+      issueIdValue = "PROJ-123",
       repository = "owner/project",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
@@ -353,7 +353,7 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
-    assertEquals(issue.id, "#123")
+    assertEquals(issue.id, "PROJ-123") // Full issue ID format
     assertEquals(issue.title, "Add feature")
     assertEquals(issue.status, "open")
     assertEquals(issue.assignee, Some("assignee1"))
@@ -368,14 +368,14 @@ class GitLabClientTest extends munit.FunSuite:
         Left("ERROR: 404 Not Found")
 
     val result = GitLabClient.fetchIssue(
-      issueNumber = "999999",
+      issueIdValue = "PROJ-999999",
       repository = "owner/project",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
     assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("Failed to fetch issue"))
+    assert(result.left.getOrElse("").contains("Failed to fetch issue"), "Error should mention failed to fetch")
 
   test("fetchIssue returns Left when JSON parsing fails"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -386,14 +386,14 @@ class GitLabClientTest extends munit.FunSuite:
         Right("""{"invalid json""")
 
     val result = GitLabClient.fetchIssue(
-      issueNumber = "123",
+      issueIdValue = "PROJ-123",
       repository = "owner/project",
       isCommandAvailable = mockIsCommandAvailable,
       execCommand = mockExec
     )
 
     assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("Failed to parse"))
+    assert(result.left.getOrElse("").contains("Failed to parse"), "Error should mention failed to parse")
 
   // ========== Error Formatting Tests ==========
 

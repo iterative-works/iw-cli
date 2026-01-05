@@ -69,39 +69,36 @@ M  README.md
 ## Phase 6: GitLab issue ID parsing and validation (2026-01-05)
 
 **What was built:**
-- `IssueId.forGitLab(number)` - Factory method for GitLab numeric IDs
-- `IssueId.parse()` - Extended with `trackerType` parameter for tracker-aware parsing
-- `IssueId.fromBranch()` - Extended with `trackerType` parameter for branch extraction
-- `NumericPattern` and `NumericBranchPattern` - Regex patterns for GitLab ID formats
+- `IssueId.forGitHub(teamPrefix, number)` - Factory method for composing TEAM-NNN format
+- `IssueId.parse()` - Extended with `defaultTeam` parameter for numeric ID composition
+- `IssueId.fromBranch()` - Simplified to uniform TEAM-NNN extraction
 - Commands updated: `issue.scala`, `open.scala`, `start.scala`, `register.scala`, `rm.scala`
 
 **Decisions made:**
-- GitLab IDs stored as `#123` format (hash-prefixed) to distinguish from TEAM-NNN format
-- Tracker type passed as `Option[IssueTrackerType]` for backward compatibility
-- Branch patterns support `-`, `_`, and `/` separators (123-feature, 123_fix, 123/topic)
-- Added default parameter values to maintain backward compatibility with existing callers
+- GitLab IDs use same TEAM-NNN format as GitHub (unified format across all trackers)
+- teamPrefix required in config for both GitHub and GitLab
+- Removed trackerType parameter from IssueId parsing (simplified API)
+- Branch patterns uniform: TEAM-NNN-description for all trackers
 
 **Patterns applied:**
-- Pattern matching on `Option[IssueTrackerType]` for tracker-specific behavior
-- Same opaque type pattern - GitLab IDs still use `IssueId` type
+- Pattern matching on IssueTrackerType for teamPrefix determination
+- Same opaque type pattern - all IDs use `IssueId` type with TEAM-NNN format
 - Smart constructors validate input before creating IssueId
 
 **Testing:**
-- Unit tests: 17 tests added
-  - IssueIdTest: 11 new tests (parse, forGitLab factory)
-  - IssueIdFromBranchTest: 6 new tests (branch extraction patterns)
-- Fixed IssueSearchServiceTest: 2 tests updated to use numeric IDs for GitLab
+- Unit tests: Updated existing tests for unified TEAM-NNN format
+- E2E tests: 13 GitLab tests in gitlab-issue.bats
 
 **Code review:**
-- Iterations: 1
+- Iterations: 1 (before refactoring)
 - Critical issues: 0
 - Warnings: 5 (edge case tests, outdated comment)
 - Review file: review-phase-06.md
 
 **For next phases:**
-- Available utilities: `IssueId.forGitLab`, tracker-aware `parse` and `fromBranch`
-- Extension points: Pattern for adding tracker-specific ID formats
-- Notes: Phase 7 will add integration testing with real glab CLI
+- Available utilities: Unified `IssueId.parse` with defaultTeam, uniform format
+- Extension points: Pattern for adding tracker-specific teamPrefix logic
+- Notes: Phase 7 adds integration testing with real glab CLI
 
 **Files changed:**
 ```
@@ -114,7 +111,57 @@ M  .iw/commands/rm.scala
 M  .iw/core/IssueSearchService.scala
 M  .iw/core/test/IssueIdTest.scala
 M  .iw/core/test/IssueIdFromBranchTest.scala
-M  .iw/core/test/IssueSearchServiceTest.scala
+```
+
+### Refactoring R1: Align GitLab IDs with TEAM-NNN format (2026-01-05)
+
+**Trigger:** Code review discussion revealed Phase 6 introduced inconsistent ID handling. GitHub was intentionally designed to use teamPrefix so that numeric IDs become `TEAM-123` format. GitLab was given special `#123` format, which broke `.team` extension and created inconsistent branch names.
+
+**What changed:**
+- `IssueId.scala` - Removed `NumericPattern`, `NumericBranchPattern`, `forGitLab()`, and `trackerType` parameter
+- `GitLabClient.scala` - Updated to accept full issueIdValue (PROJ-123) and extract number internally
+- `GitHubClient.scala` - Same change as GitLabClient for consistency
+- `issue.scala` - Updated to pass issueId.value instead of extracting number at command level
+- Commands (`open`, `start`, `register`, `rm`) - Updated to pass teamPrefix for GitLab like GitHub
+
+**Before → After:**
+- GitLab IDs: `#123` → `PROJ-123` (same format as GitHub)
+- Branch names: `123-feature` → `PROJ-123-feature` (consistent)
+- IssueId API: `parse(raw, trackerType)` → `parse(raw, defaultTeam)` (simpler)
+
+**Patterns applied:**
+- Uniform TEAM-NNN format for all trackers (consistency)
+- Number extraction moved into Client classes (encapsulation)
+- teamPrefix logic centralized at command level
+
+**Testing:**
+- Unit tests: Updated GitLab tests to expect TEAM-NNN format
+- E2E tests: Updated gitlab-issue.bats assertions for new format
+- All 1126 unit tests passing
+- All 13 GitLab E2E tests passing
+
+**Code review:**
+- Iterations: 2
+- Iteration 1: 3 critical (GitLabClient/GitHubClient still using #123 format)
+- Iteration 2: 0 critical, 4 warnings, 6 suggestions
+- Review files: review-refactor-06-R1-20260105-153532.md, review-refactor-06-R1-20260105-155334.md
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+M  .iw/commands/open.scala
+M  .iw/commands/register.scala
+M  .iw/commands/rm.scala
+M  .iw/commands/start.scala
+M  .iw/core/GitHubClient.scala
+M  .iw/core/GitLabClient.scala
+M  .iw/core/IssueId.scala
+M  .iw/core/IssueSearchService.scala
+M  .iw/core/test/GitHubClientTest.scala
+M  .iw/core/test/GitLabClientTest.scala
+M  .iw/core/test/IssueIdFromBranchTest.scala
+M  .iw/core/test/IssueIdTest.scala
+M  .iw/test/gitlab-issue.bats
 ```
 
 ---

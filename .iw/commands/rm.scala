@@ -25,12 +25,12 @@ import iw.core.infrastructure.ServerClient
       Output.info("Usage: ./iw rm <issue-id> [--force]")
       sys.exit(1)
     case Some(rawId) =>
-      // Parse issue ID with team prefix from config (for GitHub tracker)
-      val teamPrefix = if config.trackerType == IssueTrackerType.GitHub then
-        config.teamPrefix
-      else
-        None
-      IssueId.parse(rawId, teamPrefix, Some(config.trackerType)) match
+      // Parse issue ID with team prefix from config (for GitHub/GitLab trackers)
+      val teamPrefix = config.trackerType match
+        case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+          config.teamPrefix
+        case _ => None
+      IssueId.parse(rawId, teamPrefix) match
         case Left(error) =>
           Output.error(error)
           sys.exit(1)

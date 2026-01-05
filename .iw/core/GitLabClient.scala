@@ -136,19 +136,19 @@ Check your network connection and try again.""".stripMargin
     * Expected format: {"iid": 1, "title": "...", "state": "opened", "assignees": [...], "description": "..."}
     *
     * @param jsonOutput JSON string from glab CLI
-    * @param issueNumber Issue number (used for error messages and ID formatting)
+    * @param issueIdValue Full issue ID (e.g., "PROJ-123") used in the Issue object
     * @return Right(Issue) on success, Left(error message) on failure
     */
   def parseFetchIssueResponse(
     jsonOutput: String,
-    issueNumber: String
+    issueIdValue: String
   ): Either[String, Issue] =
     try
       import ujson.*
       val json = read(jsonOutput)
 
-      // Format issue ID with # prefix (e.g., "#123")
-      val id = s"#$issueNumber"
+      // Use the full issue ID (e.g., "PROJ-123")
+      val id = issueIdValue
 
       // Extract title and state
       val title = json("title").str
@@ -186,19 +186,22 @@ Check your network connection and try again.""".stripMargin
 
   /** Fetch a GitLab issue via glab CLI.
     *
-    * @param issueNumber GitLab issue number (e.g., "123")
+    * @param issueIdValue Full issue ID (e.g., "PROJ-123") - number is extracted for API call
     * @param repository GitLab repository in owner/project format
     * @param isCommandAvailable Function to check if command exists (injected for testability)
     * @param execCommand Function to execute shell command (injected for testability)
     * @return Right(Issue) on success, Left(error message) on failure
     */
   def fetchIssue(
-    issueNumber: String,
+    issueIdValue: String,
     repository: String,
     isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
     execCommand: (String, Array[String]) => Either[String, String] =
       (cmd, args) => CommandRunner.execute(cmd, args)
   ): Either[String, Issue] =
+    // Extract numeric issue number from full ID (e.g., "PROJ-123" -> "123")
+    val issueNumber = issueIdValue.split("-").last
+
     // Validate prerequisites before attempting fetch
     validateGlabPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GlabPrerequisiteError.GlabNotInstalled) =>
@@ -210,7 +213,7 @@ Check your network connection and try again.""".stripMargin
       case Right(_) =>
         // Proceed with issue fetch
 
-    // Build command arguments
+    // Build command arguments (uses numeric ID for API)
     val args = buildFetchIssueCommand(issueNumber, repository)
 
     // Execute glab issue view
@@ -218,8 +221,8 @@ Check your network connection and try again.""".stripMargin
       case Left(error) =>
         Left(s"Failed to fetch issue: $error")
       case Right(jsonOutput) =>
-        // Parse JSON response
-        parseFetchIssueResponse(jsonOutput, issueNumber)
+        // Parse JSON response (uses full ID for Issue object)
+        parseFetchIssueResponse(jsonOutput, issueIdValue)
 
   /** Build glab CLI command arguments for creating an issue.
     *
