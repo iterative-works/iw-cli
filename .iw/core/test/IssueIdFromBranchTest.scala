@@ -92,3 +92,35 @@ class IssueIdFromBranchTest extends FunSuite:
     assert(result.left.exists(msg =>
       msg.contains("Cannot extract") && msg.contains("TEAM-123")
     ))
+
+  // ========== GitLab-Specific Branch Extraction Tests (Phase 6) ==========
+
+  test("IssueId.fromBranch extracts from numeric branch with description for GitLab"):
+    val result = IssueId.fromBranch("123-add-feature", Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#123"))
+
+  test("IssueId.fromBranch extracts from numeric branch with underscore for GitLab"):
+    val result = IssueId.fromBranch("123_feature", Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#123"))
+
+  test("IssueId.fromBranch extracts from exact numeric branch for GitLab"):
+    val result = IssueId.fromBranch("123", Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#123"))
+
+  test("IssueId.fromBranch extracts single-digit from branch for GitLab"):
+    val result = IssueId.fromBranch("1-feature", Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#1"))
+
+  test("IssueId.fromBranch rejects non-numeric branch for GitLab"):
+    val result = IssueId.fromBranch("main", Some(IssueTrackerType.GitLab))
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Cannot extract")))
+
+  test("IssueId.fromBranch rejects feature branch for GitLab"):
+    val result = IssueId.fromBranch("feature-branch", Some(IssueTrackerType.GitLab))
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Cannot extract")))

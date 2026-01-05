@@ -257,3 +257,55 @@ class IssueIdTest extends FunSuite:
     assert(result.left.exists(msg =>
       msg.contains("team prefix") && msg.contains("iw init")
     ))
+
+  // ========== GitLab-Specific Parsing Tests (Phase 6) ==========
+
+  test("IssueId.parse accepts bare numeric ID for GitLab tracker"):
+    val result = IssueId.parse("123", None, Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#123"))
+
+  test("IssueId.parse accepts single-digit ID for GitLab"):
+    val result = IssueId.parse("1", None, Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#1"))
+
+  test("IssueId.parse accepts large ID for GitLab"):
+    val result = IssueId.parse("99999", None, Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#99999"))
+
+  test("IssueId.parse rejects negative number for GitLab"):
+    val result = IssueId.parse("-123", None, Some(IssueTrackerType.GitLab))
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Invalid")))
+
+  test("IssueId.parse rejects decimal number for GitLab"):
+    val result = IssueId.parse("12.3", None, Some(IssueTrackerType.GitLab))
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Invalid")))
+
+  test("IssueId.parse rejects alphabetic input for GitLab"):
+    val result = IssueId.parse("abc", None, Some(IssueTrackerType.GitLab))
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Invalid")))
+
+  test("IssueId.parse trims whitespace for GitLab numeric ID"):
+    val result = IssueId.parse("  123  ", None, Some(IssueTrackerType.GitLab))
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#123"))
+
+  test("IssueId.forGitLab creates valid numeric format"):
+    val result = IssueId.forGitLab(123)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#123"))
+
+  test("IssueId.forGitLab creates valid format for single-digit"):
+    val result = IssueId.forGitLab(1)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#1"))
+
+  test("IssueId.forGitLab creates valid format for large number"):
+    val result = IssueId.forGitLab(99999)
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("#99999"))

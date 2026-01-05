@@ -27,7 +27,7 @@ import iw.core.infrastructure.ServerClient
     case Some(c) => c
 
   // Parse issue ID from branch
-  val issueId = IssueId.fromBranch(branch) match
+  val issueId = IssueId.fromBranch(branch, Some(config.trackerType)) match
     case Left(error) =>
       Output.error(error)
       sys.exit(1)

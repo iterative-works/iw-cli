@@ -43,7 +43,7 @@ def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, 
     val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
     for {
       branch <- GitAdapter.getCurrentBranch(currentDir)
-      issueId <- IssueId.fromBranch(branch)
+      issueId <- IssueId.fromBranch(branch, Some(config.trackerType))
     } yield issueId
   else
     // Parse explicit issue ID with team prefix from config (for GitHub tracker)
@@ -51,7 +51,7 @@ def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, 
       config.teamPrefix
     else
       None
-    IssueId.parse(args.head, teamPrefix)
+    IssueId.parse(args.head, teamPrefix, Some(config.trackerType))
 
 def loadConfig(): Either[String, ProjectConfiguration] =
   val configPath = os.Path(System.getProperty(Constants.SystemProps.UserDir)) / Constants.Paths.IwDir / "config.conf"
@@ -97,11 +97,11 @@ def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, I
           Left("GitLab repository not configured. Run 'iw init' first.")
         case Some(repository) =>
           // Extract numeric issue number from IssueId
-          // Handle both numeric GitLab IDs (e.g., "123") and potential TEAM-NNN format
-          val issueNumber = if issueId.value.contains("-") then
-            issueId.value.split("-")(1) // IWLE-123 -> 123
+          // GitLab IDs are stored as "#123", strip the # prefix
+          val issueNumber = if issueId.value.startsWith("#") then
+            issueId.value.drop(1) // #123 -> 123
           else
-            issueId.value // 123 -> 123
+            issueId.value // Fallback for backward compatibility
 
           GitLabClient.fetchIssue(issueNumber, repository) match
             case Left(error) if GitLabClient.isNotFoundError(error) =>
