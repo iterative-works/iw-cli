@@ -42,6 +42,7 @@ Current `IssueId.parse` and `IssueId.fromBranch` only accept `TEAM-NNN` patterns
 - [x] [impl] [reviewed] Update existing tests to pass tracker type where needed
 - [x] [impl] [reviewed] Run full test suite to verify no regressions
 - [ ] [impl] Manual verification with `iw issue` on GitLab-configured project (Phase 7)
+- [ ] [impl] [ ] [reviewed] Refactoring R1: Align GitLab IDs with TEAM-NNN format
 
 ## Acceptance Criteria
 

@@ -111,3 +111,21 @@ This is straightforward because:
 - GitLab issue IDs are project-scoped, so `123` in `project-a` is different from `123` in `project-b`
 - The repository context comes from config, not the issue ID
 - If existing parsing already works, this phase is mainly adding tests for completeness
+
+## Refactoring Decisions
+
+### R1: Align GitLab IDs with TEAM-NNN format (2026-01-05)
+
+**Trigger:** Code review discussion revealed that Phase 6 introduced inconsistent ID handling. GitHub was intentionally made to use `teamPrefix` config so that numeric IDs become `TEAM-123` format, consistent with Linear and YouTrack. GitLab was given special treatment with `#123` format, which:
+1. Breaks the `.team` extension method (splits on `-` but `#123` has no dash)
+2. Creates inconsistent branch names (`123-desc` vs `TEAM-123-desc`)
+3. Violates the design principle of uniform ID format across all trackers
+
+**Decision:** GitLab should work exactly like GitHub - require `teamPrefix` config, compose `TEAM-123` format from numeric input, store internally as `TEAM-123`, extract number only when calling GitLab API.
+
+**Scope:**
+- Files affected: `IssueId.scala`, `issue.scala`, `open.scala`, `start.scala`, `register.scala`, `rm.scala`, tests
+- Components: IssueId parsing, branch extraction, command-level issue handling
+- Boundaries: Do NOT touch GitLabClient API calls (they correctly work with numbers)
+
+**Approach:** Remove GitLab-specific code paths from IssueId, make GitLab use the same teamPrefix flow as GitHub
