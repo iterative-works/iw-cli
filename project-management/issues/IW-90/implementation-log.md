@@ -6,6 +6,56 @@ This log tracks the evolution of implementation across phases.
 
 ---
 
+## Phase 5: Create GitLab issues via glab CLI (2026-01-04)
+
+**What was built:**
+- `GitLabClient.buildCreateIssueCommand()` - Builds glab CLI command with labels
+- `GitLabClient.buildCreateIssueCommandWithoutLabel()` - Fallback command for label errors
+- `GitLabClient.parseCreateIssueResponse()` - Parses issue URL from glab output
+- `GitLabClient.isLabelError()` - Detects label-related errors for retry logic
+- `GitLabClient.createIssue()` - Main entry point with label fallback strategy
+- `feedback.scala` - Routes to GitLab or GitHub based on tracker config
+
+**Decisions made:**
+- Followed `GitHubClient.createIssue` pattern exactly for consistency
+- Label fallback strategy: Try with label first, retry without if label doesn't exist
+- glab uses `--description` flag (not `--body` like gh)
+- GitLab URLs use `/-/issues/` format for parsing
+- Config routing: Read `.iw/config.conf` at execution time, not load time
+
+**Patterns applied:**
+- Dependency injection for testability (isCommandAvailable, execCommand parameters)
+- Either-based error handling consistent with existing patterns
+- Label fallback pattern (same as GitHubClient)
+- Pattern matching for tracker type routing in feedback.scala
+
+**Testing:**
+- Unit tests: 15+ tests added covering:
+  - Command building (Bug/Feature type mapping, with/without labels)
+  - Response parsing (gitlab.com URLs, self-hosted URLs, error cases)
+  - Label error detection (various error messages)
+  - Integration tests (success path, retry logic, prerequisite failures)
+
+**Code review:**
+- Iterations: 1
+- Major findings: 2 security concerns (contextually low risk - Scala Process API is safe)
+- Style fix: Updated PURPOSE comments to reflect new functionality
+- Review file: review-phase-05-20260104.md
+
+**For next phases:**
+- Available utilities: `GitLabClient.createIssue`, `buildCreateIssueCommand`
+- Extension points: Label fallback pattern can be reused for other commands
+- Notes: Phase 6 will add GitLab issue ID parsing and validation
+
+**Files changed:**
+```
+M  .iw/commands/feedback.scala
+M  .iw/core/GitLabClient.scala
+M  .iw/core/test/GitLabClientTest.scala
+```
+
+---
+
 ## Phase 4: GitLab issue URL generation in search and dashboard (2026-01-04)
 
 **What was built:**
