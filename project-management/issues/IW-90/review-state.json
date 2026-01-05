@@ -1,8 +1,7 @@
 {
-  "status": "awaiting_review",
+  "status": "phase_complete",
   "phase": 6,
-  "message": "Phase 6 complete - GitLab issue ID parsing and validation",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/99",
+  "message": "Phase 6 merged - GitLab issue ID parsing and validation",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
