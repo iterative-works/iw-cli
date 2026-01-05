@@ -1,9 +1,12 @@
 {
-  "status": "context_ready",
+  "status": "awaiting_review",
   "phase": 5,
-  "message": "Phase 5 context ready for review",
+  "message": "Phase 5 complete - Create GitLab issues via glab CLI",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/98",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
-    {"label": "Phase 5 Context", "path": "project-management/issues/IW-90/phase-05-context.md"}
+    {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
+    {"label": "Phase 5 Context", "path": "project-management/issues/IW-90/phase-05-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-90/review-packet-phase-05.md"}
   ]
 }
