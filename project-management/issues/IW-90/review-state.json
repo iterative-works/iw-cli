@@ -1,12 +1,10 @@
 {
-  "status": "awaiting_review",
-  "phase": 7,
-  "message": "Phase 7 complete - Integration testing with real glab CLI",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/101",
+  "status": "all_complete",
+  "phase": "final",
+  "message": "All 7 phases complete - final PR ready",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
-    {"label": "Phase 7 Context", "path": "project-management/issues/IW-90/phase-07-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-90/review-packet-phase-07.md"}
+    {"label": "Tasks", "path": "project-management/issues/IW-90/tasks.md"}
   ]
 }
