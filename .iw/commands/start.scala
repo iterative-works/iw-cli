@@ -27,7 +27,7 @@ import iw.core.infrastructure.ServerClient
     config.teamPrefix
   else
     None
-  val issueIdResult = IssueId.parse(rawIssueId, teamPrefix)
+  val issueIdResult = IssueId.parse(rawIssueId, teamPrefix, Some(config.trackerType))
 
   issueIdResult match
     case Left(error) =>

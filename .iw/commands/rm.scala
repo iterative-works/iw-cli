@@ -30,7 +30,7 @@ import iw.core.infrastructure.ServerClient
         config.teamPrefix
       else
         None
-      IssueId.parse(rawId, teamPrefix) match
+      IssueId.parse(rawId, teamPrefix, Some(config.trackerType)) match
         case Left(error) =>
           Output.error(error)
           sys.exit(1)

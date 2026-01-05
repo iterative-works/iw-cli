@@ -24,8 +24,8 @@ import iw.core.infrastructure.ServerClient
         config.teamPrefix
       else
         None
-      IssueId.parse(rawId, teamPrefix)
-    case None => inferIssueFromBranch()
+      IssueId.parse(rawId, teamPrefix, Some(config.trackerType))
+    case None => inferIssueFromBranch(config)
 
   issueIdResult match
     case Left(error) =>
@@ -34,9 +34,9 @@ import iw.core.infrastructure.ServerClient
     case Right(issueId) =>
       openWorktreeSession(issueId, config)
 
-def inferIssueFromBranch(): Either[String, IssueId] =
+def inferIssueFromBranch(config: ProjectConfiguration): Either[String, IssueId] =
   val currentDir = os.pwd
-  GitAdapter.getCurrentBranch(currentDir).flatMap(IssueId.fromBranch)
+  GitAdapter.getCurrentBranch(currentDir).flatMap(IssueId.fromBranch(_, Some(config.trackerType)))
 
 def openWorktreeSession(issueId: IssueId, config: ProjectConfiguration): Unit =
       val currentDir = os.pwd

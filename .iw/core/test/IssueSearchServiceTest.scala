@@ -175,17 +175,19 @@ class IssueSearchServiceTest extends FunSuite:
       teamPrefix = Some("IW")
     )
 
+    // GitLab uses numeric IDs, which are stored as "#123" format
     val fetchIssue = (id: IssueId) =>
-      Right(Issue("IW-123", "GitLab Issue", "opened", None, None))
+      Right(Issue("#123", "GitLab Issue", "opened", None, None))
 
-    val results = IssueSearchService.search("IW-123", config, fetchIssue)
+    // GitLab requires numeric issue IDs
+    val results = IssueSearchService.search("123", config, fetchIssue)
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
 
     results.foreach { list =>
       val result = list.head
-      assertEquals(result.id, "IW-123")
+      assertEquals(result.id, "#123")
       assertEquals(result.title, "GitLab Issue")
       assert(result.url.contains("gitlab.com"), "URL should be GitLab URL")
       assert(result.url.contains("/-/issues/"), "URL should have GitLab path format")
@@ -202,10 +204,12 @@ class IssueSearchServiceTest extends FunSuite:
       teamPrefix = Some("PROJ")
     )
 
+    // GitLab uses numeric IDs, which are stored as "#456" format
     val fetchIssue = (id: IssueId) =>
-      Right(Issue("PROJ-456", "Self-hosted GitLab Issue", "closed", None, None))
+      Right(Issue("#456", "Self-hosted GitLab Issue", "closed", None, None))
 
-    val results = IssueSearchService.search("PROJ-456", config, fetchIssue)
+    // GitLab requires numeric issue IDs
+    val results = IssueSearchService.search("456", config, fetchIssue)
 
     assert(results.isRight, "Search should succeed")
     results.foreach { list =>
