@@ -92,3 +92,36 @@ class IssueIdFromBranchTest extends FunSuite:
     assert(result.left.exists(msg =>
       msg.contains("Cannot extract") && msg.contains("TEAM-123")
     ))
+
+  // ========== GitLab-Specific Branch Extraction Tests (Phase 6 - Refactored R1) ==========
+  // GitLab now uses same TEAM-NNN format as GitHub (not #123)
+
+  test("IssueId.fromBranch extracts from TEAM-NNN branch with description for GitLab"):
+    val result = IssueId.fromBranch("PROJ-123-add-feature")
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("PROJ-123"))
+
+  test("IssueId.fromBranch extracts from TEAM-NNN exact match for GitLab"):
+    val result = IssueId.fromBranch("PROJ-123")
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("PROJ-123"))
+
+  test("IssueId.fromBranch extracts single-digit from TEAM-N branch for GitLab"):
+    val result = IssueId.fromBranch("PROJ-1")
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("PROJ-1"))
+
+  test("IssueId.fromBranch normalizes lowercase TEAM-NNN for GitLab"):
+    val result = IssueId.fromBranch("proj-123-feature")
+    assert(result.isRight)
+    assertEquals(result.map(_.value), Right("PROJ-123"))
+
+  test("IssueId.fromBranch rejects bare numeric branch for GitLab"):
+    val result = IssueId.fromBranch("123-feature")
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Cannot extract")))
+
+  test("IssueId.fromBranch rejects non-TEAM-NNN branch for GitLab"):
+    val result = IssueId.fromBranch("feature-branch")
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains("Cannot extract")))

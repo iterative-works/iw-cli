@@ -102,6 +102,92 @@ iw issue
 
 No API tokens needed - `iw` uses your existing `gh` authentication.
 
+## GitLab Integration
+
+### Repository Auto-Detection
+
+When using `iw init --tracker=gitlab`, the repository is automatically detected from your git remote URL:
+
+```bash
+# Automatically detects "owner/project" from remote URL
+iw init --tracker=gitlab --team-prefix=PROJ
+```
+
+**Supported URL formats:**
+- HTTPS: `https://gitlab.com/owner/project.git`
+- HTTPS without .git: `https://gitlab.com/owner/project`
+- HTTPS with trailing slash: `https://gitlab.com/owner/project/`
+- SSH: `git@gitlab.com:owner/project.git`
+- SSH without .git: `git@gitlab.com:owner/project`
+- Self-hosted: `https://gitlab.company.com/owner/project.git`
+- Nested groups: `https://gitlab.com/company/team/project.git`
+
+**Multiple remotes:**
+When your repository has multiple remotes (e.g., `origin` and `upstream`), the `origin` remote is always used for auto-detection.
+
+**Manual input:**
+If auto-detection fails (non-GitLab remote or no remote configured), you'll be prompted to enter the repository manually in `owner/project` or `group/subgroup/project` format.
+
+### Authentication
+
+GitLab integration uses the `glab` CLI for authentication:
+
+```bash
+# Install glab CLI (macOS)
+brew install glab
+
+# Install glab CLI (Linux/Windows)
+# See https://gitlab.com/gitlab-org/cli#installation
+
+# Authenticate once
+glab auth login
+
+# Then use iw normally
+iw init --tracker=gitlab --team-prefix=PROJ
+iw issue
+```
+
+No API tokens needed - `iw` uses your existing `glab` authentication.
+
+### Self-Hosted GitLab
+
+For self-hosted GitLab instances, specify the base URL during initialization:
+
+```bash
+iw init --tracker=gitlab --team-prefix=PROJ --base-url=https://gitlab.company.com
+```
+
+Or add it manually to `.iw/config.conf`:
+
+```hocon
+tracker {
+  type = gitlab
+  repository = "team/project"
+  teamPrefix = "PROJ"
+  baseUrl = "https://gitlab.company.com"  # Optional, defaults to gitlab.com
+}
+```
+
+### Nested Groups
+
+GitLab supports nested group structures like `company/team/project`. These are fully supported:
+
+```bash
+# Auto-detection works with nested groups
+git remote add origin https://gitlab.com/company/team/project.git
+iw init --tracker=gitlab --team-prefix=PROJ
+```
+
+Configuration:
+
+```hocon
+tracker {
+  type = gitlab
+  repository = "company/team/project"
+  teamPrefix = "PROJ"
+}
+```
+
 ## Worktree Layout
 
 Worktrees are created as sibling directories:

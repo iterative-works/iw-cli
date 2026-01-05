@@ -22,11 +22,11 @@ import iw.core.infrastructure.ServerClient
       throw RuntimeException("unreachable") // for type checker
     case Some(c) => c
 
-  // Parse issue ID, applying team prefix for GitHub if needed
-  val teamPrefix = if config.trackerType == IssueTrackerType.GitHub then
-    config.teamPrefix
-  else
-    None
+  // Parse issue ID, applying team prefix for GitHub/GitLab if needed
+  val teamPrefix = config.trackerType match
+    case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+      config.teamPrefix
+    case _ => None
   val issueIdResult = IssueId.parse(rawIssueId, teamPrefix)
 
   issueIdResult match

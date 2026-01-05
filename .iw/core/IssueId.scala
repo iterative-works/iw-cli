@@ -6,14 +6,15 @@ package iw.core
 opaque type IssueId = String
 
 object IssueId:
-  // Pattern for TEAM-NNN format (e.g., IWLE-132, IWCLI-51)
+  // Pattern for TEAM-NNN format (e.g., IWLE-132, IWCLI-51, PROJ-123)
   private val Pattern = """^[A-Z]+-[0-9]+$""".r
   // Branch pattern for TEAM-NNN-description
   private val BranchPattern = """^([A-Z]+-[0-9]+).*""".r
 
   def parse(raw: String, defaultTeam: Option[String] = None): Either[String, IssueId] =
     val trimmed = raw.trim
-    // Try TEAM-NNN pattern first (uppercase it for Linear/YouTrack)
+
+    // Try TEAM-NNN pattern first (uppercase it for Linear/YouTrack/GitLab)
     val normalized = trimmed.toUpperCase
     normalized match
       case Pattern() => Right(normalized)
@@ -22,7 +23,7 @@ object IssueId:
         defaultTeam.flatMap { team =>
           trimmed.toIntOption.map(num => forGitHub(team, num))
         }.getOrElse {
-          Left(s"Invalid issue ID format: $raw (expected: TEAM-123). For GitHub projects, configure team prefix with 'iw init'.")
+          Left(s"Invalid issue ID format: $raw (expected: TEAM-123). For GitHub/GitLab projects, configure team prefix with 'iw init'.")
         }
 
   def forGitHub(teamPrefix: String, number: Int): Either[String, IssueId] =
@@ -36,12 +37,12 @@ object IssueId:
         parse(composed)
 
   def fromBranch(branchName: String): Either[String, IssueId] =
-    // Try TEAM-NNN pattern (uppercase for Linear/YouTrack)
+    // Try TEAM-NNN pattern (uppercase for Linear/YouTrack/GitLab)
     val normalized = branchName.toUpperCase
     normalized match
       case BranchPattern(issueId) => Right(issueId)
       case _ =>
-        Left(s"Cannot extract issue ID from branch '$branchName' (expected: TEAM-123 or TEAM-123-description). Configure team prefix with 'iw init' for GitHub projects.")
+        Left(s"Cannot extract issue ID from branch '$branchName' (expected: TEAM-123 or TEAM-123-description). Configure team prefix with 'iw init' for GitHub/GitLab projects.")
 
   extension (issueId: IssueId)
     def value: String = issueId

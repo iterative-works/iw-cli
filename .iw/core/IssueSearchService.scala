@@ -94,6 +94,17 @@ object IssueSearchService:
             // Fallback if base URL not configured
             s"https://youtrack.example.com/issue/$issueId"
 
+      case "gitlab" =>
+        // GitLab URL format: https://gitlab.com/{group}/{project}/-/issues/{number}
+        val number = extractGitHubIssueNumber(issueId) // Same extraction logic
+        val baseUrl = config.youtrackBaseUrl.getOrElse("https://gitlab.com").stripSuffix("/")
+        config.repository match
+          case Some(repo) =>
+            s"$baseUrl/$repo/-/issues/$number"
+          case None =>
+            // Fallback if repository not configured
+            s"$baseUrl/unknown/repo/-/issues/$number"
+
       case _ =>
         // Unknown tracker - return generic URL
         s"#$issueId"

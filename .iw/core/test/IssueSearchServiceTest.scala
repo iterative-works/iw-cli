@@ -165,3 +165,55 @@ class IssueSearchServiceTest extends FunSuite:
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
+
+  test("search with GitLab issue ID returns result with correct URL format"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "IW",
+      projectName = "my-project",
+      repository = Some("my-org/my-project"),
+      teamPrefix = Some("IW")
+    )
+
+    // GitLab uses numeric IDs, which are stored as "#123" format
+    val fetchIssue = (id: IssueId) =>
+      Right(Issue("#123", "GitLab Issue", "opened", None, None))
+
+    // GitLab requires numeric issue IDs
+    val results = IssueSearchService.search("123", config, fetchIssue)
+
+    assert(results.isRight, "Search should succeed")
+    assertEquals(results.map(_.length), Right(1), "Should return one result")
+
+    results.foreach { list =>
+      val result = list.head
+      assertEquals(result.id, "#123")
+      assertEquals(result.title, "GitLab Issue")
+      assert(result.url.contains("gitlab.com"), "URL should be GitLab URL")
+      assert(result.url.contains("/-/issues/"), "URL should have GitLab path format")
+      assert(result.url.contains("my-org/my-project"), "URL should contain repository")
+    }
+
+  test("search with GitLab issue ID uses self-hosted baseUrl"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "PROJ",
+      projectName = "project",
+      repository = Some("team/app"),
+      youtrackBaseUrl = Some("https://gitlab.company.com"),
+      teamPrefix = Some("PROJ")
+    )
+
+    // GitLab uses numeric IDs, which are stored as "#456" format
+    val fetchIssue = (id: IssueId) =>
+      Right(Issue("#456", "Self-hosted GitLab Issue", "closed", None, None))
+
+    // GitLab requires numeric issue IDs
+    val results = IssueSearchService.search("456", config, fetchIssue)
+
+    assert(results.isRight, "Search should succeed")
+    results.foreach { list =>
+      val result = list.head
+      assert(result.url.contains("gitlab.company.com"), "URL should use self-hosted base URL")
+      assert(result.url.contains("/-/issues/456"), "URL should have correct issue number")
+    }

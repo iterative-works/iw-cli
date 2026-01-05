@@ -444,3 +444,289 @@ class ConfigTest extends munit.FunSuite:
     val suggested = TeamPrefixValidator.suggestFromRepository("owner/very-long-repository-name")
     assert(suggested.length <= 10)
     assert(suggested == "VERYLONGRE")
+
+  // ========== GitLab Repository Extraction Tests ==========
+
+  test("GitRemote extracts owner/repo from GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.com/owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts owner/repo from GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.com:owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts nested group path from GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.com/group/subgroup/project.git")
+    assertEquals(remote.extractGitLabRepository, Right("group/subgroup/project"))
+
+  test("GitRemote extracts nested group path from GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.com:group/subgroup/project.git")
+    assertEquals(remote.extractGitLabRepository, Right("group/subgroup/project"))
+
+  test("GitRemote extracts repository from self-hosted GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.company.com/owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts repository from self-hosted GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.company.com:owner/repo.git")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote extracts nested groups from self-hosted GitLab"):
+    val remote = GitRemote("https://gitlab.company.com/team/subteam/project.git")
+    assertEquals(remote.extractGitLabRepository, Right("team/subteam/project"))
+
+  test("GitRemote returns error for non-GitLab URL when extracting GitLab repo"):
+    val remote = GitRemote("https://github.com/owner/repo.git")
+    assert(remote.extractGitLabRepository.isLeft)
+
+  test("GitRemote handles GitLab URL without .git suffix"):
+    val remote = GitRemote("https://gitlab.com/owner/repo")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  test("GitRemote handles GitLab URL with trailing slash"):
+    val remote = GitRemote("https://gitlab.com/owner/repo/")
+    assertEquals(remote.extractGitLabRepository, Right("owner/repo"))
+
+  // ========== GitLab Repository Extraction Error Path Tests ==========
+
+  test("GitRemote returns error for GitLab URL with empty path component"):
+    val remote = GitRemote("https://gitlab.com/owner//repo.git")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("empty"))
+
+  test("GitRemote returns error for GitLab URL with only owner (no repo)"):
+    val remote = GitRemote("https://gitlab.com/single-component")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("owner/repo"))
+
+  test("GitRemote returns error for GitLab URL with trailing slashes only"):
+    val remote = GitRemote("https://gitlab.com///")
+    assert(remote.extractGitLabRepository.isLeft)
+
+  test("GitRemote returns error for GitLab SSH URL with empty path component"):
+    val remote = GitRemote("git@gitlab.com:owner//repo.git")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("empty"))
+
+  test("GitRemote returns error for GitLab SSH URL with only owner"):
+    val remote = GitRemote("git@gitlab.com:single-component")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("owner/repo"))
+
+  test("GitRemote returns error for GitLab nested groups with empty component"):
+    val remote = GitRemote("https://gitlab.com/group//subgroup/project.git")
+    assert(remote.extractGitLabRepository.isLeft)
+    assert(remote.extractGitLabRepository.left.getOrElse("").contains("empty"))
+
+  test("GitRemote returns error for self-hosted GitLab with malformed path"):
+    val remote = GitRemote("https://gitlab.company.com/")
+    assert(remote.extractGitLabRepository.isLeft)
+
+  // ========== TrackerDetector GitLab Tests ==========
+
+  test("TrackerDetector suggests GitLab for gitlab.com HTTPS remote"):
+    val suggestion = TrackerDetector.suggestTracker(GitRemote("https://gitlab.com/user/repo.git"))
+    assertEquals(suggestion, Some(IssueTrackerType.GitLab))
+
+  test("TrackerDetector suggests GitLab for gitlab.com SSH remote"):
+    val suggestion = TrackerDetector.suggestTracker(GitRemote("git@gitlab.com:user/repo.git"))
+    assertEquals(suggestion, Some(IssueTrackerType.GitLab))
+
+  test("TrackerDetector suggests GitLab for self-hosted GitLab"):
+    val suggestion = TrackerDetector.suggestTracker(GitRemote("https://gitlab.company.com/user/repo.git"))
+    assertEquals(suggestion, Some(IssueTrackerType.GitLab))
+
+  test("TrackerDetector prioritizes GitHub over GitLab"):
+    // This test verifies that if we check GitHub first, it wins
+    val githubSuggestion = TrackerDetector.suggestTracker(GitRemote("https://github.com/user/repo.git"))
+    assertEquals(githubSuggestion, Some(IssueTrackerType.GitHub))
+
+    val gitlabSuggestion = TrackerDetector.suggestTracker(GitRemote("https://gitlab.com/user/repo.git"))
+    assertEquals(gitlabSuggestion, Some(IssueTrackerType.GitLab))
+
+  // ========== ConfigSerializer GitLab Serialization Tests ==========
+
+  test("ConfigSerializer serializes GitLab config without baseUrl"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("owner/project"),
+      projectName = "test-project",
+      teamPrefix = Some("PROJ")
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(hocon.contains("type = gitlab"))
+    assert(hocon.contains("repository = \"owner/project\""))
+    assert(hocon.contains("teamPrefix = \"PROJ\""))
+    assert(!hocon.contains("baseUrl"))
+
+  test("ConfigSerializer serializes GitLab config with baseUrl"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("owner/project"),
+      projectName = "test-project",
+      teamPrefix = Some("PROJ"),
+      youtrackBaseUrl = Some("https://gitlab.company.com")
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(hocon.contains("type = gitlab"))
+    assert(hocon.contains("repository = \"owner/project\""))
+    assert(hocon.contains("teamPrefix = \"PROJ\""))
+    assert(hocon.contains("baseUrl = \"https://gitlab.company.com\""))
+
+  test("ConfigSerializer serializes GitLab config with nested group"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("group/subgroup/project"),
+      projectName = "test-project",
+      teamPrefix = Some("PROJ")
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(hocon.contains("repository = \"group/subgroup/project\""))
+
+  test("ConfigSerializer deserializes GitLab config with repository and teamPrefix"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        repository = "owner/project"
+        teamPrefix = "PROJ"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitLab)
+    assertEquals(config.repository, Some("owner/project"))
+    assertEquals(config.teamPrefix, Some("PROJ"))
+    assertEquals(config.youtrackBaseUrl, None)
+
+  test("ConfigSerializer deserializes GitLab config with optional baseUrl"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        repository = "owner/project"
+        teamPrefix = "PROJ"
+        baseUrl = "https://gitlab.company.com"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitLab)
+    assertEquals(config.youtrackBaseUrl, Some("https://gitlab.company.com"))
+
+  test("ConfigSerializer deserializes GitLab config with nested groups"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        repository = "group/subgroup/project"
+        teamPrefix = "PROJ"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.repository, Some("group/subgroup/project"))
+
+  test("ConfigSerializer requires repository for GitLab tracker"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        teamPrefix = "PROJ"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("repository required for GitLab tracker"))
+
+  test("ConfigSerializer requires teamPrefix for GitLab tracker"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        repository = "owner/project"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("teamPrefix required for GitLab tracker"))
+
+  test("ConfigSerializer validates GitLab repository format"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        repository = "invalid"
+        teamPrefix = "PROJ"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("repository must be in owner/repo format"))
+
+  test("ConfigSerializer round-trip for GitLab config without baseUrl"):
+    val original = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("owner/project"),
+      projectName = "test-project",
+      teamPrefix = Some("PROJ")
+    )
+    val hocon = ConfigSerializer.toHocon(original)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.trackerType, original.trackerType)
+    assertEquals(roundTripped.repository, original.repository)
+    assertEquals(roundTripped.teamPrefix, original.teamPrefix)
+    assertEquals(roundTripped.projectName, original.projectName)
+
+  test("ConfigSerializer round-trip for GitLab config with baseUrl"):
+    val original = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("owner/project"),
+      projectName = "test-project",
+      teamPrefix = Some("PROJ"),
+      youtrackBaseUrl = Some("https://gitlab.company.com")
+    )
+    val hocon = ConfigSerializer.toHocon(original)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.trackerType, original.trackerType)
+    assertEquals(roundTripped.repository, original.repository)
+    assertEquals(roundTripped.teamPrefix, original.teamPrefix)
+    assertEquals(roundTripped.youtrackBaseUrl, original.youtrackBaseUrl)
+
+  test("ConfigSerializer round-trip for GitLab config with nested groups"):
+    val original = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("group/subgroup/project"),
+      projectName = "test-project",
+      teamPrefix = Some("PROJ")
+    )
+    val hocon = ConfigSerializer.toHocon(original)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.repository, original.repository)
