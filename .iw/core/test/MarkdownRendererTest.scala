@@ -304,3 +304,17 @@ class MarkdownRendererTest extends munit.FunSuite:
     assert(html.contains("\"Testing\" : 30"))
     assert(html.contains("\"Documentation\" : 20"))
     assert(!html.contains("<pre><code class=\"language-mermaid\">"))
+
+  test("mermaid block with dollar signs does not cause illegal group reference"):
+    // Dollar signs were being interpreted as regex group references in replaceAllIn
+    val markdown = """```mermaid
+                     |C4Context
+                     |  UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+                     |  Person(user, "User", "Uses the system")
+                     |```""".stripMargin
+    val html = MarkdownRenderer.toHtml(markdown)
+
+    assert(html.contains("<div class=\"mermaid\">"))
+    assert(html.contains("$c4ShapeInRow"))
+    assert(html.contains("$c4BoundaryInRow"))
+    assert(!html.contains("<pre><code class=\"language-mermaid\">"))

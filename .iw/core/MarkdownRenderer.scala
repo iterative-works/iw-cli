@@ -61,7 +61,8 @@ object MarkdownRenderer:
     mermaidPattern.replaceAllIn(html, m => {
       val encodedContent = m.group(1)
       val decodedContent = decodeHtmlEntities(encodedContent)
-      s"""<div class="mermaid">$decodedContent</div>"""
+      // Escape $ characters to prevent them being interpreted as group references
+      scala.util.matching.Regex.quoteReplacement(s"""<div class="mermaid">$decodedContent</div>""")
     })
 
   /** Decode common HTML entities.
