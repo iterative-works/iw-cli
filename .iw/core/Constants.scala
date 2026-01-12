@@ -10,6 +10,7 @@ object Constants:
     val LinearApiToken = "LINEAR_API_TOKEN"
     val YouTrackApiToken = "YOUTRACK_API_TOKEN"
     val IwHookClasses = "IW_HOOK_CLASSES"
+    val IwCommandsDir = "IW_COMMANDS_DIR"
     val Tmux = "TMUX"
 
   /** Configuration file keys in HOCON format */

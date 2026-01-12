@@ -1,0 +1,9 @@
+{
+  "status": "all_complete",
+  "phase": "final",
+  "message": "All phases complete - final PR created",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/110",
+  "artifacts": [
+    {"label": "Implementation Log", "path": "project-management/issues/IW-107/implementation-log.md"}
+  ]
+}
