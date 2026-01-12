@@ -1,9 +1,10 @@
 {
-  "status": "all_complete",
-  "phase": "final",
-  "message": "All phases complete - final PR created",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/110",
+  "status": "refactoring_pr",
+  "phase": "1-R1",
+  "message": "Refactoring R1 complete - PR created for review",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/112",
   "artifacts": [
-    {"label": "Implementation Log", "path": "project-management/issues/IW-107/implementation-log.md"}
+    {"label": "Implementation Log", "path": "project-management/issues/IW-107/implementation-log.md"},
+    {"label": "Refactoring R1", "path": "project-management/issues/IW-107/refactor-phase-01-R1.md"}
   ]
 }
