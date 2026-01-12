@@ -14,7 +14,12 @@ import iw.core.*
     Output.info("Install from: https://claude.ai/code")
     sys.exit(1)
 
-  val promptFile = os.pwd / ".iw" / "scripts" / "claude-skill-prompt.md"
+  // Resolve template path from IW_COMMANDS_DIR (installation dir) or fall back to os.pwd
+  // IW_COMMANDS_DIR points to .iw/commands, so we go up one level to .iw, then to scripts/
+  val iwDir = sys.env.get(Constants.EnvVars.IwCommandsDir)
+    .map(p => os.Path(p) / os.up)  // Go from .iw/commands to .iw
+    .getOrElse(os.pwd / ".iw")
+  val promptFile = iwDir / "scripts" / "claude-skill-prompt.md"
 
   if !os.exists(promptFile) then
     Output.error(s"Prompt file not found: $promptFile")
