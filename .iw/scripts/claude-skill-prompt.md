@@ -34,6 +34,7 @@ description: |
 ## Guidelines
 
 ### Command Discovery
+- The `iw` script is in the project root and must be invoked as `./iw`, not `iw` (it's not in PATH)
 - List available commands with their purpose
 - Show how to get details: `./iw --describe <command>`
 - Group related commands together
@@ -74,3 +75,4 @@ Write skill files to `.claude/skills/`. Examples:
 - Focus on USING iw-cli, not creating new commands
 - Include project-specific context from config.conf
 - Keep descriptions actionable for agents
+- CRITICAL: Always use `./iw` not `iw` - the script is project-local, not in PATH
