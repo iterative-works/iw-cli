@@ -6,6 +6,46 @@ This log tracks the evolution of implementation across phases.
 
 ---
 
+## Phase 2: Improved error messaging (2026-01-12)
+
+**What was built:**
+- Feature: `.iw/commands/claude-sync.scala` - Enhanced error handling when template file not found
+- Tests: `.iw/test/claude-sync.bats` - 3 new E2E tests for error message content
+
+**Decisions made:**
+- Show exact path that was checked in error message
+- Add "installation" context to clarify this is an iw-cli installation issue (not project setup)
+- Provide actionable suggestions (check IW_HOME, reinstall iw-cli)
+- Show detected installation directory if IW_COMMANDS_DIR was set
+
+**Patterns applied:**
+- Output.error() for primary error message
+- Output.info() for contextual information and suggestions
+- sys.env.get().foreach() to conditionally show installation directory
+
+**Testing:**
+- E2E tests: 3 tests added
+  - Error shows exact path checked
+  - Error mentions "installation" context
+  - Error provides actionable suggestions (IW_HOME or reinstall)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260112.md
+- Major findings: No critical issues. Minor style suggestions only (Scala 3 indentation consistency, test documentation).
+
+**For future:**
+- Error messaging pattern established can be reused for other commands
+- Same Output.info() suggestion pattern for future user-facing errors
+
+**Files changed:**
+```
+M .iw/commands/claude-sync.scala
+M .iw/test/claude-sync.bats
+```
+
+---
+
 ## Phase 1: Template path resolution fix (2026-01-12)
 
 **What was built:**

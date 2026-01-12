@@ -65,8 +65,8 @@ teardown() {
 
     run ./iw-run claude-sync
     [ "$status" -eq 0 ]
-    # Should succeed without "Prompt file not found" error
-    [[ "$output" != *"Prompt file not found"* ]]
+    # Should succeed without "Template file not found" error
+    [[ "$output" != *"Template file not found"* ]]
 }
 
 @test "claude-sync works from iw-cli repository (os.pwd fallback)" {
@@ -99,7 +99,7 @@ teardown() {
 
     run bash -c "cd '$TEST_DIR/mock-iw-cli' && scala-cli run .iw/commands/claude-sync.scala $core_files -- 2>&1 || true"
     # Should find template via os.pwd fallback
-    [[ "$output" != *"Prompt file not found"* ]]
+    [[ "$output" != *"Template file not found"* ]]
 }
 
 @test "claude-sync fails gracefully when template not found in either location" {
@@ -108,5 +108,35 @@ teardown() {
 
     run ./iw-run claude-sync
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Prompt file not found"* ]]
+    [[ "$output" == *"Template file not found"* ]]
+}
+
+@test "error message shows exact path that was checked" {
+    # Remove the template from the installation directory
+    rm -f .iw-install/scripts/claude-skill-prompt.md
+
+    run ./iw-run claude-sync
+    [ "$status" -eq 1 ]
+    # Should show the actual path (containing .iw-install/scripts/claude-skill-prompt.md)
+    [[ "$output" == *".iw-install/scripts/claude-skill-prompt.md"* ]]
+}
+
+@test "error message indicates installation issue not project setup issue" {
+    # Remove the template from the installation directory
+    rm -f .iw-install/scripts/claude-skill-prompt.md
+
+    run ./iw-run claude-sync
+    [ "$status" -eq 1 ]
+    # Should mention "installation" to clarify this is an installation issue
+    [[ "$output" == *"installation"* ]]
+}
+
+@test "error message provides actionable suggestions" {
+    # Remove the template from the installation directory
+    rm -f .iw-install/scripts/claude-skill-prompt.md
+
+    run ./iw-run claude-sync
+    [ "$status" -eq 1 ]
+    # Should suggest checking IW_HOME or reinstalling
+    [[ "$output" == *"IW_HOME"* ]] || [[ "$output" == *"reinstall"* ]]
 }
