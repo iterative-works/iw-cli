@@ -32,7 +32,12 @@ import iw.core.*
     }
     sys.exit(1)
 
+  // Replace relative .iw/ paths with absolute paths for core and commands,
+  // so Claude reads iw-cli source from the installation directory, not the target project.
+  // Note: .iw/config.conf stays relative - it should be the target project's config.
   val prompt = os.read(promptFile)
+    .replace(".iw/core/", s"$iwDir/core/")
+    .replace(".iw/commands/", s"$iwDir/commands/")
 
   // Check if skills already exist (unless --force)
   val skillsDir = os.pwd / ".claude" / "skills"

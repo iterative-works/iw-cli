@@ -61,3 +61,18 @@ Fix the `iw claude-sync` command to find the prompt template file from the iw-cl
 - [ ] Fallback to `os.pwd` works when `IW_COMMANDS_DIR` is not set
 - [ ] Constants.EnvVars contains `IwCommandsDir`
 - [ ] E2E tests pass for all scenarios
+
+## Refactoring Decisions
+
+### R1: Inject installation path into prompt content (2026-01-12)
+
+**Trigger:** Real-world testing from request-service revealed that while the template file is now found from the installation directory, the template content still uses relative paths (`.iw/core/*.scala`, `.iw/commands/*.scala`) that assume iw-cli source is in the current directory. Claude looks for these files in the target project instead of the iw-cli installation.
+
+**Decision:** Modify claude-sync.scala to replace relative `.iw/` paths in the prompt content with absolute paths derived from the already-computed `iwDir` variable, before passing the prompt to Claude.
+
+**Scope:**
+- Files affected: `.iw/commands/claude-sync.scala`
+- Components: Prompt loading and transformation
+- Boundaries: Do NOT modify the template file itself (keep it portable with relative paths)
+
+**Approach:** After reading the prompt file, replace `.iw/core/` and `.iw/commands/` with `$iwDir/core/` and `$iwDir/commands/` so Claude reads iw-cli source from the installation directory.

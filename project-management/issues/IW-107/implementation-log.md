@@ -6,6 +6,37 @@ This log tracks the evolution of implementation across phases.
 
 ---
 
+## Phase 1 Refactoring R1: Inject installation path into prompt content (2026-01-12)
+
+**What was built:**
+- Feature: `.iw/commands/claude-sync.scala` - Added path replacement for `.iw/core/` and `.iw/commands/` in prompt content
+- Tests: `.iw/test/claude-sync.bats` - 2 new E2E tests for path injection
+
+**Decisions made:**
+- Replace relative `.iw/core/` and `.iw/commands/` paths with absolute paths from `iwDir` variable
+- Preserve `.iw/config.conf` as relative - it should reference the target project's config, not the installation
+
+**Patterns applied:**
+- String.replace() for simple text substitution
+- os.Path string interpolation for absolute path generation
+
+**Testing:**
+- E2E tests: 2 tests added
+  - Absolute paths injected for core and commands directories
+  - Relative path preserved for config.conf
+
+**Code review:**
+- Iterations: 1
+- No issues found. Implementation is minimal and focused.
+
+**Files changed:**
+```
+M .iw/commands/claude-sync.scala
+M .iw/test/claude-sync.bats
+```
+
+---
+
 ## Phase 2: Improved error messaging (2026-01-12)
 
 **What was built:**

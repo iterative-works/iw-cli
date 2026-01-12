@@ -140,3 +140,53 @@ teardown() {
     # Should suggest checking IW_HOME or reinstalling
     [[ "$output" == *"IW_HOME"* ]] || [[ "$output" == *"reinstall"* ]]
 }
+
+@test "claude-sync injects absolute paths into prompt for core and commands" {
+    # Replace mock claude with one that captures stdin
+    cat > "$TEST_DIR/claude" << 'EOF'
+#!/bin/bash
+# Mock claude command that captures the prompt content
+cat > "$TEST_DIR/captured_prompt.txt"
+echo "Mock Claude captured prompt"
+exit 0
+EOF
+    chmod +x "$TEST_DIR/claude"
+
+    run ./iw-run claude-sync
+    [ "$status" -eq 0 ]
+
+    # Verify the captured prompt contains absolute paths for core/ and commands/
+    # The paths should point to the installation directory, not relative .iw/
+    captured=$(cat "$TEST_DIR/captured_prompt.txt")
+
+    # Should contain absolute path to core (with actual installation path)
+    [[ "$captured" == *"$TEST_DIR/.iw-install/core/"* ]]
+
+    # Should contain absolute path to commands (with actual installation path)
+    [[ "$captured" == *"$TEST_DIR/.iw-install/commands/"* ]]
+
+    # Should NOT contain the relative paths anymore for core and commands
+    [[ "$captured" != *'- `.iw/core/'* ]]
+    [[ "$captured" != *'- `.iw/commands/'* ]]
+}
+
+@test "claude-sync preserves relative path for config.conf" {
+    # Replace mock claude with one that captures stdin
+    cat > "$TEST_DIR/claude" << 'EOF'
+#!/bin/bash
+# Mock claude command that captures the prompt content
+cat > "$TEST_DIR/captured_prompt.txt"
+echo "Mock Claude captured prompt"
+exit 0
+EOF
+    chmod +x "$TEST_DIR/claude"
+
+    run ./iw-run claude-sync
+    [ "$status" -eq 0 ]
+
+    # Verify the captured prompt still contains relative path for config.conf
+    # (this should NOT be replaced - it needs to be the target project's config)
+    captured=$(cat "$TEST_DIR/captured_prompt.txt")
+
+    [[ "$captured" == *'.iw/config.conf'* ]]
+}
