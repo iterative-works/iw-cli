@@ -22,7 +22,14 @@ import iw.core.*
   val promptFile = iwDir / "scripts" / "claude-skill-prompt.md"
 
   if !os.exists(promptFile) then
-    Output.error(s"Prompt file not found: $promptFile")
+    Output.error(s"Template file not found: $promptFile")
+    Output.info("This template is part of the iw-cli installation.")
+    Output.info("Suggestions:")
+    Output.info("  - Check if IW_HOME is set correctly")
+    Output.info("  - Try reinstalling iw-cli")
+    sys.env.get(Constants.EnvVars.IwCommandsDir).foreach { dir =>
+      Output.info(s"  - Installation directory detected: $dir")
+    }
     sys.exit(1)
 
   val prompt = os.read(promptFile)
