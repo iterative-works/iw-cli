@@ -1,8 +1,9 @@
 {
-  "status": "analysis_approved",
-  "phase": 0,
-  "message": "Analysis approved - ready for task generation",
+  "status": "context_ready",
+  "phase": 1,
+  "message": "Phase 1 context ready for review",
   "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-107/analysis.md"}
+    {"label": "Analysis", "path": "project-management/issues/IW-107/analysis.md"},
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-107/phase-01-context.md"}
   ]
 }
