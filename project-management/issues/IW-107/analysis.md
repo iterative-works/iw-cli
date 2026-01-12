@@ -131,71 +131,23 @@ Very straightforward - just improving the existing error message at lines 19-21 
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions
 
-### CLARIFY: Should we add IW_COMMANDS_DIR to Constants.EnvVars?
+### DECISION: Add IW_COMMANDS_DIR to Constants.EnvVars
 
-Currently `Constants.EnvVars` defines environment variables like `LINEAR_API_TOKEN`, `IW_HOOK_CLASSES`, but not `IW_COMMANDS_DIR` or `IW_CORE_DIR`. These are set by the bootstrap script and available at runtime.
-
-**Questions to answer:**
-1. Should we add `IW_COMMANDS_DIR` and `IW_CORE_DIR` to `Constants.EnvVars` for consistency?
-2. Or is it acceptable to reference these directly as strings in claude-sync.scala?
-3. Are there other commands that might need installation directory access in the future?
-
-**Options:**
-- **Option A**: Add to Constants.EnvVars
-  - Pro: Consistent with existing pattern, centralized, refactorable
-  - Pro: Documents the environment contract
-  - Con: Requires changing two files instead of one
-
-- **Option B**: Reference directly in claude-sync.scala
-  - Pro: Minimal change, only touches affected file
-  - Pro: Faster to implement
-  - Con: If other commands need this, we'll have duplication
-
-**Recommendation:** Option A - add to Constants.EnvVars for consistency.
+Add `IW_COMMANDS_DIR` to `Constants.EnvVars` for consistency with existing pattern. This documents the environment contract and centralizes environment variable names.
 
 ---
 
-### CLARIFY: Fallback behavior if IW_COMMANDS_DIR not set?
+### DECISION: Fallback to os.pwd if IW_COMMANDS_DIR not set
 
-The `iw-run` script always sets `IW_COMMANDS_DIR`, but should claude-sync have fallback logic for edge cases?
-
-**Questions to answer:**
-1. Can `IW_COMMANDS_DIR` ever be unset in normal usage?
-2. If unset, should we fall back to checking `os.pwd / ".iw" / "scripts/"` (current behavior)?
-3. Or should we fail fast with clear error about broken installation?
-
-**Options:**
-- **Option A**: Fail fast if IW_COMMANDS_DIR not set
-  - Pro: Clear contract, detects misconfiguration early
-  - Pro: Simpler code, no fallback logic
-  - Con: Less resilient to environment issues
-
-- **Option B**: Fallback to current behavior (os.pwd)
-  - Pro: More resilient, works if run directly via scala-cli
-  - Pro: Preserves backward compatibility
-  - Con: Masks configuration issues
-  - Con: More complex logic
-
-- **Option C**: Try IW_COMMANDS_DIR first, then os.pwd, with clear precedence
-  - Pro: Works in all scenarios
-  - Con: Most complex option
-
-**Recommendation:** Option A - fail fast for cleaner error handling.
+Try `IW_COMMANDS_DIR` first, fall back to `os.pwd / ".iw" / "scripts/"` if not set. This preserves backward compatibility for direct scala-cli usage during development while preferring the installation directory when available.
 
 ---
 
-### CLARIFY: Testing approach for this fix
+### DECISION: E2E tests only
 
-This is a path resolution fix that depends on environment setup.
-
-**Options:**
-- **Option A**: E2E test only - Tests real-world scenario
-- **Option B**: Unit test + E2E test - Tests both logic and integration
-- **Option C**: Manual testing only - Fastest to deliver but violates TDD policy
-
-**Recommendation:** Option B - unit + E2E tests per project policy.
+Use E2E tests (BATS) to verify the fix works in real-world scenarios. The path resolution logic is simple enough that unit tests add little value compared to integration testing.
 
 ---
 
@@ -213,20 +165,14 @@ This is a path resolution fix that depends on environment setup.
 
 ## Testing Approach
 
-### Story 1: Template path resolution
+### E2E Tests (BATS)
 
-**Unit Tests:**
-- Test path calculation logic from IW_COMMANDS_DIR
-- Test fallback behavior (if implemented) when IW_COMMANDS_DIR unset
+**Story 1: Template path resolution**
+- Run `iw claude-sync` from iw-cli repository (existing usage works)
+- Simulate running from external project (IW_COMMANDS_DIR points to installation, no local template)
+- Verify fallback to os.pwd works when IW_COMMANDS_DIR unset
 
-**E2E Tests (BATS):**
-- Run `iw claude-sync` from iw-cli repository (existing usage)
-- Create temporary project without local template, verify command works
-- Test with corrupted installation (missing template)
-
-### Story 2: Error messaging
-
-**E2E Tests (BATS):**
+**Story 2: Error messaging**
 - Remove template from test installation
 - Verify error output contains installation path and suggestions
 
@@ -251,10 +197,8 @@ This is a path resolution fix that depends on environment setup.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved
 
 **Next Steps:**
-1. Resolve CLARIFY markers
-2. Begin implementation with TDD: Write failing E2E test first
-3. Implement fix following TDD cycle
-4. Verify in both iw-cli repository and external project manually
+1. Generate tasks: `/iterative-works:ag-create-tasks IW-107`
+2. Begin implementation: `/iterative-works:ag-implement IW-107`
