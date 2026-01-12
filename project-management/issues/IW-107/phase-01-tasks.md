@@ -31,4 +31,4 @@
 
 ## Refactoring
 
-- [ ] [impl] [ ] [reviewed] Refactoring R1: Inject installation path into prompt content
+- [x] [impl] [x] [reviewed] Refactoring R1: Inject installation path into prompt content

@@ -2,7 +2,7 @@
 
 **Phase:** 1
 **Created:** 2026-01-12
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -57,14 +57,14 @@ This transforms the prompt so Claude sees:
 
 ## Tasks
 
-- [ ] [impl] [Test] Add E2E test: claude-sync injects absolute paths into prompt (verify Claude receives correct paths)
-- [ ] [impl] [Refactor] Add path replacement after `os.read(promptFile)` for `.iw/core/` and `.iw/commands/`
-- [ ] [impl] [Verify] Run all E2E tests, ensure nothing broke
+- [x] [impl] [Test] Add E2E test: claude-sync injects absolute paths into prompt (verify Claude receives correct paths)
+- [x] [impl] [Refactor] Add path replacement after `os.read(promptFile)` for `.iw/core/` and `.iw/commands/`
+- [x] [impl] [Verify] Run all E2E tests, ensure nothing broke
 - [ ] [impl] [Verify] Manual test from external project (request-service)
 
 ## Verification
 
-- [ ] All existing E2E tests pass
-- [ ] New E2E test verifies path injection
+- [x] All existing E2E tests pass
+- [x] New E2E test verifies path injection
 - [ ] Manual test from request-service shows Claude reads iw-cli source correctly
-- [ ] `.iw/config.conf` still read from target project (not installation)
+- [x] `.iw/config.conf` still read from target project (not installation)
