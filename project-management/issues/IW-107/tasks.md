@@ -3,7 +3,7 @@
 ## Phase Index
 
 - [x] Phase 1: Template path resolution fix (Story 1)
-- [ ] Phase 2: Improved error messaging (Story 2)
+- [x] Phase 2: Improved error messaging (Story 2)
 
 ## Phase Overview
 
