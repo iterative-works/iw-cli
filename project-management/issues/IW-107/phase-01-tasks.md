@@ -28,3 +28,7 @@
 
 - [x] [integration] Run full E2E test suite to verify no regressions
 - [x] [integration] Manual verification: run iw claude-sync from iw-cli repo
+
+## Refactoring
+
+- [ ] [impl] [ ] [reviewed] Refactoring R1: Inject installation path into prompt content
