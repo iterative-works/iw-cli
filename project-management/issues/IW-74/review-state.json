@@ -1,0 +1,8 @@
+{
+  "status": "analysis_ready",
+  "phase": 0,
+  "message": "Analysis complete - ready for review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-74/analysis.md"}
+  ]
+}
