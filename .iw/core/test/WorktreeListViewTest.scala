@@ -47,7 +47,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("Review Artifacts"), s"Should contain 'Review Artifacts' heading")
@@ -61,7 +61,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(!htmlStr.contains("Review Artifacts"), s"Should not contain 'Review Artifacts' when reviewState is None")
@@ -80,7 +80,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(!htmlStr.contains("Review Artifacts"), s"Should not contain 'Review Artifacts' when artifacts list is empty")
@@ -102,7 +102,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("Analysis Doc"), s"Should contain artifact label 'Analysis Doc'")
@@ -114,7 +114,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(htmlStr.contains("?path="), s"Artifact links should include path query parameter")
 
   test("WorktreeListView renders empty state when no worktrees"):
-    val html = WorktreeListView.render(List.empty, now)
+    val html = WorktreeListView.render(List.empty, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("empty-state"), s"Should contain 'empty-state' class")
@@ -132,7 +132,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (wt2, Some((sampleIssueData, false)), None, None, None, reviewState2)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     // Should have one review section (for wt1) but not for wt2
@@ -197,7 +197,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-status"), "Should contain review-status class")
@@ -216,7 +216,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-status-in-progress"), "Should contain in-progress status class")
@@ -234,7 +234,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-status-completed"), "Should contain completed status class")
@@ -252,7 +252,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(!htmlStr.contains("review-status-awaiting-review"), "Should not contain status badge classes")
@@ -273,7 +273,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-phase"), "Should contain review-phase class")
@@ -291,7 +291,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("Phase 0"), "Should display Phase 0")
@@ -308,7 +308,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(!htmlStr.contains("review-phase"), "Should not contain review-phase class when phase is None")
@@ -328,7 +328,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-message"), "Should contain review-message class")
@@ -346,7 +346,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(!htmlStr.contains("review-message"), "Should not contain review-message class when message is None")
@@ -365,7 +365,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-status-awaiting-review"), "Should contain status badge")
@@ -384,7 +384,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     // Should still render artifacts section
@@ -408,7 +408,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-status-in-progress"), "Should contain status badge")
@@ -424,7 +424,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     // Should not show review section
@@ -437,7 +437,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-error"), "Should contain review-error class")
@@ -450,7 +450,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     // Verify all required CSS classes are present
@@ -472,7 +472,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(htmlStr.contains("review-artifacts"), "Should contain review-artifacts class")
@@ -491,7 +491,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
     )
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     assert(!htmlStr.contains("review-artifacts"), "Should not contain review-artifacts class")
@@ -504,7 +504,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val worktreesWithData = List(
       (sampleWorktree, Some((sampleIssueData, false)), None, None, None, errorWithPath)
     )
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
 
     // Should show error container with generic message
@@ -514,3 +514,38 @@ class WorktreeListViewTest extends munit.FunSuite:
     // Should NOT leak the filesystem path from the error
     assert(!htmlStr.contains("/home/user/secret"), "Should not leak filesystem paths in HTML")
     assert(!htmlStr.contains("Failed to parse /home"), "Should not expose raw error message")
+
+  // Zed Button Tests (IW-74 Phase 2)
+
+  test("WorktreeListView renders Zed button in worktree card"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "dev-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("zed-button"), s"Should contain 'zed-button' class")
+    assert(htmlStr.contains("zed://"), s"Should contain 'zed://' protocol")
+
+  test("WorktreeListView Zed button has correct href format"):
+    val worktree = sampleWorktree.copy(path = "/home/user/projects/my-project")
+    val worktreesWithData = List(
+      (worktree, Some((sampleIssueData, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "my-ssh-host")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("zed://ssh://my-ssh-host/home/user/projects/my-project"),
+      s"Should contain correct Zed URL with SSH host and path")
+
+  test("WorktreeListView Zed button has tooltip"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("Open in Zed"), s"Should contain 'Open in Zed' tooltip")

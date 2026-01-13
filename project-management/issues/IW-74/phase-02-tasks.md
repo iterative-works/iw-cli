@@ -5,22 +5,22 @@
 
 ## Setup
 
-- [ ] [test] Add test for Zed button renders in worktree card
-- [ ] [test] Add test for Zed button href format (zed://ssh://{host}{path})
-- [ ] [test] Add test for Zed button tooltip text
+- [x] [test] Add test for Zed button renders in worktree card
+- [x] [test] Add test for Zed button href format (zed://ssh://{host}{path})
+- [x] [test] Add test for Zed button tooltip text
 
 ## Implementation
 
-- [ ] [impl] Add sshHost parameter to WorktreeListView.render method
-- [ ] [impl] Add sshHost parameter to renderWorktreeCard method
-- [ ] [impl] Add Zed button HTML to worktree card (next to PR link area)
-- [ ] [impl] Add CSS styles for Zed icon button
+- [x] [impl] Add sshHost parameter to WorktreeListView.render method
+- [x] [impl] Add sshHost parameter to renderWorktreeCard method
+- [x] [impl] Add Zed button HTML to worktree card (next to PR link area)
+- [x] [impl] Add CSS styles for Zed icon button
 
 ## Integration
 
-- [ ] [impl] Pass sshHost from DashboardService to WorktreeListView.render
-- [ ] [test] Add integration test for Zed button with configured SSH host
-- [ ] [test] Update existing DashboardServiceTest to pass sshHost to render calls
+- [x] [impl] Pass sshHost from DashboardService to WorktreeListView.render
+- [x] [test] Add integration test for Zed button with configured SSH host
+- [x] [test] Update existing DashboardServiceTest to pass sshHost to render calls
 
 ## Manual Verification
 

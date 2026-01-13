@@ -330,3 +330,41 @@ class DashboardServiceTest extends FunSuite:
     // Verify form has correct structure
     assert(html.contains("ssh-host-form"))
     assert(html.contains("method=\"get\""))
+
+  // Zed Button Integration Tests (IW-74 Phase 2)
+
+  test("renderDashboard includes Zed button with configured SSH host"):
+    val worktree = createWorktree("IWLE-ZED-1", "/home/user/projects/my-project")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "dev-server"
+    )
+
+    // Verify Zed button appears in HTML
+    assert(html.contains("zed-button"))
+    assert(html.contains("zed://ssh://dev-server/home/user/projects/my-project"))
+    assert(html.contains("Open in Zed"))
+
+  test("renderDashboard Zed button uses correct SSH host for multiple worktrees"):
+    val worktree1 = createWorktree("IWLE-ZED-2", "/home/user/project-a")
+    val worktree2 = createWorktree("IWLE-ZED-3", "/home/user/project-b")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree1, worktree2),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "test-host"
+    )
+
+    // Verify both worktrees have Zed buttons with correct SSH host
+    assert(html.contains("zed://ssh://test-host/home/user/project-a"))
+    assert(html.contains("zed://ssh://test-host/home/user/project-b"))

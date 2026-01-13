@@ -112,7 +112,7 @@ object DashboardService:
           ),
           // Main projects section (above worktree list)
           MainProjectsView.render(mainProjects),
-          WorktreeListView.render(worktreesWithData.reverse, now),
+          WorktreeListView.render(worktreesWithData.reverse, now, sshHost),
           // Modal container (empty by default)
           div(id := "modal-container")
         )
@@ -618,6 +618,33 @@ object DashboardService:
 
     .pr-closed {
       background: #868e96;
+    }
+
+    .zed-link {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .zed-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      background: transparent;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .zed-button:hover {
+      background: #f8f9fa;
+      border-color: #228be6;
+    }
+
+    .zed-button img {
+      display: block;
     }
 
     .review-artifacts {
