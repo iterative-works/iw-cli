@@ -450,6 +450,58 @@ class CaskServerTest extends FunSuite:
       val parentDir = stateFile.getParent
       if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
 
+  test("GET / with sshHost query parameter includes value in HTML"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Request with sshHost query parameter
+      val response = quickRequest
+        .get(uri"http://localhost:$port/?sshHost=my-remote-server")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      // Verify response contains SSH host value
+      val html = response.body
+      assert(html.contains("my-remote-server"), "HTML should contain SSH host value")
+      assert(html.contains("ssh-host-input"), "HTML should contain SSH host input field")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("GET / without sshHost query parameter uses default hostname"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Request without sshHost query parameter
+      val response = quickRequest
+        .get(uri"http://localhost:$port/")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      // Verify response contains some hostname (either from InetAddress or fallback)
+      val html = response.body
+      assert(html.contains("ssh-host-input"), "HTML should contain SSH host input field")
+      // The actual hostname will vary, so we just check the input field exists
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
   test("DELETE endpoint removes associated cache entries"):
     val statePath = createTempStatePath()
     val port = findAvailablePort()
