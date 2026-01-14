@@ -9,8 +9,8 @@
 
 ### Setup
 
-- [ ] [setup] Review existing cache implementation in `IssueCacheService.scala` and `PullRequestCacheService.scala`
-- [ ] [setup] Review `CachedIssue.scala` and `CachedPR.scala` TTL configuration
+- [x] [setup] Review existing cache implementation in `IssueCacheService.scala` and `PullRequestCacheService.scala`
+- [x] [setup] Review `CachedIssue.scala` and `CachedPR.scala` TTL configuration
 
 ### Tests - Cache Configuration
 
@@ -52,12 +52,12 @@
 
 ## Acceptance Criteria Checklist
 
-- [ ] Subsequent dashboard loads render in < 50ms with cached data
-- [ ] Cache persists across server restarts
-- [ ] API failures don't clear existing cache
-- [ ] Stale data displayed with indicator (not blank/error)
-- [ ] Cache TTLs are configurable via environment variables
-- [ ] All existing Phase 1 functionality preserved
+- [ ] Subsequent dashboard loads render in < 50ms with cached data (needs integration test verification)
+- [x] Cache persists across server restarts (verified via StateRepository tests)
+- [x] API failures don't clear existing cache (implemented in PullRequestCacheService, already existed in IssueCacheService)
+- [x] Stale data displayed with indicator (not blank/error) (Phase 1 implementation still works)
+- [x] Cache TTLs are configurable via environment variables (CacheConfig implemented with env var support)
+- [x] All existing Phase 1 functionality preserved (all tests passing)
 
 ## Notes
 
