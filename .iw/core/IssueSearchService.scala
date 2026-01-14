@@ -128,3 +128,39 @@ object IssueSearchService:
       withoutHash.substring(hyphenIndex + 1)
     else
       withoutHash
+
+  /** Fetch recent open issues for quick access.
+    *
+    * @param config Project configuration with tracker type
+    * @param fetchRecentIssues Function to fetch recent issues from tracker
+    * @param checkWorktreeExists Function to check if issue has worktree
+    * @return Either error message or list of recent issues as search results
+    */
+  def fetchRecent(
+    config: ProjectConfiguration,
+    fetchRecentIssues: Int => Either[String, List[Issue]],
+    checkWorktreeExists: String => Boolean = _ => false
+  ): Either[String, List[IssueSearchResult]] =
+    // Fetch recent issues (limit 5)
+    fetchRecentIssues(5) match
+      case Right(issues) =>
+        // Convert Issues to IssueSearchResults
+        val results = issues.map { issue =>
+          // Build URL for the issue
+          val url = buildIssueUrl(issue.id, config)
+
+          // Check if worktree exists for this issue
+          val hasWorktree = checkWorktreeExists(issue.id)
+
+          IssueSearchResult(
+            id = issue.id,
+            title = issue.title,
+            status = issue.status,
+            url = url,
+            hasWorktree = hasWorktree
+          )
+        }
+        Right(results)
+
+      case Left(error) =>
+        Left(error)

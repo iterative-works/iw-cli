@@ -217,3 +217,97 @@ class IssueSearchServiceTest extends FunSuite:
       assert(result.url.contains("gitlab.company.com"), "URL should use self-hosted base URL")
       assert(result.url.contains("/-/issues/456"), "URL should have correct issue number")
     }
+
+  // ========== fetchRecent Tests ==========
+
+  test("fetchRecent success case with GitHub tracker"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    // Mock fetch function that returns recent issues
+    val fetchRecentIssues = (limit: Int) =>
+      Right(List(
+        Issue("#132", "Add feature", "open", None, None),
+        Issue("#131", "Fix bug", "open", None, None),
+        Issue("#130", "Update docs", "open", None, None)
+      ))
+
+    val results = IssueSearchService.fetchRecent(config, fetchRecentIssues)
+
+    assert(results.isRight, "fetchRecent should succeed")
+    assertEquals(results.map(_.length), Right(3), "Should return three results")
+
+    results.foreach { list =>
+      assertEquals(list(0).id, "#132")
+      assertEquals(list(0).title, "Add feature")
+      assertEquals(list(0).status, "open")
+      assert(list(0).url.contains("github.com"), "URL should be GitHub URL")
+      assert(list(0).url.contains("132"), "URL should contain issue number")
+      assertEquals(list(0).hasWorktree, false, "Should not have worktree by default")
+    }
+
+  test("fetchRecent with worktree check integration"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    val fetchRecentIssues = (limit: Int) =>
+      Right(List(
+        Issue("#132", "Add feature", "open", None, None),
+        Issue("#131", "Fix bug", "open", None, None)
+      ))
+
+    // Mock worktree check - #132 has worktree, #131 does not
+    val checkWorktreeExists = (issueId: String) => issueId == "#132"
+
+    val results = IssueSearchService.fetchRecent(config, fetchRecentIssues, checkWorktreeExists)
+
+    assert(results.isRight, "fetchRecent should succeed")
+    results.foreach { list =>
+      assertEquals(list(0).hasWorktree, true, "Issue #132 should have worktree")
+      assertEquals(list(1).hasWorktree, false, "Issue #131 should not have worktree")
+    }
+
+  test("fetchRecent handles fetch errors gracefully"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    // Mock fetch function that returns error
+    val fetchRecentIssues = (limit: Int) =>
+      Left("Failed to fetch recent issues: API error")
+
+    val results = IssueSearchService.fetchRecent(config, fetchRecentIssues)
+
+    assert(results.isLeft, "fetchRecent should return error")
+    assert(results.left.getOrElse("").contains("Failed to fetch recent issues"))
+
+  test("fetchRecent returns empty list when no issues"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    val fetchRecentIssues = (limit: Int) =>
+      Right(List.empty)
+
+    val results = IssueSearchService.fetchRecent(config, fetchRecentIssues)
+
+    assert(results.isRight, "fetchRecent should succeed")
+    assertEquals(results.map(_.length), Right(0), "Should return zero results")

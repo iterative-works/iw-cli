@@ -304,3 +304,95 @@ object GitHubClient:
       case Right(jsonOutput) =>
         // Parse JSON response (uses full ID for Issue object)
         parseFetchIssueResponse(jsonOutput, issueIdValue)
+
+  /** Build gh CLI command arguments for listing recent issues.
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param limit Maximum number of issues to return
+    * @return Array of command arguments for gh CLI
+    */
+  def buildListRecentIssuesCommand(
+    repository: String,
+    limit: Int = 5
+  ): Array[String] =
+    Array(
+      "issue", "list",
+      "--repo", repository,
+      "--state", "open",
+      "--limit", limit.toString,
+      "--json", "number,title,state,updatedAt"
+    )
+
+  /** Parse JSON response from gh issue list command.
+    *
+    * Expected format: [{"number": 132, "title": "...", "state": "OPEN", "updatedAt": "..."}, ...]
+    *
+    * @param jsonOutput JSON array string from gh CLI
+    * @return Right(List[Issue]) on success, Left(error message) on failure
+    */
+  def parseListRecentIssuesResponse(jsonOutput: String): Either[String, List[Issue]] =
+    try
+      import ujson.*
+      val json = read(jsonOutput)
+
+      // Parse array of issues
+      val issuesArray = json.arr
+      val issues = issuesArray.map { issueJson =>
+        // Format issue ID with # prefix (e.g., "#132")
+        val number = issueJson("number").num.toInt
+        val id = s"#$number"
+
+        // Extract title and state (lowercase state for consistency)
+        val title = issueJson("title").str
+        val state = issueJson("state").str.toLowerCase
+
+        Issue(
+          id = id,
+          title = title,
+          status = state,
+          assignee = None,  // Not needed for recent issues list
+          description = None  // Not needed for recent issues list
+        )
+      }.toList
+
+      Right(issues)
+    catch
+      case e: Exception =>
+        Left(s"Failed to parse issue list response: ${e.getMessage}")
+
+  /** Fetch recent open issues from GitHub.
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param limit Maximum number of issues to return (default 5)
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Either error message or list of recent issues
+    */
+  def listRecentIssues(
+    repository: String,
+    limit: Int = 5,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, List[Issue]] =
+    // Validate prerequisites before attempting fetch
+    validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
+        return Left(formatGhNotInstalledError())
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
+        return Left(formatGhNotAuthenticatedError())
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
+        return Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        // Proceed with fetching recent issues
+
+    // Build command arguments
+    val args = buildListRecentIssuesCommand(repository, limit)
+
+    // Execute gh issue list
+    execCommand("gh", args) match
+      case Left(error) =>
+        Left(s"Failed to fetch recent issues: $error")
+      case Right(jsonOutput) =>
+        // Parse JSON response
+        parseListRecentIssuesResponse(jsonOutput)
