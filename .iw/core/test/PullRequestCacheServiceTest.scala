@@ -149,3 +149,42 @@ class PullRequestCacheServiceTest extends FunSuite:
   test("detectPRTool returns None when neither available"):
     val detectTool = (tool: String) => false
     assertEquals(PullRequestCacheService.detectPRTool(detectTool), None)
+
+  // getCachedOnly tests
+  test("getCachedOnly returns cached PR when cache exists"):
+    val now = Instant.now()
+    val cachedPR = CachedPR(mockPRData, now.minusSeconds(60))
+    val cache = Map("IWLE-123" -> cachedPR)
+
+    val result = PullRequestCacheService.getCachedOnly("IWLE-123", cache)
+
+    assert(result.isDefined, "Should return cached PR data")
+    assertEquals(result.map(_.number).getOrElse(0), 42)
+
+  test("getCachedOnly returns None when cache is empty"):
+    val cache = Map.empty[String, CachedPR]
+
+    val result = PullRequestCacheService.getCachedOnly("IWLE-456", cache)
+
+    assert(result.isEmpty, "Should return None when cache is empty")
+
+  test("getCachedOnly does NOT call CLI"):
+    val now = Instant.now()
+    val cachedPR = CachedPR(mockPRData, now.minusSeconds(60))
+    val cache = Map("TEST-1" -> cachedPR)
+
+    // This test is structural - getCachedOnly doesn't take exec/detect functions
+    // The test verifies that the method signature doesn't require them
+    val result = PullRequestCacheService.getCachedOnly("TEST-1", cache)
+
+    assert(result.isDefined, "Should return cached data without CLI calls")
+
+  test("getCachedOnly returns stale cache without calling CLI"):
+    val now = Instant.now()
+    val stalePR = CachedPR(mockPRData, now.minusSeconds(600)) // 10 minutes ago (very stale)
+    val cache = Map("IWLE-789" -> stalePR)
+
+    val result = PullRequestCacheService.getCachedOnly("IWLE-789", cache)
+
+    assert(result.isDefined, "Should return even stale cached data")
+    assertEquals(result.map(_.number).getOrElse(0), 42)

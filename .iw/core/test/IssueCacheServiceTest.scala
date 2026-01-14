@@ -225,3 +225,43 @@ class IssueCacheServiceTest extends FunSuite:
   test("buildIssueUrl handles lowercase gitlab tracker type"):
     val url = IssueCacheService.buildIssueUrl("42", "gitlab", Some("owner/repo"))
     assertEquals(url, "https://gitlab.com/owner/repo/-/issues/42")
+
+  // getCachedOnly tests
+  test("getCachedOnly returns cached data when cache exists"):
+    val now = Instant.now()
+    val cachedData = createTestIssueData("IWLE-123", now.minusSeconds(120))
+    val cache = Map("IWLE-123" -> CachedIssue(cachedData))
+
+    val result = IssueCacheService.getCachedOnly("IWLE-123", cache)
+
+    assert(result.isDefined, "Should return cached data")
+    assertEquals(result.map(_.id).getOrElse(""), "IWLE-123")
+
+  test("getCachedOnly returns None when cache is empty"):
+    val cache = Map.empty[String, CachedIssue]
+
+    val result = IssueCacheService.getCachedOnly("IWLE-456", cache)
+
+    assert(result.isEmpty, "Should return None when cache is empty")
+
+  test("getCachedOnly does NOT call fetch function"):
+    val now = Instant.now()
+    val cachedData = createTestIssueData("TEST-1", now.minusSeconds(60))
+    val cache = Map("TEST-1" -> CachedIssue(cachedData))
+
+    // This test is structural - getCachedOnly doesn't take a fetch function
+    // The test verifies that the method signature doesn't require one
+    val result = IssueCacheService.getCachedOnly("TEST-1", cache)
+
+    assert(result.isDefined, "Should return cached data without fetch function")
+
+  test("getCachedOnly returns stale cache without fetching"):
+    val now = Instant.now()
+    val staleData = createTestIssueData("IWLE-789", now.minusSeconds(600)) // 10 minutes ago (very stale)
+    val cache = Map("IWLE-789" -> CachedIssue(staleData, ttlMinutes = 5))
+
+    val result = IssueCacheService.getCachedOnly("IWLE-789", cache)
+
+    assert(result.isDefined, "Should return even stale cached data")
+    assertEquals(result.map(_.id).getOrElse(""), "IWLE-789")
+    assertEquals(result.map(_.title).getOrElse(""), "Issue IWLE-789")
