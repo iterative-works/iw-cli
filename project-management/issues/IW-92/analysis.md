@@ -2,7 +2,7 @@
 
 **Issue:** IW-92
 **Created:** 2026-01-14
-**Status:** Draft
+**Status:** Approved
 **Classification:** Feature
 
 ## Problem Statement
@@ -294,127 +294,67 @@ Key technical challenges:
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions (Resolved)
 
-### CLARIFY: Asynchronous refresh strategy
+### Decision 1: Asynchronous refresh strategy
 
-The current architecture is purely synchronous request/response. Introducing background refresh requires deciding on an async strategy.
+**Decision:** HTMX polling per card
 
-**Questions to answer:**
-1. Should we use HTMX polling (`hx-trigger="every 30s"`) or Server-Sent Events (SSE)?
-2. Should refresh happen per-card (N API calls) or batched (single endpoint refreshes all)?
-3. How do we handle concurrency (rate limiting, max parallel requests)?
+Each card polls its own endpoint (`GET /worktrees/:issueId/card`) independently.
 
-**Options:**
+**Rationale:**
+- Progressive updates feel more responsive (cards update one by one)
+- Failure isolation (one slow API doesn't block others)
+- Extensible for future detail views (per-card endpoints reusable)
+- Natural fit - each worktree is already an independent entity
 
-- **Option A: HTMX polling per card**
-  - Each card polls its own endpoint: `GET /worktrees/:issueId/card`
-  - Simple to implement, works with existing Cask server
-  - Cons: Many HTTP requests (N cards = N polls every 30s)
-
-- **Option B: HTMX polling for full list**
-  - Dashboard polls: `GET /worktrees` returns updated list HTML
-  - Fewer HTTP requests, simpler server logic
-  - Cons: Re-renders entire list (more DOM churn, potential flicker)
-
-- **Option C: Server-Sent Events (SSE)**
-  - Server pushes updates to client via SSE stream
-  - Most efficient (no polling overhead), instant updates
-  - Cons: More complex implementation, requires SSE support in Cask
-
-**Impact:** Affects Stories 2 and 3. Determines API endpoint design and HTMX patterns.
+**Additional:** Refresh on tab focus using `visibilitychange` event for instant update when user returns to dashboard.
 
 ---
 
-### CLARIFY: Cache persistence and seeding
+### Decision 2: Cache miss behavior
 
-Currently, cache lives in `ServerState.json` and may be empty on first load or after server restart.
+**Decision:** Skeleton cards on cache miss
 
-**Questions to answer:**
-1. Should cache persist across server restarts? (Currently: yes, via JSON file)
-2. Should we seed cache on worktree registration? (Currently: no)
-3. What happens if cache is empty? (Currently: synchronous fetch blocks render)
+Dashboard renders skeleton/placeholder cards immediately when cache is empty, then refreshes fill in data.
 
-**Options:**
-
-- **Option A: Seed cache on registration**
-  - When worktree is registered via `PUT /api/v1/worktrees/:issueId`, fetch and cache issue data
-  - Pros: Dashboard always has cached data available
-  - Cons: Registration becomes slower (blocks on API call)
-
-- **Option B: Lazy cache population**
-  - First dashboard load still fetches synchronously, but subsequent loads use cache
-  - Pros: Simple, no changes to registration flow
-  - Cons: First load is still slow (doesn't solve UX problem for new worktrees)
-
-- **Option C: Render empty cards with "Loading..." on cache miss**
-  - Dashboard renders empty/skeleton cards immediately, then refreshes
-  - Pros: Always instant render, even with empty cache
-  - Cons: User sees empty cards briefly (could be jarring)
-
-**Impact:** Affects Story 1 and 4. Determines whether first load is fast or slow.
+**Rationale:**
+- Always instant render, even with empty cache
+- Registration stays fast (no API calls during `iw start`)
+- Modern UX pattern (skeleton loaders are familiar)
+- Aligns with per-card polling - cards refresh independently anyway
 
 ---
 
-### CLARIFY: TTL values for caching
+### Decision 3: TTL handling
 
-Current TTL values:
-- Issue data: 5 minutes
-- PR data: 2 minutes
+**Decision:** Always render cache, always refresh (with 30s throttle)
 
-**Questions to answer:**
-1. Are these TTLs optimal for the "instant load" use case?
-2. Should we have different TTLs for synchronous vs background refresh?
-3. Should TTLs be configurable per tracker type?
+- If cache exists (any age) → render cached data
+- If no cache → render skeleton
+- Always trigger background refresh, unless cache is < 30s old
 
-**Options:**
-
-- **Option A: Increase TTLs across the board**
-  - Issue cache: 15 minutes, PR cache: 10 minutes
-  - Pros: More likely to have cached data for instant loads
-  - Cons: Stale data shown for longer
-
-- **Option B: Separate "stale-while-revalidate" TTL**
-  - Render stale data immediately (up to 1 hour old), refresh in background
-  - Pros: Always instant, fresh data arrives quickly
-  - Cons: More complex cache logic
-
-- **Option C: Zero TTL on render, background refresh updates cache**
-  - Always render from cache (ignore TTL), always refresh in background
-  - Pros: Simplest logic, always instant
-  - Cons: May show very stale data if server was down
-
-**Impact:** Affects Stories 1, 2, and 4. Determines perceived freshness vs speed tradeoff.
+**Rationale:**
+- Simple mental model: render what we have, then refresh
+- TTL becomes irrelevant for rendering decisions
+- 30s throttle prevents API hammering on rapid page refreshes
+- Display "Updated X ago" timestamp to indicate data freshness
 
 ---
 
-### CLARIFY: Error handling for background refresh
+### Decision 4: Error handling for background refresh
 
-If background refresh fails (API down, rate limited, timeout), what should happen?
+**Decision:** Silent failure with aging timestamps
 
-**Questions to answer:**
-1. Should we show error indicators on cards?
-2. Should we retry failed refreshes automatically?
-3. Should we log errors for debugging?
+If refresh fails, keep showing cached data. The "Updated X ago" timestamp naturally indicates staleness.
 
-**Options:**
+**Rationale:**
+- Dashboard is read-only status view, not critical operation
+- Stale data is better than error noise
+- Timestamps communicate staleness without being jarring
+- Keep it simple - retry logic adds complexity for little gain
 
-- **Option A: Silent failure, keep stale data**
-  - If refresh fails, keep showing cached data with "Last updated X ago"
-  - Pros: User experience uninterrupted
-  - Cons: User may not know data is stale
-
-- **Option B: Show error badge on failed cards**
-  - Display "⚠ Failed to refresh" on cards where API call failed
-  - Pros: User is aware of staleness
-  - Cons: Could be noisy if APIs are flaky
-
-- **Option C: Retry with exponential backoff**
-  - Automatically retry failed refreshes (30s, 1m, 2m intervals)
-  - Pros: Recovers from transient failures
-  - Cons: More complex retry logic
-
-**Impact:** Affects Story 2. Determines UX for API failures.
+**Enhancement:** Timestamp styling could turn orange/red if > 10min old.
 
 ---
 
@@ -438,11 +378,12 @@ If background refresh fails (API down, rate limited, timeout), what should happe
 - **Well-understood domain:** The data model (worktrees, issues, cache) is stable and well-understood
 - **Existing patterns:** Cache infrastructure exists, we're adapting not building from scratch
 
-**Assumptions baked into estimate:**
-- CLARIFY markers will be resolved before task generation
-- We choose HTMX polling (Option A or B) rather than SSE (simpler)
-- We choose "seed cache on registration" (Option A) for instant loads
-- We use "stale-while-revalidate" caching pattern (Option B for TTLs)
+**Decisions baked into estimate:**
+- HTMX polling per card (progressive updates, extensible)
+- Skeleton cards on cache miss (always instant render)
+- Always render cache, always refresh with 30s throttle
+- Silent failure with aging timestamps
+- Refresh on tab focus via `visibilitychange` event
 - Story 5 is optional/stretch (exclude from MVP if time is tight)
 
 ---
@@ -641,13 +582,15 @@ If background refresh causes issues (API rate limiting, server overload, buggy u
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved (all decisions resolved)
+
+**Resolved Decisions:**
+1. Async refresh strategy → HTMX polling per card
+2. Cache miss behavior → Skeleton cards
+3. TTL handling → Always render cache, always refresh (30s throttle)
+4. Error handling → Silent failure with aging timestamps
+5. Tab visibility → Refresh on tab focus
 
 **Next Steps:**
-1. Resolve CLARIFY markers with Michal:
-   - Async refresh strategy (HTMX polling vs SSE)
-   - Cache seeding approach (on registration vs lazy)
-   - TTL configuration (fixed vs stale-while-revalidate)
-   - Error handling strategy (silent vs visible)
-2. Run `/iterative-works:ag-create-tasks IW-92` to map stories to implementation phases
-3. Run `/iterative-works:ag-implement IW-92` for iterative story-by-story implementation
+1. Run `/iterative-works:ag-create-tasks IW-92` to map stories to implementation phases
+2. Run `/iterative-works:ag-implement IW-92` for iterative story-by-story implementation
