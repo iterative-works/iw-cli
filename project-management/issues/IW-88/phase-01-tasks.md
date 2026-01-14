@@ -38,17 +38,17 @@
 
 ### GitHubClient Implementation
 
-- [x] [impl] [ ] [reviewed] Add buildListRecentIssuesCommand method
-- [x] [impl] [ ] [reviewed] Add parseListRecentIssuesResponse method
-- [x] [impl] [ ] [reviewed] Add listRecentIssues method
+- [x] [impl] [x] [reviewed] Add buildListRecentIssuesCommand method
+- [x] [impl] [x] [reviewed] Add parseListRecentIssuesResponse method
+- [x] [impl] [x] [reviewed] Add listRecentIssues method
 
 ### IssueSearchService Implementation
 
-- [x] [impl] [ ] [reviewed] Add fetchRecent method to IssueSearchService
+- [x] [impl] [x] [reviewed] Add fetchRecent method to IssueSearchService
 
 ### CaskServer Implementation
 
-- [x] [impl] [ ] [reviewed] Add /api/issues/recent endpoint to CaskServer
+- [x] [impl] [x] [reviewed] Add /api/issues/recent endpoint to CaskServer
 
 ## Integration
 

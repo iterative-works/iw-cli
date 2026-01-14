@@ -3,7 +3,7 @@
 
 package iw.core.infrastructure
 
-import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath}
+import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath, IssueTrackerType}
 import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService}
 import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
 import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
@@ -538,24 +538,21 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
     */
   private def buildFetchRecentFunction(config: ProjectConfiguration): Int => Either[String, List[iw.core.Issue]] =
     (limit: Int) =>
-      config.trackerType.toString.toLowerCase match
-        case "github" =>
+      config.trackerType match
+        case IssueTrackerType.GitHub =>
           config.repository match
             case Some(repository) =>
               GitHubClient.listRecentIssues(repository, limit)
             case None =>
               Left("GitHub repository not configured")
 
-        case "linear" =>
+        case IssueTrackerType.Linear =>
           // Linear support will be added in Phase 3
           Left("Recent issues not yet supported for Linear")
 
-        case "youtrack" =>
+        case IssueTrackerType.YouTrack =>
           // YouTrack support will be added in Phase 5
           Left("Recent issues not yet supported for YouTrack")
-
-        case _ =>
-          Left(s"Unknown tracker type: ${config.trackerType}")
 
   /** Extract GitHub issue number from issue ID.
     *
