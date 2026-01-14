@@ -691,3 +691,130 @@ class GitHubClientTest extends munit.FunSuite:
     assert(result.isLeft)
     val error = result.left.getOrElse("")
     assert(error.contains("gh is not authenticated"))
+
+  // ========== searchIssues Command Building Tests ==========
+
+  test("buildSearchIssuesCommand with default limit"):
+    val args = GitHubClient.buildSearchIssuesCommand(
+      repository = "owner/repo",
+      query = "fix bug"
+    )
+
+    assertEquals(args(0), "issue")
+    assertEquals(args(1), "list")
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "owner/repo")
+    assertEquals(args(4), "--search")
+    assertEquals(args(5), "fix bug")
+    assertEquals(args(6), "--state")
+    assertEquals(args(7), "open")
+    assertEquals(args(8), "--limit")
+    assertEquals(args(9), "10")
+    assertEquals(args(10), "--json")
+    assertEquals(args(11), "number,title,state,updatedAt")
+
+  test("buildSearchIssuesCommand with custom limit"):
+    val args = GitHubClient.buildSearchIssuesCommand(
+      repository = "iterative-works/iw-cli",
+      query = "performance",
+      limit = 20
+    )
+
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "iterative-works/iw-cli")
+    assertEquals(args(4), "--search")
+    assertEquals(args(5), "performance")
+    assertEquals(args(8), "--limit")
+    assertEquals(args(9), "20")
+
+  test("buildSearchIssuesCommand query parameter"):
+    val args = GitHubClient.buildSearchIssuesCommand(
+      repository = "owner/repo",
+      query = "authentication error in login"
+    )
+
+    val searchIndex = args.indexOf("--search")
+    assertEquals(args(searchIndex + 1), "authentication error in login")
+
+  // ========== searchIssues Parsing Tests ==========
+
+  test("parseSearchIssuesResponse reuses parseListRecentIssuesResponse"):
+    val json = """[
+      {"number": 132, "title": "Add feature", "state": "OPEN", "updatedAt": "2024-01-15T10:30:00Z"},
+      {"number": 131, "title": "Fix bug", "state": "OPEN", "updatedAt": "2024-01-14T09:15:00Z"}
+    ]"""
+    val result = GitHubClient.parseSearchIssuesResponse(json)
+
+    assert(result.isRight)
+    val issues = result.getOrElse(fail("Expected Right"))
+    assertEquals(issues.length, 2)
+    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).title, "Add feature")
+    assertEquals(issues(1).id, "#131")
+    assertEquals(issues(1).title, "Fix bug")
+
+  // ========== searchIssues Integration Tests ==========
+
+  test("searchIssues success case with mocked command"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("list") && args.contains("--search") then
+        Right("""[
+          {"number": 132, "title": "Fix authentication bug", "state": "OPEN", "updatedAt": "2024-01-15T10:30:00Z"},
+          {"number": 131, "title": "Add auth feature", "state": "OPEN", "updatedAt": "2024-01-14T09:15:00Z"}
+        ]""")
+      else
+        Left("Unexpected command")
+
+    val result = GitHubClient.searchIssues(
+      repository = "owner/repo",
+      query = "auth",
+      limit = 10,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val issues = result.getOrElse(fail("Expected Right"))
+    assertEquals(issues.length, 2)
+    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).title, "Fix authentication bug")
+
+  test("searchIssues when gh CLI not available"):
+    val mockIsCommandAvailable = (cmd: String) => false
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      fail("Should not execute command when gh not installed")
+
+    val result = GitHubClient.searchIssues(
+      repository = "owner/repo",
+      query = "test",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh CLI is not installed"))
+
+  test("searchIssues empty results"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("list") && args.contains("--search") then
+        Right("[]")
+      else
+        Left("Unexpected command")
+
+    val result = GitHubClient.searchIssues(
+      repository = "owner/repo",
+      query = "nonexistent",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val issues = result.getOrElse(fail("Expected Right"))
+    assertEquals(issues.length, 0)
