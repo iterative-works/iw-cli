@@ -1,10 +1,11 @@
 {
   "status": "all_complete",
   "phase": "final",
-  "message": "All 7 phases complete - final PR ready",
+  "message": "All 7 phases complete + Refactoring R1 - GitLab IDs unified to TEAM-NNN format",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-90/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-90/implementation-log.md"},
-    {"label": "Tasks", "path": "project-management/issues/IW-90/tasks.md"}
+    {"label": "Tasks", "path": "project-management/issues/IW-90/tasks.md"},
+    {"label": "Refactoring R1", "path": "project-management/issues/IW-90/refactor-phase-06-R1.md"}
   ]
 }
