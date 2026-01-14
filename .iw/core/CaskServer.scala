@@ -294,8 +294,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         // Build fetch function based on tracker type
         val fetchIssue = buildFetchFunction(config)
 
-        // Call search service
-        IssueSearchService.search(q, config, fetchIssue) match
+        // Build search function based on tracker type
+        val searchIssues = buildSearchFunction(config)
+
+        // Call search service with both fetch and search functions
+        IssueSearchService.search(q, config, fetchIssue, searchIssues) match
           case Right(results) =>
             val html = SearchResultsView.render(results, project).render
             cask.Response(
@@ -547,6 +550,29 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         case IssueTrackerType.YouTrack =>
           // YouTrack support will be added in Phase 5
           Left("Recent issues not yet supported for YouTrack")
+
+  /** Build search function for IssueSearchService based on tracker type.
+    *
+    * @param config Project configuration
+    * @return Function that searches issues by text query
+    */
+  private def buildSearchFunction(config: ProjectConfiguration): String => Either[String, List[iw.core.Issue]] =
+    (query: String) =>
+      config.trackerType match
+        case IssueTrackerType.GitHub =>
+          config.repository match
+            case Some(repository) =>
+              GitHubClient.searchIssues(repository, query)
+            case None =>
+              Left("GitHub repository not configured")
+
+        case IssueTrackerType.Linear =>
+          // Linear support will be added in Phase 4
+          Left("Title search not yet supported for Linear")
+
+        case IssueTrackerType.YouTrack =>
+          // YouTrack support will be added in Phase 6
+          Left("Title search not yet supported for YouTrack")
 
   /** Extract GitHub issue number from issue ID.
     *

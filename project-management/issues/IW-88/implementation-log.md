@@ -54,3 +54,53 @@ M  .iw/core/test/IssueSearchServiceTest.scala
 ```
 
 ---
+
+## Phase 2: Search by title - GitHub (2026-01-14)
+
+**What was built:**
+- Infrastructure: `GitHubClient.scala` - Added `buildSearchIssuesCommand()`, `parseSearchIssuesResponse()`, `searchIssues()` methods for searching issues by text via `gh issue list --search`
+- Application: `IssueSearchService.scala` - Modified `search()` to accept `searchIssues` parameter and fall back to text search when query is not an ID; added `searchByText()` private helper
+- Presentation: `CaskServer.scala` - Added `buildSearchFunction()` helper method; updated `/api/issues/search` endpoint to use new search function
+
+**Decisions made:**
+- Reused `parseListRecentIssuesResponse` for JSON parsing (same format as listRecentIssues)
+- ID search has priority - only fall back to text search if ID lookup fails or query isn't a valid ID
+- Search limit set to 10 (vs 5 for recent) per analysis.md
+- gh search queries across title and body (GitHub API behavior)
+
+**Patterns applied:**
+- Same dependency injection pattern as Phase 1: `searchIssues` accepts `isCommandAvailable` and `execCommand`
+- Pure core functions: `buildSearchIssuesCommand` and `parseSearchIssuesResponse` are pure
+- Function composition: search() now composes ID fetch with text search fallback
+
+**Testing:**
+- Unit tests: 13 tests added
+  - GitHubClientTest: 7 tests (command building with limits, search execution, error cases)
+  - IssueSearchServiceTest: 6 tests (ID priority, text search fallback, empty query, errors)
+- All tests follow established mocking pattern
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260114-112800.md
+- Major findings: No critical issues; noted duplication of `extractGitHubIssueNumber` across files (tech debt for future)
+
+**For next phases:**
+- Available utilities:
+  - `GitHubClient.searchIssues(repository, query, limit)` - searches issues by text
+  - `IssueSearchService.search(query, config, fetchIssue, searchIssues)` - unified search with ID priority
+  - `buildSearchFunction` in CaskServer - creates tracker-specific search function
+- Extension points:
+  - `buildSearchFunction` supports Linear and YouTrack (currently returns "not yet supported")
+  - `searchIssues` parameter can be provided by any tracker implementation
+- Notes: Phase 4 (Linear title search) and Phase 6 (YouTrack title search) can follow this pattern
+
+**Files changed:**
+```
+M  .iw/core/CaskServer.scala
+M  .iw/core/GitHubClient.scala
+M  .iw/core/IssueSearchService.scala
+M  .iw/core/test/GitHubClientTest.scala
+M  .iw/core/test/IssueSearchServiceTest.scala
+```
+
+---

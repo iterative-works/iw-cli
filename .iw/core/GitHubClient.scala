@@ -393,3 +393,76 @@ object GitHubClient:
       case Right(jsonOutput) =>
         // Parse JSON response
         parseListRecentIssuesResponse(jsonOutput)
+
+  /** Build gh CLI command for searching issues by text.
+    *
+    * Uses `gh issue list --search "text"` which searches across title and body.
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param query Search text (will be passed to gh CLI)
+    * @param limit Maximum number of issues to return (default 10)
+    * @return Array of command arguments for gh CLI
+    */
+  def buildSearchIssuesCommand(
+    repository: String,
+    query: String,
+    limit: Int = 10
+  ): Array[String] =
+    Array(
+      "issue", "list",
+      "--repo", repository,
+      "--search", query,
+      "--state", "open",
+      "--limit", limit.toString,
+      "--json", "number,title,state,updatedAt"
+    )
+
+  /** Parse JSON response from gh issue search command.
+    *
+    * Reuses the same format as listRecentIssues.
+    *
+    * @param jsonOutput JSON array string from gh CLI
+    * @return Right(List[Issue]) on success, Left(error message) on failure
+    */
+  def parseSearchIssuesResponse(jsonOutput: String): Either[String, List[Issue]] =
+    // Reuse parseListRecentIssuesResponse - same JSON format
+    parseListRecentIssuesResponse(jsonOutput)
+
+  /** Search GitHub issues by text (title and body).
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param query Search text
+    * @param limit Maximum number of issues to return (default 10)
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Either error message or list of matching issues
+    */
+  def searchIssues(
+    repository: String,
+    query: String,
+    limit: Int = 10,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, List[Issue]] =
+    // Validate prerequisites before attempting search
+    validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
+        return Left(formatGhNotInstalledError())
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
+        return Left(formatGhNotAuthenticatedError())
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
+        return Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        // Proceed with search
+
+    // Build command arguments
+    val args = buildSearchIssuesCommand(repository, query, limit)
+
+    // Execute gh issue list --search
+    execCommand("gh", args) match
+      case Left(error) =>
+        Left(s"Failed to search issues: $error")
+      case Right(jsonOutput) =>
+        // Parse JSON response
+        parseSearchIssuesResponse(jsonOutput)
