@@ -558,3 +558,136 @@ class GitHubClientTest extends munit.FunSuite:
 
     assert(result.isLeft)
     assert(result.left.getOrElse("").contains("Failed to parse"))
+
+  // ========== listRecentIssues Command Building Tests ==========
+
+  test("buildListRecentIssuesCommand with default limit"):
+    val args = GitHubClient.buildListRecentIssuesCommand(
+      repository = "owner/repo"
+    )
+
+    assertEquals(args(0), "issue")
+    assertEquals(args(1), "list")
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "owner/repo")
+    assertEquals(args(4), "--state")
+    assertEquals(args(5), "open")
+    assertEquals(args(6), "--limit")
+    assertEquals(args(7), "5")
+    assertEquals(args(8), "--json")
+    assertEquals(args(9), "number,title,state,updatedAt")
+
+  test("buildListRecentIssuesCommand with custom limit"):
+    val args = GitHubClient.buildListRecentIssuesCommand(
+      repository = "iterative-works/iw-cli",
+      limit = 10
+    )
+
+    assertEquals(args(2), "--repo")
+    assertEquals(args(3), "iterative-works/iw-cli")
+    assertEquals(args(6), "--limit")
+    assertEquals(args(7), "10")
+
+  // ========== listRecentIssues JSON Parsing Tests ==========
+
+  test("parseListRecentIssuesResponse parses valid JSON array with multiple issues"):
+    val json = """[
+      {"number": 132, "title": "Add feature", "state": "OPEN", "updatedAt": "2024-01-15T10:30:00Z"},
+      {"number": 131, "title": "Fix bug", "state": "OPEN", "updatedAt": "2024-01-14T09:15:00Z"},
+      {"number": 130, "title": "Update docs", "state": "OPEN", "updatedAt": "2024-01-13T14:20:00Z"}
+    ]"""
+    val result = GitHubClient.parseListRecentIssuesResponse(json)
+
+    assert(result.isRight)
+    val issues = result.getOrElse(fail("Expected Right"))
+    assertEquals(issues.length, 3)
+    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).title, "Add feature")
+    assertEquals(issues(0).status, "open")
+    assertEquals(issues(1).id, "#131")
+    assertEquals(issues(1).title, "Fix bug")
+    assertEquals(issues(2).id, "#130")
+    assertEquals(issues(2).title, "Update docs")
+
+  test("parseListRecentIssuesResponse parses empty array"):
+    val json = """[]"""
+    val result = GitHubClient.parseListRecentIssuesResponse(json)
+
+    assert(result.isRight)
+    val issues = result.getOrElse(fail("Expected Right"))
+    assertEquals(issues.length, 0)
+
+  test("parseListRecentIssuesResponse handles malformed JSON"):
+    val json = """[{"invalid": "json"""
+    val result = GitHubClient.parseListRecentIssuesResponse(json)
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Failed to parse"))
+
+  test("parseListRecentIssuesResponse handles missing required fields"):
+    val json = """[{"number": 132, "title": "Test"}]"""
+    val result = GitHubClient.parseListRecentIssuesResponse(json)
+
+    assert(result.isLeft)
+    assert(result.left.getOrElse("").contains("Failed to parse"))
+
+  // ========== listRecentIssues Integration Tests ==========
+
+  test("listRecentIssues success case with mocked command"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.contains("issue") && args.contains("list") then
+        Right("""[
+          {"number": 132, "title": "Add feature", "state": "OPEN", "updatedAt": "2024-01-15T10:30:00Z"},
+          {"number": 131, "title": "Fix bug", "state": "OPEN", "updatedAt": "2024-01-14T09:15:00Z"}
+        ]""")
+      else
+        Left("Unexpected command")
+
+    val result = GitHubClient.listRecentIssues(
+      repository = "owner/repo",
+      limit = 5,
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val issues = result.getOrElse(fail("Expected Right"))
+    assertEquals(issues.length, 2)
+    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).title, "Add feature")
+
+  test("listRecentIssues fails when gh CLI not available"):
+    val mockIsCommandAvailable = (cmd: String) => false
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      fail("Should not execute command when gh not installed")
+
+    val result = GitHubClient.listRecentIssues(
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh CLI is not installed"))
+
+  test("listRecentIssues fails when gh CLI not authenticated"):
+    val mockIsCommandAvailable = (cmd: String) => true
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("Command failed: gh auth status: exit status 4")
+      else
+        fail("Should not execute issue command when not authenticated")
+
+    val result = GitHubClient.listRecentIssues(
+      repository = "owner/repo",
+      isCommandAvailable = mockIsCommandAvailable,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh is not authenticated"))
