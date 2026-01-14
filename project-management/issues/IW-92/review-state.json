@@ -1,9 +1,16 @@
 {
-  "status": "tasks_ready",
-  "phase": 0,
-  "message": "Task index created - ready for implementation",
+  "version": 1,
+  "issue_id": "IW-92",
+  "status": "context_ready",
+  "phase": 1,
+  "step": "tasks",
+  "branch": "IW-92",
+  "pr_url": null,
+  "git_sha": "a37b16abd419793846d5f5eb0502a4d2b29d56e7",
+  "last_updated": "2026-01-14T21:32:42Z",
+  "message": "Phase 1 context ready for review",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
-    {"label": "Tasks", "path": "project-management/issues/IW-92/tasks.md"}
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-92/phase-01-context.md"}
   ]
 }
