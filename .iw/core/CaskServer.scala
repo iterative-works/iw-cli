@@ -544,8 +544,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               Left("GitHub repository not configured")
 
         case IssueTrackerType.Linear =>
-          // Linear support will be added in Phase 3
-          Left("Recent issues not yet supported for Linear")
+          ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+            case Some(token) =>
+              LinearClient.listRecentIssues(config.team, limit, token)
+            case None =>
+              Left("LINEAR_API_TOKEN environment variable not set")
 
         case IssueTrackerType.YouTrack =>
           // YouTrack support will be added in Phase 5

@@ -87,6 +87,12 @@ object LinearClient:
     }"""
     graphql
 
+  def buildListRecentIssuesQuery(teamId: String, limit: Int = 5): String =
+    val graphql = s"""{
+      "query": "{ team(id: \\"$teamId\\") { issues(first: $limit, orderBy: createdAt) { nodes { identifier title state { name } } } } }"
+    }"""
+    graphql
+
   def parseLinearResponse(json: String): Either[String, Issue] =
     try
       import upickle.default.*
@@ -174,6 +180,55 @@ object LinearClient:
     catch
       case e: Exception => Left(s"Failed to parse create issue response: ${e.getMessage}")
 
+  def parseListRecentIssuesResponse(json: String): Either[String, List[Issue]] =
+    try
+      import upickle.default.*
+
+      val parsed = ujson.read(json)
+
+      // Check for data field
+      if !parsed.obj.contains("data") then
+        return Left("Malformed response: missing 'data' field")
+
+      val data = parsed("data")
+      if !data.obj.contains("team") then
+        return Left("Malformed response: missing 'team' field")
+
+      val team = data("team")
+      if !team.obj.contains("issues") then
+        return Left("Malformed response: missing 'issues' field")
+
+      val issues = team("issues")
+      if !issues.obj.contains("nodes") then
+        return Left("Malformed response: missing 'nodes' field")
+
+      val nodes = issues("nodes").arr
+
+      // Parse each issue node
+      val issueList = nodes.map { node =>
+        if !node.obj.contains("identifier") then
+          throw new Exception("Missing 'identifier' field in issue node")
+        if !node.obj.contains("title") then
+          throw new Exception("Missing 'title' field in issue node")
+        if !node.obj.contains("state") then
+          throw new Exception("Missing 'state' field in issue node")
+
+        val state = node("state")
+        if !state.obj.contains("name") then
+          throw new Exception("Missing 'name' field in state")
+
+        val id = node("identifier").str
+        val title = node("title").str
+        val status = state("name").str
+
+        // Recent issues don't need assignee or description
+        Issue(id, title, status, None, None)
+      }.toList
+
+      Right(issueList)
+    catch
+      case e: Exception => Left(s"Failed to parse list recent issues response: ${e.getMessage}")
+
   /** Create a new Linear issue via GraphQL mutation.
     *
     * @param title Issue title
@@ -206,6 +261,42 @@ object LinearClient:
         case StatusCode.Ok =>
           response.body match
             case Right(body) => parseCreateIssueResponse(body)
+            case Left(_) => Left("Empty response body")
+        case StatusCode.Unauthorized =>
+          Left("API token is invalid or expired")
+        case _ =>
+          Left(s"Linear API error: ${response.code}")
+    catch
+      case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  /** Fetch recent issues from a Linear team via GraphQL query.
+    *
+    * @param teamId Linear team UUID
+    * @param limit Maximum number of issues to return (default 5)
+    * @param token Valid Linear API token
+    * @param backend HTTP backend (defaults to real HTTP, can be stubbed for testing)
+    * @return Right(List[Issue]) on success, Left(error message) on failure
+    */
+  def listRecentIssues(
+    teamId: String,
+    limit: Int = 5,
+    token: ApiToken,
+    backend: SyncBackend = defaultBackend
+  ): Either[String, List[Issue]] =
+    try
+      val query = buildListRecentIssuesQuery(teamId, limit)
+
+      val response = basicRequest
+        .post(uri"$apiUrl")
+        .header("Authorization", token.value)
+        .header("Content-Type", "application/json")
+        .body(query)
+        .send(backend)
+
+      response.code match
+        case StatusCode.Ok =>
+          response.body match
+            case Right(body) => parseListRecentIssuesResponse(body)
             case Left(_) => Left("Empty response body")
         case StatusCode.Unauthorized =>
           Left("API token is invalid or expired")
