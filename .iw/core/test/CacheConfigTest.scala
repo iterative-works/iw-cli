@@ -53,10 +53,8 @@ class CacheConfigTest extends FunSuite:
 
     assertEquals(config.prCacheTTL, 15, "Should reject zero TTL values")
 
-  test("CacheConfig.fromSystemEnv creates config from system environment"):
-    // This test verifies the factory method exists and works
-    // It will use actual system environment, so we can't test specific values
-    val config = CacheConfig.fromSystemEnv()
+  test("CacheConfig.Default uses default values"):
+    val config = CacheConfig.Default
 
-    assert(config.issueCacheTTL > 0, "Issue cache TTL should be positive")
-    assert(config.prCacheTTL > 0, "PR cache TTL should be positive")
+    assertEquals(config.issueCacheTTL, 30, "Default issue cache TTL should be 30 minutes")
+    assertEquals(config.prCacheTTL, 15, "Default PR cache TTL should be 15 minutes")

@@ -1,5 +1,5 @@
 // PURPOSE: Configuration for cache TTL values with environment variable support
-// PURPOSE: Provides default values and reads from environment variables
+// PURPOSE: Pure domain config that parses TTL values from an environment map
 
 package iw.core.domain
 
@@ -39,11 +39,5 @@ case class CacheConfig(env: Map[String, String]):
       .getOrElse(15)
 
 object CacheConfig:
-  /** Create CacheConfig from system environment variables.
-    *
-    * @return CacheConfig instance using system environment
-    */
-  def fromSystemEnv(): CacheConfig =
-    import scala.jdk.CollectionConverters._
-    val env = System.getenv().asScala.toMap
-    CacheConfig(env)
+  /** Default configuration for cases where no environment customization is needed */
+  val Default: CacheConfig = CacheConfig(Map.empty)
