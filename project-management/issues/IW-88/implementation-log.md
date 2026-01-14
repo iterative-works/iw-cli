@@ -105,6 +105,50 @@ M  .iw/core/test/IssueSearchServiceTest.scala
 
 ---
 
+## Phase 4: Search by title - Linear (2026-01-14)
+
+**What was built:**
+- Infrastructure: `LinearClient.scala` - Added `buildSearchIssuesQuery()`, `parseSearchIssuesResponse()`, `searchIssues()` methods for searching issues via Linear GraphQL `issueSearch` API
+- Presentation: `CaskServer.scala` - Updated `buildSearchFunction` to route Linear tracker to LinearClient.searchIssues
+
+**Decisions made:**
+- Used Linear GraphQL query: `issueSearch(query: "search text", first: 10) { nodes { identifier title state { name } } }`
+- Response path is different from listRecentIssues: `data.issueSearch.nodes` (not `data.team.issues.nodes`)
+- Search limit set to 10 (same as GitHub search, vs 5 for recent)
+- Token read from environment `LINEAR_API_TOKEN` (consistent with existing pattern)
+
+**Patterns applied:**
+- Same pure/effectful separation as Phase 3: pure `buildSearchIssuesQuery` and `parseSearchIssuesResponse`, effectful `searchIssues`
+- Backend injection for testability: `searchIssues` accepts `backend: SyncBackend` parameter
+- Follows HTTP execution pattern established in Phase 3
+
+**Testing:**
+- Unit tests: 8 tests added
+  - LinearClientMockTest: 8 tests (query building, response parsing, HTTP execution with mocked backend)
+- Tests follow same pattern as Phase 3 using SyncBackendStub
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-04-20260114-190500.md
+- Major findings: No critical issues; noted HTTP duplication (pre-existing tech debt), test naming suggestions for future
+
+**For next phases:**
+- Available utilities:
+  - `LinearClient.searchIssues(query, limit, token)` - searches Linear issues by text
+  - `buildSearchFunction` now routes Linear tracker correctly
+- Extension points:
+  - YouTrack phases (5-6) can follow similar GraphQL pattern
+- Notes: Linear tracker now fully supports both recent issues (Phase 3) and title search (Phase 4)
+
+**Files changed:**
+```
+M  .iw/core/CaskServer.scala
+M  .iw/core/LinearClient.scala
+M  .iw/core/test/LinearClientMockTest.scala
+```
+
+---
+
 ## Phase 3: Recent issues - Linear (2026-01-14)
 
 **What was built:**

@@ -570,8 +570,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               Left("GitHub repository not configured")
 
         case IssueTrackerType.Linear =>
-          // Linear support will be added in Phase 4
-          Left("Title search not yet supported for Linear")
+          ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+            case Some(token) =>
+              LinearClient.searchIssues(query, 10, token)
+            case None =>
+              Left("LINEAR_API_TOKEN environment variable not set")
 
         case IssueTrackerType.YouTrack =>
           // YouTrack support will be added in Phase 6

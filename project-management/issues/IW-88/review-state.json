@@ -1,12 +1,12 @@
 {
   "status": "awaiting_review",
-  "phase": 3,
-  "message": "Phase 3 complete - Recent issues - Linear",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/123",
+  "phase": 4,
+  "message": "Phase 4 complete - Search by title for Linear",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/125",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-88/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-88/implementation-log.md"},
-    {"label": "Phase 3 Context", "path": "project-management/issues/IW-88/phase-03-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-88/review-packet-phase-03.md"}
+    {"label": "Phase 4 Context", "path": "project-management/issues/IW-88/phase-04-context.md"},
+    {"label": "Phase 4 Review", "path": "project-management/issues/IW-88/review-phase-04-20260114-190500.md"}
   ]
 }
