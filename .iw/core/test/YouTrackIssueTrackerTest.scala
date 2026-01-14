@@ -205,3 +205,4 @@ class YouTrackIssueTrackerTest extends FunSuite:
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right but got Left"))
     assertEquals(issue.status, "Unknown")
+
