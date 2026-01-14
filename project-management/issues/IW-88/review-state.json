@@ -1,17 +1,18 @@
 {
   "version": 1,
   "issue_id": "IW-88",
-  "status": "implementing",
+  "status": "awaiting_review",
   "phase": 6,
-  "step": "implementation",
+  "step": "review",
   "branch": "IW-88-phase-06",
-  "pr_url": null,
-  "git_sha": "1852ce4",
-  "last_updated": "2026-01-14T21:35:00Z",
-  "message": "Phase 6 implementation in progress",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/128",
+  "git_sha": "f17b0ed",
+  "last_updated": "2026-01-14T21:55:00Z",
+  "message": "Phase 6 complete - Search by title - YouTrack",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-88/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-88/implementation-log.md"},
     {"label": "Phase 6 Context", "path": "project-management/issues/IW-88/phase-06-context.md"},
-    {"label": "Phase 6 Tasks", "path": "project-management/issues/IW-88/phase-06-tasks.md"}
+    {"label": "Review", "path": "project-management/issues/IW-88/review-phase-06-20260114-215200.md"}
   ]
 }
