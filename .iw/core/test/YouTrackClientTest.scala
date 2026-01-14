@@ -107,3 +107,52 @@ class YouTrackClientTest extends FunSuite:
     assert(result.left.exists(msg =>
       msg.contains("Failed to parse") || msg.contains("parse")
     ), s"Expected meaningful error message, got: ${result.left.getOrElse("")}")
+
+  test("buildSearchIssuesUrl returns correct URL with query and limit"):
+    val baseUrl = "https://youtrack.example.com"
+    val query = "test issue"
+    val url = YouTrackClient.buildSearchIssuesUrl(baseUrl, query, 10)
+
+    assert(url.contains("https://youtrack.example.com/api/issues"))
+    assert(url.contains("fields=idReadable,summary,customFields(name,value(name))"))
+    assert(url.contains("$top=10"))
+    assert(url.contains("query=test%20issue"))
+
+  test("buildSearchIssuesUrl encodes special characters in query"):
+    val baseUrl = "https://youtrack.example.com"
+    val query = "bug with & and +"
+    val url = YouTrackClient.buildSearchIssuesUrl(baseUrl, query, 5)
+
+    // Verify special characters are URL-encoded
+    assert(url.contains("query=bug%20with%20%26%20and%20%2B"))
+    assert(!url.contains("bug with & and +"))
+
+  test("searchIssues can parse response using parseListRecentIssuesResponse"):
+    // Verify that search results use the same JSON format as recent issues
+    val searchResultJson = """[
+      {
+        "idReadable": "SEARCH-1",
+        "summary": "Found issue matching query",
+        "customFields": [
+          {"name": "State", "value": {"name": "Open"}}
+        ]
+      },
+      {
+        "idReadable": "SEARCH-2",
+        "summary": "Another matching issue",
+        "customFields": [
+          {"name": "State", "value": {"name": "Resolved"}}
+        ]
+      }
+    ]"""
+
+    val result = YouTrackClient.parseListRecentIssuesResponse(searchResultJson)
+    assert(result.isRight)
+
+    val issues = result.getOrElse(fail("Expected Right but got Left"))
+    assertEquals(issues.length, 2)
+    assertEquals(issues(0).id, "SEARCH-1")
+    assertEquals(issues(0).title, "Found issue matching query")
+    assertEquals(issues(1).id, "SEARCH-2")
+    assertEquals(issues(1).status, "Resolved")
+

@@ -82,6 +82,11 @@ object YouTrackClient:
     val fields = "idReadable,summary,customFields(name,value(name))"
     s"$baseUrl/api/issues?fields=$fields&$$top=$limit&$$orderBy=created%20desc"
 
+  def buildSearchIssuesUrl(baseUrl: String, query: String, limit: Int): String =
+    val fields = "idReadable,summary,customFields(name,value(name))"
+    val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8").replace("+", "%20")
+    s"$baseUrl/api/issues?fields=$fields&query=$encodedQuery&$$top=$limit"
+
   def parseListRecentIssuesResponse(json: String): Either[String, List[Issue]] =
     try
       import upickle.default.*
@@ -122,6 +127,26 @@ object YouTrackClient:
   def listRecentIssues(baseUrl: String, limit: Int = 5, token: ApiToken): Either[String, List[Issue]] =
     try
       val url = buildListRecentIssuesUrl(baseUrl, limit)
+
+      val response = quickRequest
+        .get(uri"$url")
+        .header("Authorization", s"Bearer ${token.value}")
+        .header("Accept", "application/json")
+        .send()
+
+      response.code match
+        case StatusCode.Ok =>
+          parseListRecentIssuesResponse(response.body)
+        case StatusCode.Unauthorized =>
+          Left("API token is invalid or expired")
+        case _ =>
+          Left(s"YouTrack API error: ${response.code}")
+    catch
+      case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  def searchIssues(baseUrl: String, query: String, limit: Int = 10, token: ApiToken): Either[String, List[Issue]] =
+    try
+      val url = buildSearchIssuesUrl(baseUrl, query, limit)
 
       val response = quickRequest
         .get(uri"$url")
