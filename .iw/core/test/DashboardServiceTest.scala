@@ -348,7 +348,7 @@ class DashboardServiceTest extends FunSuite:
 
     // Verify Zed button appears in HTML
     assert(html.contains("zed-button"))
-    assert(html.contains("zed://ssh://dev-server/home/user/projects/my-project"))
+    assert(html.contains("zed://ssh/dev-server/home/user/projects/my-project"))
     assert(html.contains("Open in Zed"))
 
   test("renderDashboard Zed button uses correct SSH host for multiple worktrees"):
@@ -366,5 +366,5 @@ class DashboardServiceTest extends FunSuite:
     )
 
     // Verify both worktrees have Zed buttons with correct SSH host
-    assert(html.contains("zed://ssh://test-host/home/user/project-a"))
-    assert(html.contains("zed://ssh://test-host/home/user/project-b"))
+    assert(html.contains("zed://ssh/test-host/home/user/project-a"))
+    assert(html.contains("zed://ssh/test-host/home/user/project-b"))

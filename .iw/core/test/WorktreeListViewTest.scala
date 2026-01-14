@@ -537,7 +537,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     val html = WorktreeListView.render(worktreesWithData, now, "my-ssh-host")
     val htmlStr = html.render
 
-    assert(htmlStr.contains("zed://ssh://my-ssh-host/home/user/projects/my-project"),
+    assert(htmlStr.contains("zed://ssh/my-ssh-host/home/user/projects/my-project"),
       s"Should contain correct Zed URL with SSH host and path")
 
   test("WorktreeListView Zed button has tooltip"):

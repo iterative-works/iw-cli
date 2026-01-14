@@ -93,7 +93,7 @@ object WorktreeListView:
         cls := "zed-link",
         a(
           cls := "zed-button",
-          href := s"zed://ssh://$sshHost${worktree.path}",
+          href := s"zed://ssh/$sshHost${worktree.path}",
           attr("title") := "Open in Zed",
           img(
             src := "https://raw.githubusercontent.com/zed-industries/zed/main/crates/zed/resources/app-icon.png",
