@@ -1,12 +1,16 @@
 {
-  "status": "awaiting_review",
-  "phase": 4,
-  "message": "Phase 4 complete - Search by title for Linear",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/125",
+  "version": 1,
+  "issue_id": "IW-88",
+  "status": "context_ready",
+  "phase": 5,
+  "step": "tasks",
+  "branch": "IW-88",
+  "pr_url": null,
+  "git_sha": "31e13970a1b37ebbf53fc1ee106f48178fbc084b",
+  "last_updated": "2026-01-14T21:03:33Z",
+  "message": "Phase 5 context ready, generating tasks",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-88/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-88/implementation-log.md"},
-    {"label": "Phase 4 Context", "path": "project-management/issues/IW-88/phase-04-context.md"},
-    {"label": "Phase 4 Review", "path": "project-management/issues/IW-88/review-phase-04-20260114-190500.md"}
+    {"label": "Phase 5 Context", "path": "project-management/issues/IW-88/phase-05-context.md"}
   ]
 }
