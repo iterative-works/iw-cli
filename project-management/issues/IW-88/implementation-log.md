@@ -238,3 +238,48 @@ A  .iw/core/test/YouTrackClientTest.scala
 ```
 
 ---
+
+## Phase 6: Search by title - YouTrack (2026-01-14)
+
+**What was built:**
+- Infrastructure: `YouTrackClient.scala` - Added `buildSearchIssuesUrl()` and `searchIssues()` methods for searching issues via YouTrack REST API
+- Presentation: `CaskServer.scala` - Updated `buildSearchFunction` to route YouTrack tracker to `YouTrackClient.searchIssues`
+
+**Decisions made:**
+- Used YouTrack REST API: `GET /api/issues?fields=idReadable,summary,customFields(name,value(name))&query={searchText}&$top={limit}`
+- Query parameter URL-encoded with special character handling (`%20` for space, `%26` for `&`, `%2B` for `+`)
+- Reused `parseListRecentIssuesResponse` for parsing (same JSON array format as Phase 5)
+- Search limit set to 10 (same as GitHub and Linear search)
+
+**Patterns applied:**
+- Pure/effectful separation: pure `buildSearchIssuesUrl` for URL construction, effectful `searchIssues` for HTTP
+- Follows existing YouTrackClient patterns for HTTP execution and error handling
+- Code reuse: shares JSON parser with `listRecentIssues` (Phase 5)
+
+**Testing:**
+- Unit tests: 3 tests added
+  - YouTrackClientTest: URL building with query encoding, special characters, JSON format verification
+- Tests focus on pure functions (URL building, parsing) - HTTP execution tested via E2E
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-06-20260114-215200.md
+- Major findings: No critical blocking issues; noted pre-existing architectural patterns (client location, pure/impure mixing); test naming suggestions
+
+**For next phases:**
+- Available utilities:
+  - `YouTrackClient.searchIssues(baseUrl, query, limit, token)` - searches YouTrack issues by text
+  - `buildSearchFunction` now routes all three trackers correctly
+- Extension points:
+  - All tracker implementations complete for both recent and search functionality
+- Notes: YouTrack tracker now fully supports both recent issues (Phase 5) and title search (Phase 6)
+
+**Files changed:**
+```
+M  .iw/core/CaskServer.scala
+M  .iw/core/YouTrackClient.scala
+M  .iw/core/test/YouTrackClientTest.scala
+M  .iw/core/test/YouTrackIssueTrackerTest.scala (trailing newline only)
+```
+
+---

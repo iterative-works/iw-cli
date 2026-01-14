@@ -587,8 +587,13 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               Left("LINEAR_API_TOKEN environment variable not set")
 
         case IssueTrackerType.YouTrack =>
-          // YouTrack support will be added in Phase 6
-          Left("Title search not yet supported for YouTrack")
+          (config.youtrackBaseUrl, ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken)) match
+            case (Some(baseUrl), Some(token)) =>
+              YouTrackClient.searchIssues(baseUrl, query, 10, token)
+            case (None, _) =>
+              Left("YouTrack base URL not configured")
+            case (_, None) =>
+              Left("YOUTRACK_API_TOKEN environment variable not set")
 
   /** Extract GitHub issue number from issue ID.
     *
