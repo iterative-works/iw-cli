@@ -1,8 +1,9 @@
 {
-  "status": "analysis_ready",
+  "status": "tasks_ready",
   "phase": 0,
-  "message": "Analysis complete - ready for review",
+  "message": "Task index created - ready for implementation",
   "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"}
+    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
+    {"label": "Tasks", "path": "project-management/issues/IW-92/tasks.md"}
   ]
 }
