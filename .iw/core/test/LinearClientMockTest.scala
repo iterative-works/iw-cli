@@ -338,3 +338,154 @@ class LinearClientMockTest extends FunSuite:
     assert(result.isLeft, "Expected Left for network error")
     val error = result.left.getOrElse("")
     assert(error.contains("API error") || error.contains("500"), s"Expected API error, got: $error")
+
+  // --- buildSearchIssuesQuery tests ---
+
+  test("buildSearchIssuesQuery with query and default limit (10)"):
+    val query = LinearClient.buildSearchIssuesQuery("dashboard")
+
+    // Should be valid JSON with GraphQL query
+    assert(query.contains("\"query\""))
+    assert(query.contains("issueSearch(query: \\\"dashboard\\\", first: 10)"))
+    assert(query.contains("nodes"))
+    assert(query.contains("identifier"))
+    assert(query.contains("title"))
+    assert(query.contains("state"))
+
+  test("buildSearchIssuesQuery with custom limit"):
+    val query = LinearClient.buildSearchIssuesQuery("refactor", 5)
+
+    assert(query.contains("issueSearch(query: \\\"refactor\\\", first: 5)"))
+
+  // --- parseSearchIssuesResponse tests ---
+
+  test("parseSearchIssuesResponse with valid response"):
+    val jsonResponse = """{
+      "data": {
+        "issueSearch": {
+          "nodes": [
+            {
+              "identifier": "IW-123",
+              "title": "Dashboard refactoring",
+              "state": { "name": "In Progress" }
+            },
+            {
+              "identifier": "IW-88",
+              "title": "Dashboard search feature",
+              "state": { "name": "Todo" }
+            },
+            {
+              "identifier": "IW-55",
+              "title": "Update dashboard UI",
+              "state": { "name": "Done" }
+            }
+          ]
+        }
+      }
+    }"""
+
+    val result = LinearClient.parseSearchIssuesResponse(jsonResponse)
+
+    assert(result.isRight, s"Expected Right but got $result")
+    val issues = result.getOrElse(fail("Expected List[Issue]"))
+    assertEquals(issues.length, 3)
+    assertEquals(issues(0).id, "IW-123")
+    assertEquals(issues(0).title, "Dashboard refactoring")
+    assertEquals(issues(0).status, "In Progress")
+    assertEquals(issues(1).id, "IW-88")
+    assertEquals(issues(1).title, "Dashboard search feature")
+    assertEquals(issues(2).id, "IW-55")
+
+  test("parseSearchIssuesResponse with empty issues array"):
+    val jsonResponse = """{
+      "data": {
+        "issueSearch": {
+          "nodes": []
+        }
+      }
+    }"""
+
+    val result = LinearClient.parseSearchIssuesResponse(jsonResponse)
+
+    assert(result.isRight, s"Expected Right but got $result")
+    val issues = result.getOrElse(fail("Expected List[Issue]"))
+    assertEquals(issues.length, 0)
+
+  test("parseSearchIssuesResponse with missing fields"):
+    val jsonResponse = """{
+      "data": {
+        "issueSearch": {
+          "nodes": [
+            {
+              "identifier": "IW-123",
+              "title": "Test issue"
+            }
+          ]
+        }
+      }
+    }"""
+
+    val result = LinearClient.parseSearchIssuesResponse(jsonResponse)
+
+    assert(result.isLeft, "Expected Left for missing state field")
+    val error = result.left.getOrElse("")
+    assert(error.contains("Failed to parse") || error.contains("state"), s"Expected parse error, got: $error")
+
+  // --- searchIssues tests ---
+
+  test("searchIssues success case (mocked backend)"):
+    val jsonResponse = """{
+      "data": {
+        "issueSearch": {
+          "nodes": [
+            {
+              "identifier": "IW-123",
+              "title": "Dashboard refactoring",
+              "state": { "name": "In Progress" }
+            },
+            {
+              "identifier": "IW-88",
+              "title": "Dashboard search",
+              "state": { "name": "Todo" }
+            }
+          ]
+        }
+      }
+    }"""
+
+    val testBackend = SyncBackendStub
+      .whenAnyRequest
+      .thenRespondAdjust(jsonResponse)
+
+    val token = ApiToken("test-token").get
+    val result = LinearClient.searchIssues("dashboard", 10, token, testBackend)
+
+    assert(result.isRight, s"Expected Right but got $result")
+    val issues = result.getOrElse(fail("Expected List[Issue]"))
+    assertEquals(issues.length, 2)
+    assertEquals(issues(0).id, "IW-123")
+    assertEquals(issues(0).title, "Dashboard refactoring")
+
+  test("searchIssues unauthorized (401) response"):
+    val testBackend = SyncBackendStub
+      .whenAnyRequest
+      .thenRespondUnauthorized()
+
+    val token = ApiToken("invalid-token").get
+    val result = LinearClient.searchIssues("dashboard", 10, token, testBackend)
+
+    assert(result.isLeft, "Expected Left for 401")
+    val error = result.left.getOrElse("")
+    assert(error.contains("token") || error.contains("expired"), s"Expected token error, got: $error")
+
+  test("searchIssues network error"):
+    val testBackend = SyncBackendStub
+      .whenAnyRequest
+      .thenRespondServerError()
+
+    val token = ApiToken("test-token").get
+    val result = LinearClient.searchIssues("dashboard", 10, token, testBackend)
+
+    assert(result.isLeft, "Expected Left for network error")
+    val error = result.left.getOrElse("")
+    assert(error.contains("API error") || error.contains("500"), s"Expected API error, got: $error")
