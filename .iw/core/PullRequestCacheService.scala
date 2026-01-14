@@ -12,6 +12,22 @@ import java.time.Instant
   */
 object PullRequestCacheService:
 
+  /** Get cached PR data without calling CLI.
+    *
+    * Returns cached data regardless of age (even if stale).
+    * Returns None if no cache entry exists.
+    * Never calls CLI commands - purely reads from cache.
+    *
+    * @param issueId Issue ID for cache key lookup
+    * @param cache Current PR cache map
+    * @return Optional PullRequestData from cache (None if not cached)
+    */
+  def getCachedOnly(
+    issueId: String,
+    cache: Map[String, CachedPR]
+  ): Option[PullRequestData] =
+    cache.get(issueId).map(_.pr)
+
   /** Fetch PR data with cache support.
     *
     * Checks cache validity (2-minute TTL) and re-fetches if expired.
