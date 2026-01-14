@@ -21,7 +21,11 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Right(Issue("IWLE-100", "Test Issue", "In Progress", Some("Jane"), Some("Description")))
 
-    val results = IssueSearchService.search("IWLE-100", config, fetchIssue)
+    // Mock searchIssues - should not be called when exact ID match succeeds
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for exact ID match")
+
+    val results = IssueSearchService.search("IWLE-100", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
@@ -46,7 +50,11 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       fail("fetchIssue should not be called for invalid ID")
 
-    val results = IssueSearchService.search("INVALID", config, fetchIssue)
+    // Mock searchIssues - returns empty list (no matches)
+    val searchIssues = (query: String) =>
+      Right(List.empty)
+
+    val results = IssueSearchService.search("INVALID", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed with empty results")
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
@@ -63,7 +71,11 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Left("Issue not found")
 
-    val results = IssueSearchService.search("IWLE-999", config, fetchIssue)
+    // Mock searchIssues - returns empty list (no matches in text search either)
+    val searchIssues = (query: String) =>
+      Right(List.empty)
+
+    val results = IssueSearchService.search("IWLE-999", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed with empty results")
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
@@ -80,7 +92,10 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Right(Issue("IW-79", "GitHub Issue", "Open", None, None))
 
-    val results = IssueSearchService.search("IW-79", config, fetchIssue)
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for exact ID match")
+
+    val results = IssueSearchService.search("IW-79", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
@@ -104,7 +119,10 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Right(Issue("PROJ-123", "YouTrack Issue", "To Do", Some("John"), None))
 
-    val results = IssueSearchService.search("PROJ-123", config, fetchIssue)
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for exact ID match")
+
+    val results = IssueSearchService.search("PROJ-123", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
@@ -128,7 +146,10 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       fail("fetchIssue should not be called for empty query")
 
-    val results = IssueSearchService.search("", config, fetchIssue)
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for empty query")
+
+    val results = IssueSearchService.search("", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed with empty results")
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
@@ -144,7 +165,10 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       fail("fetchIssue should not be called for whitespace query")
 
-    val results = IssueSearchService.search("   ", config, fetchIssue)
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for whitespace query")
+
+    val results = IssueSearchService.search("   ", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed with empty results")
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
@@ -160,8 +184,11 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Right(Issue("IWLE-100", "Test Issue", "Done", None, None))
 
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for exact ID match")
+
     // Search with lowercase should work (IssueId.parse normalizes to uppercase)
-    val results = IssueSearchService.search("iwle-100", config, fetchIssue)
+    val results = IssueSearchService.search("iwle-100", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
@@ -259,3 +286,158 @@ class IssueSearchServiceTest extends FunSuite:
 
     assert(results.isRight, "fetchRecent should succeed")
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
+
+  // ========== search() with text search fallback Tests ==========
+
+  test("search() exact ID match returns that issue (priority over text search)"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    // Mock fetchIssue - returns the exact issue
+    val fetchIssue = (id: IssueId) =>
+      Right(Issue("#79", "Exact match issue", "open", None, None))
+
+    // Mock searchIssues - should not be called for exact ID match
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called when exact ID match succeeds")
+
+    val results = IssueSearchService.search("IW-79", config, fetchIssue, searchIssues)
+
+    assert(results.isRight, "Search should succeed")
+    assertEquals(results.map(_.length), Right(1), "Should return one result")
+    results.foreach { list =>
+      assertEquals(list(0).id, "#79")
+      assertEquals(list(0).title, "Exact match issue")
+    }
+
+  test("search() invalid ID format triggers text search"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    // Mock fetchIssue - should not be called for invalid ID
+    val fetchIssue = (id: IssueId) =>
+      fail("fetchIssue should not be called for invalid ID format")
+
+    // Mock searchIssues - returns results from text search
+    val searchIssues = (query: String) =>
+      Right(List(
+        Issue("#132", "Authentication bug fix", "open", None, None),
+        Issue("#131", "Add authentication", "open", None, None)
+      ))
+
+    val results = IssueSearchService.search("authentication", config, fetchIssue, searchIssues)
+
+    assert(results.isRight, "Search should succeed")
+    assertEquals(results.map(_.length), Right(2), "Should return two results from text search")
+    results.foreach { list =>
+      assertEquals(list(0).id, "#132")
+      assertEquals(list(0).title, "Authentication bug fix")
+      assertEquals(list(1).id, "#131")
+      assertEquals(list(1).title, "Add authentication")
+    }
+
+  test("search() valid ID but not found triggers text search"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    // Mock fetchIssue - returns error (issue not found)
+    val fetchIssue = (id: IssueId) =>
+      Left("Issue not found")
+
+    // Mock searchIssues - returns results from text search
+    val searchIssues = (query: String) =>
+      Right(List(
+        Issue("#999", "Issue 999 from text search", "open", None, None)
+      ))
+
+    val results = IssueSearchService.search("IW-999", config, fetchIssue, searchIssues)
+
+    assert(results.isRight, "Search should succeed with text search fallback")
+    assertEquals(results.map(_.length), Right(1), "Should return one result from text search")
+    results.foreach { list =>
+      assertEquals(list(0).id, "#999")
+      assertEquals(list(0).title, "Issue 999 from text search")
+    }
+
+  test("search() text search returns matching issues"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    val fetchIssue = (id: IssueId) =>
+      fail("fetchIssue should not be called for non-ID query")
+
+    val searchIssues = (query: String) =>
+      assertEquals(query, "fix bug")
+      Right(List(
+        Issue("#100", "Fix critical bug", "open", None, None),
+        Issue("#99", "Bug fix for login", "open", None, None)
+      ))
+
+    val results = IssueSearchService.search("fix bug", config, fetchIssue, searchIssues)
+
+    assert(results.isRight, "Search should succeed")
+    assertEquals(results.map(_.length), Right(2), "Should return two results")
+    results.foreach { list =>
+      assert(list(0).url.contains("github.com"), "Should have GitHub URL")
+      assert(list(0).url.contains("100"), "Should have issue number in URL")
+    }
+
+  test("search() empty query returns empty results (skips text search)"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    val fetchIssue = (id: IssueId) =>
+      fail("fetchIssue should not be called for empty query")
+
+    val searchIssues = (query: String) =>
+      fail("searchIssues should not be called for empty query")
+
+    val results = IssueSearchService.search("", config, fetchIssue, searchIssues)
+
+    assert(results.isRight, "Search should succeed with empty results")
+    assertEquals(results.map(_.length), Right(0), "Should return zero results")
+
+  test("search() text search error handling"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    val fetchIssue = (id: IssueId) =>
+      fail("fetchIssue should not be called for non-ID query")
+
+    val searchIssues = (query: String) =>
+      Left("Failed to search issues: API error")
+
+    val results = IssueSearchService.search("test query", config, fetchIssue, searchIssues)
+
+    assert(results.isLeft, "Search should return error from text search")
+    assert(results.left.getOrElse("").contains("Failed to search issues"))
