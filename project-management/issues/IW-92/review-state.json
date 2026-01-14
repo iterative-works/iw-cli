@@ -3,10 +3,14 @@
   "issue_id": "IW-92",
   "status": "context_ready",
   "phase": 2,
-  "step": "context",
+  "step": "tasks",
   "branch": "IW-92",
   "pr_url": null,
-  "git_sha": "db7c3bac64009016d9741f32239cef021fea4256",
-  "last_updated": "2026-01-14T23:15:00Z",
-  "message": "Phase 1 complete (merged via PR #129), starting Phase 2"
+  "git_sha": "3a569c073cda90717668dff23aff5c80a0cfffe3",
+  "last_updated": "2026-01-14T23:20:00Z",
+  "message": "Phase 2 context ready for review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
+    {"label": "Phase 2 Context", "path": "project-management/issues/IW-92/phase-02-context.md"}
+  ]
 }
