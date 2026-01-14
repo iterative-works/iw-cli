@@ -123,3 +123,23 @@ class CachedIssueTest extends FunSuite:
     val result = CachedIssue.isStale(cached, now)
 
     assert(!result, "Cache should not be stale when age < TTL")
+
+  test("isStale respects custom TTL of 30 minutes"):
+    val now = Instant.now()
+    val fetchedAt = now.minusSeconds(1200) // 20 minutes ago
+    val issueData = createTestIssueData(fetchedAt)
+    val cached = CachedIssue(issueData, ttlMinutes = 30)
+
+    val result = CachedIssue.isStale(cached, now)
+
+    assert(!result, "Cache should not be stale when 20 minutes old with 30 minute TTL")
+
+  test("isStale returns true with custom TTL of 30 minutes when old"):
+    val now = Instant.now()
+    val fetchedAt = now.minusSeconds(1860) // 31 minutes ago
+    val issueData = createTestIssueData(fetchedAt)
+    val cached = CachedIssue(issueData, ttlMinutes = 30)
+
+    val result = CachedIssue.isStale(cached, now)
+
+    assert(result, "Cache should be stale when 31 minutes old with 30 minute TTL")

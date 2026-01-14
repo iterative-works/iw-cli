@@ -14,36 +14,36 @@
 
 ### Tests - Cache Configuration
 
-- [ ] [test] Test `CachedIssue.isStale()` respects configurable TTL parameter
-- [ ] [test] Test `CachedPR.isStale()` respects configurable TTL parameter
-- [ ] [test] Test cache returns stale data (not discarded when past TTL)
+- [x] [test] Test `CachedIssue.isStale()` respects configurable TTL parameter
+- [x] [test] Test `CachedPR.isStale()` respects configurable TTL parameter
+- [x] [test] Test cache returns stale data (not discarded when past TTL)
 
 ### Implementation - Cache Configuration
 
-- [ ] [impl] Add configurable TTL support to `CachedIssue.isStale()` method
-- [ ] [impl] Add configurable TTL support to `CachedPR.isStale()` method
-- [ ] [impl] Add `CacheConfig` object with environment variable support for TTLs
+- [x] [impl] Add configurable TTL support to `CachedIssue.isStale()` method
+- [x] [impl] Add configurable TTL support to `CachedPR.isStale()` method
+- [x] [impl] Add `CacheConfig` object with environment variable support for TTLs
 
 ### Tests - Error Handling
 
-- [ ] [test] Test `IssueCacheService` preserves cache on API failure
-- [ ] [test] Test `PullRequestCacheService` preserves cache on API failure
-- [ ] [test] Test stale data is returned after API failure
+- [x] [test] Test `IssueCacheService` preserves cache on API failure
+- [x] [test] Test `PullRequestCacheService` preserves cache on API failure
+- [x] [test] Test stale data is returned after API failure
 
 ### Implementation - Error Handling
 
-- [ ] [impl] Modify `IssueCacheService.getOrFetch()` to preserve cache on API errors
-- [ ] [impl] Modify `PullRequestCacheService.getOrFetch()` to preserve cache on API errors
+- [x] [impl] Modify `IssueCacheService.getOrFetch()` to preserve cache on API errors
+- [x] [impl] Modify `PullRequestCacheService.getOrFetch()` to preserve cache on API errors
 
 ### Tests - Cache Persistence
 
-- [ ] [test] Test `StateRepository` saves cache after updates
-- [ ] [test] Test cache survives simulated restart (clear in-memory, reload from file)
+- [x] [test] Test `StateRepository` saves cache after updates
+- [x] [test] Test cache survives simulated restart (clear in-memory, reload from file)
 
 ### Implementation - Cache Persistence
 
-- [ ] [impl] Verify `StateRepository.save()` is called after cache updates
-- [ ] [impl] Add explicit save after cache write operations if missing
+- [x] [impl] Verify `StateRepository.save()` is called after cache updates
+- [x] [impl] Add explicit save after cache write operations if missing
 
 ### Integration
 
