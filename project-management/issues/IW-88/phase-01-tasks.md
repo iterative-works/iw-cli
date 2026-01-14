@@ -6,59 +6,59 @@
 
 ## Setup
 
-- [ ] [setup] Read existing GitHubClient.scala to understand current structure
-- [ ] [setup] Read existing IssueSearchService.scala to understand patterns
-- [ ] [setup] Read existing CaskServer.scala to understand API endpoint patterns
+- [x] [setup] Read existing GitHubClient.scala to understand current structure
+- [x] [setup] Read existing IssueSearchService.scala to understand patterns
+- [x] [setup] Read existing CaskServer.scala to understand API endpoint patterns
 
 ## Tests First (TDD)
 
 ### GitHubClient Tests
 
-- [ ] [test] Add test for buildListRecentIssuesCommand with default limit (5)
-- [ ] [test] Add test for buildListRecentIssuesCommand with custom limit
-- [ ] [test] Add test for parseListRecentIssuesResponse with valid JSON array
-- [ ] [test] Add test for parseListRecentIssuesResponse with empty array
-- [ ] [test] Add test for parseListRecentIssuesResponse with malformed JSON
-- [ ] [test] Add test for listRecentIssues success case (mocked command)
-- [ ] [test] Add test for listRecentIssues when gh CLI not available
+- [x] [test] Add test for buildListRecentIssuesCommand with default limit (5)
+- [x] [test] Add test for buildListRecentIssuesCommand with custom limit
+- [x] [test] Add test for parseListRecentIssuesResponse with valid JSON array
+- [x] [test] Add test for parseListRecentIssuesResponse with empty array
+- [x] [test] Add test for parseListRecentIssuesResponse with malformed JSON
+- [x] [test] Add test for listRecentIssues success case (mocked command)
+- [x] [test] Add test for listRecentIssues when gh CLI not available
 
 ### IssueSearchService Tests
 
-- [ ] [test] Add test for fetchRecent success case with GitHub tracker
-- [ ] [test] Add test for fetchRecent with worktree check integration
-- [ ] [test] Add test for fetchRecent error handling
+- [x] [test] Add test for fetchRecent success case with GitHub tracker
+- [x] [test] Add test for fetchRecent with worktree check integration
+- [x] [test] Add test for fetchRecent error handling
 
 ### CaskServer Tests
 
-- [ ] [test] Add test for /api/issues/recent endpoint success case
-- [ ] [test] Add test for /api/issues/recent with no config
-- [ ] [test] Add test for /api/issues/recent on API error
+- [x] [test] Add test for /api/issues/recent endpoint success case
+- [x] [test] Add test for /api/issues/recent with no config
+- [x] [test] Add test for /api/issues/recent on API error
 
 ## Implementation
 
 ### GitHubClient Implementation
 
-- [ ] [impl] Add buildListRecentIssuesCommand method
-- [ ] [impl] Add parseListRecentIssuesResponse method
-- [ ] [impl] Add listRecentIssues method
+- [x] [impl] [x] [reviewed] Add buildListRecentIssuesCommand method
+- [x] [impl] [x] [reviewed] Add parseListRecentIssuesResponse method
+- [x] [impl] [x] [reviewed] Add listRecentIssues method
 
 ### IssueSearchService Implementation
 
-- [ ] [impl] Add fetchRecent method to IssueSearchService
+- [x] [impl] [x] [reviewed] Add fetchRecent method to IssueSearchService
 
 ### CaskServer Implementation
 
-- [ ] [impl] Add /api/issues/recent endpoint to CaskServer
+- [x] [impl] [x] [reviewed] Add /api/issues/recent endpoint to CaskServer
 
 ## Integration
 
-- [ ] [integration] Run all unit tests to verify implementation
+- [x] [integration] Run all unit tests to verify implementation
 - [ ] [integration] Manual test with real GitHub repository
 
 ## Completion
 
-- [ ] [done] All tests passing
-- [ ] [done] Code compiles without warnings
+- [x] [done] All tests passing
+- [x] [done] Code compiles without warnings
 
 ## Notes
 
