@@ -104,3 +104,49 @@ M  .iw/core/test/IssueSearchServiceTest.scala
 ```
 
 ---
+
+## Phase 3: Recent issues - Linear (2026-01-14)
+
+**What was built:**
+- Infrastructure: `LinearClient.scala` - Added `buildListRecentIssuesQuery()`, `parseListRecentIssuesResponse()`, `listRecentIssues()` methods for fetching recent issues via Linear GraphQL API
+- Presentation: `CaskServer.scala` - Updated `buildFetchRecentFunction` to route Linear tracker to LinearClient.listRecentIssues
+
+**Decisions made:**
+- Used Linear GraphQL query: `team(id: "TEAM_ID") { issues(first: 5, orderBy: createdAt) { nodes { identifier title state { name } } } }`
+- Token read from environment `LINEAR_API_TOKEN` (consistent with existing LinearClient pattern)
+- Team ID from project configuration `config.team`
+- Returns empty list on errors (graceful degradation, same as GitHub)
+
+**Patterns applied:**
+- Same pure/effectful separation as GitHub: pure `buildListRecentIssuesQuery` and `parseListRecentIssuesResponse`, effectful `listRecentIssues`
+- Backend injection for testability: `listRecentIssues` accepts `backend: SyncBackend` parameter
+- Reuse existing LinearClient HTTP patterns for consistency
+
+**Testing:**
+- Unit tests: 8 tests added
+  - LinearClientMockTest: 8 tests (query building, response parsing, HTTP execution with mocked backend)
+- Tests use SyncBackendStub for mocked HTTP responses
+- Pure function tests (buildQuery, parseResponse) test logic without HTTP
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260114-184500.md
+- Major findings: No critical issues; noted HTTP duplication pattern and test organization suggestions for future phases
+
+**For next phases:**
+- Available utilities:
+  - `LinearClient.listRecentIssues(teamId, limit, token)` - fetches recent Linear issues
+  - `buildFetchRecentFunction` now routes Linear tracker correctly
+- Extension points:
+  - Phase 4 can add `LinearClient.searchIssues()` following same pattern
+  - `parseListRecentIssuesResponse` designed for reuse (same format expected for search results)
+- Notes: Phase 4 (Linear title search) can follow this pattern; YouTrack phases (5-6) need similar implementation
+
+**Files changed:**
+```
+M  .iw/core/CaskServer.scala
+M  .iw/core/LinearClient.scala
+A  .iw/core/test/LinearClientMockTest.scala
+```
+
+---
