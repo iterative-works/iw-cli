@@ -64,10 +64,16 @@ object CreateWorktreeModal:
               attr("hx-target") := "#search-results",
               name := "q"
             ),
-            // Search results container
+            // Search results container - loads recent issues on modal open
             div(
               id := "search-results",
-              cls := "search-results"
+              cls := "search-results",
+              attr("hx-get") := projectPath.fold("/api/issues/recent") { projPath =>
+                val encodedPath = java.net.URLEncoder.encode(projPath, "UTF-8")
+                s"/api/issues/recent?project=$encodedPath"
+              },
+              attr("hx-trigger") := "load",
+              attr("hx-swap") := "innerHTML"
             )
           )
         )

@@ -8,20 +8,20 @@
 
 ### Setup
 
-- [ ] [test] Write test: search results container has hx-trigger="load" for auto-load
-- [ ] [test] Write test: search results container has hx-get pointing to /api/issues/recent
-- [ ] [test] Write test: hx-get includes project parameter when projectPath is provided
+- [x] [test] Write test: search results container has hx-trigger="load" for auto-load
+- [x] [test] Write test: search results container has hx-get pointing to /api/issues/recent
+- [x] [test] Write test: hx-get includes project parameter when projectPath is provided
 
 ### Implementation
 
-- [ ] [impl] Add hx-get attribute to #search-results div pointing to /api/issues/recent endpoint
-- [ ] [impl] Add hx-trigger="load" attribute to #search-results div
-- [ ] [impl] Add hx-swap="innerHTML" attribute for proper content replacement
-- [ ] [impl] Handle project parameter in URL (same pattern as search input)
+- [x] [impl] Add hx-get attribute to #search-results div pointing to /api/issues/recent endpoint
+- [x] [impl] Add hx-trigger="load" attribute to #search-results div
+- [x] [impl] Add hx-swap="innerHTML" attribute for proper content replacement
+- [x] [impl] Handle project parameter in URL (same pattern as search input)
 
 ### Verification
 
-- [ ] [test] Run all unit tests and verify they pass
+- [x] [test] Run all unit tests and verify they pass
 - [ ] [verify] Manual test: Open modal → recent issues appear
 - [ ] [verify] Manual test: Type search → results replace recent issues
 - [ ] [verify] Manual test: Clear search → recent issues appear again

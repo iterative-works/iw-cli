@@ -283,3 +283,39 @@ M  .iw/core/test/YouTrackIssueTrackerTest.scala (trailing newline only)
 ```
 
 ---
+
+## Phase 7: Load recent issues on modal open (2026-01-14)
+
+**What was built:**
+- Presentation: `CreateWorktreeModal.scala` - Added HTMX `hx-trigger="load"` and `hx-get="/api/issues/recent"` to search results container for automatic loading of recent issues when modal opens
+
+**Decisions made:**
+- Used HTMX load trigger instead of pre-loading in modal endpoint (cleaner separation, reuses existing `/api/issues/recent` endpoint)
+- Same URL encoding pattern as search input for project parameter
+- Added `hx-swap="innerHTML"` for proper content replacement
+
+**Patterns applied:**
+- HTMX progressive enhancement: Modal works without JavaScript initially, then loads content via HTMX
+- Reuse existing patterns: Same `fold/URLEncoder` pattern as search input for consistency
+
+**Testing:**
+- Unit tests: 4 tests added
+  - CreateWorktreeModalTest: hx-trigger="load" attribute, hx-get endpoint, project parameter encoding, hx-swap attribute
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-07-20260114-221000.md
+- Major findings: No critical issues; 2 warnings addressed (added missing hx-swap test)
+
+**For next phases:**
+- Available utilities: Modal now auto-loads recent issues on open
+- Extension points: None needed - this completes the IW-88 feature
+- Notes: All 7 phases complete - modal now shows recent issues immediately, search works across all trackers
+
+**Files changed:**
+```
+M  .iw/core/presentation/views/CreateWorktreeModal.scala
+M  .iw/core/test/CreateWorktreeModalTest.scala
+```
+
+---
