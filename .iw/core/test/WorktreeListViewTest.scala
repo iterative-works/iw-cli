@@ -44,7 +44,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -58,7 +58,7 @@ class WorktreeListViewTest extends munit.FunSuite:
 
   test("WorktreeListView omits review section when reviewState is None"):
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -77,7 +77,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -99,7 +99,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -128,8 +128,8 @@ class WorktreeListViewTest extends munit.FunSuite:
     val reviewState2 = None  // No review state
 
     val worktreesWithData = List(
-      (wt1, Some((sampleIssueData, false)), None, None, None, reviewState1),
-      (wt2, Some((sampleIssueData, false)), None, None, None, reviewState2)
+      (wt1, Some((sampleIssueData, false, false)), None, None, None, reviewState1),
+      (wt2, Some((sampleIssueData, false, false)), None, None, None, reviewState2)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -194,7 +194,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -213,7 +213,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -231,7 +231,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -249,7 +249,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -270,7 +270,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -288,7 +288,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -305,7 +305,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -325,7 +325,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -343,7 +343,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -362,7 +362,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -381,7 +381,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -405,7 +405,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -421,7 +421,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("render with None shows no review section (error handling)"):
     // This test verifies that None (no review state file) doesn't show review section
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now)
@@ -435,7 +435,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("render with Some(Left(error)) shows error message"):
     val reviewState: Option[Either[String, ReviewState]] = Some(Left("Failed to parse review state JSON: unexpected token"))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now)
     val htmlStr = html.render
@@ -448,7 +448,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("render error message has correct CSS classes"):
     val reviewState: Option[Either[String, ReviewState]] = Some(Left("Some error"))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now)
     val htmlStr = html.render
@@ -470,7 +470,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       )
     )))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now)
     val htmlStr = html.render
@@ -489,7 +489,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       artifacts = List.empty // Empty artifacts list
     )))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now)
     val htmlStr = html.render
@@ -502,7 +502,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     // The error from service contains path info, but UI shows generic message
     val errorWithPath: Option[Either[String, ReviewState]] = Some(Left("Failed to parse /home/user/secret/review-state.json: syntax error"))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, errorWithPath)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, errorWithPath)
     )
     val html = WorktreeListView.render(worktreesWithData, now)
     val htmlStr = html.render
@@ -514,3 +514,55 @@ class WorktreeListViewTest extends munit.FunSuite:
     // Should NOT leak the filesystem path from the error
     assert(!htmlStr.contains("/home/user/secret"), "Should not leak filesystem paths in HTML")
     assert(!htmlStr.contains("Failed to parse /home"), "Should not expose raw error message")
+
+  // Stale Indicator Tests (Phase 1 - IW-92)
+
+  test("WorktreeListView renders stale indicator when isStale flag is true"):
+    val staleIssueData = (sampleIssueData, false, true) // (data, fromCache, isStale)
+    val worktreesWithData = List(
+      (sampleWorktree, Some(staleIssueData), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("stale-indicator"), "Should contain stale-indicator class")
+    assert(htmlStr.contains("stale") || htmlStr.contains("outdated"), "Should show stale indicator text")
+
+  test("WorktreeListView does NOT render stale indicator when isStale flag is false"):
+    val freshIssueData = (sampleIssueData, false, false) // (data, fromCache, isStale)
+    val worktreesWithData = List(
+      (sampleWorktree, Some(freshIssueData), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(!htmlStr.contains("stale-indicator"), "Should NOT contain stale-indicator class for fresh data")
+
+  // Skeleton Card Tests (Phase 1 - IW-92)
+
+  test("WorktreeListView renders skeleton card when issueData is None"):
+    val worktreesWithData = List(
+      (sampleWorktree, None, None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("skeleton-card"), "Should contain skeleton-card class when no issue data")
+    assert(htmlStr.contains(sampleWorktree.issueId), "Should still show issue ID")
+
+  test("skeleton card shows placeholder content"):
+    val worktreesWithData = List(
+      (sampleWorktree, None, None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    // Skeleton card should show the issue ID but not actual title
+    assert(htmlStr.contains("IWLE-123"), "Should show issue ID")
+    assert(!htmlStr.contains("Test Issue"), "Should not show actual issue title from test data")
+    // Should show loading placeholder
+    assert(htmlStr.contains("Loading") || htmlStr.contains("skeleton"), "Should indicate loading state")

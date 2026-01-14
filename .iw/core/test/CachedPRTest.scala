@@ -88,3 +88,23 @@ class CachedPRTest extends FunSuite:
     assertEquals(cached.pr.url, "https://github.com/org/repo/pull/42")
     assertEquals(cached.pr.number, 42)
     assertEquals(cached.fetchedAt, fetchedAt)
+
+  test("isStale returns true when cache older than TTL"):
+    val now = Instant.now()
+    val fetchedAt = now.minusSeconds(180) // 3 minutes ago (TTL is 2)
+    val pr = createTestPRData()
+    val cached = CachedPR(pr, fetchedAt)
+
+    val result = CachedPR.isStale(cached, now)
+
+    assert(result, "Cache should be stale when age >= TTL")
+
+  test("isStale returns false when cache newer than TTL"):
+    val now = Instant.now()
+    val fetchedAt = now.minusSeconds(60) // 1 minute ago (TTL is 2)
+    val pr = createTestPRData()
+    val cached = CachedPR(pr, fetchedAt)
+
+    val result = CachedPR.isStale(cached, now)
+
+    assert(!result, "Cache should not be stale when age < TTL")

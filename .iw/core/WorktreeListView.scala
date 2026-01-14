@@ -16,12 +16,12 @@ object WorktreeListView:
     * - Some(Left(error)): Invalid review state file (error message shown)
     * - Some(Right(state)): Valid review state (artifacts shown if present)
     *
-    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data, optional review state result)
+    * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag and stale flag, optional progress, optional git status, optional PR data, optional review state result)
     * @param now Current timestamp for relative time formatting
     * @return HTML fragment
     */
   def render(
-    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])],
+    worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])],
     now: Instant
   ): Frag =
     if worktreesWithData.isEmpty then
@@ -39,7 +39,59 @@ object WorktreeListView:
 
   private def renderWorktreeCard(
     worktree: WorktreeRegistration,
-    issueData: Option[(IssueData, Boolean)],
+    issueData: Option[(IssueData, Boolean, Boolean)],
+    progress: Option[WorkflowProgress],
+    gitStatus: Option[GitStatus],
+    prData: Option[PullRequestData],
+    reviewStateResult: Option[Either[String, ReviewState]],
+    now: Instant
+  ): Frag =
+    issueData match
+      case None =>
+        // Skeleton card for cache miss
+        renderSkeletonCard(worktree, progress, gitStatus, prData, reviewStateResult, now)
+      case Some((data, fromCache, isStale)) =>
+        renderNormalCard(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now)
+
+  private def renderSkeletonCard(
+    worktree: WorktreeRegistration,
+    progress: Option[WorkflowProgress],
+    gitStatus: Option[GitStatus],
+    prData: Option[PullRequestData],
+    reviewStateResult: Option[Either[String, ReviewState]],
+    now: Instant
+  ): Frag =
+    div(
+      cls := "worktree-card skeleton-card",
+      // Issue ID as non-clickable placeholder
+      h3(cls := "skeleton-title", "Loading..."),
+      p(
+        cls := "issue-id",
+        span(worktree.issueId)
+      ),
+      // Git status section (if available)
+      gitStatus.map { status =>
+        div(
+          cls := "git-status",
+          span(cls := "git-branch", s"Branch: ${status.branchName}"),
+          span(
+            cls := s"git-indicator ${status.statusCssClass}",
+            status.statusIndicator
+          )
+        )
+      },
+      // Last activity
+      p(
+        cls := "last-activity",
+        s"Last activity: ${formatRelativeTime(worktree.lastSeenAt, now)}"
+      )
+    )
+
+  private def renderNormalCard(
+    worktree: WorktreeRegistration,
+    data: IssueData,
+    fromCache: Boolean,
+    isStale: Boolean,
     progress: Option[WorkflowProgress],
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
@@ -48,13 +100,13 @@ object WorktreeListView:
   ): Frag =
     div(
       cls := "worktree-card",
-      // Issue title (or fallback)
-      h3(issueData.map(_._1.title).getOrElse("Issue data unavailable")),
+      // Issue title
+      h3(data.title),
       // Issue ID as clickable link
       p(
         cls := "issue-id",
         a(
-          href := issueData.map(_._1.url).getOrElse("#"),
+          href := data.url,
           worktree.issueId
         )
       ),
@@ -106,29 +158,35 @@ object WorktreeListView:
           )
         )
       },
-      // Issue details (status, assignee, cache indicator)
-      issueData.map { case (data, fromCache) =>
-        div(
-          cls := "issue-details",
-          // Status badge
+      // Issue details (status, assignee, cache indicator, stale indicator)
+      div(
+        cls := "issue-details",
+        // Status badge
+        span(
+          cls := s"status-badge status-${statusClass(data.status)}",
+          data.status
+        ),
+        // Assignee (if present)
+        data.assignee.map(a =>
+          span(cls := "assignee", s" · Assigned: $a")
+        ),
+        // Cache indicator (if from cache)
+        if fromCache then
           span(
-            cls := s"status-badge status-${statusClass(data.status)}",
-            data.status
-          ),
-          // Assignee (if present)
-          data.assignee.map(a =>
-            span(cls := "assignee", s" · Assigned: $a")
-          ),
-          // Cache indicator (if from cache)
-          if fromCache then
-            span(
-              cls := "cache-indicator",
-              s" · cached ${formatCacheAge(data.fetchedAt, now)}"
-            )
-          else
-            ()
-        )
-      },
+            cls := "cache-indicator",
+            s" · cached ${formatCacheAge(data.fetchedAt, now)}"
+          )
+        else
+          (),
+        // Stale indicator (if data is stale)
+        if isStale then
+          span(
+            cls := "stale-indicator",
+            s" · stale"
+          )
+        else
+          ()
+      ),
       // Review artifacts section (based on review state result)
       reviewStateResult match {
         case None =>

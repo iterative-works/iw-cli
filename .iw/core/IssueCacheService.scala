@@ -14,6 +14,22 @@ import java.time.Instant
   */
 object IssueCacheService:
 
+  /** Get cached issue data without calling API.
+    *
+    * Returns cached data regardless of age (even if stale).
+    * Returns None if no cache entry exists.
+    * Never calls fetch function - purely reads from cache.
+    *
+    * @param issueId Issue identifier to look up
+    * @param cache Current issue cache map
+    * @return Optional IssueData from cache (None if not cached)
+    */
+  def getCachedOnly(
+    issueId: String,
+    cache: Map[String, CachedIssue]
+  ): Option[IssueData] =
+    cache.get(issueId).map(_.data)
+
   /** Fetch issue with cache support.
     *
     * Strategy:
