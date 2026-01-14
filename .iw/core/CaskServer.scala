@@ -557,8 +557,12 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               Left("LINEAR_API_TOKEN environment variable not set")
 
         case IssueTrackerType.YouTrack =>
-          // YouTrack support will be added in Phase 5
-          Left("Recent issues not yet supported for YouTrack")
+          val baseUrl = config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+          ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
+            case Some(token) =>
+              YouTrackClient.listRecentIssues(baseUrl, limit, token)
+            case None =>
+              Left("YOUTRACK_API_TOKEN environment variable not set")
 
   /** Build search function for IssueSearchService based on tracker type.
     *

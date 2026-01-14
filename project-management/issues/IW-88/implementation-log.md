@@ -194,3 +194,47 @@ A  .iw/core/test/LinearClientMockTest.scala
 ```
 
 ---
+
+## Phase 5: Recent issues - YouTrack (2026-01-14)
+
+**What was built:**
+- Infrastructure: `YouTrackClient.scala` - Added `buildListRecentIssuesUrl()`, `parseListRecentIssuesResponse()`, `listRecentIssues()` methods for fetching recent issues via YouTrack REST API
+- Presentation: `CaskServer.scala` - Updated `buildFetchRecentFunction` to route YouTrack tracker to `YouTrackClient.listRecentIssues`
+
+**Decisions made:**
+- Used YouTrack REST API: `GET /api/issues?fields=idReadable,summary,customFields(name,value(name))&$top={limit}&$orderBy=created%20desc`
+- Response is JSON array directly (unlike Linear which nests in `data.team.issues`)
+- State extracted from customFields array, defaults to "Unknown" if missing
+- Uses `quickRequest` pattern (consistent with existing `fetchIssue` implementation)
+
+**Patterns applied:**
+- Pure/effectful separation: pure `buildListRecentIssuesUrl` and `parseListRecentIssuesResponse`, effectful `listRecentIssues`
+- Follows existing YouTrackClient patterns for HTTP execution and error handling
+- Reuses custom field extraction logic from `parseYouTrackResponse`
+
+**Testing:**
+- Unit tests: 7 tests added
+  - YouTrackClientTest: 7 tests (URL building, JSON parsing, error handling)
+- Tests cover URL construction, JSON array parsing, State extraction, missing State handling, malformed JSON
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-05-20260114-210600.md
+- Major findings: No critical issues; noted pre-existing patterns (client location, port abstraction) as warnings; suggestions for custom field extraction and edge case tests
+
+**For next phases:**
+- Available utilities:
+  - `YouTrackClient.listRecentIssues(baseUrl, limit, token)` - fetches recent YouTrack issues
+  - `buildFetchRecentFunction` now routes YouTrack tracker correctly
+- Extension points:
+  - Phase 6 can add `YouTrackClient.searchIssues()` following same pattern
+- Notes: YouTrack tracker now supports recent issues; Phase 6 will add title search
+
+**Files changed:**
+```
+M  .iw/core/CaskServer.scala
+M  .iw/core/YouTrackClient.scala
+A  .iw/core/test/YouTrackClientTest.scala
+```
+
+---

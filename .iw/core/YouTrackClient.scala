@@ -77,3 +77,64 @@ object YouTrackClient:
       Right(Issue(id, title, status, assignee, description))
     catch
       case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
+
+  def buildListRecentIssuesUrl(baseUrl: String, limit: Int): String =
+    val fields = "idReadable,summary,customFields(name,value(name))"
+    s"$baseUrl/api/issues?fields=$fields&$$top=$limit&$$orderBy=created%20desc"
+
+  def parseListRecentIssuesResponse(json: String): Either[String, List[Issue]] =
+    try
+      import upickle.default.*
+
+      val parsed = ujson.read(json)
+
+      if !parsed.isInstanceOf[ujson.Arr] then
+        return Left("Expected JSON array")
+
+      val issues = parsed.arr.map { issueJson =>
+        if !issueJson.obj.contains("idReadable") then
+          return Left("Malformed response: missing 'idReadable' field")
+        if !issueJson.obj.contains("summary") then
+          return Left("Malformed response: missing 'summary' field")
+        if !issueJson.obj.contains("customFields") then
+          return Left("Malformed response: missing 'customFields' field")
+
+        val id = issueJson("idReadable").str
+        val title = issueJson("summary").str
+
+        // Extract State from customFields
+        val customFields = issueJson("customFields").arr
+        val stateField = customFields.find(field =>
+          field.obj.contains("name") && field("name").str == "State"
+        )
+        val status = stateField match
+          case Some(field) if field.obj.contains("value") && !field("value").isNull =>
+            field("value")("name").str
+          case _ => "Unknown"
+
+        Issue(id, title, status, None, None)
+      }.toList
+
+      Right(issues)
+    catch
+      case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
+
+  def listRecentIssues(baseUrl: String, limit: Int = 5, token: ApiToken): Either[String, List[Issue]] =
+    try
+      val url = buildListRecentIssuesUrl(baseUrl, limit)
+
+      val response = quickRequest
+        .get(uri"$url")
+        .header("Authorization", s"Bearer ${token.value}")
+        .header("Accept", "application/json")
+        .send()
+
+      response.code match
+        case StatusCode.Ok =>
+          parseListRecentIssuesResponse(response.body)
+        case StatusCode.Unauthorized =>
+          Left("API token is invalid or expired")
+        case _ =>
+          Left(s"YouTrack API error: ${response.code}")
+    catch
+      case e: Exception => Left(s"Network error: ${e.getMessage}")
