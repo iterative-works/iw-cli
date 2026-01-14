@@ -2,16 +2,16 @@
 
 **Issue:** IW-74
 **Created:** 2026-01-13
-**Status:** 1/2 phases complete (50%)
+**Status:** 2/2 phases complete (100%)
 
 ## Phase Index
 
 - [x] Phase 1: Configure SSH host for Zed links (Est: 1-2h) → `phase-01-context.md`
-- [ ] Phase 2: Open worktree folder in Zed from dashboard (Est: 1-2h) → `phase-02-context.md`
+- [x] Phase 2: Open worktree folder in Zed from dashboard (Est: 1-2h) → `phase-02-context.md`
 
 ## Progress Tracker
 
-**Completed:** 1/2 phases
+**Completed:** 2/2 phases
 **Estimated Total:** 2-4 hours
 **Time Spent:** 0 hours
 
