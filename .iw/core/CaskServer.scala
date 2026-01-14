@@ -13,7 +13,12 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
   private val repository = StateRepository(statePath)
 
   @cask.get("/")
-  def dashboard(): cask.Response[String] =
+  def dashboard(sshHost: Option[String] = None): cask.Response[String] =
+    // Resolve effective SSH host: use query param or default to server hostname
+    val effectiveSshHost = sshHost.getOrElse(
+      java.net.InetAddress.getLocalHost().getHostName()
+    )
+
     val stateResult = ServerStateService.load(repository)
     stateResult match
       case Right(rawState) =>
@@ -40,7 +45,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           state.progressCache,
           state.prCache,
           state.reviewStateCache,
-          config
+          config,
+          sshHost = effectiveSshHost
         )
 
         // Update server state with new review state cache and persist

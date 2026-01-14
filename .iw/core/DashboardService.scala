@@ -20,6 +20,7 @@ object DashboardService:
     * @param prCache Current PR cache
     * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
+    * @param sshHost SSH hostname for Zed editor remote connections
     * @return Tuple of (HTML page as string, updated review state cache)
     */
   def renderDashboard(
@@ -28,7 +29,8 @@ object DashboardService:
     progressCache: Map[String, CachedProgress],
     prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
-    config: Option[ProjectConfiguration]
+    config: Option[ProjectConfiguration],
+    sshHost: String
   ): (String, Map[String, CachedReviewState]) =
     val now = Instant.now()
 
@@ -81,14 +83,36 @@ object DashboardService:
       body(
         div(
           cls := "container",
-          // Header with title (no global Create Worktree button)
+          // Header with title and SSH host configuration
           div(
             cls := "dashboard-header",
-            h1("iw Dashboard")
+            h1("iw Dashboard"),
+            // SSH host configuration form
+            tag("form")(
+              cls := "ssh-host-form",
+              attr("method") := "get",
+              tag("label")(
+                attr("for") := "ssh-host-input",
+                "SSH Host:"
+              ),
+              input(
+                `type` := "text",
+                cls := "ssh-host-input",
+                id := "ssh-host-input",
+                name := "sshHost",
+                value := sshHost,
+                placeholder := "hostname"
+              ),
+              button(
+                `type` := "submit",
+                cls := "ssh-host-submit",
+                "Set"
+              )
+            )
           ),
           // Main projects section (above worktree list)
           MainProjectsView.render(mainProjects),
-          WorktreeListView.render(worktreesWithData.reverse, now),
+          WorktreeListView.render(worktreesWithData.reverse, now, sshHost),
           // Modal container (empty by default)
           div(id := "modal-container")
         )
@@ -596,6 +620,33 @@ object DashboardService:
       background: #868e96;
     }
 
+    .zed-link {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .zed-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      background: transparent;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .zed-button:hover {
+      background: #f8f9fa;
+      border-color: #228be6;
+    }
+
+    .zed-button img {
+      display: block;
+    }
+
     .review-artifacts {
       margin: 15px 0;
       padding: 15px;
@@ -716,6 +767,50 @@ object DashboardService:
 
     .dashboard-header h1 {
       margin: 0;
+    }
+
+    /* SSH host configuration form */
+    .ssh-host-form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ssh-host-form label {
+      font-size: 14px;
+      color: #495057;
+      font-weight: 500;
+    }
+
+    .ssh-host-input {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 200px;
+    }
+
+    .ssh-host-input:focus {
+      border-color: #228be6;
+      box-shadow: 0 0 0 2px rgba(34, 139, 230, 0.1);
+    }
+
+    .ssh-host-submit {
+      padding: 6px 14px;
+      background: #228be6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .ssh-host-submit:hover {
+      background: #1c7ed6;
     }
 
     .create-worktree-btn {

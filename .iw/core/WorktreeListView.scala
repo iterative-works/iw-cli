@@ -18,11 +18,13 @@ object WorktreeListView:
     *
     * @param worktreesWithData List of tuples (worktree, optional issue data with cache flag, optional progress, optional git status, optional PR data, optional review state result)
     * @param now Current timestamp for relative time formatting
+    * @param sshHost SSH hostname for Zed editor remote connections
     * @return HTML fragment
     */
   def render(
     worktreesWithData: List[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])],
-    now: Instant
+    now: Instant,
+    sshHost: String
   ): Frag =
     if worktreesWithData.isEmpty then
       div(
@@ -33,7 +35,7 @@ object WorktreeListView:
       div(
         cls := "worktree-list",
         worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewStateResult) =>
-          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now)
+          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now, sshHost)
         }
       )
 
@@ -44,7 +46,8 @@ object WorktreeListView:
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
     reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant
+    now: Instant,
+    sshHost: String
   ): Frag =
     div(
       cls := "worktree-card",
@@ -85,6 +88,21 @@ object WorktreeListView:
           )
         )
       },
+      // Zed editor button
+      div(
+        cls := "zed-link",
+        a(
+          cls := "zed-button",
+          href := s"zed://ssh/$sshHost${worktree.path}",
+          attr("title") := "Open in Zed",
+          img(
+            src := "https://raw.githubusercontent.com/zed-industries/zed/main/crates/zed/resources/app-icon.png",
+            alt := "Zed",
+            attr("width") := "18",
+            attr("height") := "18"
+          )
+        )
+      ),
       // Phase info and progress bar (if available)
       progress.flatMap(_.currentPhaseInfo).map { phaseInfo =>
         div(

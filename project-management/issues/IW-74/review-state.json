@@ -1,0 +1,12 @@
+{
+  "status": "awaiting_review",
+  "phase": 2,
+  "message": "Phase 2 complete - Open worktree folder in Zed from dashboard",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/114",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-74/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-74/implementation-log.md"},
+    {"label": "Phase 2 Context", "path": "project-management/issues/IW-74/phase-02-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-74/review-packet-phase-02.md"}
+  ]
+}

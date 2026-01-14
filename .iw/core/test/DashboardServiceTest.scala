@@ -59,7 +59,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = reviewStateCache,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Verify dashboard was rendered (basic check)
@@ -76,7 +77,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty, // No cached review state
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Verify dashboard was rendered without errors
@@ -90,7 +92,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Verify empty state is rendered
@@ -123,7 +126,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = reviewStateCache,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Verify all worktrees are rendered
@@ -154,7 +158,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = reviewStateCache, // Wrong issue ID
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Dashboard should render without the cached review state
@@ -175,7 +180,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Dashboard should render successfully (no crash)
@@ -201,7 +207,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     assert(html.contains("IWLE-INVALID"))
@@ -219,7 +226,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Dashboard should render successfully
@@ -239,7 +247,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Dashboard should render successfully
@@ -262,8 +271,100 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty, // Start with empty cache
-      config = None
+      config = None,
+      sshHost = "localhost"
     )
 
     // Cache should not contain entry for invalid/missing state
     assert(!cache.contains("IWLE-INVALID-CACHE"))
+
+  // SSH Host Configuration Tests (IW-74 Phase 1)
+
+  test("renderDashboard accepts sshHost parameter"):
+    val worktree = createWorktree("IWLE-SSH-1")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "my-server.example.com"
+    )
+
+    // Should render without errors
+    assert(html.contains("<!DOCTYPE html>"))
+    assert(html.contains("IWLE-SSH-1"))
+
+  test("renderDashboard includes SSH host input field in HTML"):
+    val worktree = createWorktree("IWLE-SSH-2")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "test-server.local"
+    )
+
+    // Verify SSH host input field is present
+    assert(html.contains("ssh-host-input"))
+    assert(html.contains("test-server.local"))
+
+  test("renderDashboard SSH host form submits to current URL"):
+    val worktree = createWorktree("IWLE-SSH-3")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "my-host"
+    )
+
+    // Verify form has correct structure
+    assert(html.contains("ssh-host-form"))
+    assert(html.contains("method=\"get\""))
+
+  // Zed Button Integration Tests (IW-74 Phase 2)
+
+  test("renderDashboard includes Zed button with configured SSH host"):
+    val worktree = createWorktree("IWLE-ZED-1", "/home/user/projects/my-project")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "dev-server"
+    )
+
+    // Verify Zed button appears in HTML
+    assert(html.contains("zed-button"))
+    assert(html.contains("zed://ssh/dev-server/home/user/projects/my-project"))
+    assert(html.contains("Open in Zed"))
+
+  test("renderDashboard Zed button uses correct SSH host for multiple worktrees"):
+    val worktree1 = createWorktree("IWLE-ZED-2", "/home/user/project-a")
+    val worktree2 = createWorktree("IWLE-ZED-3", "/home/user/project-b")
+
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree1, worktree2),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "test-host"
+    )
+
+    // Verify both worktrees have Zed buttons with correct SSH host
+    assert(html.contains("zed://ssh/test-host/home/user/project-a"))
+    assert(html.contains("zed://ssh/test-host/home/user/project-b"))
