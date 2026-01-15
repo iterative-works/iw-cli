@@ -76,6 +76,13 @@ object DashboardService:
           attr("integrity") := "sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC",
           attr("crossorigin") := "anonymous"
         ),
+        tag("script")(raw("""
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+              htmx.trigger(document.body, 'refresh');
+            }
+          });
+        """)),
         tag("style")(raw(styles))
       ),
       body(
@@ -445,6 +452,16 @@ object DashboardService:
       border-radius: 8px;
       padding: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: opacity 200ms ease-in-out;
+      min-height: 200px;
+    }
+
+    .htmx-swapping {
+      opacity: 0;
+    }
+
+    .htmx-settling {
+      opacity: 1;
     }
 
     .skeleton-card {
@@ -1039,5 +1056,22 @@ object DashboardService:
       color: #868e96;
       font-weight: normal;
       font-size: 16px;
+    }
+
+    /* Mobile-friendly styling */
+    @media (max-width: 768px) {
+      .worktree-list {
+        grid-template-columns: 1fr;
+      }
+
+      .main-projects-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Touch-friendly buttons and links */
+    button, .pr-button, .create-worktree-btn, .create-worktree-button, .modal-close {
+      min-height: 44px;
+      touch-action: manipulation;
     }
   """
