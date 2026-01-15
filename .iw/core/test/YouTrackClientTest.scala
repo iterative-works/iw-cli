@@ -13,6 +13,7 @@ class YouTrackClientTest extends FunSuite:
 
     assert(url.contains("https://youtrack.example.com/api/issues"))
     assert(url.contains("fields=idReadable,summary,customFields(name,value(name))"))
+    assert(url.contains("query=%23Unresolved"), "Should filter to unresolved issues only")
     assert(url.contains("$top=5"))
     assert(url.contains("$orderBy=created%20desc"))
 

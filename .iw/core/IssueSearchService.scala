@@ -69,7 +69,7 @@ object IssueSearchService:
     * @param config Project configuration
     * @param searchIssues Function to search issues by text
     * @param checkWorktreeExists Function to check if issue has worktree
-    * @return Either error message or list of search results
+    * @return Either error message or list of search results (open first, closed at end)
     */
   private def searchByText(
     query: String,
@@ -88,9 +88,28 @@ object IssueSearchService:
             hasWorktree = checkWorktreeExists(issue.id)
           )
         }
-        Right(results)
+        // Sort with closed issues at the end (open issues first)
+        Right(results.sortBy(r => isClosedStatus(r.status)))
       case Left(error) =>
         Left(error)
+
+  /** Check if a status indicates the issue is closed/done.
+    *
+    * Uses heuristics to detect closed states across different trackers:
+    * - GitHub: "closed"
+    * - Linear: "Done", "Canceled", "Duplicate"
+    * - YouTrack: "Done", "Closed", "Resolved", etc.
+    */
+  private def isClosedStatus(status: String): Boolean =
+    val lower = status.toLowerCase
+    lower.contains("done") ||
+    lower.contains("closed") ||
+    lower.contains("canceled") ||
+    lower.contains("cancelled") ||
+    lower.contains("resolved") ||
+    lower.contains("duplicate") ||
+    lower.contains("won't fix") ||
+    lower.contains("wontfix")
 
   /** Build issue URL based on tracker type.
     *

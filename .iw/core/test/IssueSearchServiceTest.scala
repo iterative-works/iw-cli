@@ -493,3 +493,38 @@ class IssueSearchServiceTest extends FunSuite:
 
     assert(results.isLeft, "Search should return error from text search")
     assert(results.left.getOrElse("").contains("Failed to search issues"))
+
+  test("search() text search sorts closed issues to end"):
+    val config = ProjectConfiguration(
+      trackerType = IssueTrackerType.GitHub,
+      team = "IW",
+      projectName = "iw-cli",
+      repository = Some("iterative-works/iw-cli"),
+      teamPrefix = Some("IW")
+    )
+
+    val fetchIssue = (id: IssueId) =>
+      fail("fetchIssue should not be called for non-ID query")
+
+    // Return issues with mixed states (closed issues first in original order)
+    val searchIssues = (query: String) =>
+      Right(List(
+        Issue("#101", "Done issue", "Done", None, None),
+        Issue("#102", "Open issue", "Open", None, None),
+        Issue("#103", "Closed issue", "closed", None, None),
+        Issue("#104", "In Progress", "In Progress", None, None),
+        Issue("#105", "Canceled issue", "Canceled", None, None)
+      ))
+
+    val results = IssueSearchService.search("test", config, fetchIssue, searchIssues)
+
+    assert(results.isRight, "Search should succeed")
+    results.foreach { list =>
+      // Open issues should come first (Open, In Progress)
+      assertEquals(list(0).status, "Open", "First should be Open")
+      assertEquals(list(1).status, "In Progress", "Second should be In Progress")
+      // Closed issues should be at the end (Done, closed, Canceled)
+      assertEquals(list(2).status, "Done", "Third should be Done (closed)")
+      assertEquals(list(3).status, "closed", "Fourth should be closed")
+      assertEquals(list(4).status, "Canceled", "Fifth should be Canceled (closed)")
+    }

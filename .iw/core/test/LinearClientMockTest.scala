@@ -186,7 +186,8 @@ class LinearClientMockTest extends FunSuite:
     // Should be valid JSON with GraphQL query
     assert(query.contains("\"query\""))
     assert(query.contains("team(id: \\\"team-123\\\")"))
-    assert(query.contains("issues(first: 5, orderBy: createdAt)"))
+    assert(query.contains("issues(first: 5, orderBy: createdAt, filter:"))
+    assert(query.contains("nin"))  // Filter excludes completed/canceled
     assert(query.contains("nodes"))
     assert(query.contains("identifier"))
     assert(query.contains("title"))
@@ -196,7 +197,7 @@ class LinearClientMockTest extends FunSuite:
     val query = LinearClient.buildListRecentIssuesQuery("team-456", 10)
 
     assert(query.contains("team(id: \\\"team-456\\\")"))
-    assert(query.contains("issues(first: 10, orderBy: createdAt)"))
+    assert(query.contains("issues(first: 10, orderBy: createdAt, filter:"))
 
   // --- parseListRecentIssuesResponse tests ---
 

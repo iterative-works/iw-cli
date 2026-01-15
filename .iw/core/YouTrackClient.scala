@@ -80,7 +80,8 @@ object YouTrackClient:
 
   def buildListRecentIssuesUrl(baseUrl: String, limit: Int): String =
     val fields = "idReadable,summary,customFields(name,value(name))"
-    s"$baseUrl/api/issues?fields=$fields&$$top=$limit&$$orderBy=created%20desc"
+    // Filter to unresolved issues only (excludes Done, Closed, etc.)
+    s"$baseUrl/api/issues?fields=$fields&query=%23Unresolved&$$top=$limit&$$orderBy=created%20desc"
 
   def buildSearchIssuesUrl(baseUrl: String, query: String, limit: Int): String =
     val fields = "idReadable,summary,customFields(name,value(name))"
