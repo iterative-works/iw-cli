@@ -88,42 +88,42 @@ class ServerStateService(repository: StateRepository):
 ## Tasks
 
 ### 6a: Fix Immediate Corruption
-- [ ] [impl] StateRepository: Use `state.json.tmp-${UUID.randomUUID()}` for temp file
-- [ ] [impl] StateRepository: Delete temp file on failure (cleanup)
-- [ ] [test] Add test for concurrent writes don't corrupt
+- [x] [impl] StateRepository: Use `state.json.tmp-${UUID.randomUUID()}` for temp file
+- [x] [impl] StateRepository: Delete temp file on failure (cleanup)
+- [x] [test] Add test for concurrent writes don't corrupt
 
 ### 6b: Create ServerStateService
-- [ ] [impl] Create ServerStateService class with ReentrantLock
-- [ ] [impl] Add initialize() to load state from repository
-- [ ] [impl] Add getState for reads
-- [ ] [impl] Add updateWorktree() with lock + persist
-- [ ] [impl] Add updateIssueCache() with lock + persist
-- [ ] [impl] Add updateProgressCache() with lock + persist
-- [ ] [impl] Add updatePRCache() with lock + persist
-- [ ] [impl] Add updateReviewStateCache() with lock + persist
-- [ ] [impl] Add pruneWorktrees() with lock + persist
-- [ ] [test] Unit tests for each update method
-- [ ] [test] Test concurrent updates don't lose data
+- [x] [impl] Create ServerStateService class with ReentrantLock
+- [x] [impl] Add initialize() to load state from repository
+- [x] [impl] Add getState for reads
+- [x] [impl] Add updateWorktree() with lock + persist
+- [x] [impl] Add updateIssueCache() with lock + persist
+- [x] [impl] Add updateProgressCache() with lock + persist
+- [x] [impl] Add updatePRCache() with lock + persist
+- [x] [impl] Add updateReviewStateCache() with lock + persist
+- [x] [impl] Add pruneWorktrees() with lock + persist
+- [x] [test] Unit tests for each update method
+- [x] [test] Test concurrent updates don't lose data
 
 ### 6c: Migrate CaskServer
-- [ ] [impl] Create ServerStateService instance at startup, call initialize()
-- [ ] [impl] Dashboard endpoint: use getState, remove all writes
-- [ ] [impl] Per-card endpoint: use update methods for all caches
-- [ ] [impl] Register endpoint: use updateWorktree
-- [ ] [impl] Unregister endpoint: use updateWorktree (remove)
-- [ ] [impl] Remove direct repository usage from all endpoints
+- [x] [impl] Create ServerStateService instance at startup, call initialize()
+- [x] [impl] Dashboard endpoint: use getState, remove all writes
+- [x] [impl] Per-card endpoint: use update methods for all caches
+- [x] [impl] Register endpoint: use updateWorktree
+- [x] [impl] Unregister endpoint: use updateWorktree (remove)
+- [x] [impl] Remove direct repository usage from all endpoints
 
 ### 6d: Update WorktreeCardService
-- [ ] [impl] Add reviewState refresh to renderCard
-- [ ] [impl] Return all cache updates (issue, progress, PR, reviewState)
-- [ ] [impl] CaskServer calls update methods for each returned cache entry
+- [x] [impl] Add reviewState refresh to renderCard
+- [x] [impl] Return all cache updates (issue, progress, PR, reviewState)
+- [x] [impl] CaskServer calls update methods for each returned cache entry
 - [ ] [test] Test that card refresh returns reviewState
 
 ### 6e: Simplify DashboardService
-- [ ] [impl] Remove reviewStateCache computation from renderDashboard
-- [ ] [impl] Just render from cached data
-- [ ] [impl] Return only HTML, not (HTML, cache) tuple
-- [ ] [test] Update tests for new signature
+- [x] [impl] Remove reviewStateCache computation from renderDashboard
+- [x] [impl] Just render from cached data
+- [x] [impl] Return only HTML, not (HTML, cache) tuple
+- [x] [test] Update tests for new signature
 
 ### 6f: Verification
 - [ ] [test] Integration test: concurrent requests don't corrupt state
