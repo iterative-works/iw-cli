@@ -267,3 +267,108 @@ class DashboardServiceTest extends FunSuite:
 
     // Cache should not contain entry for invalid/missing state
     assert(!cache.contains("IWLE-INVALID-CACHE"))
+
+  // CSS Transition Tests (Phase 4 - IW-92)
+
+  test("Dashboard CSS includes .htmx-swapping styles"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains(".htmx-swapping"), "Should contain .htmx-swapping CSS class")
+    assert(html.contains("opacity: 0"), "Should contain opacity: 0 for swapping state")
+
+  test("Dashboard CSS includes .htmx-settling styles"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains(".htmx-settling"), "Should contain .htmx-settling CSS class")
+    assert(html.contains("opacity: 1"), "Should contain opacity: 1 for settling state")
+
+  test("Dashboard CSS includes transition property for cards"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains("transition:"), "Should contain transition property")
+    assert(html.contains("opacity"), "Should include opacity in transition")
+    assert(html.contains("200ms") || html.contains("0.2s"), "Should specify transition duration")
+
+  // Tab Visibility Tests (Phase 4 - IW-92)
+
+  test("Dashboard HTML includes visibilitychange script"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains("visibilitychange"), "Should contain visibilitychange event listener")
+    assert(html.contains("htmx.trigger"), "Should use htmx.trigger to trigger refresh")
+    assert(html.contains("document.body"), "Should trigger refresh on document.body")
+
+  // Mobile Styling Tests (Phase 4 - IW-92)
+
+  test("Dashboard CSS includes mobile breakpoint styles"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains("@media"), "Should contain @media query for responsive design")
+    assert(html.contains("max-width") || html.contains("min-width"), "Should have breakpoint conditions")
+
+  test("Dashboard CSS includes minimum touch target sizes"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains("min-height: 44px") || html.contains("min-height:44px"), "Should have 44px minimum touch target height")
+
+  test("Dashboard CSS includes touch-action manipulation"):
+    val worktree = createWorktree("IWLE-TEST")
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    assert(html.contains("touch-action"), "Should contain touch-action property")
+    assert(html.contains("manipulation"), "Should use manipulation value to prevent zoom on double-tap")

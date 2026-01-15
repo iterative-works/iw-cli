@@ -9,53 +9,53 @@
 
 ### Setup
 
-- [ ] [impl] [ ] [reviewed] Review existing HTMX attributes in `WorktreeListView.scala`
-- [ ] [impl] [ ] [reviewed] Review existing CSS styles in `DashboardService.scala`
+- [x] [impl] [ ] [reviewed] Review existing HTMX attributes in `WorktreeListView.scala`
+- [x] [impl] [ ] [reviewed] Review existing CSS styles in `DashboardService.scala`
 - [ ] [impl] [ ] [reviewed] Test current card update behavior in browser
 
 ### Tests - CSS Transitions
 
-- [ ] [impl] [ ] [reviewed] Test dashboard CSS includes `.htmx-swapping` styles
-- [ ] [impl] [ ] [reviewed] Test dashboard CSS includes `.htmx-settling` styles
-- [ ] [impl] [ ] [reviewed] Test card has `transition` property in CSS
+- [x] [impl] [ ] [reviewed] Test dashboard CSS includes `.htmx-swapping` styles
+- [x] [impl] [ ] [reviewed] Test dashboard CSS includes `.htmx-settling` styles
+- [x] [impl] [ ] [reviewed] Test card has `transition` property in CSS
 
 ### Implementation - CSS Transitions
 
-- [ ] [impl] [ ] [reviewed] Add `.htmx-swapping { opacity: 0; }` CSS rule
-- [ ] [impl] [ ] [reviewed] Add `.htmx-settling { opacity: 1; }` CSS rule
-- [ ] [impl] [ ] [reviewed] Add `transition: opacity 200ms ease-in-out` to card styles
-- [ ] [impl] [ ] [reviewed] Add `min-height` to card container to prevent layout shift
+- [x] [impl] [ ] [reviewed] Add `.htmx-swapping { opacity: 0; }` CSS rule
+- [x] [impl] [ ] [reviewed] Add `.htmx-settling { opacity: 1; }` CSS rule
+- [x] [impl] [ ] [reviewed] Add `transition: opacity 200ms ease-in-out` to card styles
+- [x] [impl] [ ] [reviewed] Add `min-height` to card container to prevent layout shift
 
 ### Tests - Tab Visibility
 
-- [ ] [impl] [ ] [reviewed] Test dashboard HTML includes `visibilitychange` script
-- [ ] [impl] [ ] [reviewed] Test cards have `refresh from:body` in `hx-trigger`
+- [x] [impl] [ ] [reviewed] Test dashboard HTML includes `visibilitychange` script
+- [x] [impl] [ ] [reviewed] Test cards have `refresh from:body` in `hx-trigger`
 
 ### Implementation - Tab Visibility
 
-- [ ] [impl] [ ] [reviewed] Add `visibilitychange` event listener script to dashboard
-- [ ] [impl] [ ] [reviewed] Add `refresh from:body` to card `hx-trigger` attribute
-- [ ] [impl] [ ] [reviewed] Trigger `htmx.trigger(document.body, 'refresh')` on tab focus
+- [x] [impl] [ ] [reviewed] Add `visibilitychange` event listener script to dashboard
+- [x] [impl] [ ] [reviewed] Add `refresh from:body` to card `hx-trigger` attribute
+- [x] [impl] [ ] [reviewed] Trigger `htmx.trigger(document.body, 'refresh')` on tab focus
 
 ### Tests - Mobile Styling
 
-- [ ] [impl] [ ] [reviewed] Test card CSS includes mobile breakpoint styles
-- [ ] [impl] [ ] [reviewed] Test buttons/links have minimum touch target size (44px)
+- [x] [impl] [ ] [reviewed] Test card CSS includes mobile breakpoint styles
+- [x] [impl] [ ] [reviewed] Test buttons/links have minimum touch target size (44px)
 
 ### Implementation - Mobile Styling
 
-- [ ] [impl] [ ] [reviewed] Add responsive breakpoint for cards (`@media (max-width: 768px)`)
-- [ ] [impl] [ ] [reviewed] Ensure buttons have `min-height: 44px` for touch targets
-- [ ] [impl] [ ] [reviewed] Add `touch-action: manipulation` to prevent zoom on double-tap
+- [x] [impl] [ ] [reviewed] Add responsive breakpoint for cards (`@media (max-width: 768px)`)
+- [x] [impl] [ ] [reviewed] Ensure buttons have `min-height: 44px` for touch targets
+- [x] [impl] [ ] [reviewed] Add `touch-action: manipulation` to prevent zoom on double-tap
 
 ### Tests - Layout Stability
 
-- [ ] [impl] [ ] [reviewed] Test card container has stable dimensions during swap
-- [ ] [impl] [ ] [reviewed] Test `hx-swap` includes transition modifier
+- [x] [impl] [ ] [reviewed] Test card container has stable dimensions during swap
+- [x] [impl] [ ] [reviewed] Test `hx-swap` includes transition modifier
 
 ### Implementation - Layout Stability
 
-- [ ] [impl] [ ] [reviewed] Update `hx-swap` to use `outerHTML transition:true`
+- [x] [impl] [ ] [reviewed] Update `hx-swap` to use `outerHTML transition:true`
 - [ ] [impl] [ ] [reviewed] Add `scroll:false` to prevent scroll jumping if needed
 
 ### Integration

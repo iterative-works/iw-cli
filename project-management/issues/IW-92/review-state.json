@@ -1,18 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-92",
-  "status": "awaiting_review",
-  "phase": 3,
-  "step": "review",
-  "branch": "IW-92-phase-03",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/132",
-  "git_sha": "8ab4b74",
-  "last_updated": "2026-01-15T08:10:56Z",
-  "message": "Phase 3 complete - Background refresh of issue data",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
-    {"label": "Phase 3 Context", "path": "project-management/issues/IW-92/phase-03-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-92/review-packet-phase-03.md"}
-  ]
+  "status": "implementing",
+  "phase": 4,
+  "step": "implementation",
+  "branch": "IW-92-phase-04",
+  "pr_url": null,
+  "git_sha": "4191d22",
+  "last_updated": "2026-01-15T08:15:00Z",
+  "message": "Phase 4 implementation in progress"
 }
