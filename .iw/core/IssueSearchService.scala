@@ -7,21 +7,25 @@ import iw.core.{IssueId, ProjectConfiguration, Issue}
 import iw.core.domain.IssueSearchResult
 
 object IssueSearchService:
-  /** Search for issues by ID.
+  /** Search for issues by ID or text.
     *
-    * Phase 1 implementation: Only supports exact ID match.
-    * Title/text search will be added in future phases.
+    * Phase 2 implementation: Supports exact ID match (priority) and text search fallback.
+    * - If query parses as issue ID and fetch succeeds: return that issue
+    * - If query parses as issue ID but fetch fails: fall back to text search
+    * - If query doesn't parse as issue ID: do text search
     *
-    * @param query Search query (expected to be an issue ID like "IW-79")
+    * @param query Search query (issue ID like "IW-79" or text like "fix bug")
     * @param config Project configuration with tracker type and settings
     * @param fetchIssue Function to fetch an issue by ID from the tracker
+    * @param searchIssues Function to search issues by text query
     * @param checkWorktreeExists Function to check if issue already has a registered worktree
-    * @return Either error message or list of search results (max 1 for Phase 1)
+    * @return Either error message or list of search results
     */
   def search(
     query: String,
     config: ProjectConfiguration,
     fetchIssue: IssueId => Either[String, Issue],
+    searchIssues: String => Either[String, List[Issue]],
     checkWorktreeExists: String => Boolean = _ => false
   ): Either[String, List[IssueSearchResult]] =
     // Validate query is not empty
@@ -29,7 +33,7 @@ object IssueSearchService:
     if trimmedQuery.isEmpty then
       return Right(List.empty)
 
-    // Try to parse query as issue ID
+    // Try to parse query as issue ID (priority)
     IssueId.parse(trimmedQuery, config.teamPrefix) match
       case Right(issueId) =>
         // Fetch the issue
@@ -52,13 +56,61 @@ object IssueSearchService:
             Right(List(result))
 
           case Left(_) =>
-            // Issue not found or fetch failed - return empty list
-            Right(List.empty)
+            // ID parsed but issue not found - fall through to text search
+            searchByText(trimmedQuery, config, searchIssues, checkWorktreeExists)
 
       case Left(_) =>
-        // Not a valid issue ID - return empty list
-        // Future: Implement title/text search here
-        Right(List.empty)
+        // Not a valid ID format - do text search
+        searchByText(trimmedQuery, config, searchIssues, checkWorktreeExists)
+
+  /** Search issues by text query.
+    *
+    * @param query Search text
+    * @param config Project configuration
+    * @param searchIssues Function to search issues by text
+    * @param checkWorktreeExists Function to check if issue has worktree
+    * @return Either error message or list of search results (open first, closed at end)
+    */
+  private def searchByText(
+    query: String,
+    config: ProjectConfiguration,
+    searchIssues: String => Either[String, List[Issue]],
+    checkWorktreeExists: String => Boolean
+  ): Either[String, List[IssueSearchResult]] =
+    searchIssues(query) match
+      case Right(issues) =>
+        val results = issues.map { issue =>
+          IssueSearchResult(
+            id = issue.id,
+            title = issue.title,
+            status = issue.status,
+            url = buildIssueUrl(issue.id, config),
+            hasWorktree = checkWorktreeExists(issue.id)
+          )
+        }
+        // Sort with closed issues at the end (open issues first)
+        Right(results.sortBy(r => isClosedStatus(r.status)))
+      case Left(error) =>
+        Left(error)
+
+  /** Check if a status indicates the issue is closed/done.
+    *
+    * Uses heuristics to detect closed states across different trackers:
+    * - GitHub: "closed"
+    * - Linear: "Done", "Canceled", "Duplicate"
+    * - YouTrack: "Done", "Closed", "Resolved", etc.
+    */
+  private def isClosedStatus(status: String): Boolean =
+    val lower = status.toLowerCase
+    lower.contains("done") ||
+    lower.contains("closed") ||
+    lower.contains("canceled") ||
+    lower.contains("cancelled") ||
+    lower.contains("resolved") ||
+    lower.contains("solved") ||
+    lower.contains("duplicate") ||
+    lower.contains("won't fix") ||
+    lower.contains("wontfix")
 
   /** Build issue URL based on tracker type.
     *
@@ -128,3 +180,39 @@ object IssueSearchService:
       withoutHash.substring(hyphenIndex + 1)
     else
       withoutHash
+
+  /** Fetch recent open issues for quick access.
+    *
+    * @param config Project configuration with tracker type
+    * @param fetchRecentIssues Function to fetch recent issues from tracker
+    * @param checkWorktreeExists Function to check if issue has worktree
+    * @return Either error message or list of recent issues as search results
+    */
+  def fetchRecent(
+    config: ProjectConfiguration,
+    fetchRecentIssues: Int => Either[String, List[Issue]],
+    checkWorktreeExists: String => Boolean = _ => false
+  ): Either[String, List[IssueSearchResult]] =
+    // Fetch recent issues (limit 5)
+    fetchRecentIssues(5) match
+      case Right(issues) =>
+        // Convert Issues to IssueSearchResults
+        val results = issues.map { issue =>
+          // Build URL for the issue
+          val url = buildIssueUrl(issue.id, config)
+
+          // Check if worktree exists for this issue
+          val hasWorktree = checkWorktreeExists(issue.id)
+
+          IssueSearchResult(
+            id = issue.id,
+            title = issue.title,
+            status = issue.status,
+            url = url,
+            hasWorktree = hasWorktree
+          )
+        }
+        Right(results)
+
+      case Left(error) =>
+        Left(error)

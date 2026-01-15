@@ -77,3 +77,98 @@ object YouTrackClient:
       Right(Issue(id, title, status, assignee, description))
     catch
       case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
+
+  def buildListRecentIssuesUrl(baseUrl: String, project: String, limit: Int): String =
+    val fields = "idReadable,summary,customFields(name,value(name))"
+    // Filter by project and unresolved status (excludes Done, Closed, etc.)
+    val encodedProject = java.net.URLEncoder.encode(project, "UTF-8")
+    s"$baseUrl/api/issues?fields=$fields&query=project:$encodedProject%20%23Unresolved&$$top=$limit&$$orderBy=created%20desc"
+
+  def buildSearchIssuesUrl(baseUrl: String, query: String, limit: Int): String =
+    val fields = "idReadable,summary,customFields(name,value(name))"
+    val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8").replace("+", "%20")
+    s"$baseUrl/api/issues?fields=$fields&query=$encodedQuery&$$top=$limit"
+
+  def parseListRecentIssuesResponse(json: String): Either[String, List[Issue]] =
+    try
+      import upickle.default.*
+
+      val parsed = ujson.read(json)
+
+      if !parsed.isInstanceOf[ujson.Arr] then
+        Left("Expected JSON array")
+      else
+        // Parse each issue, collecting errors
+        val results = parsed.arr.map(parseIssueFromJson).toList
+        // Use foldRight to sequence Either values, returning first error
+        results.foldRight[Either[String, List[Issue]]](Right(Nil)) { (item, acc) =>
+          for
+            issues <- acc
+            issue <- item
+          yield issue :: issues
+        }
+    catch
+      case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
+
+  private def parseIssueFromJson(issueJson: ujson.Value): Either[String, Issue] =
+    if !issueJson.obj.contains("idReadable") then
+      Left("Malformed response: missing 'idReadable' field")
+    else if !issueJson.obj.contains("summary") then
+      Left("Malformed response: missing 'summary' field")
+    else if !issueJson.obj.contains("customFields") then
+      Left("Malformed response: missing 'customFields' field")
+    else
+      val id = issueJson("idReadable").str
+      val title = issueJson("summary").str
+
+      // Extract State from customFields
+      val customFields = issueJson("customFields").arr
+      val stateField = customFields.find(field =>
+        field.obj.contains("name") && field("name").str == "State"
+      )
+      val status = stateField match
+        case Some(field) if field.obj.contains("value") && !field("value").isNull =>
+          field("value")("name").str
+        case _ => "Unknown"
+
+      Right(Issue(id, title, status, None, None))
+
+  def listRecentIssues(baseUrl: String, project: String, limit: Int = 5, token: ApiToken): Either[String, List[Issue]] =
+    try
+      val url = buildListRecentIssuesUrl(baseUrl, project, limit)
+
+      val response = quickRequest
+        .get(uri"$url")
+        .header("Authorization", s"Bearer ${token.value}")
+        .header("Accept", "application/json")
+        .send()
+
+      response.code match
+        case StatusCode.Ok =>
+          parseListRecentIssuesResponse(response.body)
+        case StatusCode.Unauthorized =>
+          Left("API token is invalid or expired")
+        case _ =>
+          Left(s"YouTrack API error: ${response.code}")
+    catch
+      case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  def searchIssues(baseUrl: String, query: String, limit: Int = 10, token: ApiToken): Either[String, List[Issue]] =
+    try
+      val url = buildSearchIssuesUrl(baseUrl, query, limit)
+
+      val response = quickRequest
+        .get(uri"$url")
+        .header("Authorization", s"Bearer ${token.value}")
+        .header("Accept", "application/json")
+        .send()
+
+      response.code match
+        case StatusCode.Ok =>
+          parseListRecentIssuesResponse(response.body)
+        case StatusCode.Unauthorized =>
+          Left("API token is invalid or expired")
+        case _ =>
+          Left(s"YouTrack API error: ${response.code}")
+    catch
+      case e: Exception => Left(s"Network error: ${e.getMessage}")

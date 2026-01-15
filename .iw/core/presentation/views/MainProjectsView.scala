@@ -43,7 +43,11 @@ object MainProjectsView:
       div(
         cls := "project-info",
         span(cls := "tracker-type", formatTrackerType(project.trackerType)),
-        span(cls := "team-info", project.team)
+        project.trackerUrl match
+          case Some(url) =>
+            a(cls := "team-info", href := url, target := "_blank", project.team)
+          case None =>
+            span(cls := "team-info", project.team)
       ),
       // Create worktree button
       button(

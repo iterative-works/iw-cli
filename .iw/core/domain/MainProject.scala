@@ -7,7 +7,8 @@ case class MainProject(
   path: os.Path,
   projectName: String,
   trackerType: String,
-  team: String
+  team: String,
+  trackerUrl: Option[String] = None
 )
 
 object MainProject:

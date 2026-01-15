@@ -3,7 +3,7 @@
 
 package iw.core.infrastructure
 
-import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath}
+import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath, IssueTrackerType}
 import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService}
 import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
 import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
@@ -300,8 +300,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         // Build fetch function based on tracker type
         val fetchIssue = buildFetchFunction(config)
 
-        // Call search service
-        IssueSearchService.search(q, config, fetchIssue) match
+        // Build search function based on tracker type
+        val searchIssues = buildSearchFunction(config)
+
+        // Call search service with both fetch and search functions
+        IssueSearchService.search(q, config, fetchIssue, searchIssues) match
           case Right(results) =>
             val html = SearchResultsView.render(results, project).render
             cask.Response(
@@ -319,11 +322,60 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
             )
 
+  @cask.get("/api/issues/recent")
+  def recentIssues(project: Option[String] = None): cask.Response[String] =
+    // Load project configuration from specified path or CWD
+    val projectPath = project.map(p => os.Path(p)).getOrElse(os.pwd)
+    val configPath = projectPath / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val configOpt = ConfigFileRepository.read(configPath)
+
+    configOpt match
+      case None =>
+        // No config - return empty results
+        val html = SearchResultsView.render(List.empty, project).render
+        cask.Response(
+          data = html,
+          statusCode = 200,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(config) =>
+        // Build fetch recent function based on tracker type
+        val fetchRecentIssues = buildFetchRecentFunction(config)
+
+        // Call fetchRecent service
+        IssueSearchService.fetchRecent(config, fetchRecentIssues) match
+          case Right(results) =>
+            val html = SearchResultsView.render(results, project).render
+            cask.Response(
+              data = html,
+              statusCode = 200,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+          case Left(error) =>
+            System.err.println(s"Fetch recent issues error: $error")
+            val html = SearchResultsView.render(List.empty, project).render
+            cask.Response(
+              data = html,
+              statusCode = 200,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
   @cask.get("/api/modal/create-worktree")
   def createWorktreeModal(project: Option[String] = None): cask.Response[String] =
     val html = CreateWorktreeModal.render(project).render
     cask.Response(
       data = html,
+      statusCode = 200,
+      headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+    )
+
+  @cask.get("/api/modal/close")
+  def closeModal(): cask.Response[String] =
+    // Return empty content to clear the modal container
+    cask.Response(
+      data = "",
       statusCode = 200,
       headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
     )
@@ -490,6 +542,73 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
         case _ =>
           Left(s"Unknown tracker type: ${config.trackerType}")
+
+  /** Build fetch recent function for IssueSearchService based on tracker type.
+    *
+    * @param config Project configuration
+    * @return Function that fetches recent issues with given limit
+    */
+  private def buildFetchRecentFunction(config: ProjectConfiguration): Int => Either[String, List[iw.core.Issue]] =
+    (limit: Int) =>
+      config.trackerType match
+        case IssueTrackerType.GitHub =>
+          config.repository match
+            case Some(repository) =>
+              GitHubClient.listRecentIssues(repository, limit)
+            case None =>
+              Left("GitHub repository not configured")
+
+        case IssueTrackerType.Linear =>
+          ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+            case Some(token) =>
+              LinearClient.listRecentIssues(config.team, limit, token)
+            case None =>
+              Left("LINEAR_API_TOKEN environment variable not set")
+
+        case IssueTrackerType.YouTrack =>
+          val baseUrl = config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+          ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
+            case Some(token) =>
+              YouTrackClient.listRecentIssues(baseUrl, config.team, limit, token)
+            case None =>
+              Left("YOUTRACK_API_TOKEN environment variable not set")
+
+        case IssueTrackerType.GitLab =>
+          Left("Recent issues not yet implemented for GitLab")
+
+  /** Build search function for IssueSearchService based on tracker type.
+    *
+    * @param config Project configuration
+    * @return Function that searches issues by text query
+    */
+  private def buildSearchFunction(config: ProjectConfiguration): String => Either[String, List[iw.core.Issue]] =
+    (query: String) =>
+      config.trackerType match
+        case IssueTrackerType.GitHub =>
+          config.repository match
+            case Some(repository) =>
+              GitHubClient.searchIssues(repository, query)
+            case None =>
+              Left("GitHub repository not configured")
+
+        case IssueTrackerType.Linear =>
+          ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+            case Some(token) =>
+              LinearClient.searchIssues(query, 10, token)
+            case None =>
+              Left("LINEAR_API_TOKEN environment variable not set")
+
+        case IssueTrackerType.YouTrack =>
+          (config.youtrackBaseUrl, ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken)) match
+            case (Some(baseUrl), Some(token)) =>
+              YouTrackClient.searchIssues(baseUrl, query, 10, token)
+            case (None, _) =>
+              Left("YouTrack base URL not configured")
+            case (_, None) =>
+              Left("YOUTRACK_API_TOKEN environment variable not set")
+
+        case IssueTrackerType.GitLab =>
+          Left("Search not yet implemented for GitLab")
 
   /** Extract GitHub issue number from issue ID.
     *

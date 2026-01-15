@@ -26,8 +26,8 @@ class CreateWorktreeModalTest extends FunSuite:
 
     assert(html.contains("class=\"modal-close\""), "Should have close button")
     assert(html.contains("×"), "Should have × symbol")
-    // Close button clears modal container client-side
-    assert(html.contains("hx-on:click"), "Close button should use hx-on:click for client-side close")
+    // Close button uses HTMX to call /api/modal/close endpoint
+    assert(html.contains("hx-get") && html.contains("/api/modal/close"), "Close button should use hx-get to close modal")
 
   test("render includes search input with correct attributes"):
     val html = CreateWorktreeModal.render().render
@@ -76,3 +76,27 @@ class CreateWorktreeModalTest extends FunSuite:
     val html = CreateWorktreeModal.render().render
 
     assert(html.contains("id=\"modal-body-content\""), "Should have modal-body-content div for HTMX target")
+
+  test("search results container has hx-trigger load for auto-load"):
+    val html = CreateWorktreeModal.render().render
+
+    assert(html.contains("hx-trigger=\"load\""), "Should have load trigger to auto-load recent issues")
+
+  test("search results container has hx-get pointing to recent endpoint"):
+    val html = CreateWorktreeModal.render().render
+
+    assert(html.contains("hx-get=\"/api/issues/recent\""), "Should target recent issues endpoint")
+
+  test("search results container has hx-swap innerHTML"):
+    val html = CreateWorktreeModal.render().render
+
+    // Note: hx-swap="innerHTML" appears twice - on close button and search results
+    // Check for search-results context by looking for both attributes together
+    assert(html.contains("id=\"search-results\"") && html.contains("hx-swap=\"innerHTML\""),
+      "Search results should use innerHTML swap for content replacement")
+
+  test("search results container includes project parameter when projectPath provided"):
+    val html = CreateWorktreeModal.render(Some("/path/to/project")).render
+
+    assert(html.contains("hx-get=\"/api/issues/recent?project="), "Should include project parameter in URL")
+    assert(html.contains("%2Fpath%2Fto%2Fproject"), "Should have URL-encoded project path")
