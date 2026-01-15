@@ -4,7 +4,7 @@
 package iw.core.infrastructure
 
 import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService, WorktreeCardService, RefreshThrottle}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService, WorktreeCardService, CardRenderResult, RefreshThrottle}
 import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
 import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
 import java.time.Instant
@@ -138,7 +138,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
             // Render the card
             val now = Instant.now()
-            val html = WorktreeCardService.renderCard(
+            val result = WorktreeCardService.renderCard(
               issueId,
               state.worktrees,
               state.issueCache,
@@ -151,8 +151,16 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               urlBuilder
             )
 
+            // Save fetched issue data to cache if we got fresh data
+            result.fetchedIssue.foreach { cachedIssue =>
+              val updatedState = state.copy(
+                issueCache = state.issueCache + (issueId -> cachedIssue)
+              )
+              repository.write(updatedState) // Best-effort save
+            }
+
             cask.Response(
-              data = html,
+              data = result.html,
               headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
             )
 

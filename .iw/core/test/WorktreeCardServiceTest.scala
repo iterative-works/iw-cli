@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.application.{WorktreeCardService, RefreshThrottle}
+import iw.core.application.{WorktreeCardService, CardRenderResult, RefreshThrottle}
 import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue}
 import iw.core.{Issue, IssueId}
 import java.time.Instant
@@ -33,7 +33,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
     val cache = Map(issueId -> CachedIssue(issueData))
     val throttle = RefreshThrottle()
 
-    val html = WorktreeCardService.renderCard(
+    val result = WorktreeCardService.renderCard(
       issueId,
       Map(issueId -> worktree),
       cache,
@@ -46,8 +46,8 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    assert(html.contains("Test Issue From API"))
-    assert(html.contains("worktree-card"))
+    assert(result.html.contains("Test Issue From API"))
+    assert(result.html.contains("worktree-card"))
   }
 
   test("renderCard returns empty string for unknown worktree") {
@@ -67,7 +67,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    assertEquals(result, "")
+    assertEquals(result.html, "")
   }
 
   test("renderCard includes HTMX attributes for polling") {
@@ -84,7 +84,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
     val cache = Map.empty[String, CachedIssue] // Empty cache forces fetch
     val throttle = RefreshThrottle()
 
-    val html = WorktreeCardService.renderCard(
+    val result = WorktreeCardService.renderCard(
       issueId,
       Map(issueId -> worktree),
       cache,
@@ -97,11 +97,11 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    assert(html.contains("hx-get"))
-    assert(html.contains(s"/worktrees/$issueId/card"))
-    assert(html.contains("hx-trigger"))
-    assert(html.contains("hx-swap"))
-    assert(html.contains("outerHTML"))
+    assert(result.html.contains("hx-get"))
+    assert(result.html.contains(s"/worktrees/$issueId/card"))
+    assert(result.html.contains("hx-trigger"))
+    assert(result.html.contains("hx-swap"))
+    assert(result.html.contains("outerHTML"))
   }
 
   test("renderCard includes unique ID for HTMX targeting") {
@@ -118,7 +118,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
     val cache = Map.empty[String, CachedIssue] // Empty cache forces fetch
     val throttle = RefreshThrottle()
 
-    val html = WorktreeCardService.renderCard(
+    val result = WorktreeCardService.renderCard(
       issueId,
       Map(issueId -> worktree),
       cache,
@@ -131,5 +131,5 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    assert(html.contains(s"id=\"worktree-$issueId\""))
+    assert(result.html.contains(s"id=\"worktree-$issueId\""))
   }

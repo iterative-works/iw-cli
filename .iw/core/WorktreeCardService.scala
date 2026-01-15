@@ -10,6 +10,16 @@ import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try
 
+/** Result from rendering a card, including any freshly fetched data.
+  *
+  * @param html Rendered HTML string
+  * @param fetchedIssue Freshly fetched issue data (if any) that should be cached
+  */
+case class CardRenderResult(
+  html: String,
+  fetchedIssue: Option[CachedIssue] = None
+)
+
 object WorktreeCardService:
   /** Render a single worktree card HTML fragment.
     *
@@ -29,7 +39,7 @@ object WorktreeCardService:
     * @param now Current timestamp
     * @param fetchIssue Function to fetch issue from API
     * @param buildUrl Function to build issue URL
-    * @return HTML string for the card, empty string if worktree not found
+    * @return CardRenderResult with HTML string and optional fetched issue data
     */
   def renderCard(
     issueId: String,
@@ -42,36 +52,39 @@ object WorktreeCardService:
     now: Instant,
     fetchIssue: String => Either[String, Issue],
     buildUrl: (String, String, Option[String]) => String
-  ): String =
+  ): CardRenderResult =
     worktrees.get(issueId) match
       case None =>
         // Worktree not found
-        ""
+        CardRenderResult("")
       case Some(worktree) =>
         // Determine if we should fetch fresh data
         val shouldFetch = throttle.shouldRefresh(issueId, now)
 
-        // Get issue data (cached or fresh)
-        val issueDataOpt = if shouldFetch then
+        // Get issue data (cached or fresh) and track if we fetched fresh data
+        val (issueDataOpt, fetchedCachedIssue) = if shouldFetch then
           // Try to fetch fresh data
           fetchIssue(issueId) match
             case Right(issue) =>
               throttle.recordRefresh(issueId, now)
               val url = buildUrl(issueId, worktree.trackerType, None)
               val freshData = IssueData.fromIssue(issue, url, now)
-              Some((freshData, false, false)) // fresh, not from cache, not stale
+              val cachedIssue = CachedIssue(freshData)
+              (Some((freshData, false, false)), Some(cachedIssue)) // fresh, not from cache, not stale
             case Left(_) =>
               // API failed, use cached data
-              issueCache.get(issueId).map { cached =>
-                val isStale = CachedIssue.isStale(cached, now)
-                (cached.data, true, isStale)
+              val cached = issueCache.get(issueId).map { c =>
+                val isStale = CachedIssue.isStale(c, now)
+                (c.data, true, isStale)
               }
+              (cached, None)
         else
           // Use cached data (throttled)
-          issueCache.get(issueId).map { cached =>
-            val isStale = CachedIssue.isStale(cached, now)
-            (cached.data, true, isStale)
+          val cached = issueCache.get(issueId).map { c =>
+            val isStale = CachedIssue.isStale(c, now)
+            (c.data, true, isStale)
           }
+          (cached, None)
 
         // Get other data (progress, git status, PR, review state)
         val progress = progressCache.get(issueId).map(_.progress)
@@ -80,11 +93,13 @@ object WorktreeCardService:
         val reviewStateResult = reviewStateCache.get(issueId).map(cached => Right(cached.state))
 
         // Render the card
-        issueDataOpt match
+        val html = issueDataOpt match
           case Some((data, fromCache, isStale)) =>
             renderCardHtml(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now)
           case None =>
             renderSkeletonCardHtml(worktree, progress, gitStatus, prData, reviewStateResult, now)
+
+        CardRenderResult(html, fetchedCachedIssue)
 
   /** Render normal card with issue data.
     *
