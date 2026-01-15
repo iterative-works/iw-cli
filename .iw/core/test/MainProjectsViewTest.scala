@@ -104,3 +104,33 @@ class MainProjectsViewTest extends FunSuite:
 
     assert(html.contains("YouTrack"))
     assert(html.contains("PROJECT"))
+
+  test("team renders as link when trackerUrl is provided"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      trackerUrl = Some("https://github.com/iterative-works/iw-cli/issues")
+    )
+
+    val html = MainProjectsView.render(List(project)).render
+
+    assert(html.contains("<a"), "Should render as link")
+    assert(html.contains("href=\"https://github.com/iterative-works/iw-cli/issues\""))
+    assert(html.contains("target=\"_blank\""), "Should open in new tab")
+    assert(html.contains("iterative-works/iw-cli"))
+
+  test("team renders as span when trackerUrl is None"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/test"),
+      projectName = "test",
+      trackerType = "github",
+      team = "owner/repo",
+      trackerUrl = None
+    )
+
+    val html = MainProjectsView.render(List(project)).render
+
+    assert(html.contains("<span class=\"team-info\">owner/repo</span>"))
+    assert(!html.contains("<a class=\"team-info\""))
