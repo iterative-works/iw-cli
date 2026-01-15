@@ -138,9 +138,18 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           urlBuilder
         )
 
-        // Update cache with fetched issue data if we got fresh data
+        // Update all caches with freshly fetched data
         result.fetchedIssue.foreach { cachedIssue =>
           stateService.updateIssueCache(issueId)(_ => Some(cachedIssue))
+        }
+        result.fetchedProgress.foreach { cachedProgress =>
+          stateService.updateProgressCache(issueId)(_ => Some(cachedProgress))
+        }
+        result.fetchedPR.foreach { cachedPR =>
+          stateService.updatePRCache(issueId)(_ => Some(cachedPR))
+        }
+        result.fetchedReviewState.foreach { cachedReviewState =>
+          stateService.updateReviewStateCache(issueId)(_ => Some(cachedReviewState))
         }
 
         cask.Response(
