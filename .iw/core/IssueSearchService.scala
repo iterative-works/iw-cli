@@ -107,6 +107,7 @@ object IssueSearchService:
     lower.contains("canceled") ||
     lower.contains("cancelled") ||
     lower.contains("resolved") ||
+    lower.contains("solved") ||
     lower.contains("duplicate") ||
     lower.contains("won't fix") ||
     lower.contains("wontfix")

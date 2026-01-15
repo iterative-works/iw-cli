@@ -461,7 +461,8 @@ class IssueSearchServiceTest extends FunSuite:
         Issue("#102", "Open issue", "Open", None, None),
         Issue("#103", "Closed issue", "closed", None, None),
         Issue("#104", "In Progress", "In Progress", None, None),
-        Issue("#105", "Canceled issue", "Canceled", None, None)
+        Issue("#105", "Canceled issue", "Canceled", None, None),
+        Issue("#106", "Solved issue", "Solved", None, None)
       ))
 
     val results = IssueSearchService.search("test", config, fetchIssue, searchIssues)
@@ -471,8 +472,9 @@ class IssueSearchServiceTest extends FunSuite:
       // Open issues should come first (Open, In Progress)
       assertEquals(list(0).status, "Open", "First should be Open")
       assertEquals(list(1).status, "In Progress", "Second should be In Progress")
-      // Closed issues should be at the end (Done, closed, Canceled)
+      // Closed issues should be at the end (Done, closed, Canceled, Solved)
       assertEquals(list(2).status, "Done", "Third should be Done (closed)")
       assertEquals(list(3).status, "closed", "Fourth should be closed")
       assertEquals(list(4).status, "Canceled", "Fifth should be Canceled (closed)")
+      assertEquals(list(5).status, "Solved", "Sixth should be Solved (closed)")
     }
