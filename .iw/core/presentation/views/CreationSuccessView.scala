@@ -79,7 +79,7 @@ object CreationSuccessView:
   private def renderCloseButton(): Frag =
     button(
       cls := "btn-secondary close-modal-btn",
-      attr("hx-get") := "/",
+      attr("hx-get") := "/api/modal/close",
       attr("hx-target") := "#modal-container",
       attr("hx-swap") := "innerHTML",
       "Close"
