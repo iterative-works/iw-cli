@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue_id": "IW-92",
+  "status": "awaiting_review",
+  "phase": 5,
+  "step": "review",
+  "branch": "IW-92-phase-05",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/137",
+  "git_sha": "ae7825a",
+  "last_updated": "2026-01-15T12:39:02Z",
+  "message": "Phase 5 complete - Priority-based refresh optimization (FINAL PHASE)",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
+    {"label": "Phase 5 Context", "path": "project-management/issues/IW-92/phase-05-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-92/review-packet-phase-05.md"}
+  ]
+}

@@ -5,26 +5,32 @@ package iw.core.domain
 
 import java.time.{Duration, Instant}
 
+/** Default TTL for PR cache in minutes */
+val DEFAULT_PR_CACHE_TTL_MINUTES = 2
+
 /** Cached pull request data with TTL validation.
   *
   * @param pr Pull request data from GitHub/GitLab
   * @param fetchedAt Timestamp when PR data was fetched
+  * @param ttlMinutes Time-to-live in minutes (default: 2)
   */
 case class CachedPR(
   pr: PullRequestData,
-  fetchedAt: Instant
+  fetchedAt: Instant,
+  ttlMinutes: Int = DEFAULT_PR_CACHE_TTL_MINUTES
 )
 
 object CachedPR:
   /** TTL for PR cache in minutes.
     * PRs change more frequently than issues, so use shorter TTL (2 vs 5 minutes).
+    * @deprecated Use DEFAULT_PR_CACHE_TTL_MINUTES or instance ttlMinutes instead
     */
-  val TTL_MINUTES = 2
+  val TTL_MINUTES = DEFAULT_PR_CACHE_TTL_MINUTES
 
   /** Check if cached PR is still valid based on TTL.
     *
-    * Cache is valid when: age < TTL_MINUTES
-    * Cache is invalid when: age >= TTL_MINUTES
+    * Cache is valid when: age < ttlMinutes
+    * Cache is invalid when: age >= ttlMinutes
     *
     * @param cached Cached PR to validate
     * @param now Current timestamp for age calculation
@@ -32,7 +38,7 @@ object CachedPR:
     */
   def isValid(cached: CachedPR, now: Instant): Boolean =
     val ageInMinutes = Duration.between(cached.fetchedAt, now).toMinutes
-    ageInMinutes < TTL_MINUTES
+    ageInMinutes < cached.ttlMinutes
 
   /** Calculate age of cached PR.
     *
@@ -42,3 +48,16 @@ object CachedPR:
     */
   def age(cached: CachedPR, now: Instant): Duration =
     Duration.between(cached.fetchedAt, now)
+
+  /** Check if cached PR is stale (age >= TTL).
+    *
+    * Stale data can still be displayed with an indicator.
+    * This is different from isValid() - stale data should show a visual indicator.
+    *
+    * @param cached Cached PR to check
+    * @param now Current timestamp for age calculation
+    * @return true if cache is stale (age >= TTL), false otherwise
+    */
+  def isStale(cached: CachedPR, now: Instant): Boolean =
+    val ageInMinutes = Duration.between(cached.fetchedAt, now).toMinutes
+    ageInMinutes >= cached.ttlMinutes

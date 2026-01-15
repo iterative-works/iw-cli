@@ -149,3 +149,60 @@ class PullRequestCacheServiceTest extends FunSuite:
   test("detectPRTool returns None when neither available"):
     val detectTool = (tool: String) => false
     assertEquals(PullRequestCacheService.detectPRTool(detectTool), None)
+
+  // getCachedOnly tests
+  test("getCachedOnly returns cached PR when cache exists"):
+    val now = Instant.now()
+    val cachedPR = CachedPR(mockPRData, now.minusSeconds(60))
+    val cache = Map("IWLE-123" -> cachedPR)
+
+    val result = PullRequestCacheService.getCachedOnly("IWLE-123", cache)
+
+    assert(result.isDefined, "Should return cached PR data")
+    assertEquals(result.map(_.number).getOrElse(0), 42)
+
+  test("getCachedOnly returns None when cache is empty"):
+    val cache = Map.empty[String, CachedPR]
+
+    val result = PullRequestCacheService.getCachedOnly("IWLE-456", cache)
+
+    assert(result.isEmpty, "Should return None when cache is empty")
+
+  test("getCachedOnly does NOT call CLI"):
+    val now = Instant.now()
+    val cachedPR = CachedPR(mockPRData, now.minusSeconds(60))
+    val cache = Map("TEST-1" -> cachedPR)
+
+    // This test is structural - getCachedOnly doesn't take exec/detect functions
+    // The test verifies that the method signature doesn't require them
+    val result = PullRequestCacheService.getCachedOnly("TEST-1", cache)
+
+    assert(result.isDefined, "Should return cached data without CLI calls")
+
+  test("getCachedOnly returns stale cache without calling CLI"):
+    val now = Instant.now()
+    val stalePR = CachedPR(mockPRData, now.minusSeconds(600)) // 10 minutes ago (very stale)
+    val cache = Map("IWLE-789" -> stalePR)
+
+    val result = PullRequestCacheService.getCachedOnly("IWLE-789", cache)
+
+    assert(result.isDefined, "Should return even stale cached data")
+    assertEquals(result.map(_.number).getOrElse(0), 42)
+
+  test("fetchPR preserves stale cache when CLI command fails"):
+    val now = Instant.now()
+    val stalePR = CachedPR(mockPRData, now.minusSeconds(180)) // 3 minutes ago (expired)
+    val cache = Map("IWLE-123" -> stalePR)
+
+    val execCommand = (cmd: String, args: Array[String]) =>
+      Left("API error: rate limit exceeded")
+    val detectTool = (tool: String) => tool == "gh"
+
+    val result = PullRequestCacheService.fetchPR(
+      "/path", cache, "IWLE-123", now, execCommand, detectTool
+    )
+
+    assert(result.isRight, "Should return stale cache data when API fails")
+    val prData = result.toOption.flatten
+    assert(prData.isDefined, "Should have PR data from stale cache")
+    assertEquals(prData.get.number, 42, "Should return original cached data, not try to fetch")

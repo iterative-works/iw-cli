@@ -4,7 +4,7 @@
 package iw.core.application
 
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, GitHubClient, ProjectConfiguration, ConfigFileRepository, Constants}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
+import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState, WorktreePriority}
 import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.{WorktreeListView, MainProjectsView}
 import scalatags.Text.all.*
@@ -34,20 +34,23 @@ object DashboardService:
   ): (String, Map[String, CachedReviewState]) =
     val now = Instant.now()
 
+    // Sort worktrees by priority (most recent activity first)
+    val sortedWorktrees = worktrees.sortBy(wt => WorktreePriority.priorityScore(wt, now))(Ordering[Long].reverse)
+
     // Derive main projects from registered worktrees
     val mainProjects = MainProjectService.deriveFromWorktrees(
-      worktrees,
+      sortedWorktrees,
       MainProjectService.loadConfig
     )
 
     // Fetch data for each worktree and accumulate updated review state cache
-    val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
-      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
+    val (worktreesWithData, updatedReviewStateCache) = sortedWorktrees.foldLeft(
+      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
     ) { case ((acc, cache), wt) =>
-      val issueData = fetchIssueForWorktree(wt, issueCache, now)
+      val issueData = fetchIssueForWorktreeCachedOnly(wt, issueCache, now)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
-      val prData = fetchPRForWorktree(wt, prCache, now)
+      val prData = fetchPRForWorktreeCachedOnly(wt, prCache, now)
       val cachedReviewStateResult = fetchReviewStateForWorktree(wt, cache)
 
       // Extract ReviewState for view and update cache
@@ -78,6 +81,13 @@ object DashboardService:
           attr("integrity") := "sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC",
           attr("crossorigin") := "anonymous"
         ),
+        tag("script")(raw("""
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+              htmx.trigger(document.body, 'refresh');
+            }
+          });
+        """)),
         tag("style")(raw(styles))
       ),
       body(
@@ -120,6 +130,28 @@ object DashboardService:
     )
 
     ("<!DOCTYPE html>\n" + page.render, updatedReviewStateCache)
+
+  /** Fetch issue data for a single worktree from cache only (non-blocking).
+    *
+    * Returns cached data without calling API, regardless of cache age.
+    * Calculates whether data is stale for display indicator.
+    *
+    * @param wt Worktree registration
+    * @param cache Current issue cache
+    * @param now Current timestamp for staleness check
+    * @return Optional tuple of (IssueData, fromCache flag, isStale flag)
+    */
+  private def fetchIssueForWorktreeCachedOnly(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedIssue],
+    now: Instant
+  ): Option[(IssueData, Boolean, Boolean)] =
+    cache.get(wt.issueId) match
+      case Some(cached) =>
+        val isStale = CachedIssue.isStale(cached, now)
+        Some((cached.data, true, isStale))
+      case None =>
+        None
 
   /** Fetch issue data for a single worktree using cache or API.
     *
@@ -311,6 +343,23 @@ object DashboardService:
     // Call GitStatusService with injected command execution
     GitStatusService.getGitStatus(wt.path, execCommand).toOption
 
+  /** Fetch PR data for a single worktree from cache only (non-blocking).
+    *
+    * Returns cached PR data without calling CLI, regardless of cache age.
+    * PR cache doesn't need isStale flag in phase 1 (not displayed separately).
+    *
+    * @param wt Worktree registration
+    * @param cache Current PR cache
+    * @param now Current timestamp (not used but kept for consistency)
+    * @return Optional PullRequestData, None if not cached
+    */
+  private def fetchPRForWorktreeCachedOnly(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedPR],
+    now: Instant
+  ): Option[PullRequestData] =
+    PullRequestCacheService.getCachedOnly(wt.issueId, cache)
+
   /** Fetch PR data for a single worktree.
     *
     * Uses PR cache with TTL, re-fetches from gh/glab if expired.
@@ -430,6 +479,38 @@ object DashboardService:
       border-radius: 8px;
       padding: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: opacity 200ms ease-in-out;
+      min-height: 200px;
+    }
+
+    .htmx-swapping {
+      opacity: 0;
+    }
+
+    .htmx-settling {
+      opacity: 1;
+    }
+
+    .skeleton-card {
+      background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      opacity: 0.7;
+    }
+
+    .skeleton-card .skeleton-title {
+      background: #e0e0e0;
+      color: transparent;
+      border-radius: 4px;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
     }
 
     .worktree-card h3 {
@@ -492,6 +573,12 @@ object DashboardService:
     .cache-indicator {
       font-size: 0.85em;
       color: #868e96;
+    }
+
+    .stale-indicator {
+      font-size: 0.85em;
+      color: #e67700;
+      font-weight: 600;
     }
 
     .worktree-card .last-activity {
@@ -1067,5 +1154,22 @@ object DashboardService:
       color: #868e96;
       font-weight: normal;
       font-size: 16px;
+    }
+
+    /* Mobile-friendly styling */
+    @media (max-width: 768px) {
+      .worktree-list {
+        grid-template-columns: 1fr;
+      }
+
+      .main-projects-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Touch-friendly buttons and links */
+    button, .pr-button, .create-worktree-btn, .create-worktree-button, .modal-close {
+      min-height: 44px;
+      touch-action: manipulation;
     }
   """

@@ -40,3 +40,16 @@ object CachedIssue:
     */
   def age(cached: CachedIssue, now: Instant): Duration =
     Duration.between(cached.data.fetchedAt, now)
+
+  /** Check if cached issue is stale (age >= TTL).
+    *
+    * Stale data can still be displayed with an indicator.
+    * This is different from isValid() - stale data should show a visual indicator.
+    *
+    * @param cached Cached issue to check
+    * @param now Current timestamp for age calculation
+    * @return true if cache is stale (age >= TTL), false otherwise
+    */
+  def isStale(cached: CachedIssue, now: Instant): Boolean =
+    val ageInMinutes = Duration.between(cached.data.fetchedAt, now).toMinutes
+    ageInMinutes >= cached.ttlMinutes

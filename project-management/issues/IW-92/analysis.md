@@ -1,0 +1,596 @@
+# Story-Driven Analysis: Dashboard loads too slowly with multiple worktrees
+
+**Issue:** IW-92
+**Created:** 2026-01-14
+**Status:** Approved
+**Classification:** Feature
+
+## Problem Statement
+
+The dashboard currently loads too slowly when multiple worktrees are registered because it fetches all data synchronously before rendering anything to the user. This creates a poor user experience where the user waits several seconds (or more) staring at a blank page while the server:
+
+1. Loads all worktree registrations
+2. For EACH worktree, sequentially fetches:
+   - Issue data from Linear/YouTrack/GitHub API (or cache)
+   - Workflow progress by parsing filesystem task files
+   - Git status by executing git commands
+   - PR data from gh/glab CLI (or cache)
+   - Review state by reading JSON files
+
+Only after ALL this data is collected does the server render and return the complete HTML page.
+
+**User Impact:**
+- Poor perceived performance (blank screen during load)
+- No feedback during data fetching
+- Frustrating experience, especially with 5+ worktrees
+- Mobile users may think the page is broken
+
+**Value of Fixing:**
+- Near-instant dashboard load with cached/stale data
+- Progressive enhancement as fresh data arrives
+- Better mobile experience (critical for the "check status on phone" use case)
+- Improved scalability (works well with 20+ worktrees)
+
+## User Stories
+
+### Story 1: Fast initial dashboard load with cached data
+
+```gherkin
+Feature: Dashboard instant load
+  As a user opening the dashboard
+  I want to see worktree cards immediately
+  So that I get instant feedback instead of waiting
+
+Scenario: Dashboard renders cached data immediately
+  Given I have 5 registered worktrees
+  And all worktrees have cached issue data from previous loads
+  When I navigate to the dashboard at "/"
+  Then I see the dashboard shell within 100ms
+  And I see 5 worktree cards with cached issue titles and status
+  And I see a visual indicator showing "Loading fresh data..." or similar
+```
+
+**Estimated Effort:** 6-8h
+**Complexity:** Moderate
+
+**Technical Feasibility:**
+This requires splitting the dashboard rendering into two phases: (1) immediate render with cached/stale data, and (2) background refresh. The core challenge is changing the rendering pattern from "fetch-all-then-render" to "render-stale-then-update."
+
+Key technical challenges:
+- Modifying `DashboardService.renderDashboard()` to accept and render stale data without blocking
+- Ensuring cached data is always available (seeding cache on registration)
+- Adding UI indicators to distinguish stale vs fresh data
+
+**Acceptance:**
+- Dashboard HTML loads in < 100ms with cached data
+- All worktree cards are visible immediately
+- Visual indicator shows when data is stale/loading
+- No blank screen or long wait
+
+---
+
+### Story 2: Background refresh of issue data
+
+```gherkin
+Feature: Background data refresh
+  As a user viewing the dashboard
+  I want issue data to refresh in the background
+  So that I see current status without waiting
+
+Scenario: Issue data refreshes after initial render
+  Given the dashboard has loaded with cached data
+  When the page finishes rendering
+  Then the server fetches fresh issue data from APIs
+  And each worktree card updates with fresh data as it arrives
+  And the "Loading..." indicator disappears when refresh completes
+  And I see a timestamp showing when data was last updated
+```
+
+**Estimated Effort:** 8-12h
+**Complexity:** Complex
+
+**Technical Feasibility:**
+This is the most complex story because it requires introducing asynchronous data fetching and incremental HTMX updates. The current architecture is purely synchronous request/response.
+
+Key technical challenges:
+- New API endpoints for per-worktree data refresh
+- HTMX polling or SSE (Server-Sent Events) to trigger updates
+- Managing concurrent API requests (rate limiting, error handling)
+- Ensuring UI doesn't "flicker" or jump during updates
+- Handling API failures gracefully (show stale data instead of errors)
+
+**Acceptance:**
+- Fresh issue data fetched in background after initial render
+- Each card updates independently (no full page refresh)
+- Failed API calls don't block other cards from updating
+- User sees timestamp of last successful refresh per card
+
+---
+
+### Story 3: Incremental card updates via HTMX
+
+```gherkin
+Feature: Progressive card updates
+  As a user viewing the dashboard
+  I want each worktree card to update independently
+  So that I see fresh data appear progressively
+
+Scenario: Cards update one by one as data becomes available
+  Given the dashboard has loaded with 5 cached worktree cards
+  When fresh issue data arrives for worktree "IW-92"
+  Then only the "IW-92" card re-renders with fresh data
+  And other cards remain unchanged
+  And the update is smooth without page flicker
+  And the card shows "Updated just now"
+```
+
+**Estimated Effort:** 6-8h
+**Complexity:** Moderate
+
+**Technical Feasibility:**
+This requires HTMX partial updates and new endpoints that return single worktree card HTML fragments. The main challenge is ensuring updates don't disrupt the user's scrolling or interaction.
+
+Key technical challenges:
+- New endpoint: `GET /worktrees/:issueId/card` returning single card HTML
+- HTMX attributes for polling or event-driven updates
+- CSS transitions for smooth card updates
+- Managing update timing (don't spam with updates)
+
+**Acceptance:**
+- Each card updates independently via HTMX swap
+- Updates are smooth and don't cause page jump
+- User can interact with other cards while one updates
+- Cards show "Updated X seconds ago" timestamp
+
+---
+
+### Story 4: Aggressive caching for instant subsequent loads
+
+```gherkin
+Feature: Instant dashboard reload
+  As a user returning to the dashboard
+  I want to see data instantly from cache
+  So that I don't wait for APIs every time
+
+Scenario: Second dashboard load is instant
+  Given I loaded the dashboard 2 minutes ago
+  And all issue data was cached successfully
+  When I navigate to the dashboard again
+  Then I see all worktree cards within 50ms
+  And cached data is displayed immediately
+  And background refresh starts automatically
+  And cards update with fresh data as it arrives
+```
+
+**Estimated Effort:** 4-6h
+**Complexity:** Straightforward
+
+**Technical Feasibility:**
+This is mostly configuration and TTL tuning. The caching infrastructure already exists, but TTLs may be too short for instant loads.
+
+Key technical challenges:
+- Adjusting cache TTLs (currently 5min for issues, 2min for PRs)
+- Ensuring cache is populated even on error (don't clear cache on API failure)
+- Adding "always render from cache first" logic to dashboard
+
+**Acceptance:**
+- Subsequent dashboard loads render instantly (< 50ms)
+- Cached data displayed even if slightly stale
+- Background refresh happens automatically
+- User can force refresh if needed
+
+---
+
+### Story 5: Visible-items-first optimization (stretch goal)
+
+```gherkin
+Feature: Prioritize visible worktrees
+  As a user viewing the dashboard on mobile
+  I want the first few cards to load fastest
+  So that I see useful data immediately
+
+Scenario: First 3 worktrees refresh before others
+  Given I have 10 registered worktrees
+  When the dashboard loads
+  Then the first 3 cards refresh data first
+  And remaining 7 cards refresh after the first 3
+  And I see "Loading..." on cards below the fold
+  And priority is based on last activity (most recent first)
+```
+
+**Estimated Effort:** 4-6h
+**Complexity:** Moderate
+
+**Technical Feasibility:**
+This is a nice-to-have optimization that prioritizes refresh order. It requires sorting worktrees by priority and implementing a queue for background refresh.
+
+Key technical challenges:
+- Sorting worktrees by last activity timestamp
+- Implementing priority queue for background refresh
+- Detecting "above the fold" vs "below the fold" (viewport detection)
+
+**Acceptance:**
+- Most recently active worktrees refresh first
+- User sees useful data quickly even with many worktrees
+- Background refresh completes for all cards eventually
+- No race conditions or ordering bugs
+
+---
+
+## Architectural Sketch
+
+**Purpose:** List WHAT components each story needs, not HOW they're implemented.
+
+### For Story 1: Fast initial dashboard load with cached data
+
+**Application Layer:**
+- `DashboardService.renderDashboardWithCache()` - Renders dashboard using only cached data, no API calls
+- `IssueCacheService.getCached()` - Retrieves cached issue data without TTL check
+
+**Domain Layer:**
+- `CachedIssue.isStale()` - Checks if cached data is stale (for UI indicators)
+
+**Presentation Layer:**
+- `WorktreeListView.renderWithStaleIndicator()` - Renders cards with "Loading..." badge if stale
+- CSS: `.stale-indicator` styles
+
+**Infrastructure Layer:**
+- No changes needed (reuse existing StateRepository and cache)
+
+---
+
+### For Story 2: Background refresh of issue data
+
+**Application Layer:**
+- `DashboardRefreshService.refreshAll()` - Orchestrates background refresh for all worktrees
+- `DashboardRefreshService.refreshOne()` - Fetches fresh data for a single worktree
+
+**Infrastructure Layer:**
+- `CaskServer.get("/api/worktrees/:issueId/refresh")` - API endpoint to trigger single worktree refresh
+- Background thread/task to run refresh asynchronously
+
+**Presentation Layer:**
+- HTMX polling attributes on dashboard root (`hx-trigger="every 30s"` or similar)
+- Loading indicators and timestamps in cards
+
+---
+
+### For Story 3: Incremental card updates via HTMX
+
+**Infrastructure Layer:**
+- `CaskServer.get("/worktrees/:issueId/card")` - Returns single worktree card HTML fragment
+
+**Application Layer:**
+- `WorktreeCardService.renderCard()` - Renders single card with fresh data
+
+**Presentation Layer:**
+- `WorktreeListView.renderCard()` - Renders single card HTML
+- HTMX attributes: `hx-get`, `hx-target`, `hx-swap` on each card
+- CSS transitions for smooth updates
+
+---
+
+### For Story 4: Aggressive caching for instant subsequent loads
+
+**Application Layer:**
+- `IssueCacheService` - Adjust TTL constants (longer cache lifetime)
+- `DashboardService` - Change to "always render cache first, then refresh"
+
+**Infrastructure Layer:**
+- `StateRepository` - Ensure cache persists across server restarts
+
+---
+
+### For Story 5: Visible-items-first optimization (stretch goal)
+
+**Application Layer:**
+- `DashboardRefreshService.refreshPriority()` - Refreshes worktrees by priority order
+
+**Domain Layer:**
+- `WorktreeRegistration.priorityScore()` - Computes priority based on last activity
+
+**Presentation Layer:**
+- JavaScript (optional): Detect viewport and trigger refresh for visible cards first
+
+---
+
+## Technical Decisions (Resolved)
+
+### Decision 1: Asynchronous refresh strategy
+
+**Decision:** HTMX polling per card
+
+Each card polls its own endpoint (`GET /worktrees/:issueId/card`) independently.
+
+**Rationale:**
+- Progressive updates feel more responsive (cards update one by one)
+- Failure isolation (one slow API doesn't block others)
+- Extensible for future detail views (per-card endpoints reusable)
+- Natural fit - each worktree is already an independent entity
+
+**Additional:** Refresh on tab focus using `visibilitychange` event for instant update when user returns to dashboard.
+
+---
+
+### Decision 2: Cache miss behavior
+
+**Decision:** Skeleton cards on cache miss
+
+Dashboard renders skeleton/placeholder cards immediately when cache is empty, then refreshes fill in data.
+
+**Rationale:**
+- Always instant render, even with empty cache
+- Registration stays fast (no API calls during `iw start`)
+- Modern UX pattern (skeleton loaders are familiar)
+- Aligns with per-card polling - cards refresh independently anyway
+
+---
+
+### Decision 3: TTL handling
+
+**Decision:** Always render cache, always refresh (with 30s throttle)
+
+- If cache exists (any age) → render cached data
+- If no cache → render skeleton
+- Always trigger background refresh, unless cache is < 30s old
+
+**Rationale:**
+- Simple mental model: render what we have, then refresh
+- TTL becomes irrelevant for rendering decisions
+- 30s throttle prevents API hammering on rapid page refreshes
+- Display "Updated X ago" timestamp to indicate data freshness
+
+---
+
+### Decision 4: Error handling for background refresh
+
+**Decision:** Silent failure with aging timestamps
+
+If refresh fails, keep showing cached data. The "Updated X ago" timestamp naturally indicates staleness.
+
+**Rationale:**
+- Dashboard is read-only status view, not critical operation
+- Stale data is better than error noise
+- Timestamps communicate staleness without being jarring
+- Keep it simple - retry logic adds complexity for little gain
+
+**Enhancement:** Timestamp styling could turn orange/red if > 10min old.
+
+---
+
+## Total Estimates
+
+**Story Breakdown:**
+- Story 1 (Fast initial load with cache): 6-8 hours
+- Story 2 (Background refresh): 8-12 hours
+- Story 3 (Incremental card updates): 6-8 hours
+- Story 4 (Aggressive caching): 4-6 hours
+- Story 5 (Visible-items-first, stretch): 4-6 hours
+
+**Total Range:** 28-40 hours
+
+**Confidence:** Medium
+
+**Reasoning:**
+- **Moderate complexity:** This is primarily an architectural refactoring (synchronous → asynchronous), not new features
+- **Unknown: HTMX patterns:** Team may not have experience with HTMX polling/SSE, could add learning time
+- **Unknown: Concurrency handling:** Managing background refresh with rate limiting and error handling is non-trivial
+- **Well-understood domain:** The data model (worktrees, issues, cache) is stable and well-understood
+- **Existing patterns:** Cache infrastructure exists, we're adapting not building from scratch
+
+**Decisions baked into estimate:**
+- HTMX polling per card (progressive updates, extensible)
+- Skeleton cards on cache miss (always instant render)
+- Always render cache, always refresh with 30s throttle
+- Silent failure with aging timestamps
+- Refresh on tab focus via `visibilitychange` event
+- Story 5 is optional/stretch (exclude from MVP if time is tight)
+
+---
+
+## Testing Approach
+
+**Per Story Testing:**
+
+Each story should have:
+1. **Unit Tests**: Pure domain logic, cache logic, rendering logic
+2. **Integration Tests**: HTTP endpoints, HTMX behavior, cache persistence
+3. **E2E Scenario Tests**: Automated verification of the Gherkin scenario
+
+**Story-Specific Testing Notes:**
+
+**Story 1 (Fast initial load):**
+- Unit: `DashboardService.renderDashboardWithCache()` uses only cache, no API calls
+- Unit: `CachedIssue.isStale()` correctly identifies stale data
+- Integration: `GET /` responds within 100ms when cache is populated
+- E2E: Load dashboard with cached data, verify < 100ms response time, verify cards render
+
+**Story 2 (Background refresh):**
+- Unit: `DashboardRefreshService.refreshAll()` calls API clients correctly
+- Unit: Error handling for failed API calls (doesn't crash, keeps stale data)
+- Integration: `GET /api/worktrees/:issueId/refresh` fetches fresh data and returns updated HTML
+- E2E: Load dashboard, wait for background refresh, verify cards update with fresh data
+
+**Story 3 (Incremental updates):**
+- Unit: `WorktreeListView.renderCard()` renders single card HTML correctly
+- Integration: `GET /worktrees/:issueId/card` returns valid HTML fragment
+- Integration: HTMX swap updates card without full page reload
+- E2E: Load dashboard, trigger card refresh, verify only target card updates
+
+**Story 4 (Aggressive caching):**
+- Unit: Cache TTL logic (stale-while-revalidate behavior)
+- Integration: Cache persists across server restarts (load from JSON)
+- E2E: Load dashboard, restart server, load again, verify instant load from cache
+
+**Story 5 (Visible-items-first):**
+- Unit: `WorktreeRegistration.priorityScore()` sorts by last activity
+- Unit: `DashboardRefreshService.refreshPriority()` respects priority order
+- E2E: Load dashboard with 10 worktrees, verify first 3 refresh before others
+
+**Test Data Strategy:**
+- Use in-memory test repositories for unit tests (no filesystem I/O)
+- Use fixture JSON files for cached issue data
+- Mock API clients (Linear, GitHub, YouTrack) for predictable responses
+- Use BATS for E2E tests (existing test framework in project)
+
+**Regression Coverage:**
+- Ensure existing dashboard functionality still works (full synchronous load as fallback)
+- Verify worktree registration/unregistration still works
+- Test with 0, 1, 5, 20 worktrees to ensure scalability
+- Test with empty cache, partial cache, full cache scenarios
+
+---
+
+## Deployment Considerations
+
+### Database Changes
+
+No database schema changes needed. All state is stored in `ServerState.json` (already supports caching).
+
+**Story 1 migrations:**
+- None (reuses existing cache structure)
+
+**Story 2 migrations:**
+- None (cache updates are in-place)
+
+### Configuration Changes
+
+**Environment variables (new):**
+- `IW_DASHBOARD_CACHE_TTL` - Override default cache TTL (optional)
+- `IW_DASHBOARD_REFRESH_INTERVAL` - Override default refresh polling interval (optional)
+
+**Configuration file changes:**
+- None needed
+
+### Rollout Strategy
+
+Stories can be deployed incrementally:
+
+1. **Deploy Story 1 + 4 together (fast cache-based load)**
+   - Low risk, improves UX immediately
+   - Backwards compatible (if no cache, falls back to synchronous fetch)
+
+2. **Deploy Story 2 + 3 together (background refresh + HTMX updates)**
+   - Medium risk (new endpoints, HTMX patterns)
+   - Requires HTMX library in HTML (already present)
+
+3. **Deploy Story 5 separately (optional optimization)**
+   - Low risk, purely additive
+
+**Feature flag (optional):**
+- `IW_DASHBOARD_LAZY_LOAD=true` enables new behavior, `false` uses old synchronous load
+
+### Rollback Plan
+
+If background refresh causes issues (API rate limiting, server overload, buggy updates):
+
+1. **Disable background refresh via feature flag** (`IW_DASHBOARD_LAZY_LOAD=false`)
+2. **Revert to synchronous load pattern** (roll back to previous version)
+3. **Fix caching bugs** (if cache corruption detected, delete `ServerState.json` and rebuild)
+
+**Monitoring:**
+- Log background refresh timing and errors to stderr
+- Track dashboard load times (add timing logs)
+- Monitor API rate limit errors (Linear, GitHub, YouTrack)
+
+---
+
+## Dependencies
+
+### Prerequisites
+
+- **HTMX library:** Already included in dashboard HTML (v1.9.10)
+- **Cask server:** Already running with HTTP endpoints
+- **Cache infrastructure:** Already exists (`ServerState.json`, `IssueCacheService`)
+
+### Story Dependencies
+
+**Sequential dependencies:**
+- Story 1 must complete before Story 2 (render from cache before adding refresh)
+- Story 2 must complete before Story 3 (background refresh before incremental updates)
+- Story 4 can be done in parallel with Story 1 (both touch caching logic)
+- Story 5 depends on Story 2 (requires background refresh to prioritize)
+
+**Can be parallelized:**
+- Story 1 and 4 (both improve caching, minimal overlap)
+- Story 3 can start after Story 2 begins (different endpoints)
+
+**Recommended sequence:**
+1. Story 1 → 4 (fast cache load + aggressive caching)
+2. Story 2 (background refresh)
+3. Story 3 (incremental updates)
+4. Story 5 (optional priority optimization)
+
+### External Blockers
+
+- None identified
+- APIs (Linear, GitHub, YouTrack) may have rate limits, but already handled by existing cache
+
+---
+
+## Implementation Sequence
+
+**Recommended Story Order:**
+
+1. **Story 1: Fast initial load with cache** - Establishes foundation for instant rendering, highest user value
+2. **Story 4: Aggressive caching** - Builds on Story 1, ensures cache is always available for instant loads
+3. **Story 2: Background refresh** - Adds async refresh after instant load is working
+4. **Story 3: Incremental updates** - Polishes UX with smooth per-card updates
+5. **Story 5: Visible-items-first (optional)** - Nice-to-have optimization if time permits
+
+**Iteration Plan:**
+
+- **Iteration 1** (Stories 1 + 4): Fast cache-based dashboard load (14-14h)
+  - Deliverable: Dashboard loads instantly with cached data
+  - User sees worktree cards in < 100ms
+  - Subsequent loads are instant
+
+- **Iteration 2** (Story 2): Background data refresh (8-12h)
+  - Deliverable: Fresh data fetched after initial render
+  - User sees "Loading..." then updated cards
+  - Cache stays fresh without blocking initial load
+
+- **Iteration 3** (Story 3): Incremental HTMX updates (6-8h)
+  - Deliverable: Smooth per-card updates without page refresh
+  - Professional UX with progressive enhancement
+  - Mobile-friendly (no full page reloads)
+
+- **Iteration 4 (optional)** (Story 5): Priority-based refresh (4-6h)
+  - Deliverable: Most important worktrees refresh first
+  - Optimized for many worktrees (10+)
+
+**MVP:** Iterations 1 + 2 (22-26h) solves the core problem
+
+**Full feature:** Iterations 1 + 2 + 3 (28-34h) provides polished UX
+
+**Stretch goal:** All iterations (32-40h) includes priority optimization
+
+---
+
+## Documentation Requirements
+
+- [ ] Gherkin scenarios serve as living documentation
+- [ ] API documentation for new endpoints:
+  - `GET /worktrees/:issueId/card` - Single card refresh
+  - `GET /api/worktrees/:issueId/refresh` - Trigger background refresh
+- [ ] Architecture documentation:
+  - Update `docs/plans/2025-12-19-server-dashboard-design.md` with async refresh strategy
+  - Document caching strategy (TTLs, stale-while-revalidate)
+- [ ] User-facing docs:
+  - Add note in README about dashboard performance improvements
+  - Document configuration options (`IW_DASHBOARD_CACHE_TTL`, etc.)
+
+---
+
+**Analysis Status:** Approved (all decisions resolved)
+
+**Resolved Decisions:**
+1. Async refresh strategy → HTMX polling per card
+2. Cache miss behavior → Skeleton cards
+3. TTL handling → Always render cache, always refresh (30s throttle)
+4. Error handling → Silent failure with aging timestamps
+5. Tab visibility → Refresh on tab focus
+
+**Next Steps:**
+1. Run `/iterative-works:ag-create-tasks IW-92` to map stories to implementation phases
+2. Run `/iterative-works:ag-implement IW-92` for iterative story-by-story implementation

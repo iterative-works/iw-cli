@@ -12,10 +12,29 @@ import java.time.Instant
   */
 object PullRequestCacheService:
 
+  /** Get cached PR data without calling CLI.
+    *
+    * Returns cached data regardless of age (even if stale).
+    * Returns None if no cache entry exists.
+    * Never calls CLI commands - purely reads from cache.
+    *
+    * @param issueId Issue ID for cache key lookup
+    * @param cache Current PR cache map
+    * @return Optional PullRequestData from cache (None if not cached)
+    */
+  def getCachedOnly(
+    issueId: String,
+    cache: Map[String, CachedPR]
+  ): Option[PullRequestData] =
+    cache.get(issueId).map(_.pr)
+
   /** Fetch PR data with cache support.
     *
-    * Checks cache validity (2-minute TTL) and re-fetches if expired.
-    * Returns None if no PR found (not an error).
+    * Strategy:
+    * 1. If cache is valid (age < TTL): return cached data
+    * 2. If cache expired or missing: attempt to fetch fresh data
+    * 3. If fetch fails and stale cache exists: return stale cache (better than nothing)
+    * 4. If fetch fails and no cache: return None (not an error, just no PR found)
     *
     * @param worktreePath Path to worktree directory
     * @param cache Current PR cache
@@ -36,10 +55,32 @@ object PullRequestCacheService:
     // Check cache validity
     cache.get(issueId) match
       case Some(cached) if CachedPR.isValid(cached, now) =>
+        // Valid cache: return immediately
         Right(Some(cached.pr))
-      case _ =>
-        // Cache miss or expired, fetch fresh data
-        fetchFreshPR(worktreePath, execCommand, detectTool)
+      case maybeCached =>
+        // Cache expired or missing: fetch fresh data
+        fetchFreshPR(worktreePath, execCommand, detectTool) match
+          case Right(Some(pr)) =>
+            // Fresh data successfully fetched
+            Right(Some(pr))
+          case Right(None) =>
+            // No PR found (404 or no tool), fall back to stale cache if exists
+            maybeCached match
+              case Some(staleCache) =>
+                // Return stale cache (better than nothing)
+                Right(Some(staleCache.pr))
+              case None =>
+                // No cache to fall back to
+                Right(None)
+          case Left(error) =>
+            // CLI command failed, fall back to stale cache if exists
+            maybeCached match
+              case Some(staleCache) =>
+                // Return stale cache (better than error)
+                Right(Some(staleCache.pr))
+              case None =>
+                // No cache to fall back to
+                Left(error)
 
   /** Fetch fresh PR data from gh/glab CLI.
     *

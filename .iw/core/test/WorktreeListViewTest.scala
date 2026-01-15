@@ -44,7 +44,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -58,7 +58,7 @@ class WorktreeListViewTest extends munit.FunSuite:
 
   test("WorktreeListView omits review section when reviewState is None"):
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -77,7 +77,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -99,7 +99,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -128,8 +128,8 @@ class WorktreeListViewTest extends munit.FunSuite:
     val reviewState2 = None  // No review state
 
     val worktreesWithData = List(
-      (wt1, Some((sampleIssueData, false)), None, None, None, reviewState1),
-      (wt2, Some((sampleIssueData, false)), None, None, None, reviewState2)
+      (wt1, Some((sampleIssueData, false, false)), None, None, None, reviewState1),
+      (wt2, Some((sampleIssueData, false, false)), None, None, None, reviewState2)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -194,7 +194,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -213,7 +213,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -231,7 +231,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -249,7 +249,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -270,7 +270,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -288,7 +288,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -305,7 +305,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -325,7 +325,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -343,7 +343,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -362,7 +362,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -381,7 +381,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -405,7 +405,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     )))
 
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -421,7 +421,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("render with None shows no review section (error handling)"):
     // This test verifies that None (no review state file) doesn't show review section
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
@@ -435,7 +435,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("render with Some(Left(error)) shows error message"):
     val reviewState: Option[Either[String, ReviewState]] = Some(Left("Failed to parse review state JSON: unexpected token"))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
@@ -448,7 +448,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("render error message has correct CSS classes"):
     val reviewState: Option[Either[String, ReviewState]] = Some(Left("Some error"))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
@@ -470,7 +470,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       )
     )))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
@@ -489,7 +489,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       artifacts = List.empty // Empty artifacts list
     )))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, reviewState)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, reviewState)
     )
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
@@ -502,7 +502,7 @@ class WorktreeListViewTest extends munit.FunSuite:
     // The error from service contains path info, but UI shows generic message
     val errorWithPath: Option[Either[String, ReviewState]] = Some(Left("Failed to parse /home/user/secret/review-state.json: syntax error"))
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, errorWithPath)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, errorWithPath)
     )
     val html = WorktreeListView.render(worktreesWithData, now, "localhost")
     val htmlStr = html.render
@@ -519,7 +519,7 @@ class WorktreeListViewTest extends munit.FunSuite:
 
   test("WorktreeListView renders Zed button in worktree card"):
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "dev-server")
@@ -531,7 +531,7 @@ class WorktreeListViewTest extends munit.FunSuite:
   test("WorktreeListView Zed button has correct href format"):
     val worktree = sampleWorktree.copy(path = "/home/user/projects/my-project")
     val worktreesWithData = List(
-      (worktree, Some((sampleIssueData, false)), None, None, None, None)
+      (worktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "my-ssh-host")
@@ -542,10 +542,171 @@ class WorktreeListViewTest extends munit.FunSuite:
 
   test("WorktreeListView Zed button has tooltip"):
     val worktreesWithData = List(
-      (sampleWorktree, Some((sampleIssueData, false)), None, None, None, None)
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
     val html = WorktreeListView.render(worktreesWithData, now, "test-server")
     val htmlStr = html.render
 
     assert(htmlStr.contains("Open in Zed"), s"Should contain 'Open in Zed' tooltip")
+
+  // Stale Indicator Tests (Phase 1 - IW-92)
+
+  test("WorktreeListView renders stale indicator when isStale flag is true"):
+    val staleIssueData = (sampleIssueData, false, true) // (data, fromCache, isStale)
+    val worktreesWithData = List(
+      (sampleWorktree, Some(staleIssueData), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("stale-indicator"), "Should contain stale-indicator class")
+    assert(htmlStr.contains("stale") || htmlStr.contains("outdated"), "Should show stale indicator text")
+
+  test("WorktreeListView does NOT render stale indicator when isStale flag is false"):
+    val freshIssueData = (sampleIssueData, false, false) // (data, fromCache, isStale)
+    val worktreesWithData = List(
+      (sampleWorktree, Some(freshIssueData), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(!htmlStr.contains("stale-indicator"), "Should NOT contain stale-indicator class for fresh data")
+
+  // Skeleton Card Tests (Phase 1 - IW-92)
+
+  test("WorktreeListView renders skeleton card when issueData is None"):
+    val worktreesWithData = List(
+      (sampleWorktree, None, None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("skeleton-card"), "Should contain skeleton-card class when no issue data")
+    assert(htmlStr.contains(sampleWorktree.issueId), "Should still show issue ID")
+
+  test("skeleton card shows placeholder content"):
+    val worktreesWithData = List(
+      (sampleWorktree, None, None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    // Skeleton card should show the issue ID but not actual title
+    assert(htmlStr.contains("IWLE-123"), "Should show issue ID")
+    assert(!htmlStr.contains("Test Issue"), "Should not show actual issue title from test data")
+    // Should show loading placeholder
+    assert(htmlStr.contains("Loading") || htmlStr.contains("skeleton"), "Should indicate loading state")
+
+  // HTMX Attributes Tests (Phase 4 - IW-92)
+
+  test("Cards have refresh from:body in hx-trigger attribute"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("hx-trigger"), "Should contain hx-trigger attribute")
+    assert(htmlStr.contains("refresh from:body"), "Should include 'refresh from:body' in hx-trigger")
+
+  test("Cards have hx-swap with transition modifier"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("hx-swap"), "Should contain hx-swap attribute")
+    assert(htmlStr.contains("outerHTML"), "Should use outerHTML swap strategy")
+    assert(htmlStr.contains("transition:true"), "Should include transition:true modifier")
+
+  // Staggered Polling Tests (Phase 5 - IW-92)
+
+  test("First 3 skeleton cards have delay:500ms in hx-trigger"):
+    val worktree1 = sampleWorktree.copy(issueId = "IW-1", path = "/path1")
+    val worktree2 = sampleWorktree.copy(issueId = "IW-2", path = "/path2")
+    val worktree3 = sampleWorktree.copy(issueId = "IW-3", path = "/path3")
+
+    // Use None for issue data to render skeleton cards (which have staggered delays)
+    val worktreesWithoutData = List(
+      (worktree1, None, None, None, None, None),
+      (worktree2, None, None, None, None, None),
+      (worktree3, None, None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithoutData, now, "test-server")
+    val htmlStr = html.render
+
+    // Extract each card's hx-trigger attribute
+    val iw1Card = htmlStr.substring(htmlStr.indexOf("IW-1"), htmlStr.indexOf("IW-2"))
+    val iw2Card = htmlStr.substring(htmlStr.indexOf("IW-2"), htmlStr.indexOf("IW-3"))
+    val iw3Card = htmlStr.substring(htmlStr.indexOf("IW-3"), htmlStr.length)
+
+    assert(iw1Card.contains("delay:500ms"), "Skeleton card 1 should have delay:500ms")
+    assert(iw2Card.contains("delay:500ms"), "Skeleton card 2 should have delay:500ms")
+    assert(iw3Card.contains("delay:500ms"), "Skeleton card 3 should have delay:500ms")
+
+  test("Skeleton cards 4-8 have delay:2s in hx-trigger"):
+    // Use None for issue data to render skeleton cards (which have staggered delays)
+    val worktrees = (1 to 8).map { i =>
+      (sampleWorktree.copy(issueId = s"IW-$i", path = s"/path$i"), None, None, None, None, None)
+    }.toList
+
+    val html = WorktreeListView.render(worktrees, now, "test-server")
+    val htmlStr = html.render
+
+    // Check skeleton cards 4-8 have delay:2s
+    for (i <- 4 to 8) {
+      val cardStart = htmlStr.indexOf(s"IW-$i")
+      val cardEnd = if (i < 8) htmlStr.indexOf(s"IW-${i+1}") else htmlStr.length
+      val card = htmlStr.substring(cardStart, cardEnd)
+      assert(card.contains("delay:2s"), s"Skeleton card $i should have delay:2s")
+    }
+
+  test("Skeleton cards 9+ have delay:5s in hx-trigger"):
+    // Use None for issue data to render skeleton cards (which have staggered delays)
+    val worktrees = (1 to 12).map { i =>
+      (sampleWorktree.copy(issueId = s"IW-$i", path = s"/path$i"), None, None, None, None, None)
+    }.toList
+
+    val html = WorktreeListView.render(worktrees, now, "test-server")
+    val htmlStr = html.render
+
+    // Check skeleton cards 9+ have delay:5s
+    for (i <- 9 to 12) {
+      val cardStart = htmlStr.indexOf(s"IW-$i")
+      val cardEnd = if (i < 12) htmlStr.indexOf(s"IW-${i+1}") else htmlStr.length
+      val card = htmlStr.substring(cardStart, cardEnd)
+      assert(card.contains("delay:5s"), s"Skeleton card $i should have delay:5s")
+    }
+
+  test("Staggered delays with single skeleton worktree"):
+    // Use None for issue data to render skeleton card
+    val worktreesWithoutData = List(
+      (sampleWorktree, None, None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithoutData, now, "test-server")
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("delay:500ms"), "Single skeleton card should have delay:500ms (position 1)")
+
+  test("Data cards do not have load in hx-trigger (prevents infinite loop)"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
+    val htmlStr = html.render
+
+    // Data cards should have hx-trigger but NOT with 'load' to prevent infinite refresh loop
+    assert(htmlStr.contains("hx-trigger"), "Data card should have hx-trigger")
+    assert(htmlStr.contains("every 30s"), "Data card should have periodic refresh")
+    assert(!htmlStr.contains("hx-trigger=\"load"), "Data card should NOT have 'load' trigger (prevents infinite loop)")
