@@ -123,10 +123,6 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         )
 
       case Right(state) =>
-        // Load project configuration
-        val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
-        val config = ConfigFileRepository.read(configPath)
-
         // Build fetch function and URL builder based on worktree's tracker type
         val worktreeOpt = state.worktrees.get(issueId)
         worktreeOpt match
@@ -138,6 +134,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
             )
 
           case Some(worktree) =>
+            // Load project configuration from worktree's path (not os.pwd)
+            // This ensures we get the correct tracker settings (e.g., youtrackBaseUrl)
+            val configPath = os.Path(worktree.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+            val config = ConfigFileRepository.read(configPath)
+
             // Build fetch function based on tracker type
             val fetchFn = buildFetchFunction(worktree.trackerType, config)
             val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
