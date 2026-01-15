@@ -107,12 +107,11 @@ object WorktreeListView:
     now: Instant,
     position: Int
   ): Frag =
-    val delay = calculateDelay(position)
     div(
       cls := "worktree-card",
       id := s"worktree-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := s"load delay:$delay, every 30s, refresh from:body",
+      attr("hx-trigger") := "every 30s, refresh from:body",
       attr("hx-swap") := "outerHTML transition:true",
       // Issue title
       h3(data.title),

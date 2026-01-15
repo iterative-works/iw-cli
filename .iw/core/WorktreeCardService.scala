@@ -114,7 +114,7 @@ object WorktreeCardService:
       cls := "worktree-card",
       id := s"worktree-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := "load delay:1s, every 30s",
+      attr("hx-trigger") := "every 30s",
       attr("hx-swap") := "outerHTML",
       // Issue title
       h3(data.title),
@@ -289,7 +289,7 @@ object WorktreeCardService:
       cls := "worktree-card skeleton-card",
       id := s"worktree-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := "load delay:1s, every 30s",
+      attr("hx-trigger") := "every 30s",
       attr("hx-swap") := "outerHTML",
       // Issue ID as non-clickable placeholder
       h3(cls := "skeleton-title", "Loading..."),
