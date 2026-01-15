@@ -108,3 +108,59 @@ M	.iw/core/test/PullRequestCacheServiceTest.scala
 ```
 
 ---
+
+## Phase 3: Background refresh of issue data (2026-01-15)
+
+**What was built:**
+- Application: `RefreshThrottle.scala` - Per-worktree rate limiting (30s throttle between refreshes)
+- Presentation: `TimestampFormatter.scala` - Pure utility for "Updated X ago" formatting
+- Application: `WorktreeCardService.scala` - Per-card rendering with refresh logic, API failure handling
+- Presentation: `WorktreeListView.scala` - Added HTMX attributes for polling (`hx-get`, `hx-trigger`, `hx-swap`)
+- Application: `CaskServer.scala` - Added `/worktrees/:issueId/card` and `/api/worktrees/:issueId/refresh` endpoints
+
+**Decisions made:**
+- HTMX polling: Cards use `hx-trigger="load delay:1s, every 30s"` for automatic refresh
+- Rate limiting: 30-second throttle per worktree using mutable.Map (pragmatic for single-server CLI)
+- Stale-while-revalidate: Always return cached data on API failure (silent degradation)
+- Timestamp display: Human-readable "Updated X ago" format in each card
+- Function parameter DI: fetchIssue passed as function parameter for testability
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: Time passed as parameter (`now: Instant`), pure formatting logic
+- HTMX progressive enhancement: Initial render from cache, HTMX handles async updates
+- Rate limiting: Per-resource throttle prevents API hammering
+- Silent degradation: No error messages to user, stale data preferred over errors
+
+**Testing:**
+- Unit tests: 11 tests added across 3 test files
+- RefreshThrottleTest: 3 tests for throttle behavior
+- TimestampFormatterTest: 4 tests for time formatting
+- WorktreeCardServiceTest: 4 tests for card rendering
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260115-081000.md
+- Critical findings: 4 (all accepted as pragmatic choices for CLI tool)
+  - Mutable state in RefreshThrottle: Accepted for single-server CLI
+  - Side effects in WorktreeCardService: Accepted, function parameters provide DI
+- Warnings: 7 (deferred for future refactoring)
+- Suggestions: 10 (nice to have)
+
+**For next phases:**
+- Available utilities: `RefreshThrottle` for rate limiting, `TimestampFormatter.formatUpdateTimestamp()`, `WorktreeCardService.renderCard()`
+- Extension points: HTMX attributes can be customized for different polling intervals, refresh endpoint returns JSON for programmatic use
+- Notes: Integration tests deferred, acceptance criteria should be verified manually in Phase 4
+
+**Files changed:**
+```
+M	.iw/core/CaskServer.scala
+A	.iw/core/RefreshThrottle.scala
+A	.iw/core/TimestampFormatter.scala
+A	.iw/core/WorktreeCardService.scala
+M	.iw/core/WorktreeListView.scala
+A	.iw/core/test/RefreshThrottleTest.scala
+A	.iw/core/test/TimestampFormatterTest.scala
+A	.iw/core/test/WorktreeCardServiceTest.scala
+```
+
+---
