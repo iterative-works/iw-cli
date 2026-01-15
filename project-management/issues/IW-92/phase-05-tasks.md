@@ -9,45 +9,45 @@
 
 ### Setup
 
-- [ ] [impl] [ ] [reviewed] Review `WorktreeRegistration` for activity timestamp field
-- [ ] [impl] [ ] [reviewed] Review `DashboardService.renderDashboard()` for worktree ordering
-- [ ] [impl] [ ] [reviewed] Review `WorktreeListView` for HTMX trigger attributes
+- [x] [impl] [ ] [reviewed] Review `WorktreeRegistration` for activity timestamp field
+- [x] [impl] [ ] [reviewed] Review `DashboardService.renderDashboard()` for worktree ordering
+- [x] [impl] [ ] [reviewed] Review `WorktreeListView` for HTMX trigger attributes
 
 ### Tests - Priority Score
 
-- [ ] [impl] [ ] [reviewed] Test recent activity gets higher priority score
-- [ ] [impl] [ ] [reviewed] Test older activity gets lower priority score
-- [ ] [impl] [ ] [reviewed] Test priority score is deterministic (same input = same output)
-- [ ] [impl] [ ] [reviewed] Test priority handles missing activity timestamp gracefully
+- [x] [impl] [ ] [reviewed] Test recent activity gets higher priority score
+- [x] [impl] [ ] [reviewed] Test older activity gets lower priority score
+- [x] [impl] [ ] [reviewed] Test priority score is deterministic (same input = same output)
+- [x] [impl] [ ] [reviewed] Test priority handles missing activity timestamp gracefully
 
 ### Implementation - Priority Score
 
-- [ ] [impl] [ ] [reviewed] Create `WorktreePriority.scala` with pure priority calculation
-- [ ] [impl] [ ] [reviewed] Implement `priorityScore(registration, now)` function
-- [ ] [impl] [ ] [reviewed] Score based on time since last activity (more recent = higher)
+- [x] [impl] [ ] [reviewed] Create `WorktreePriority.scala` with pure priority calculation
+- [x] [impl] [ ] [reviewed] Implement `priorityScore(registration, now)` function
+- [x] [impl] [ ] [reviewed] Score based on time since last activity (more recent = higher)
 
 ### Tests - Sorted Rendering
 
-- [ ] [impl] [ ] [reviewed] Test dashboard sorts worktrees by priority (highest first)
-- [ ] [impl] [ ] [reviewed] Test sort is stable for equal priorities (preserves registration order)
+- [x] [impl] [ ] [reviewed] Test dashboard sorts worktrees by priority (highest first)
+- [x] [impl] [ ] [reviewed] Test sort is stable for equal priorities (preserves registration order)
 
 ### Implementation - Sorted Rendering
 
-- [ ] [impl] [ ] [reviewed] Modify `DashboardService.renderDashboard()` to sort by priority
-- [ ] [impl] [ ] [reviewed] Pass current time (`Instant.now()`) for priority calculation
-- [ ] [impl] [ ] [reviewed] Ensure sort doesn't affect worktree registration data
+- [x] [impl] [ ] [reviewed] Modify `DashboardService.renderDashboard()` to sort by priority
+- [x] [impl] [ ] [reviewed] Pass current time (`Instant.now()`) for priority calculation
+- [x] [impl] [ ] [reviewed] Ensure sort doesn't affect worktree registration data
 
 ### Tests - Staggered Polling
 
-- [ ] [impl] [ ] [reviewed] Test first 3 cards have `delay:500ms` in hx-trigger
-- [ ] [impl] [ ] [reviewed] Test cards 4-8 have `delay:2s` in hx-trigger
-- [ ] [impl] [ ] [reviewed] Test remaining cards have `delay:5s` in hx-trigger
+- [x] [impl] [ ] [reviewed] Test first 3 cards have `delay:500ms` in hx-trigger
+- [x] [impl] [ ] [reviewed] Test cards 4-8 have `delay:2s` in hx-trigger
+- [x] [impl] [ ] [reviewed] Test remaining cards have `delay:5s` in hx-trigger
 
 ### Implementation - Staggered Polling
 
-- [ ] [impl] [ ] [reviewed] Modify `WorktreeListView.renderCard()` to accept position parameter
-- [ ] [impl] [ ] [reviewed] Calculate delay based on card position (500ms/2s/5s tiers)
-- [ ] [impl] [ ] [reviewed] Update HTMX `hx-trigger` attribute with position-based delay
+- [x] [impl] [ ] [reviewed] Modify `WorktreeListView.renderCard()` to accept position parameter
+- [x] [impl] [ ] [reviewed] Calculate delay based on card position (500ms/2s/5s tiers)
+- [x] [impl] [ ] [reviewed] Update HTMX `hx-trigger` attribute with position-based delay
 
 ### Integration
 

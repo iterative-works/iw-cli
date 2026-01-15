@@ -32,8 +32,9 @@ object WorktreeListView:
     else
       div(
         cls := "worktree-list",
-        worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewStateResult) =>
-          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now)
+        worktreesWithData.zipWithIndex.map { case ((wt, issueData, progress, gitStatus, prData, reviewStateResult), index) =>
+          val position = index + 1 // Position is 1-based
+          renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now, position)
         }
       )
 
@@ -44,14 +45,15 @@ object WorktreeListView:
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
     reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant
+    now: Instant,
+    position: Int
   ): Frag =
     issueData match
       case None =>
         // Skeleton card for cache miss
-        renderSkeletonCard(worktree, progress, gitStatus, prData, reviewStateResult, now)
+        renderSkeletonCard(worktree, progress, gitStatus, prData, reviewStateResult, now, position)
       case Some((data, fromCache, isStale)) =>
-        renderNormalCard(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now)
+        renderNormalCard(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now, position)
 
   private def renderSkeletonCard(
     worktree: WorktreeRegistration,
@@ -59,13 +61,15 @@ object WorktreeListView:
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
     reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant
+    now: Instant,
+    position: Int
   ): Frag =
+    val delay = calculateDelay(position)
     div(
       cls := "worktree-card skeleton-card",
       id := s"worktree-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := "load delay:1s, every 30s, refresh from:body",
+      attr("hx-trigger") := s"load delay:$delay, every 30s, refresh from:body",
       attr("hx-swap") := "outerHTML transition:true",
       // Issue ID as non-clickable placeholder
       h3(cls := "skeleton-title", "Loading..."),
@@ -100,13 +104,15 @@ object WorktreeListView:
     gitStatus: Option[GitStatus],
     prData: Option[PullRequestData],
     reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant
+    now: Instant,
+    position: Int
   ): Frag =
+    val delay = calculateDelay(position)
     div(
       cls := "worktree-card",
       id := s"worktree-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := "load delay:1s, every 30s, refresh from:body",
+      attr("hx-trigger") := s"load delay:$delay, every 30s, refresh from:body",
       attr("hx-swap") := "outerHTML transition:true",
       // Issue title
       h3(data.title),
@@ -258,6 +264,22 @@ object WorktreeListView:
         s"Last activity: ${formatRelativeTime(worktree.lastSeenAt, now)}"
       )
     )
+
+  /** Calculate HTMX polling delay based on card position.
+    *
+    * Priority-based staggered delays:
+    * - Position 1-3: 500ms (highest priority, refresh first)
+    * - Position 4-8: 2s (medium priority)
+    * - Position 9+: 5s (lower priority)
+    *
+    * @param position Card position in list (1-based)
+    * @return Delay string for HTMX trigger (e.g., "500ms", "2s", "5s")
+    */
+  def calculateDelay(position: Int): String =
+    position match
+      case p if p <= 3 => "500ms"
+      case p if p <= 8 => "2s"
+      case _ => "5s"
 
   /** Map status text to CSS class for color coding.
     *
