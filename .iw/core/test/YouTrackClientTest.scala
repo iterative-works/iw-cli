@@ -7,19 +7,20 @@ import munit.FunSuite
 
 class YouTrackClientTest extends FunSuite:
 
-  test("buildListRecentIssuesUrl returns correct URL with default limit (5)"):
+  test("buildListRecentIssuesUrl returns correct URL with project filter"):
     val baseUrl = "https://youtrack.example.com"
-    val url = YouTrackClient.buildListRecentIssuesUrl(baseUrl, 5)
+    val url = YouTrackClient.buildListRecentIssuesUrl(baseUrl, "PROJ", 5)
 
     assert(url.contains("https://youtrack.example.com/api/issues"))
     assert(url.contains("fields=idReadable,summary,customFields(name,value(name))"))
-    assert(url.contains("query=%23Unresolved"), "Should filter to unresolved issues only")
+    assert(url.contains("project:PROJ"), "Should filter by project")
+    assert(url.contains("%23Unresolved"), "Should filter to unresolved issues only")
     assert(url.contains("$top=5"))
     assert(url.contains("$orderBy=created%20desc"))
 
   test("buildListRecentIssuesUrl encodes spaces in orderBy parameter"):
     val baseUrl = "https://youtrack.example.com"
-    val url = YouTrackClient.buildListRecentIssuesUrl(baseUrl, 10)
+    val url = YouTrackClient.buildListRecentIssuesUrl(baseUrl, "PROJ", 10)
 
     // Verify space is encoded as %20 in "created desc"
     assert(url.contains("$orderBy=created%20desc"))
