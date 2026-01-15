@@ -371,6 +371,15 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
     )
 
+  @cask.get("/api/modal/close")
+  def closeModal(): cask.Response[String] =
+    // Return empty content to clear the modal container
+    cask.Response(
+      data = "",
+      statusCode = 200,
+      headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+    )
+
   @cask.postForm("/api/worktrees/create")
   def createWorktree(issueId: String, projectPath: Option[String] = None): cask.Response[String] =
     // Load project configuration from specified path or CWD
