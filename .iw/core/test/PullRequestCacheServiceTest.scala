@@ -188,3 +188,21 @@ class PullRequestCacheServiceTest extends FunSuite:
 
     assert(result.isDefined, "Should return even stale cached data")
     assertEquals(result.map(_.number).getOrElse(0), 42)
+
+  test("fetchPR preserves stale cache when CLI command fails"):
+    val now = Instant.now()
+    val stalePR = CachedPR(mockPRData, now.minusSeconds(180)) // 3 minutes ago (expired)
+    val cache = Map("IWLE-123" -> stalePR)
+
+    val execCommand = (cmd: String, args: Array[String]) =>
+      Left("API error: rate limit exceeded")
+    val detectTool = (tool: String) => tool == "gh"
+
+    val result = PullRequestCacheService.fetchPR(
+      "/path", cache, "IWLE-123", now, execCommand, detectTool
+    )
+
+    assert(result.isRight, "Should return stale cache data when API fails")
+    val prData = result.toOption.flatten
+    assert(prData.isDefined, "Should have PR data from stale cache")
+    assertEquals(prData.get.number, 42, "Should return original cached data, not try to fetch")
