@@ -80,6 +80,11 @@ object MainProjectService:
         config.youtrackBaseUrl.map(baseUrl =>
           s"${baseUrl.stripSuffix("/")}/issues/${config.team}"
         )
+      case iw.core.IssueTrackerType.GitLab =>
+        config.repository.map(repo =>
+          val baseUrl = config.youtrackBaseUrl.getOrElse("https://gitlab.com")
+          s"${baseUrl.stripSuffix("/")}/$repo/-/issues"
+        )
 
   /** Load project configuration from a main project path.
     *

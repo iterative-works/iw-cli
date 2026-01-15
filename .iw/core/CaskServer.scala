@@ -573,6 +573,9 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
             case None =>
               Left("YOUTRACK_API_TOKEN environment variable not set")
 
+        case IssueTrackerType.GitLab =>
+          Left("Recent issues not yet implemented for GitLab")
+
   /** Build search function for IssueSearchService based on tracker type.
     *
     * @param config Project configuration
@@ -603,6 +606,9 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               Left("YouTrack base URL not configured")
             case (_, None) =>
               Left("YOUTRACK_API_TOKEN environment variable not set")
+
+        case IssueTrackerType.GitLab =>
+          Left("Search not yet implemented for GitLab")
 
   /** Extract GitHub issue number from issue ID.
     *

@@ -206,8 +206,11 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Right(Issue("#123", "GitLab Issue", "opened", None, None))
 
+    // Search not implemented for GitLab yet
+    val searchIssues = (query: String) => Left("Not implemented")
+
     // GitLab requires numeric issue IDs
-    val results = IssueSearchService.search("123", config, fetchIssue)
+    val results = IssueSearchService.search("123", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed")
     assertEquals(results.map(_.length), Right(1), "Should return one result")
@@ -235,8 +238,11 @@ class IssueSearchServiceTest extends FunSuite:
     val fetchIssue = (id: IssueId) =>
       Right(Issue("#456", "Self-hosted GitLab Issue", "closed", None, None))
 
+    // Search not implemented for GitLab yet
+    val searchIssues = (query: String) => Left("Not implemented")
+
     // GitLab requires numeric issue IDs
-    val results = IssueSearchService.search("456", config, fetchIssue)
+    val results = IssueSearchService.search("456", config, fetchIssue, searchIssues)
 
     assert(results.isRight, "Search should succeed")
     results.foreach { list =>

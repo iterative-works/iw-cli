@@ -85,8 +85,8 @@ class CreationErrorViewTest extends FunSuite:
   test("dismiss button closes modal"):
     val html = CreationErrorView.render(errorWithRetry).render
 
-    // Check for HTMX attributes to dismiss modal (client-side close)
-    assert(html.contains("hx-on:click"), "Should have hx-on:click for client-side close")
+    // Check for HTMX attributes to dismiss modal via /api/modal/close endpoint
+    assert(html.contains("hx-get") && html.contains("/api/modal/close"), "Should use hx-get to close modal")
 
   test("render has CSS class for error state"):
     val html = CreationErrorView.render(errorWithRetry).render
