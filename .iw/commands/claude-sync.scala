@@ -14,12 +14,16 @@ import iw.core.*
     Output.info("Install from: https://claude.ai/code")
     sys.exit(1)
 
-  // Resolve template path from IW_COMMANDS_DIR (installation dir) or fall back to os.pwd
+  // Resolve paths from IW_COMMANDS_DIR (installation dir) or fall back to os.pwd
   // IW_COMMANDS_DIR points to .iw/commands, so we go up one level to .iw, then to scripts/
   val iwDir = sys.env.get(Constants.EnvVars.IwCommandsDir)
     .map(p => os.Path(p) / os.up)  // Go from .iw/commands to .iw
     .getOrElse(os.pwd / ".iw")
+  val iwInstallRoot = iwDir / os.up  // Root of iw-cli installation
   val promptFile = iwDir / "scripts" / "claude-skill-prompt.md"
+
+  // Source for the command-creation skill (bundled with iw-cli)
+  val commandCreationSkillSource = iwInstallRoot / ".claude" / "skills" / "iw-command-creation"
 
   if !os.exists(promptFile) then
     Output.error(s"Template file not found: $promptFile")
@@ -44,7 +48,7 @@ import iw.core.*
   val existingSkills = if os.exists(skillsDir) then
     os.list(skillsDir)
       .filter(os.isDir)
-      .filter(d => d.last.startsWith("iw-") && d.last != "iw-command-creation")
+      .filter(d => d.last.startsWith("iw-"))
       .toList
   else
     List.empty
@@ -64,7 +68,21 @@ import iw.core.*
     }
 
   Output.section("Generating iw-cli skills")
-  Output.info("Running Claude to analyze codebase and generate skills...")
+
+  // Ensure skills directory exists
+  os.makeDir.all(skillsDir)
+
+  // Copy the iw-command-creation skill from the installation
+  val commandCreationSkillTarget = skillsDir / "iw-command-creation"
+  if os.exists(commandCreationSkillSource) then
+    Output.info("Copying iw-command-creation skill...")
+    os.copy.over(commandCreationSkillSource, commandCreationSkillTarget)
+    Output.success("Copied iw-command-creation")
+  else
+    Output.warning(s"iw-command-creation skill not found at: $commandCreationSkillSource")
+
+  // Generate iw-cli-ops skill via Claude
+  Output.info("Running Claude to analyze codebase and generate iw-cli-ops skill...")
   Output.info("This may take a moment...")
 
   // Run claude with the prompt piped via stdin
@@ -89,13 +107,13 @@ import iw.core.*
   if os.exists(skillsDir) then
     val newSkills = os.list(skillsDir)
       .filter(os.isDir)
-      .filter(d => d.last.startsWith("iw-") && d.last != "iw-command-creation")
+      .filter(d => d.last.startsWith("iw-"))
       .toList
 
     if newSkills.nonEmpty then
-      Output.success("Skills generated:")
+      Output.success("Skills synced:")
       newSkills.foreach(s => Output.info(s"  - ${s.last}"))
     else
-      Output.warning("No new iw skills were generated")
+      Output.warning("No iw skills found after sync")
   else
     Output.warning("Skills directory not created")

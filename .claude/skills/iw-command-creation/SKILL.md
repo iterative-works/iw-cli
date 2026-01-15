@@ -1,193 +1,197 @@
 ---
 name: iw-command-creation
-description: Create new iw-cli commands following project conventions. Use when adding a new command to .iw/commands/, implementing CLI functionality, or when asked to create an iw subcommand.
+description: |
+  Create ad-hoc scripts or project workflow helpers using iw-cli's core modules.
+  Use when:
+  - Creating automation scripts for repetitive tasks
+  - Building project-specific workflow commands
+  - Composing one-off tools from iw-cli's functional building blocks
+  - Adding custom commands to a project's .iw/commands/ directory
 ---
 
-# Creating iw-cli Commands
+# Creating Scripts with iw-cli Core Modules
 
-## File Location
+iw-cli provides a set of functional Scala modules for common CLI tasks: git operations,
+issue tracking, tmux sessions, console output, and more. You can compose these into
+ad-hoc scripts or project-specific commands.
 
-Commands are Scala files in `.iw/commands/`:
+## When to Use This
+
+- **Ad-hoc scripts**: One-off automation tasks (batch operations, migrations, reports)
+- **Project commands**: Workflow helpers committed to `.iw/commands/` for the team
+- **Custom integrations**: Combining git, issue tracking, and shell operations
+
+## Quick Start: Ad-hoc Script
+
+Create a script file anywhere (e.g., `my-script.scala`):
+
+```scala
+// PURPOSE: Example script using iw-cli core modules
+
+import iw.core.*
+
+@main def myScript(args: String*): Unit =
+  Output.section("My Script")
+
+  // Use GitAdapter for git operations
+  GitAdapter.getCurrentBranch(os.pwd) match
+    case Left(err) => Output.error(s"Not in a git repo: $err")
+    case Right(branch) => Output.info(s"Current branch: $branch")
+
+  // Use IssueId to parse issue identifiers
+  IssueId.fromBranch(branch) match
+    case Left(_) => Output.warning("Not on an issue branch")
+    case Right(id) => Output.success(s"Working on issue: ${id.value}")
 ```
-.iw/commands/<command-name>.scala
+
+Run it with:
+```bash
+./iw ./<script-name>
+# Or directly with scala-cli:
+scala-cli run my-script.scala $IW_CORE_DIR/*.scala
 ```
+
+## Project Commands
+
+For commands you want to share with the team, place them in `.iw/commands/`:
+
+```
+project/
+└── .iw/
+    └── commands/
+        └── my-command.scala    # Run with: ./iw ./my-command
+```
+
+Project commands are run with the `./` prefix: `./iw ./my-command`
 
 ## File Structure
 
-Every command file follows this structure:
+Every command/script follows this structure:
 
 ### 1. Header Comments (PURPOSE lines)
 
 ```scala
 // PURPOSE: Brief description of what the command does
-// PURPOSE: Additional detail about behavior (optional)
+// USAGE: iw ./command-name [args]
+// ARGS:
+//   --flag: Description of flag
+// EXAMPLE: iw ./command-name --flag value
 ```
 
-### 2. scala-cli Directives
+### 2. Imports
 
 ```scala
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/Config.scala"
-// ... other core dependencies
+import iw.core.*                      // All core modules
+import iw.core.infrastructure.*       // Infrastructure adapters (if needed)
 ```
 
-Only include the core modules actually needed by the command.
+No `//> using file` directives needed - the iw launcher handles the classpath automatically.
 
-### 3. Imports
-
-```scala
-import iw.core.*
-import java.nio.file.{Files, Paths}  // if needed
-```
-
-### 4. Top-level Helper Functions (if needed)
-
-Define helper functions at top-level, before the `@main` entry point:
-
-```scala
-def parseArgs(args: List[String]): (Option[String], Boolean) =
-  val forceFlag = args.contains("--force")
-  val issueIdArg = args.find(arg => !arg.startsWith("--"))
-  (issueIdArg, forceFlag)
-```
-
-### 5. Entry Point with @main Annotation
+### 3. Entry Point with @main Annotation
 
 ```scala
 @main def commandName(args: String*): Unit =
   // command implementation
 ```
 
-**Important conventions:**
+**Conventions:**
 - Use `@main` annotation (NOT `object` with `def main`)
-- Function name matches the command name (e.g., `rm`, `start`, `open`)
-- Parameter is `args: String*` (varargs), not `Array[String]`
+- Function name should match the file name (e.g., `my-command.scala` → `def my-command`)
+- Parameter is `args: String*` (varargs)
 - Use `sys.exit(1)` for errors, `sys.exit(0)` for early success
 
-## Available Core Modules
+## Finding Core Module Documentation
 
-Located in `.iw/core/`:
+The core modules are located in the iw-cli installation. To find them:
+
+```bash
+# Check where iw-cli is installed
+echo $IW_CORE_DIR
+
+# Or find it relative to the iw command
+ls $(dirname $(which iw))/../core/
+```
+
+To explore a module's API, read its source:
+```bash
+cat $IW_CORE_DIR/Output.scala
+cat $IW_CORE_DIR/Git.scala
+```
+
+## Available Core Modules
 
 | Module | Purpose |
 |--------|---------|
 | `Output.scala` | Console output (info, error, success, warning, section, keyValue) |
 | `Config.scala` | Configuration types (ProjectConfiguration, IssueTrackerType) |
 | `ConfigRepository.scala` | Read/write config files |
-| `IssueId.scala` | Parse and validate issue IDs |
+| `IssueId.scala` | Parse and validate issue IDs, extract from branch names |
+| `Issue.scala` | Issue entity and IssueTracker trait |
 | `WorktreePath.scala` | Calculate worktree paths and session names |
-| `Git.scala` | Git operations (branch, remote, uncommitted changes) |
-| `GitWorktree.scala` | Git worktree operations |
-| `Tmux.scala` | Tmux session management |
-| `Process.scala` | Shell command execution |
+| `Git.scala` | GitAdapter - branch operations, remote info, uncommitted changes |
+| `GitWorktree.scala` | GitWorktreeAdapter - worktree create/remove/list |
+| `Tmux.scala` | TmuxAdapter - session management |
+| `Process.scala` | ProcessAdapter - shell command execution |
 | `Prompt.scala` | Interactive prompts (confirm, ask) |
-| `DeletionSafety.scala` | Safety checks for destructive operations |
-| `DoctorChecks.scala` | Health check registration |
+| `GitHubClient.scala` | GitHub API via `gh` CLI |
 | `LinearClient.scala` | Linear API client |
+| `YouTrackClient.scala` | YouTrack API client |
 
 ## Example: Simple Command
 
 ```scala
-// PURPOSE: Display version information
-
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-
-import iw.core.Output
-
-val iwVersion = "0.1.0"
-
-@main def version(args: String*): Unit =
-  val verbose = args.contains("--verbose")
-
-  if verbose then
-    Output.section("iw-cli Version Information")
-    Output.keyValue("Version", iwVersion)
-  else
-    Output.info(s"iw-cli version $iwVersion")
-```
-
-## Example: Command with Helpers
-
-```scala
-// PURPOSE: Remove a worktree for a completed issue
-// PURPOSE: Kills tmux session and removes worktree with safety checks
-
-//> using scala 3.3.1
-//> using file "../core/Output.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/ConfigRepository.scala"
-//> using file "../core/IssueId.scala"
-// ... other dependencies
+// PURPOSE: Show current issue context
+// USAGE: iw ./context
 
 import iw.core.*
-import java.nio.file.Paths
 
-def parseArgs(args: List[String]): (Option[String], Boolean) =
-  val forceFlag = args.contains("--force")
-  val issueIdArg = args.find(arg => !arg.startsWith("--"))
-  (issueIdArg, forceFlag)
+@main def context(args: String*): Unit =
+  val cwd = os.pwd
 
-def removeWorktree(issueId: IssueId, force: Boolean): Unit =
-  // implementation...
-
-@main def rm(args: String*): Unit =
-  val (issueIdArg, forceFlag) = parseArgs(args.toList)
-
-  issueIdArg match
-    case None =>
-      Output.error("Missing issue ID")
-      Output.info("Usage: ./iw rm <issue-id> [--force]")
+  GitAdapter.getCurrentBranch(cwd) match
+    case Left(err) =>
+      Output.error(s"Not in a git repo: $err")
       sys.exit(1)
-    case Some(rawId) =>
-      IssueId.parse(rawId) match
-        case Left(error) =>
-          Output.error(error)
-          sys.exit(1)
+    case Right(branch) =>
+      Output.keyValue("Branch", branch)
+
+      IssueId.fromBranch(branch) match
+        case Left(_) =>
+          Output.warning("Not on an issue branch")
         case Right(issueId) =>
-          removeWorktree(issueId, forceFlag)
+          Output.keyValue("Issue", issueId.value)
+          issueId.team.foreach(t => Output.keyValue("Team", t))
 ```
 
-## Doctor Hook Pattern
+## Example: Command with Config
 
-For commands requiring external dependencies, create a companion hook file:
-
-```
-.iw/commands/<command>.hook-doctor.scala
-```
-
-Example `start.hook-doctor.scala`:
 ```scala
-// PURPOSE: Doctor check for start command - validates tmux installation
-
-//> using file "../core/DoctorChecks.scala"
-//> using file "../core/Config.scala"
-//> using file "../core/Process.scala"
+// PURPOSE: List all worktrees for this project
+// USAGE: iw ./list-worktrees
 
 import iw.core.*
 
-object StartHookDoctor:
-  def checkTmux(config: ProjectConfiguration): CheckResult =
-    if ProcessAdapter.commandExists("tmux") then
-      CheckResult.Success("Installed")
-    else
-      CheckResult.Error("Not found", Some("Install: sudo apt install tmux"))
+@main def `list-worktrees`(args: String*): Unit =
+  val cwd = os.pwd
+  val configPath = cwd / Constants.Paths.IwDir / "config.conf"
 
-  // Registration executes when object is initialized
-  DoctorChecks.register("tmux")(checkTmux)
-```
+  // Read project config
+  val config = ConfigFileRepository.read(configPath) match
+    case None =>
+      Output.error("No iw config found. Run './iw init' first.")
+      sys.exit(1)
+    case Some(c) => c
 
-Note: Hook-doctor files use `object` pattern (not `@main`) because they register checks on initialization, not as entry points.
+  Output.section(s"Worktrees for ${config.projectName}")
 
-## Testing
-
-1. **Unit tests** for core logic go in `.iw/core/test/`
-2. **Integration tests** for commands go in `.iw/test/` using bats
-
-Run tests:
-```bash
-scala-cli test .iw/core/test/*.scala  # unit tests
-bats .iw/test/                         # integration tests
+  GitWorktreeAdapter.listWorktrees(cwd) match
+    case Left(err) =>
+      Output.error(err)
+      sys.exit(1)
+    case Right(worktrees) =>
+      worktrees.foreach { wt =>
+        Output.info(s"  ${wt.path} [${wt.branch}]")
+      }
 ```
 
 ## Output Conventions
@@ -195,7 +199,24 @@ bats .iw/test/                         # integration tests
 Use `Output` methods consistently:
 - `Output.info(msg)` - General information
 - `Output.error(msg)` - Error messages (prints to stderr)
-- `Output.success(msg)` - Success with checkmark
+- `Output.success(msg)` - Success with checkmark (✓)
 - `Output.warning(msg)` - Warning messages
 - `Output.section(title)` - Section headers with formatting
 - `Output.keyValue(key, value)` - Formatted key-value pairs
+
+## Testing Your Script
+
+```bash
+# Run directly
+./iw ./my-command --flag value
+
+# Or with scala-cli for debugging
+scala-cli run my-script.scala $IW_CORE_DIR/*.scala -- --flag value
+```
+
+## Tips
+
+1. **Check existing commands** for patterns: `cat $(dirname $(which iw))/../commands/*.scala`
+2. **Use `Either` returns** - most adapters return `Either[String, T]` for error handling
+3. **Keep it functional** - pure functions, effects at the edges
+4. **Read the source** - when unsure about an API, read the module's source file
