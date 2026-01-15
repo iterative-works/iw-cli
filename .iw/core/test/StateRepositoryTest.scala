@@ -651,3 +651,56 @@ class StateRepositoryTest extends munit.FunSuite:
       readResult.foreach { loadedState =>
         assertEquals(loadedState.reviewStateCache.size, 0)
       }
+
+  tempDir.test("StateRepository concurrent writes don't corrupt state file"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      import java.util.concurrent.{Executors, TimeUnit, CountDownLatch}
+      import scala.util.Random
+
+      // Create thread pool for concurrent writes
+      val threadCount = 10
+      val executor = Executors.newFixedThreadPool(threadCount)
+      val latch = new CountDownLatch(threadCount)
+
+      try
+        // Each thread writes a different worktree
+        (0 until threadCount).foreach { i =>
+          executor.submit(new Runnable {
+            def run(): Unit =
+              try
+                val worktree = WorktreeRegistration(
+                  issueId = s"IWLE-$i",
+                  path = s"/test/path-$i",
+                  trackerType = "linear",
+                  team = "IWLE",
+                  registeredAt = Instant.now(),
+                  lastSeenAt = Instant.now()
+                )
+                val state = ServerState(Map(s"IWLE-$i" -> worktree))
+
+                // Add small random delay to increase chance of collision
+                Thread.sleep(Random.nextInt(10))
+
+                repo.write(state)
+              finally
+                latch.countDown()
+          })
+        }
+
+        // Wait for all writes to complete
+        latch.await(5, TimeUnit.SECONDS)
+      finally
+        executor.shutdown()
+
+      // Verify state file is valid JSON (not corrupted)
+      val readResult = repo.read()
+      assert(readResult.isRight, "State file should be valid JSON after concurrent writes")
+
+      // Verify no temp files left behind
+      val tempFiles = Files.list(tempDir)
+        .filter(p => p.getFileName.toString.contains(".tmp"))
+        .toArray
+      assertEquals(tempFiles.length, 0, "No temp files should remain after writes")
