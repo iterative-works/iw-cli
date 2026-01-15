@@ -164,3 +164,48 @@ A	.iw/core/test/WorktreeCardServiceTest.scala
 ```
 
 ---
+
+## Phase 4: CSS transitions and tab visibility (2026-01-15)
+
+**What was built:**
+- Presentation: `DashboardService.scala` - Added CSS transition styles (.htmx-swapping/.htmx-settling), tab visibility script, mobile-responsive styles
+- Presentation: `WorktreeListView.scala` - Updated HTMX attributes (hx-swap with transition:true, hx-trigger with refresh from:body)
+
+**Decisions made:**
+- Transition timing: 200ms opacity fade for smooth but fast perceived performance
+- Tab visibility: `visibilitychange` event triggers `htmx.trigger(document.body, 'refresh')` for instant refresh on tab focus
+- Mobile breakpoint: 768px for responsive card layout
+- Touch targets: 44px minimum height for accessibility compliance
+- Layout stability: min-height on cards prevents layout shift during updates
+
+**Patterns applied:**
+- Progressive enhancement: CSS transitions are graceful degradation (no JS required for basic functionality)
+- HTMX native classes: Using built-in `.htmx-swapping` and `.htmx-settling` classes for transition hooks
+- View Transitions API: `hx-swap="outerHTML transition:true"` enables browser-native smooth swaps
+
+**Testing:**
+- Unit tests: 10 tests added
+- DashboardServiceTest: 7 tests for CSS transitions, visibility script, mobile styles
+- WorktreeListViewTest: 2 tests for HTMX attribute updates
+- All 1186 tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-04-20260115-091500.md
+- Findings: 0 critical, 4 warnings, 4 suggestions
+- Major feedback: Tests verify CSS/HTML strings (acceptable for unit tests, supplement with E2E)
+
+**For next phases:**
+- Available utilities: CSS transition classes, visibility refresh mechanism
+- Extension points: Breakpoint can be customized, transition timing adjustable
+- Notes: Phase is CSS/JavaScript polish - no new Scala business logic
+
+**Files changed:**
+```
+M	.iw/core/DashboardService.scala
+M	.iw/core/WorktreeListView.scala
+M	.iw/core/test/DashboardServiceTest.scala
+M	.iw/core/test/WorktreeListViewTest.scala
+```
+
+---
