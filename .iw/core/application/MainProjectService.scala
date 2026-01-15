@@ -48,11 +48,15 @@ object MainProjectService:
               case _ =>
                 config.team
 
+            // Build tracker URL based on tracker type
+            val trackerUrl = buildTrackerUrl(config)
+
             Some(MainProject(
               path = mainProjectPath,
               projectName = projectName,
               trackerType = trackerTypeStr,
-              team = team
+              team = team,
+              trackerUrl = trackerUrl
             ))
 
           case Left(_) =>
@@ -60,6 +64,22 @@ object MainProjectService:
             None
       }
       .toList
+
+  /** Build the issue tracker URL for a project.
+    *
+    * @param config Project configuration
+    * @return Optional tracker URL (None if not enough info)
+    */
+  private def buildTrackerUrl(config: ProjectConfiguration): Option[String] =
+    config.trackerType match
+      case iw.core.IssueTrackerType.GitHub =>
+        config.repository.map(repo => s"https://github.com/$repo/issues")
+      case iw.core.IssueTrackerType.Linear =>
+        Some(s"https://linear.app/${config.team.toLowerCase}")
+      case iw.core.IssueTrackerType.YouTrack =>
+        config.youtrackBaseUrl.map(baseUrl =>
+          s"${baseUrl.stripSuffix("/")}/issues/${config.team}"
+        )
 
   /** Load project configuration from a main project path.
     *
