@@ -94,35 +94,42 @@ object YouTrackClient:
       val parsed = ujson.read(json)
 
       if !parsed.isInstanceOf[ujson.Arr] then
-        return Left("Expected JSON array")
-
-      val issues = parsed.arr.map { issueJson =>
-        if !issueJson.obj.contains("idReadable") then
-          return Left("Malformed response: missing 'idReadable' field")
-        if !issueJson.obj.contains("summary") then
-          return Left("Malformed response: missing 'summary' field")
-        if !issueJson.obj.contains("customFields") then
-          return Left("Malformed response: missing 'customFields' field")
-
-        val id = issueJson("idReadable").str
-        val title = issueJson("summary").str
-
-        // Extract State from customFields
-        val customFields = issueJson("customFields").arr
-        val stateField = customFields.find(field =>
-          field.obj.contains("name") && field("name").str == "State"
-        )
-        val status = stateField match
-          case Some(field) if field.obj.contains("value") && !field("value").isNull =>
-            field("value")("name").str
-          case _ => "Unknown"
-
-        Issue(id, title, status, None, None)
-      }.toList
-
-      Right(issues)
+        Left("Expected JSON array")
+      else
+        // Parse each issue, collecting errors
+        val results = parsed.arr.map(parseIssueFromJson).toList
+        // Use foldRight to sequence Either values, returning first error
+        results.foldRight[Either[String, List[Issue]]](Right(Nil)) { (item, acc) =>
+          for
+            issues <- acc
+            issue <- item
+          yield issue :: issues
+        }
     catch
       case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
+
+  private def parseIssueFromJson(issueJson: ujson.Value): Either[String, Issue] =
+    if !issueJson.obj.contains("idReadable") then
+      Left("Malformed response: missing 'idReadable' field")
+    else if !issueJson.obj.contains("summary") then
+      Left("Malformed response: missing 'summary' field")
+    else if !issueJson.obj.contains("customFields") then
+      Left("Malformed response: missing 'customFields' field")
+    else
+      val id = issueJson("idReadable").str
+      val title = issueJson("summary").str
+
+      // Extract State from customFields
+      val customFields = issueJson("customFields").arr
+      val stateField = customFields.find(field =>
+        field.obj.contains("name") && field("name").str == "State"
+      )
+      val status = stateField match
+        case Some(field) if field.obj.contains("value") && !field("value").isNull =>
+          field("value")("name").str
+        case _ => "Unknown"
+
+      Right(Issue(id, title, status, None, None))
 
   def listRecentIssues(baseUrl: String, limit: Int = 5, token: ApiToken): Either[String, List[Issue]] =
     try
