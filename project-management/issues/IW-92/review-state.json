@@ -1,18 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-92",
-  "status": "awaiting_review",
-  "phase": 4,
-  "step": "review",
-  "branch": "IW-92-phase-04",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/134",
-  "git_sha": "fe3d84431c1ce8314c06433e056c85dbcb930ded",
-  "last_updated": "2026-01-15T09:51:15Z",
-  "message": "Phase 4 complete - CSS transitions and tab visibility",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
-    {"label": "Phase 4 Context", "path": "project-management/issues/IW-92/phase-04-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-92/review-packet-phase-04.md"}
-  ]
+  "status": "implementing",
+  "phase": 5,
+  "step": "implementation",
+  "branch": "IW-92-phase-05",
+  "pr_url": null,
+  "git_sha": "efae8af",
+  "last_updated": "2026-01-15T10:05:00Z",
+  "message": "Phase 5 implementation in progress"
 }
