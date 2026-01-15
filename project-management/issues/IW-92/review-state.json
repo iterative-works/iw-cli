@@ -1,12 +1,18 @@
 {
   "version": 1,
   "issue_id": "IW-92",
-  "status": "implementing",
-  "phase": 1,
-  "step": "implementation",
-  "branch": "IW-92-phase-01",
-  "pr_url": null,
-  "git_sha": "9895828a65e436da29e5a60da214a1b8eda96595",
-  "last_updated": "2026-01-14T21:50:00Z",
-  "message": "Phase 1 implementation in progress"
+  "status": "awaiting_review",
+  "phase": 2,
+  "step": "review",
+  "branch": "IW-92-phase-02",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/131",
+  "git_sha": "0e7c07d485db63c28cc91fa95fc91b96c669ad67",
+  "last_updated": "2026-01-15T00:40:00Z",
+  "message": "Phase 2 complete - Aggressive caching for instant subsequent loads",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
+    {"label": "Phase 2 Context", "path": "project-management/issues/IW-92/phase-02-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-92/review-packet-phase-02.md"}
+  ]
 }
