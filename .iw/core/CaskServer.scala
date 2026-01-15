@@ -11,7 +11,17 @@ import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
   private val repository = StateRepository(statePath)
+  private val stateService = new ServerStateService(repository)
   private val refreshThrottle = RefreshThrottle()
+
+  // Initialize state service at startup
+  stateService.initialize() match
+    case Left(error) =>
+      System.err.println(s"Failed to initialize state service: $error")
+      // Continue with empty state
+    case Right(_) =>
+      // State loaded successfully
+      ()
 
   @cask.get("/")
   def dashboard(sshHost: Option[String] = None): cask.Response[String] =
@@ -20,156 +30,123 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       java.net.InetAddress.getLocalHost().getHostName()
     )
 
-    val stateResult = ServerStateService.load(repository)
-    stateResult match
-      case Right(rawState) =>
-        // Auto-prune non-existent worktrees
-        val state = WorktreeUnregistrationService.pruneNonExistent(
-          rawState,
-          path => os.exists(os.Path(path, os.pwd))
-        )
+    // Get current state (read-only)
+    val state = stateService.getState
 
-        // Save pruned state if changes were made
-        if state != rawState then
-          repository.write(state) // Best-effort save, ignore errors
+    // Auto-prune non-existent worktrees
+    val prunedIds = stateService.pruneWorktrees(
+      wt => os.exists(os.Path(wt.path, os.pwd))
+    )
 
-        val worktrees = ServerStateService.listWorktrees(state)
+    val worktrees = state.listByActivity
 
-        // Load project configuration
-        val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
-        val config = ConfigFileRepository.read(configPath)
+    // Load project configuration
+    val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+    val config = ConfigFileRepository.read(configPath)
 
-        // Render dashboard with issue data, progress, PR data, and review state
-        val (html, updatedReviewStateCache) = DashboardService.renderDashboard(
-          worktrees,
-          state.issueCache,
-          state.progressCache,
-          state.prCache,
-          state.reviewStateCache,
-          config,
-          sshHost = effectiveSshHost
-        )
+    // Render dashboard with cached data only (read-only, no writes)
+    val (html, updatedReviewStateCache) = DashboardService.renderDashboard(
+      worktrees,
+      state.issueCache,
+      state.progressCache,
+      state.prCache,
+      state.reviewStateCache,
+      config,
+      sshHost = effectiveSshHost
+    )
 
-        // Update server state with new review state cache and persist
-        val updatedState = state.copy(reviewStateCache = updatedReviewStateCache)
-        repository.write(updatedState) // Best-effort save, ignore errors
+    // Dashboard should NOT write state anymore - per-card refresh handles cache updates
+    // The updatedReviewStateCache is now discarded (will be fixed when we update DashboardService)
 
-        cask.Response(
-          data = html,
-          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-        )
-      case Left(error) =>
-        System.err.println(s"Error loading state: $error")
-        cask.Response(
-          data = "Internal server error",
-          statusCode = 500
-        )
+    cask.Response(
+      data = html,
+      headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+    )
 
   @cask.get("/worktrees/:issueId/artifacts")
   def artifactPage(issueId: String, path: String): cask.Response[String] =
     // path comes from query param via cask binding
     val artifactPath = path
 
-    // Load current server state
-    val stateResult = ServerStateService.load(repository)
+    // Get current server state (read-only)
+    val state = stateService.getState
 
-    stateResult match
-      case Left(error) =>
-        System.err.println(s"Failed to load state: $error")
+    // File I/O wrapper: read file content
+    val readFile = (filePath: java.nio.file.Path) => scala.util.Try {
+      val source = scala.io.Source.fromFile(filePath.toFile)
+      try source.mkString
+      finally source.close()
+    }.toEither.left.map(_.getMessage)
+
+    // Load and render artifact
+    ArtifactService.loadArtifact(issueId, artifactPath, state, readFile) match
+      case Right((label, html, worktreePath)) =>
+        val page = ArtifactView.render(label, html, issueId)
         cask.Response(
-          data = "Internal server error",
-          statusCode = 500
+          data = page,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
         )
 
-      case Right(state) =>
-        // File I/O wrapper: read file content
-        val readFile = (filePath: java.nio.file.Path) => scala.util.Try {
-          val source = scala.io.Source.fromFile(filePath.toFile)
-          try source.mkString
-          finally source.close()
-        }.toEither.left.map(_.getMessage)
+      case Left(error) =>
+        // Log error for debugging (may contain filesystem info)
+        System.err.println(s"Artifact error for $issueId/$artifactPath: $error")
 
-        // Load and render artifact
-        ArtifactService.loadArtifact(issueId, artifactPath, state, readFile) match
-          case Right((label, html, worktreePath)) =>
-            val page = ArtifactView.render(label, html, issueId)
-            cask.Response(
-              data = page,
-              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-            )
-
-          case Left(error) =>
-            // Log error for debugging (may contain filesystem info)
-            System.err.println(s"Artifact error for $issueId/$artifactPath: $error")
-
-            // Return generic error to user (secure)
-            cask.Response(
-              data = ArtifactView.renderError(issueId, error),
-              statusCode = 404,
-              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-            )
+        // Return generic error to user (secure)
+        cask.Response(
+          data = ArtifactView.renderError(issueId, error),
+          statusCode = 404,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
 
   @cask.get("/worktrees/:issueId/card")
   def worktreeCard(issueId: String): cask.Response[String] =
-    // Load current server state
-    val stateResult = ServerStateService.load(repository)
+    // Get current server state (read-only)
+    val state = stateService.getState
 
-    stateResult match
-      case Left(error) =>
-        System.err.println(s"Failed to load state: $error")
+    // Build fetch function and URL builder based on worktree's tracker type
+    val worktreeOpt = state.worktrees.get(issueId)
+    worktreeOpt match
+      case None =>
+        // Worktree not found
         cask.Response(
           data = "",
-          statusCode = 500
+          statusCode = 404
         )
 
-      case Right(state) =>
-        // Build fetch function and URL builder based on worktree's tracker type
-        val worktreeOpt = state.worktrees.get(issueId)
-        worktreeOpt match
-          case None =>
-            // Worktree not found
-            cask.Response(
-              data = "",
-              statusCode = 404
-            )
+      case Some(worktree) =>
+        // Load project configuration from worktree's path (not os.pwd)
+        // This ensures we get the correct tracker settings (e.g., youtrackBaseUrl)
+        val configPath = os.Path(worktree.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+        val config = ConfigFileRepository.read(configPath)
 
-          case Some(worktree) =>
-            // Load project configuration from worktree's path (not os.pwd)
-            // This ensures we get the correct tracker settings (e.g., youtrackBaseUrl)
-            val configPath = os.Path(worktree.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
-            val config = ConfigFileRepository.read(configPath)
+        // Build fetch function based on tracker type
+        val fetchFn = buildFetchFunction(worktree.trackerType, config)
+        val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
 
-            // Build fetch function based on tracker type
-            val fetchFn = buildFetchFunction(worktree.trackerType, config)
-            val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
+        // Render the card
+        val now = Instant.now()
+        val result = WorktreeCardService.renderCard(
+          issueId,
+          state.worktrees,
+          state.issueCache,
+          state.progressCache,
+          state.prCache,
+          state.reviewStateCache,
+          refreshThrottle,
+          now,
+          fetchFn,
+          urlBuilder
+        )
 
-            // Render the card
-            val now = Instant.now()
-            val result = WorktreeCardService.renderCard(
-              issueId,
-              state.worktrees,
-              state.issueCache,
-              state.progressCache,
-              state.prCache,
-              state.reviewStateCache,
-              refreshThrottle,
-              now,
-              fetchFn,
-              urlBuilder
-            )
+        // Update cache with fetched issue data if we got fresh data
+        result.fetchedIssue.foreach { cachedIssue =>
+          stateService.updateIssueCache(issueId)(_ => Some(cachedIssue))
+        }
 
-            // Save fetched issue data to cache if we got fresh data
-            result.fetchedIssue.foreach { cachedIssue =>
-              val updatedState = state.copy(
-                issueCache = state.issueCache + (issueId -> cachedIssue)
-              )
-              repository.write(updatedState) // Best-effort save
-            }
-
-            cask.Response(
-              data = result.html,
-              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
-            )
+        cask.Response(
+          data = result.html,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
 
   @cask.get("/api/worktrees/:issueId/refresh")
   def refreshWorktree(issueId: String): ujson.Value =
@@ -189,10 +166,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.get("/api/status")
   def status(): ujson.Value =
-    val stateResult = ServerStateService.load(repository)
-    val worktreeCount = stateResult match
-      case Right(state) => state.worktrees.size
-      case Left(_) => 0
+    val state = stateService.getState
+    val worktreeCount = state.worktrees.size
 
     ujson.Obj(
       "status" -> "running",
@@ -236,65 +211,42 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       val trackerType = requestJson("trackerType").str
       val team = requestJson("team").str
 
-      // Load current state
-      val stateResult = ServerStateService.load(repository)
+      // Get current state
+      val currentState = stateService.getState
 
-      stateResult match
-        case Right(currentState) =>
-          // Register or update worktree with current timestamp
-          val now = Instant.now()
-          val registrationResult = WorktreeRegistrationService.register(
-            issueId,
-            path,
-            trackerType,
-            team,
-            now,
-            currentState
-          )
+      // Register or update worktree with current timestamp
+      val now = Instant.now()
+      val registrationResult = WorktreeRegistrationService.register(
+        issueId,
+        path,
+        trackerType,
+        team,
+        now,
+        currentState
+      )
 
-          registrationResult match
-            case Right((newState, wasCreated)) =>
-              // Persist new state
-              val saveResult = ServerStateService.save(newState, repository)
+      registrationResult match
+        case Right((newState, wasCreated)) =>
+          // Update worktree via service
+          val registration = newState.worktrees(issueId)
+          stateService.updateWorktree(issueId)(_ => Some(registration))
 
-              saveResult match
-                case Right(_) =>
-                  val registration = newState.worktrees(issueId)
-                  cask.Response(
-                    data = ujson.Obj(
-                      "status" -> "registered",
-                      "issueId" -> issueId,
-                      "lastSeenAt" -> registration.lastSeenAt.toString
-                    ),
-                    statusCode = if wasCreated then 201 else 200
-                  )
-                case Left(error) =>
-                  System.err.println(s"Failed to save state: $error")
-                  cask.Response(
-                    data = ujson.Obj(
-                      "code" -> "INTERNAL_ERROR",
-                      "message" -> "Internal server error"
-                    ),
-                    statusCode = 500
-                  )
-
-            case Left(error) =>
-              cask.Response(
-                data = ujson.Obj(
-                  "code" -> "VALIDATION_ERROR",
-                  "message" -> error
-                ),
-                statusCode = 400
-              )
-
-        case Left(error) =>
-          System.err.println(s"Failed to load state: $error")
           cask.Response(
             data = ujson.Obj(
-              "code" -> "INTERNAL_ERROR",
-              "message" -> "Internal server error"
+              "status" -> "registered",
+              "issueId" -> issueId,
+              "lastSeenAt" -> registration.lastSeenAt.toString
             ),
-            statusCode = 500
+            statusCode = if wasCreated then 201 else 200
+          )
+
+        case Left(error) =>
+          cask.Response(
+            data = ujson.Obj(
+              "code" -> "VALIDATION_ERROR",
+              "message" -> error
+            ),
+            statusCode = 400
           )
 
     catch
@@ -328,30 +280,19 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.delete("/api/v1/worktrees/:issueId")
   def unregisterWorktree(issueId: String): cask.Response[ujson.Value] =
-    repository.read() match
-      case Right(state) =>
-        WorktreeUnregistrationService.unregister(state, issueId) match
-          case Right(newState) =>
-            repository.write(newState) match
-              case Right(_) =>
-                cask.Response(
-                  ujson.Obj("status" -> "ok", "issueId" -> issueId),
-                  statusCode = 200
-                )
-              case Left(err) =>
-                cask.Response(
-                  ujson.Obj("code" -> "SAVE_ERROR", "message" -> err),
-                  statusCode = 500
-                )
-          case Left(err) =>
-            cask.Response(
-              ujson.Obj("code" -> "NOT_FOUND", "message" -> err),
-              statusCode = 404
-            )
+    val state = stateService.getState
+    WorktreeUnregistrationService.unregister(state, issueId) match
+      case Right(newState) =>
+        // Remove worktree via service
+        stateService.updateWorktree(issueId)(_ => None)
+        cask.Response(
+          ujson.Obj("status" -> "ok", "issueId" -> issueId),
+          statusCode = 200
+        )
       case Left(err) =>
         cask.Response(
-          ujson.Obj("code" -> "LOAD_ERROR", "message" -> err),
-          statusCode = 500
+          ujson.Obj("code" -> "NOT_FOUND", "message" -> err),
+          statusCode = 404
         )
 
   @cask.get("/api/issues/search")
