@@ -12,7 +12,9 @@ import java.time.Instant
 import scala.util.Try
 
 object DashboardService:
-  /** Render dashboard with issue data fetched from cache or APIs.
+  /** Render dashboard with cached data only (read-only).
+    *
+    * Dashboard no longer computes or updates caches. Per-card refresh handles all cache updates.
     *
     * @param worktrees List of registered worktrees
     * @param issueCache Current issue cache
@@ -21,7 +23,7 @@ object DashboardService:
     * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
     * @param sshHost SSH hostname for Zed editor remote connections
-    * @return Tuple of (HTML page as string, updated review state cache)
+    * @return HTML page as string
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
@@ -31,7 +33,7 @@ object DashboardService:
     reviewStateCache: Map[String, CachedReviewState],
     config: Option[ProjectConfiguration],
     sshHost: String
-  ): (String, Map[String, CachedReviewState]) =
+  ): String =
     val now = Instant.now()
 
     // Sort worktrees by priority (most recent activity first)
@@ -43,32 +45,17 @@ object DashboardService:
       MainProjectService.loadConfig
     )
 
-    // Fetch data for each worktree and accumulate updated review state cache
-    val (worktreesWithData, updatedReviewStateCache) = sortedWorktrees.foldLeft(
-      (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
-    ) { case ((acc, cache), wt) =>
+    // Fetch data for each worktree (read-only from cache)
+    val worktreesWithData = sortedWorktrees.map { wt =>
       val issueData = fetchIssueForWorktreeCachedOnly(wt, issueCache, now)
       val progress = fetchProgressForWorktree(wt, progressCache)
       val gitStatus = fetchGitStatusForWorktree(wt)
       val prData = fetchPRForWorktreeCachedOnly(wt, prCache, now)
-      val cachedReviewStateResult = fetchReviewStateForWorktree(wt, cache)
 
-      // Extract ReviewState for view and update cache
-      // Only update cache for valid states (Some(Right))
-      val (reviewStateResult, newCache) = cachedReviewStateResult match {
-        case None =>
-          // No review state file
-          (None, cache)
-        case Some(Left(error)) =>
-          // Invalid review state - pass error to view, don't update cache
-          (Some(Left(error)), cache)
-        case Some(Right(cached)) =>
-          // Valid review state - pass to view and update cache
-          (Some(Right(cached.state)), cache + (wt.issueId -> cached))
-      }
+      // Just read review state from cache (no filesystem reads)
+      val reviewStateResult = reviewStateCache.get(wt.issueId).map(cached => Right(cached.state))
 
-      val worktreeData = (wt, issueData, progress, gitStatus, prData, reviewStateResult)
-      (worktreeData :: acc, newCache)
+      (wt, issueData, progress, gitStatus, prData, reviewStateResult)
     }
 
     val page = html(
@@ -122,14 +109,14 @@ object DashboardService:
           ),
           // Main projects section (above worktree list)
           MainProjectsView.render(mainProjects),
-          WorktreeListView.render(worktreesWithData.reverse, now, sshHost),
+          WorktreeListView.render(worktreesWithData, now, sshHost),
           // Modal container (empty by default)
           div(id := "modal-container")
         )
       )
     )
 
-    ("<!DOCTYPE html>\n" + page.render, updatedReviewStateCache)
+    "<!DOCTYPE html>\n" + page.render
 
   /** Fetch issue data for a single worktree from cache only (non-blocking).
     *
@@ -392,62 +379,6 @@ object DashboardService:
       execCommand,
       detectTool
     ).toOption.flatten
-
-  /** Fetch review state for a single worktree.
-    *
-    * Reads review-state.json from the worktree and parses review state.
-    * Uses cache with mtime validation.
-    *
-    * Returns:
-    * - None: No review state file (normal case, not an error)
-    * - Some(Left(error)): File exists but is invalid (parse error, malformed JSON)
-    * - Some(Right(cached)): Valid review state
-    *
-    * Invalid states are logged to stderr for debugging.
-    *
-    * @param wt Worktree registration
-    * @param cache Current review state cache
-    * @return Option[Either[String, CachedReviewState]]
-    */
-  private def fetchReviewStateForWorktree(
-    wt: WorktreeRegistration,
-    cache: Map[String, CachedReviewState]
-  ): Option[Either[String, CachedReviewState]] =
-    // File I/O wrapper: read file content
-    val readFile = (path: String) => Try {
-      val source = scala.io.Source.fromFile(path)
-      try source.mkString
-      finally source.close()
-    }.toEither.left.map(_.getMessage)
-
-    // File I/O wrapper: get file modification time
-    val getMtime = (path: String) => Try {
-      java.nio.file.Files.getLastModifiedTime(
-        java.nio.file.Paths.get(path)
-      ).toMillis
-    }.toEither.left.map(_.getMessage)
-
-    // Call ReviewStateService with injected I/O functions
-    val reviewStatePath = s"${wt.path}/project-management/issues/${wt.issueId}/review-state.json"
-
-    ReviewStateService.fetchReviewState(
-      wt.issueId,
-      wt.path,
-      cache,
-      readFile,
-      getMtime
-    ) match {
-      case Left(err) if err == reviewStatePath || err.contains("NoSuchFileException") || err.contains("File not found") =>
-        // Normal case - no review state file (error message is just the path or explicit "not found")
-        None
-      case Left(err) =>
-        // Invalid state file - log warning and return error
-        System.err.println(s"[WARN] Failed to load review state for ${wt.issueId}: $err")
-        Some(Left(err))
-      case Right(cached) =>
-        // Valid state
-        Some(Right(cached))
-    }
 
   private val styles = """
     body {

@@ -45,7 +45,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
     val config = ConfigFileRepository.read(configPath)
 
     // Render dashboard with cached data only (read-only, no writes)
-    val (html, updatedReviewStateCache) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees,
       state.issueCache,
       state.progressCache,
@@ -54,9 +54,6 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       config,
       sshHost = effectiveSshHost
     )
-
-    // Dashboard should NOT write state anymore - per-card refresh handles cache updates
-    // The updatedReviewStateCache is now discarded (will be fixed when we update DashboardService)
 
     cask.Response(
       data = html,
