@@ -601,3 +601,28 @@ class WorktreeListViewTest extends munit.FunSuite:
     assert(!htmlStr.contains("Test Issue"), "Should not show actual issue title from test data")
     // Should show loading placeholder
     assert(htmlStr.contains("Loading") || htmlStr.contains("skeleton"), "Should indicate loading state")
+
+  // HTMX Attributes Tests (Phase 4 - IW-92)
+
+  test("Cards have refresh from:body in hx-trigger attribute"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("hx-trigger"), "Should contain hx-trigger attribute")
+    assert(htmlStr.contains("refresh from:body"), "Should include 'refresh from:body' in hx-trigger")
+
+  test("Cards have hx-swap with transition modifier"):
+    val worktreesWithData = List(
+      (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
+    )
+
+    val html = WorktreeListView.render(worktreesWithData, now)
+    val htmlStr = html.render
+
+    assert(htmlStr.contains("hx-swap"), "Should contain hx-swap attribute")
+    assert(htmlStr.contains("outerHTML"), "Should use outerHTML swap strategy")
+    assert(htmlStr.contains("transition:true"), "Should include transition:true modifier")
