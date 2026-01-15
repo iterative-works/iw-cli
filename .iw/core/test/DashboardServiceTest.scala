@@ -53,7 +53,7 @@ class DashboardServiceTest extends FunSuite:
       )
     )
 
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -71,7 +71,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard handles missing review state gracefully"):
     val worktree = createWorktree("IWLE-456")
 
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -86,7 +86,7 @@ class DashboardServiceTest extends FunSuite:
     assert(html.contains("IWLE-456"))
 
   test("renderDashboard with empty worktree list"):
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -120,7 +120,7 @@ class DashboardServiceTest extends FunSuite:
       )
     )
 
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2, worktree3),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -152,7 +152,7 @@ class DashboardServiceTest extends FunSuite:
       )
     )
 
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -174,7 +174,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-MISSING")
 
     // DashboardService.fetchReviewStateForWorktree is private, so we test via renderDashboard
-    val (html, cache) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -201,7 +201,7 @@ class DashboardServiceTest extends FunSuite:
 
     // For now, just verify current behavior doesn't crash
     val worktree = createWorktree("IWLE-INVALID")
-    val (html, cache) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -220,7 +220,7 @@ class DashboardServiceTest extends FunSuite:
     // Testing exact cache behavior requires integration tests with real files
     val worktree = createWorktree("IWLE-VALID")
 
-    val (html, cache) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -241,7 +241,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree1 = createWorktree("IWLE-OK", "/path/ok")
     val worktree2 = createWorktree("IWLE-BAD", "/path/bad")
 
-    val (html, cache) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -257,15 +257,13 @@ class DashboardServiceTest extends FunSuite:
     assert(html.contains("IWLE-BAD"))
     // Without real files, no review section will be shown
     // But dashboard should still render without errors
-    assert(!cache.contains("IWLE-OK"))
-    assert(!cache.contains("IWLE-BAD"))
 
   test("Cache not updated when state is invalid"):
     // This test verifies that invalid states don't pollute the cache
     // After Phase 6 changes, only valid states (Some(Right)) should update cache
     val worktree = createWorktree("IWLE-INVALID-CACHE")
 
-    val (_, cache) = DashboardService.renderDashboard(
+    val _ = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -275,14 +273,12 @@ class DashboardServiceTest extends FunSuite:
       sshHost = "localhost"
     )
 
-    // Cache should not contain entry for invalid/missing state
-    assert(!cache.contains("IWLE-INVALID-CACHE"))
 
   // SSH Host Configuration Tests (IW-74 Phase 1)
 
   test("renderDashboard accepts sshHost parameter"):
     val worktree = createWorktree("IWLE-SSH-1")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -298,7 +294,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("renderDashboard includes SSH host input field in HTML"):
     val worktree = createWorktree("IWLE-SSH-2")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -314,7 +310,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("renderDashboard SSH host form submits to current URL"):
     val worktree = createWorktree("IWLE-SSH-3")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -332,7 +328,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("renderDashboard includes Zed button with configured SSH host"):
     val worktree = createWorktree("IWLE-ZED-1", "/home/user/projects/my-project")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -351,7 +347,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree1 = createWorktree("IWLE-ZED-2", "/home/user/project-a")
     val worktree2 = createWorktree("IWLE-ZED-3", "/home/user/project-b")
 
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -369,7 +365,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard CSS includes .htmx-swapping styles"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -384,7 +380,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard CSS includes .htmx-settling styles"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -399,7 +395,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard CSS includes transition property for cards"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -417,7 +413,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard HTML includes visibilitychange script"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -435,7 +431,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard CSS includes mobile breakpoint styles"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -450,7 +446,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard CSS includes minimum touch target sizes"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -464,7 +460,7 @@ class DashboardServiceTest extends FunSuite:
 
   test("Dashboard CSS includes touch-action manipulation"):
     val worktree = createWorktree("IWLE-TEST")
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -506,7 +502,7 @@ class DashboardServiceTest extends FunSuite:
     )
 
     // Register in non-priority order
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(oldestWorktree, middleWorktree, recentWorktree),
       issueCache = Map.empty,
       progressCache = Map.empty,
@@ -556,7 +552,7 @@ class DashboardServiceTest extends FunSuite:
     )
 
     // Register in specific order
-    val (html, _) = DashboardService.renderDashboard(
+    val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2, worktree3),
       issueCache = Map.empty,
       progressCache = Map.empty,
