@@ -9,45 +9,45 @@
 
 ### Setup
 
-- [x] [impl] [ ] [reviewed] Review `WorktreeRegistration` for activity timestamp field
-- [x] [impl] [ ] [reviewed] Review `DashboardService.renderDashboard()` for worktree ordering
-- [x] [impl] [ ] [reviewed] Review `WorktreeListView` for HTMX trigger attributes
+- [x] [impl] [x] [reviewed] Review `WorktreeRegistration` for activity timestamp field
+- [x] [impl] [x] [reviewed] Review `DashboardService.renderDashboard()` for worktree ordering
+- [x] [impl] [x] [reviewed] Review `WorktreeListView` for HTMX trigger attributes
 
 ### Tests - Priority Score
 
-- [x] [impl] [ ] [reviewed] Test recent activity gets higher priority score
-- [x] [impl] [ ] [reviewed] Test older activity gets lower priority score
-- [x] [impl] [ ] [reviewed] Test priority score is deterministic (same input = same output)
-- [x] [impl] [ ] [reviewed] Test priority handles missing activity timestamp gracefully
+- [x] [impl] [x] [reviewed] Test recent activity gets higher priority score
+- [x] [impl] [x] [reviewed] Test older activity gets lower priority score
+- [x] [impl] [x] [reviewed] Test priority score is deterministic (same input = same output)
+- [x] [impl] [x] [reviewed] Test priority handles missing activity timestamp gracefully
 
 ### Implementation - Priority Score
 
-- [x] [impl] [ ] [reviewed] Create `WorktreePriority.scala` with pure priority calculation
-- [x] [impl] [ ] [reviewed] Implement `priorityScore(registration, now)` function
-- [x] [impl] [ ] [reviewed] Score based on time since last activity (more recent = higher)
+- [x] [impl] [x] [reviewed] Create `WorktreePriority.scala` with pure priority calculation
+- [x] [impl] [x] [reviewed] Implement `priorityScore(registration, now)` function
+- [x] [impl] [x] [reviewed] Score based on time since last activity (more recent = higher)
 
 ### Tests - Sorted Rendering
 
-- [x] [impl] [ ] [reviewed] Test dashboard sorts worktrees by priority (highest first)
-- [x] [impl] [ ] [reviewed] Test sort is stable for equal priorities (preserves registration order)
+- [x] [impl] [x] [reviewed] Test dashboard sorts worktrees by priority (highest first)
+- [x] [impl] [x] [reviewed] Test sort is stable for equal priorities (preserves registration order)
 
 ### Implementation - Sorted Rendering
 
-- [x] [impl] [ ] [reviewed] Modify `DashboardService.renderDashboard()` to sort by priority
-- [x] [impl] [ ] [reviewed] Pass current time (`Instant.now()`) for priority calculation
-- [x] [impl] [ ] [reviewed] Ensure sort doesn't affect worktree registration data
+- [x] [impl] [x] [reviewed] Modify `DashboardService.renderDashboard()` to sort by priority
+- [x] [impl] [x] [reviewed] Pass current time (`Instant.now()`) for priority calculation
+- [x] [impl] [x] [reviewed] Ensure sort doesn't affect worktree registration data
 
 ### Tests - Staggered Polling
 
-- [x] [impl] [ ] [reviewed] Test first 3 cards have `delay:500ms` in hx-trigger
-- [x] [impl] [ ] [reviewed] Test cards 4-8 have `delay:2s` in hx-trigger
-- [x] [impl] [ ] [reviewed] Test remaining cards have `delay:5s` in hx-trigger
+- [x] [impl] [x] [reviewed] Test first 3 cards have `delay:500ms` in hx-trigger
+- [x] [impl] [x] [reviewed] Test cards 4-8 have `delay:2s` in hx-trigger
+- [x] [impl] [x] [reviewed] Test remaining cards have `delay:5s` in hx-trigger
 
 ### Implementation - Staggered Polling
 
-- [x] [impl] [ ] [reviewed] Modify `WorktreeListView.renderCard()` to accept position parameter
-- [x] [impl] [ ] [reviewed] Calculate delay based on card position (500ms/2s/5s tiers)
-- [x] [impl] [ ] [reviewed] Update HTMX `hx-trigger` attribute with position-based delay
+- [x] [impl] [x] [reviewed] Modify `WorktreeListView.renderCard()` to accept position parameter
+- [x] [impl] [x] [reviewed] Calculate delay based on card position (500ms/2s/5s tiers)
+- [x] [impl] [x] [reviewed] Update HTMX `hx-trigger` attribute with position-based delay
 
 ### Integration
 
@@ -73,4 +73,4 @@
 - Position-based delay is a proxy for "above the fold" visibility
 - Key insight: spreading requests improves perceived and actual performance
 
-**Phase Status:** Not Started
+**Phase Status:** Complete
