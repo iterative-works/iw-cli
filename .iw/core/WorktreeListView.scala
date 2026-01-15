@@ -66,6 +66,10 @@ object WorktreeListView:
   ): Frag =
     div(
       cls := "worktree-card skeleton-card",
+      id := s"worktree-${worktree.issueId}",
+      attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
+      attr("hx-trigger") := "load delay:1s, every 30s",
+      attr("hx-swap") := "outerHTML",
       // Issue ID as non-clickable placeholder
       h3(cls := "skeleton-title", "Loading..."),
       p(
@@ -104,6 +108,10 @@ object WorktreeListView:
   ): Frag =
     div(
       cls := "worktree-card",
+      id := s"worktree-${worktree.issueId}",
+      attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
+      attr("hx-trigger") := "load delay:1s, every 30s",
+      attr("hx-swap") := "outerHTML",
       // Issue title
       h3(data.title),
       // Issue ID as clickable link
@@ -258,6 +266,11 @@ object WorktreeListView:
           // Valid review state but no artifacts - don't show anything
           ()
       },
+      // Update timestamp
+      p(
+        cls := "update-timestamp",
+        TimestampFormatter.formatUpdateTimestamp(data.fetchedAt, now)
+      ),
       // Last activity
       p(
         cls := "last-activity",
@@ -270,7 +283,7 @@ object WorktreeListView:
     * @param status Issue status string
     * @return CSS class suffix (e.g., "in-progress", "done")
     */
-  private def statusClass(status: String): String =
+  def statusClass(status: String): String =
     status.toLowerCase match
       case s if s.contains("progress") || s.contains("active") => "in-progress"
       case s if s.contains("done") || s.contains("complete") || s.contains("closed") => "done"
@@ -283,7 +296,7 @@ object WorktreeListView:
     * @param now Current timestamp
     * @return Formatted string (e.g., "3m ago", "2h ago")
     */
-  private def formatCacheAge(fetchedAt: Instant, now: Instant): String =
+  def formatCacheAge(fetchedAt: Instant, now: Instant): String =
     val duration = Duration.between(fetchedAt, now)
     val minutes = duration.toMinutes
 
@@ -302,7 +315,7 @@ object WorktreeListView:
     * @param now Current timestamp
     * @return Formatted string (e.g., "2h ago")
     */
-  private def formatRelativeTime(instant: Instant, now: Instant): String =
+  def formatRelativeTime(instant: Instant, now: Instant): String =
     val duration = Duration.between(instant, now)
     val seconds = duration.getSeconds
     val minutes = seconds / 60

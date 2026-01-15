@@ -4,13 +4,14 @@
 package iw.core.infrastructure
 
 import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath, IssueTrackerType}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService, WorktreeCardService, CardRenderResult, RefreshThrottle}
 import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
 import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
   private val repository = StateRepository(statePath)
+  private val refreshThrottle = RefreshThrottle()
 
   @cask.get("/")
   def dashboard(sshHost: Option[String] = None): cask.Response[String] =
@@ -107,6 +108,71 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               statusCode = 404,
               headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
             )
+
+  @cask.get("/worktrees/:issueId/card")
+  def worktreeCard(issueId: String): cask.Response[String] =
+    // Load current server state
+    val stateResult = ServerStateService.load(repository)
+
+    stateResult match
+      case Left(error) =>
+        System.err.println(s"Failed to load state: $error")
+        cask.Response(
+          data = "",
+          statusCode = 500
+        )
+
+      case Right(state) =>
+        // Load project configuration
+        val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+        val config = ConfigFileRepository.read(configPath)
+
+        // Build fetch function and URL builder based on worktree's tracker type
+        val worktreeOpt = state.worktrees.get(issueId)
+        worktreeOpt match
+          case None =>
+            // Worktree not found
+            cask.Response(
+              data = "",
+              statusCode = 404
+            )
+
+          case Some(worktree) =>
+            // Build fetch function based on tracker type
+            val fetchFn = buildFetchFunction(worktree.trackerType, config)
+            val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
+
+            // Render the card
+            val now = Instant.now()
+            val html = WorktreeCardService.renderCard(
+              issueId,
+              state.worktrees,
+              state.issueCache,
+              state.progressCache,
+              state.prCache,
+              state.reviewStateCache,
+              refreshThrottle,
+              now,
+              fetchFn,
+              urlBuilder
+            )
+
+            cask.Response(
+              data = html,
+              headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+            )
+
+  @cask.get("/api/worktrees/:issueId/refresh")
+  def refreshWorktree(issueId: String): ujson.Value =
+    val now = Instant.now()
+
+    if refreshThrottle.shouldRefresh(issueId, now) then
+      // Not throttled - record refresh
+      refreshThrottle.recordRefresh(issueId, now)
+      ujson.Obj("status" -> "refreshed")
+    else
+      // Throttled - too soon since last refresh
+      ujson.Obj("status" -> "throttled")
 
   @cask.get("/health")
   def health(): ujson.Value =
@@ -507,6 +573,67 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         s"$baseUrl/issue/${issueId.value}"
       case _ =>
         s"https://example.com/issue/${issueId.value}"
+
+  /** Build fetch function for WorktreeCardService based on tracker type.
+    *
+    * Takes raw string ID and returns Issue.
+    *
+    * @param trackerType Tracker type string
+    * @param config Optional project configuration
+    * @return Function that fetches issue by string ID
+    */
+  private def buildFetchFunction(trackerType: String, config: Option[ProjectConfiguration]): String => Either[String, iw.core.Issue] =
+    (issueId: String) =>
+      trackerType.toLowerCase match
+        case "linear" =>
+          ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+            case Some(token) =>
+              IssueId.parse(issueId).flatMap(LinearClient.fetchIssue(_, token))
+            case None =>
+              Left("LINEAR_API_TOKEN environment variable not set")
+
+        case "github" =>
+          config.flatMap(_.repository) match
+            case Some(repository) =>
+              val number = extractGitHubIssueNumber(issueId)
+              GitHubClient.fetchIssue(number, repository)
+            case None =>
+              Left("GitHub repository not configured")
+
+        case "youtrack" =>
+          val baseUrl = config.flatMap(_.youtrackBaseUrl).getOrElse("https://youtrack.example.com")
+          ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
+            case Some(token) =>
+              IssueId.parse(issueId).flatMap(YouTrackClient.fetchIssue(_, baseUrl, token))
+            case None =>
+              Left("YOUTRACK_API_TOKEN environment variable not set")
+
+        case _ =>
+          Left(s"Unknown tracker type: $trackerType")
+
+  /** Build URL builder for WorktreeCardService based on tracker type.
+    *
+    * @param trackerType Tracker type string
+    * @param config Optional project configuration
+    * @return Function that builds issue URL from string ID
+    */
+  private def buildUrlBuilder(trackerType: String, config: Option[ProjectConfiguration]): (String, String, Option[String]) => String =
+    (issueId: String, _: String, _: Option[String]) =>
+      trackerType.toLowerCase match
+        case "linear" =>
+          s"https://linear.app/issue/$issueId"
+        case "github" =>
+          config.flatMap(_.repository) match
+            case Some(repo) =>
+              val number = extractGitHubIssueNumber(issueId)
+              s"https://github.com/$repo/issues/$number"
+            case None =>
+              s"https://github.com/issues/$issueId"
+        case "youtrack" =>
+          val baseUrl = config.flatMap(_.youtrackBaseUrl).getOrElse("https://youtrack.example.com")
+          s"$baseUrl/issue/$issueId"
+        case _ =>
+          s"https://example.com/issue/$issueId"
 
   /** Build fetch function for IssueSearchService based on tracker type.
     *
