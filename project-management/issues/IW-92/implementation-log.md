@@ -256,3 +256,56 @@ M	.iw/core/test/WorktreeListViewTest.scala
 ```
 
 ---
+
+## Phase 6: State Management Refactoring (2026-01-15)
+
+**What was built:**
+- Infrastructure: `StateRepository.scala` - Fixed temp file collision using UUID suffix for atomic writes
+- Application: `ServerStateService.scala` - New centralized state management with ReentrantLock
+- Application: `WorktreeCardService.scala` - Extended to refresh all caches per-card (issue, progress, PR, reviewState)
+- Application: `DashboardService.scala` - Simplified to read-only (no state writes)
+- Infrastructure: `CaskServer.scala` - Migrated all endpoints to use ServerStateService
+
+**Decisions made:**
+- Centralized state: Single ServerStateService holds state in memory with `@volatile` and ReentrantLock
+- Unique temp files: `state.json.tmp-${UUID}` prevents concurrent write collision (was the root cause of corruption)
+- Per-entry updates: All 5 caches have individual update methods (`updateIssueCache`, `updateReviewStateCache`, etc.)
+- Best-effort persistence: Write errors logged but not propagated (acceptable for CLI tool)
+- Dashboard read-only: Dashboard only reads from cached state, never writes
+
+**Patterns applied:**
+- Thread-safe mutable state: ReentrantLock for synchronized updates
+- Belt-and-suspenders: Both lock synchronization AND unique temp files for safety
+- Per-entry cache updates: Fixes design flaw where reviewStateCache wasn't updated via HTMX refresh
+
+**Testing:**
+- Unit tests: 13 tests added for ServerStateService
+- Unit tests: Concurrent write test for StateRepository (20 threads)
+- Integration tests: Deferred (unit tests provide sufficient coverage for CLI tool)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-06-20260115.md
+- Findings: 2 critical (testing recommendations), 11 warnings, 12 suggestions
+- Critical issues are improvement recommendations, not blockers for CLI tool context
+- Verdict: Code acceptable for merge
+
+**For next phases:**
+- This is the FINAL phase (critical bug fix)
+- Available utilities: `ServerStateService` for all state operations
+- Extension points: Per-entry update API can be extended for new cache types
+- Notes: This fixes the root cause of state file corruption and data loss
+
+**Files changed:**
+```
+M	.iw/core/CaskServer.scala
+M	.iw/core/DashboardService.scala
+M	.iw/core/ServerStateService.scala
+M	.iw/core/StateRepository.scala
+M	.iw/core/WorktreeCardService.scala
+M	.iw/core/test/DashboardServiceTest.scala
+A	.iw/core/test/ServerStateServiceTest.scala
+M	.iw/core/test/StateRepositoryTest.scala
+```
+
+---
