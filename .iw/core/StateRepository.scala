@@ -77,12 +77,17 @@ case class StateRepository(statePath: String):
       val stateJson = StateJson(state.worktrees, state.issueCache, state.progressCache, state.prCache, state.reviewStateCache)
       val json = upickle.default.write(stateJson, indent = 2)
 
-      // Atomic write: write to temp file, then rename
+      // Atomic write: write to unique temp file, then rename
       val path = Paths.get(statePath)
-      val tmpPath = Paths.get(statePath + ".tmp")
+      val tmpPath = Paths.get(s"$statePath.tmp-${java.util.UUID.randomUUID()}")
 
-      Files.writeString(tmpPath, json)
-      Files.move(tmpPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+      try
+        Files.writeString(tmpPath, json)
+        Files.move(tmpPath, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+      finally
+        // Clean up temp file if it still exists (move failed)
+        if Files.exists(tmpPath) then
+          Files.delete(tmpPath)
     } match
       case Success(_) => Right(())
       case Failure(ex) => Left(s"Failed to write state to $statePath: ${ex.getMessage}")
