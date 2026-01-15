@@ -512,7 +512,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "test-server"
     )
 
     // Verify all worktrees are present
@@ -561,7 +562,8 @@ class DashboardServiceTest extends FunSuite:
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None
+      config = None,
+      sshHost = "test-server"
     )
 
     // Verify all worktrees are present

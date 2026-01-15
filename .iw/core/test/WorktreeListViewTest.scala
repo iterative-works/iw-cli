@@ -609,7 +609,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
     val htmlStr = html.render
 
     assert(htmlStr.contains("hx-trigger"), "Should contain hx-trigger attribute")
@@ -620,7 +620,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
     val htmlStr = html.render
 
     assert(htmlStr.contains("hx-swap"), "Should contain hx-swap attribute")
@@ -641,7 +641,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (worktree3, None, None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithoutData, now)
+    val html = WorktreeListView.render(worktreesWithoutData, now, "test-server")
     val htmlStr = html.render
 
     // Extract each card's hx-trigger attribute
@@ -659,7 +659,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree.copy(issueId = s"IW-$i", path = s"/path$i"), None, None, None, None, None)
     }.toList
 
-    val html = WorktreeListView.render(worktrees, now)
+    val html = WorktreeListView.render(worktrees, now, "test-server")
     val htmlStr = html.render
 
     // Check skeleton cards 4-8 have delay:2s
@@ -676,7 +676,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree.copy(issueId = s"IW-$i", path = s"/path$i"), None, None, None, None, None)
     }.toList
 
-    val html = WorktreeListView.render(worktrees, now)
+    val html = WorktreeListView.render(worktrees, now, "test-server")
     val htmlStr = html.render
 
     // Check skeleton cards 9+ have delay:5s
@@ -693,7 +693,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, None, None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithoutData, now)
+    val html = WorktreeListView.render(worktreesWithoutData, now, "test-server")
     val htmlStr = html.render
 
     assert(htmlStr.contains("delay:500ms"), "Single skeleton card should have delay:500ms (position 1)")
@@ -703,7 +703,7 @@ class WorktreeListViewTest extends munit.FunSuite:
       (sampleWorktree, Some((sampleIssueData, false, false)), None, None, None, None)
     )
 
-    val html = WorktreeListView.render(worktreesWithData, now)
+    val html = WorktreeListView.render(worktreesWithData, now, "test-server")
     val htmlStr = html.render
 
     // Data cards should have hx-trigger but NOT with 'load' to prevent infinite refresh loop
