@@ -1,12 +1,18 @@
 {
   "version": 1,
   "issue_id": "IW-92",
-  "status": "implementing",
+  "status": "awaiting_review",
   "phase": 6,
-  "step": "implementation",
+  "step": "review",
   "branch": "IW-92-phase-06",
-  "pr_url": null,
-  "git_sha": "367a5da",
-  "last_updated": "2026-01-15T21:51:47Z",
-  "message": "Phase 6 implementation in progress"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/139",
+  "git_sha": "2916fb7",
+  "last_updated": "2026-01-15T22:15:59Z",
+  "message": "Phase 6 complete - State Management Refactoring (FINAL PHASE)",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
+    {"label": "Phase 6 Context", "path": "project-management/issues/IW-92/phase-06-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-92/review-packet-phase-06.md"}
+  ]
 }
