@@ -209,3 +209,50 @@ M	.iw/core/test/WorktreeListViewTest.scala
 ```
 
 ---
+
+## Phase 5: Visible-items-first optimization (2026-01-15)
+
+**What was built:**
+- Domain: `WorktreePriority.scala` - Pure priority score calculation based on last activity timestamp
+- Application: `DashboardService.scala` - Added sorting of worktrees by priority before rendering
+- Presentation: `WorktreeListView.scala` - Added position-based staggered HTMX polling delays
+
+**Decisions made:**
+- Priority score: Negative seconds since last activity (`-Duration.between(lastSeenAt, now).getSeconds`) - more recent = higher score
+- Sorting: `sortBy` with `Ordering[Long].reverse` to render most recently active worktrees first
+- Staggered delays: Position 1-3 = 500ms, 4-8 = 2s, 9+ = 5s (reduces initial API burst)
+- Position as visibility proxy: Cards at top of list assumed to be "above the fold"
+
+**Patterns applied:**
+- Functional Core / Imperative Shell: Time passed as parameter (`now: Instant`), priority calculation is pure
+- Position-based optimization: Using list position as proxy for viewport visibility (simpler than JavaScript-based detection)
+- Graceful scaling: Dashboard remains fast even with 10+ worktrees
+
+**Testing:**
+- Unit tests: 10 tests added across 3 test files
+- WorktreePriorityTest: 4 tests for priority score calculation
+- DashboardServiceTest: 2 tests for sorted rendering
+- WorktreeListViewTest: 4 tests for staggered polling delays
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-05-20260115-105000.md
+- Findings: 0 critical, 3 warnings, 9 suggestions
+- Major feedback: Test fragility (string substring extraction), edge cases (boundary positions, future timestamps)
+
+**For next phases:**
+- Available utilities: `WorktreePriority.priorityScore()` for any priority-based sorting
+- Extension points: Delay tiers can be customized, priority formula can evolve
+- Notes: This is the final phase (stretch goal optimization) - core dashboard functionality complete
+
+**Files changed:**
+```
+A	.iw/core/WorktreePriority.scala
+M	.iw/core/DashboardService.scala
+M	.iw/core/WorktreeListView.scala
+A	.iw/core/test/WorktreePriorityTest.scala
+M	.iw/core/test/DashboardServiceTest.scala
+M	.iw/core/test/WorktreeListViewTest.scala
+```
+
+---

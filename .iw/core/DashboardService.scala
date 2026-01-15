@@ -4,7 +4,7 @@
 package iw.core.application
 
 import iw.core.{Issue, IssueId, ApiToken, LinearClient, YouTrackClient, GitHubClient, ProjectConfiguration, ConfigFileRepository, Constants}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
+import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState, WorktreePriority}
 import iw.core.infrastructure.CommandRunner
 import iw.core.presentation.views.{WorktreeListView, MainProjectsView}
 import scalatags.Text.all.*
@@ -34,14 +34,17 @@ object DashboardService:
   ): (String, Map[String, CachedReviewState]) =
     val now = Instant.now()
 
+    // Sort worktrees by priority (most recent activity first)
+    val sortedWorktrees = worktrees.sortBy(wt => WorktreePriority.priorityScore(wt, now))(Ordering[Long].reverse)
+
     // Derive main projects from registered worktrees
     val mainProjects = MainProjectService.deriveFromWorktrees(
-      worktrees,
+      sortedWorktrees,
       MainProjectService.loadConfig
     )
 
     // Fetch data for each worktree and accumulate updated review state cache
-    val (worktreesWithData, updatedReviewStateCache) = worktrees.foldLeft(
+    val (worktreesWithData, updatedReviewStateCache) = sortedWorktrees.foldLeft(
       (List.empty[(WorktreeRegistration, Option[(IssueData, Boolean, Boolean)], Option[WorkflowProgress], Option[GitStatus], Option[PullRequestData], Option[Either[String, ReviewState]])], reviewStateCache)
     ) { case ((acc, cache), wt) =>
       val issueData = fetchIssueForWorktreeCachedOnly(wt, issueCache, now)

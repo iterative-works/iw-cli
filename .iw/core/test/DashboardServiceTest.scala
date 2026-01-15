@@ -476,3 +476,103 @@ class DashboardServiceTest extends FunSuite:
 
     assert(html.contains("touch-action"), "Should contain touch-action property")
     assert(html.contains("manipulation"), "Should use manipulation value to prevent zoom on double-tap")
+
+  // Priority Sorting Tests (Phase 5 - IW-92)
+
+  test("renderDashboard sorts worktrees by priority (most recent activity first)"):
+    val recentWorktree = WorktreeRegistration(
+      issueId = "IW-1",
+      path = "/path/recent",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now.minusSeconds(1000),
+      lastSeenAt = now.minusSeconds(100) // Most recent
+    )
+    val middleWorktree = WorktreeRegistration(
+      issueId = "IW-2",
+      path = "/path/middle",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now.minusSeconds(2000),
+      lastSeenAt = now.minusSeconds(5000) // Medium activity
+    )
+    val oldestWorktree = WorktreeRegistration(
+      issueId = "IW-3",
+      path = "/path/oldest",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now.minusSeconds(10000),
+      lastSeenAt = now.minusSeconds(20000) // Oldest
+    )
+
+    // Register in non-priority order
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(oldestWorktree, middleWorktree, recentWorktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    // Verify all worktrees are present
+    assert(html.contains("IW-1"))
+    assert(html.contains("IW-2"))
+    assert(html.contains("IW-3"))
+
+    // Verify order in HTML (most recent should appear first)
+    val iw1Index = html.indexOf("IW-1")
+    val iw2Index = html.indexOf("IW-2")
+    val iw3Index = html.indexOf("IW-3")
+
+    assert(iw1Index < iw2Index, "IW-1 (most recent) should appear before IW-2")
+    assert(iw2Index < iw3Index, "IW-2 (medium) should appear before IW-3")
+
+  test("renderDashboard sort is stable for equal priorities"):
+    val worktree1 = WorktreeRegistration(
+      issueId = "IW-A",
+      path = "/path/a",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now.minusSeconds(1000),
+      lastSeenAt = now.minusSeconds(5000) // Same activity time
+    )
+    val worktree2 = WorktreeRegistration(
+      issueId = "IW-B",
+      path = "/path/b",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now.minusSeconds(2000),
+      lastSeenAt = now.minusSeconds(5000) // Same activity time
+    )
+    val worktree3 = WorktreeRegistration(
+      issueId = "IW-C",
+      path = "/path/c",
+      trackerType = "linear",
+      team = "IWLE",
+      registeredAt = now.minusSeconds(3000),
+      lastSeenAt = now.minusSeconds(5000) // Same activity time
+    )
+
+    // Register in specific order
+    val (html, _) = DashboardService.renderDashboard(
+      worktrees = List(worktree1, worktree2, worktree3),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None
+    )
+
+    // Verify all worktrees are present
+    assert(html.contains("IW-A"))
+    assert(html.contains("IW-B"))
+    assert(html.contains("IW-C"))
+
+    // Verify stable sort preserves original order for equal priorities
+    val aIndex = html.indexOf("IW-A")
+    val bIndex = html.indexOf("IW-B")
+    val cIndex = html.indexOf("IW-C")
+
+    assert(aIndex < bIndex, "IW-A should appear before IW-B (stable sort)")
+    assert(bIndex < cIndex, "IW-B should appear before IW-C (stable sort)")
