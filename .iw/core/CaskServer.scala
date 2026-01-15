@@ -554,7 +554,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           val baseUrl = config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
           ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
             case Some(token) =>
-              YouTrackClient.listRecentIssues(baseUrl, limit, token)
+              YouTrackClient.listRecentIssues(baseUrl, config.team, limit, token)
             case None =>
               Left("YOUTRACK_API_TOKEN environment variable not set")
 

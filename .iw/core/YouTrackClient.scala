@@ -78,10 +78,11 @@ object YouTrackClient:
     catch
       case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
 
-  def buildListRecentIssuesUrl(baseUrl: String, limit: Int): String =
+  def buildListRecentIssuesUrl(baseUrl: String, project: String, limit: Int): String =
     val fields = "idReadable,summary,customFields(name,value(name))"
-    // Filter to unresolved issues only (excludes Done, Closed, etc.)
-    s"$baseUrl/api/issues?fields=$fields&query=%23Unresolved&$$top=$limit&$$orderBy=created%20desc"
+    // Filter by project and unresolved status (excludes Done, Closed, etc.)
+    val encodedProject = java.net.URLEncoder.encode(project, "UTF-8")
+    s"$baseUrl/api/issues?fields=$fields&query=project:$encodedProject%20%23Unresolved&$$top=$limit&$$orderBy=created%20desc"
 
   def buildSearchIssuesUrl(baseUrl: String, query: String, limit: Int): String =
     val fields = "idReadable,summary,customFields(name,value(name))"
@@ -132,9 +133,9 @@ object YouTrackClient:
 
       Right(Issue(id, title, status, None, None))
 
-  def listRecentIssues(baseUrl: String, limit: Int = 5, token: ApiToken): Either[String, List[Issue]] =
+  def listRecentIssues(baseUrl: String, project: String, limit: Int = 5, token: ApiToken): Either[String, List[Issue]] =
     try
-      val url = buildListRecentIssuesUrl(baseUrl, limit)
+      val url = buildListRecentIssuesUrl(baseUrl, project, limit)
 
       val response = quickRequest
         .get(uri"$url")
