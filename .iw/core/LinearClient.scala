@@ -88,8 +88,9 @@ object LinearClient:
     graphql
 
   def buildListRecentIssuesQuery(teamId: String, limit: Int = 5): String =
+    // Filter out completed and canceled issues (only show active work)
     val graphql = s"""{
-      "query": "{ team(id: \\"$teamId\\") { issues(first: $limit, orderBy: createdAt) { nodes { identifier title state { name } } } } }"
+      "query": "{ team(id: \\"$teamId\\") { issues(first: $limit, orderBy: createdAt, filter: { state: { type: { nin: [\\"completed\\", \\"canceled\\"] } } }) { nodes { identifier title state { name } } } } }"
     }"""
     graphql
 
