@@ -1,5 +1,5 @@
-// PURPOSE: Presentation layer for rendering worktree cards with Scalatags
-// PURPOSE: Generates HTML for worktree list with issue ID, title, status badge, and relative timestamps
+// PURPOSE: Presentation layer for rendering worktree list with Scalatags
+// PURPOSE: Coordinates card rendering and handles list-level concerns like staggered loading
 
 package iw.core.presentation.views
 
@@ -33,7 +33,11 @@ object WorktreeListView:
       )
     else
       div(
+        id := "worktree-list",
         cls := "worktree-list",
+        attr("hx-get") := s"/api/worktrees/changes?since=${now.toEpochMilli}",
+        attr("hx-trigger") := "every 30s",
+        attr("hx-swap") := "none",
         worktreesWithData.zipWithIndex.map { case ((wt, issueData, progress, gitStatus, prData, reviewStateResult), index) =>
           val position = index + 1 // Position is 1-based
           renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now, sshHost, position)
@@ -53,235 +57,18 @@ object WorktreeListView:
   ): Frag =
     issueData match
       case None =>
-        // Skeleton card for cache miss
-        renderSkeletonCard(worktree, progress, gitStatus, prData, reviewStateResult, now, position)
+        // Skeleton card with staggered loading delay
+        val delay = calculateDelay(position)
+        val skeletonConfig = HtmxCardConfig(
+          trigger = s"load delay:$delay, every 30s, refresh from:body",
+          swap = "outerHTML transition:true"
+        )
+        WorktreeCardRenderer.renderSkeletonCard(worktree, gitStatus, now, skeletonConfig)
       case Some((data, fromCache, isStale)) =>
-        renderNormalCard(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now, sshHost, position)
-
-  private def renderSkeletonCard(
-    worktree: WorktreeRegistration,
-    progress: Option[WorkflowProgress],
-    gitStatus: Option[GitStatus],
-    prData: Option[PullRequestData],
-    reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant,
-    position: Int
-  ): Frag =
-    val delay = calculateDelay(position)
-    div(
-      cls := "worktree-card skeleton-card",
-      id := s"worktree-${worktree.issueId}",
-      attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := s"load delay:$delay, every 30s, refresh from:body",
-      attr("hx-swap") := "outerHTML transition:true",
-      // Issue ID as non-clickable placeholder
-      h3(cls := "skeleton-title", "Loading..."),
-      p(
-        cls := "issue-id",
-        span(worktree.issueId)
-      ),
-      // Git status section (if available)
-      gitStatus.map { status =>
-        div(
-          cls := "git-status",
-          span(cls := "git-branch", s"Branch: ${status.branchName}"),
-          span(
-            cls := s"git-indicator ${status.statusCssClass}",
-            status.statusIndicator
-          )
+        WorktreeCardRenderer.renderCard(
+          worktree, data, fromCache, isStale, progress, gitStatus, prData,
+          reviewStateResult, now, sshHost, HtmxCardConfig.dashboard
         )
-      },
-      // Last activity
-      p(
-        cls := "last-activity",
-        s"Last activity: ${formatRelativeTime(worktree.lastSeenAt, now)}"
-      )
-    )
-
-  private def renderNormalCard(
-    worktree: WorktreeRegistration,
-    data: IssueData,
-    fromCache: Boolean,
-    isStale: Boolean,
-    progress: Option[WorkflowProgress],
-    gitStatus: Option[GitStatus],
-    prData: Option[PullRequestData],
-    reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant,
-    sshHost: String,
-    position: Int
-  ): Frag =
-    div(
-      cls := "worktree-card",
-      id := s"worktree-${worktree.issueId}",
-      attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-      attr("hx-trigger") := "every 30s, refresh from:body",
-      attr("hx-swap") := "outerHTML transition:true",
-      // Issue title
-      h3(data.title),
-      // Issue ID as clickable link
-      p(
-        cls := "issue-id",
-        a(
-          href := data.url,
-          worktree.issueId
-        )
-      ),
-      // Git status section (if available)
-      gitStatus.map { status =>
-        div(
-          cls := "git-status",
-          span(cls := "git-branch", s"Branch: ${status.branchName}"),
-          span(
-            cls := s"git-indicator ${status.statusCssClass}",
-            status.statusIndicator
-          )
-        )
-      },
-      // PR link section (if available)
-      prData.map { pr =>
-        div(
-          cls := "pr-link",
-          a(
-            cls := "pr-button",
-            href := pr.url,
-            target := "_blank",
-            "View PR ↗"
-          ),
-          span(
-            cls := s"pr-badge ${pr.stateBadgeClass}",
-            pr.stateBadgeText
-          )
-        )
-      },
-      // Zed editor button
-      div(
-        cls := "zed-link",
-        a(
-          cls := "zed-button",
-          href := s"zed://ssh/$sshHost${worktree.path}",
-          attr("title") := "Open in Zed",
-          img(
-            src := "https://raw.githubusercontent.com/zed-industries/zed/main/crates/zed/resources/app-icon.png",
-            alt := "Zed",
-            attr("width") := "18",
-            attr("height") := "18"
-          )
-        )
-      ),
-      // Phase info and progress bar (if available)
-      progress.flatMap(_.currentPhaseInfo).map { phaseInfo =>
-        div(
-          cls := "phase-info",
-          span(
-            cls := "phase-label",
-            s"Phase ${phaseInfo.phaseNumber}/${progress.get.totalPhases}: ${phaseInfo.phaseName}"
-          ),
-          div(
-            cls := "progress-container",
-            div(
-              cls := "progress-bar",
-              attr("style") := s"width: ${phaseInfo.progressPercentage}%"
-            ),
-            span(
-              cls := "progress-text",
-              s"${phaseInfo.completedTasks}/${phaseInfo.totalTasks} tasks"
-            )
-          )
-        )
-      },
-      // Issue details (status, assignee, cache indicator, stale indicator)
-      div(
-        cls := "issue-details",
-        // Status badge
-        span(
-          cls := s"status-badge status-${statusClass(data.status)}",
-          data.status
-        ),
-        // Assignee (if present)
-        data.assignee.map(a =>
-          span(cls := "assignee", s" · Assigned: $a")
-        ),
-        // Cache indicator (if from cache)
-        if fromCache then
-          span(
-            cls := "cache-indicator",
-            s" · cached ${formatCacheAge(data.fetchedAt, now)}"
-          )
-        else
-          (),
-        // Stale indicator (if data is stale)
-        if isStale then
-          span(
-            cls := "stale-indicator",
-            s" · stale"
-          )
-        else
-          ()
-      ),
-      // Review artifacts section (based on review state result)
-      reviewStateResult match {
-        case None =>
-          // No review state file - don't show anything
-          ()
-        case Some(Left(error)) =>
-          // Invalid review state file - show error message
-          div(
-            cls := "review-artifacts review-error",
-            h4("Review Artifacts"),
-            p(cls := "review-error-message", "⚠ Review state unavailable"),
-            p(cls := "review-error-detail", "The review state file exists but could not be loaded. Check for JSON syntax errors.")
-          )
-        case Some(Right(state)) if state.artifacts.nonEmpty =>
-          // Valid review state with artifacts - show them
-          div(
-            cls := "review-artifacts",
-            // Header with phase number (if available)
-            h4(
-              "Review Artifacts",
-              state.phase.map { phaseNum =>
-                span(cls := "review-phase", s" (Phase $phaseNum)")
-              }
-            ),
-            // Status badge (if available)
-            state.status.map { statusValue =>
-              div(
-                cls := s"review-status ${statusBadgeClass(statusValue)}",
-                span(cls := "review-status-label", formatStatusLabel(statusValue))
-              )
-            },
-            // Message (if available)
-            state.message.map { msg =>
-              p(cls := "review-message", msg)
-            },
-            // Artifacts list
-            ul(
-              cls := "artifact-list",
-              state.artifacts.map { artifact =>
-                li(
-                  a(
-                    href := s"/worktrees/${worktree.issueId}/artifacts?path=${artifact.path}",
-                    artifact.label
-                  )
-                )
-              }
-            )
-          )
-        case Some(Right(state)) =>
-          // Valid review state but no artifacts - don't show anything
-          ()
-      },
-      // Update timestamp
-      p(
-        cls := "update-timestamp",
-        TimestampFormatter.formatUpdateTimestamp(data.fetchedAt, now)
-      ),
-      // Last activity
-      p(
-        cls := "last-activity",
-        s"Last activity: ${formatRelativeTime(worktree.lastSeenAt, now)}"
-      )
-    )
 
   /** Calculate HTMX polling delay based on card position.
     *

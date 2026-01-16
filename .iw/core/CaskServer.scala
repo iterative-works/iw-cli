@@ -4,7 +4,7 @@
 package iw.core.infrastructure
 
 import iw.core.{ConfigFileRepository, Constants, ProjectConfiguration, IssueId, ApiToken, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, WorktreePath, IssueTrackerType}
-import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService, WorktreeCardService, CardRenderResult, RefreshThrottle}
+import iw.core.application.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCreationService, WorktreeCardService, CardRenderResult, RefreshThrottle, WorktreeListSync}
 import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
 import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
 import java.time.Instant
@@ -122,6 +122,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
         // Render the card
         val now = Instant.now()
+        val sshHost = java.net.InetAddress.getLocalHost().getHostName()
         val result = WorktreeCardService.renderCard(
           issueId,
           state.worktrees,
@@ -131,6 +132,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           state.reviewStateCache,
           refreshThrottle,
           now,
+          sshHost,
           fetchFn,
           urlBuilder
         )
@@ -165,6 +167,66 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
     else
       // Throttled - too soon since last refresh
       ujson.Obj("status" -> "throttled")
+
+  @cask.get("/api/worktrees/changes")
+  def worktreeChanges(since: Option[Long] = None): cask.Response[String] =
+    // Resolve effective SSH host from server hostname
+    val sshHost = java.net.InetAddress.getLocalHost().getHostName()
+
+    // Get current server state
+    val state = stateService.getState
+    val now = Instant.now()
+
+    // Get current worktree IDs ordered by activity
+    val currentWorktrees = state.listByActivity
+    val currentIds = currentWorktrees.map(_.issueId)
+
+    // Determine what changed since the given timestamp
+    // For simplicity, if since is 0 or not provided, return all as additions
+    val sinceTimestamp = since.getOrElse(0L)
+
+    if sinceTimestamp == 0 then
+      // Initial load - return all worktrees as additions
+      val changes = WorktreeListSync.ListChanges(
+        additions = currentIds,
+        deletions = List.empty,
+        reorders = List.empty
+      )
+
+      val html = WorktreeListSync.generateChangesResponse(
+        changes,
+        state.worktrees,
+        state.issueCache,
+        state.progressCache,
+        state.prCache,
+        state.reviewStateCache,
+        now,
+        sshHost
+      )
+
+      cask.Response(
+        data = html,
+        headers = Seq(
+          "Content-Type" -> "text/html; charset=UTF-8",
+          "X-Worktree-Timestamp" -> now.toEpochMilli.toString
+        )
+      )
+    else
+      // Compare with previous state
+      // For Phase 7, we'll do a simple comparison with the current list
+      // In a real implementation, we'd track state changes with timestamps
+
+      // For now, assume no changes (client will poll regularly)
+      // TODO: Implement proper state tracking with timestamps
+      val html = ""
+
+      cask.Response(
+        data = html,
+        headers = Seq(
+          "Content-Type" -> "text/html; charset=UTF-8",
+          "X-Worktree-Timestamp" -> now.toEpochMilli.toString
+        )
+      )
 
   @cask.get("/health")
   def health(): ujson.Value =

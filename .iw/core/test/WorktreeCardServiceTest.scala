@@ -42,6 +42,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       Map.empty,
       throttle,
       now,
+      "test-server",
       (id: String) => Right(Issue(id, "Test Issue From API", "Open", None, None)),
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
@@ -63,6 +64,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       Map.empty,
       throttle,
       now,
+      "test-server",
       (id: String) => Left("Not found"),
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
@@ -93,6 +95,7 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       Map.empty,
       throttle,
       now,
+      "test-server",
       (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
@@ -127,9 +130,10 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       Map.empty,
       throttle,
       now,
+      "test-server",
       (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    assert(result.html.contains(s"id=\"worktree-$issueId\""))
+    assert(result.html.contains(s"id=\"card-$issueId\""))
   }

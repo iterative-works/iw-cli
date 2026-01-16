@@ -1,17 +1,18 @@
 {
   "version": 1,
   "issue_id": "IW-92",
-  "status": "final_pr_created",
-  "phase": 6,
-  "step": "final_review",
-  "branch": "IW-92",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/140",
-  "git_sha": "ce290bc",
-  "last_updated": "2026-01-15T22:30:00Z",
-  "message": "Final PR #140 created - awaiting merge to main",
+  "status": "awaiting_review",
+  "phase": 7,
+  "step": "review",
+  "branch": "IW-92-phase-07",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/141",
+  "git_sha": "6b0c6df1db4377bb646932f943dc8b4df76f779e",
+  "last_updated": "2026-01-16T10:29:47Z",
+  "message": "Phase 7 complete - Worktree list synchronization",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
-    {"label": "Final PR", "path": "https://github.com/iterative-works/iw-cli/pull/140"}
+    {"label": "Phase 7 Context", "path": "project-management/issues/IW-92/phase-07-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-92/review-packet-phase-07.md"}
   ]
 }
