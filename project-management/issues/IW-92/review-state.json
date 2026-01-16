@@ -1,17 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-92",
-  "status": "complete",
-  "phase": 6,
-  "step": "done",
-  "branch": "main",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/140",
-  "git_sha": "8cfa659387d8c1098d82d477a5255a1ae72d0aa0",
-  "last_updated": "2026-01-15T22:34:34Z",
-  "message": "IW-92 complete - merged to main",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-92/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-92/implementation-log.md"},
-    {"label": "Final PR", "path": "https://github.com/iterative-works/iw-cli/pull/140"}
-  ]
+  "status": "implementing",
+  "phase": 7,
+  "step": "implementation",
+  "branch": "IW-92-phase-07",
+  "pr_url": null,
+  "git_sha": "427f15e27e1f40d99ad55814cd1dacabb1118e1b",
+  "last_updated": "2026-01-16T10:05:00Z",
+  "message": "Phase 7 implementation in progress"
 }

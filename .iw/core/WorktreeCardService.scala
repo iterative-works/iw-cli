@@ -200,7 +200,7 @@ object WorktreeCardService:
   ): String =
     div(
       cls := "worktree-card",
-      id := s"worktree-${worktree.issueId}",
+      id := s"card-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
       attr("hx-trigger") := "every 30s",
       attr("hx-swap") := "outerHTML",
@@ -375,7 +375,7 @@ object WorktreeCardService:
   ): String =
     div(
       cls := "worktree-card skeleton-card",
-      id := s"worktree-${worktree.issueId}",
+      id := s"card-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
       attr("hx-trigger") := "every 30s",
       attr("hx-swap") := "outerHTML",
