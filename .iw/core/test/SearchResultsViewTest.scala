@@ -190,3 +190,11 @@ class SearchResultsViewTest extends FunSuite:
 
     assert(html.contains("hx-on::after-request"), "Should have after-request handler")
     assert(html.contains("classList.remove('disabled')"), "Should remove disabled class on request end")
+
+  test("result item has hx-target-4xx for error response handling"):
+    val result = IssueSearchResult("TEST-1", "Title", "Status", "url")
+
+    val html = SearchResultsView.render(List(result)).render
+
+    assert(html.contains("hx-target-4xx"), "Should have hx-target-4xx attribute")
+    assert(html.contains("hx-target-5xx"), "Should have hx-target-5xx attribute")
