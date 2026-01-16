@@ -131,5 +131,5 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    assert(result.html.contains(s"id=\"worktree-$issueId\""))
+    assert(result.html.contains(s"id=\"card-$issueId\""))
   }

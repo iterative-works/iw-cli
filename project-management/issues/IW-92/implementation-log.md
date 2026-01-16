@@ -345,6 +345,60 @@ M	.iw/core/test/StateRepositoryTest.scala
 - Completes the dashboard's reactive behavior
 
 **Action items:**
-- [ ] Implement Phase 7 using `/iterative-works:ag-implement`
+- [x] Implement Phase 7 using `/iterative-works:ag-implement`
+
+---
+
+## Phase 7: Worktree list synchronization (2026-01-16)
+
+**What was built:**
+- Application: `WorktreeListSync.scala` - Core sync logic with diff detection and HTMX OOB generation
+  - `ListChanges` case class with additions, deletions, reorders
+  - `detectChanges(oldIds, newIds)` - Set-based diff algorithm
+  - `generateAdditionOob()`, `generateDeletionOob()`, `generateReorderOob()` - OOB HTML generation
+  - `generateChangesResponse()` - Combines all OOB swaps into response
+- Infrastructure: `CaskServer.scala` - Added `/api/worktrees/changes?since=<timestamp>` endpoint
+- Presentation: `WorktreeListView.scala` - Added OOB polling attributes to container (`hx-get`, `hx-trigger="every 30s"`, `hx-swap="none"`)
+- Presentation: Changed card IDs from `worktree-{issueId}` to `card-{issueId}` for HTMX targeting
+
+**Decisions made:**
+- HTMX `hx-swap-oob` pattern: Server returns only OOB swaps, client applies them surgically
+- Card ID convention: `card-{issueId}` enables HTMX targeting for deletions (`hx-swap-oob="delete"`)
+- Polling interval: 30s for list sync (matches individual card refresh interval)
+- `hx-swap="none"`: Main response body ignored, only OOB swaps processed
+- Server-driven: No client-side JavaScript diffing - pure HATEOAS approach
+
+**Patterns applied:**
+- HTMX OOB swaps: `hx-swap-oob="beforeend:#worktree-list"` for additions, `hx-swap-oob="delete"` for removals
+- Server-driven HATEOAS: Server tells client exactly what DOM mutations to perform
+- Set-based diff: Detect additions (in new, not in old) and deletions (in old, not in new)
+
+**Testing:**
+- Unit tests: 12 tests added in WorktreeListSyncTest.scala
+  - 6 tests for diff detection (additions, deletions, reorders, empty lists)
+  - 6 tests for OOB generation (addition/deletion HTML, empty response)
+- Existing tests: 4 WorktreeCardServiceTest tests updated and passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-07-20260116.md
+- Findings: 3 critical (testing gaps), 6 warnings, 8 suggestions
+- Critical issues: All testing-related (E2E tests, HTML structure verification, HTTP integration tests)
+- Resolution: Testing gaps documented in GitHub issue #82 for future work
+
+**For next phases:**
+- Available utilities: `WorktreeListSync.detectChanges()`, `generateChangesResponse()` for list diffing
+- Extension points: OOB generation can be extended for partial updates, reordering
+- Notes: Implementation complete; one task deferred (worktree change tracking in ServerStateService) - currently returns all worktrees on `since=0`, empty on subsequent polls
+
+**Files changed:**
+```
+A	.iw/core/WorktreeListSync.scala
+A	.iw/core/test/WorktreeListSyncTest.scala
+M	.iw/core/CaskServer.scala
+M	.iw/core/WorktreeCardService.scala
+M	.iw/core/WorktreeListView.scala
+M	.iw/core/test/WorktreeCardServiceTest.scala
+```
 
 ---

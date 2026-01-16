@@ -33,7 +33,11 @@ object WorktreeListView:
       )
     else
       div(
+        id := "worktree-list",
         cls := "worktree-list",
+        attr("hx-get") := s"/api/worktrees/changes?since=${now.toEpochMilli}",
+        attr("hx-trigger") := "every 30s",
+        attr("hx-swap") := "none",
         worktreesWithData.zipWithIndex.map { case ((wt, issueData, progress, gitStatus, prData, reviewStateResult), index) =>
           val position = index + 1 // Position is 1-based
           renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now, sshHost, position)
@@ -70,7 +74,7 @@ object WorktreeListView:
     val delay = calculateDelay(position)
     div(
       cls := "worktree-card skeleton-card",
-      id := s"worktree-${worktree.issueId}",
+      id := s"card-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
       attr("hx-trigger") := s"load delay:$delay, every 30s, refresh from:body",
       attr("hx-swap") := "outerHTML transition:true",
@@ -113,7 +117,7 @@ object WorktreeListView:
   ): Frag =
     div(
       cls := "worktree-card",
-      id := s"worktree-${worktree.issueId}",
+      id := s"card-${worktree.issueId}",
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
       attr("hx-trigger") := "every 30s, refresh from:body",
       attr("hx-swap") := "outerHTML transition:true",
