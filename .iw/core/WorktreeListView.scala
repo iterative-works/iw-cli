@@ -35,7 +35,7 @@ object WorktreeListView:
       div(
         id := "worktree-list",
         cls := "worktree-list",
-        attr("hx-get") := s"/api/worktrees/changes?since=0",
+        attr("hx-get") := s"/api/worktrees/changes?since=${now.toEpochMilli}",
         attr("hx-trigger") := "every 30s",
         attr("hx-swap") := "none",
         worktreesWithData.zipWithIndex.map { case ((wt, issueData, progress, gitStatus, prData, reviewStateResult), index) =>
