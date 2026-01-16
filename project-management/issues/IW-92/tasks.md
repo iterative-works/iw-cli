@@ -2,7 +2,7 @@
 
 **Issue:** IW-92
 **Created:** 2026-01-14
-**Status:** 6/6 phases complete (100%)
+**Status:** 6/7 phases complete (86%)
 
 ## Phase Index
 
@@ -12,11 +12,12 @@
 - [x] Phase 4: Incremental card updates via HTMX (Est: 6-8h) → `phase-04-context.md`
 - [x] Phase 5: Visible-items-first optimization (Est: 4-6h, stretch) → `phase-05-context.md`
 - [x] Phase 6: State management refactoring (Est: 4-6h, critical fix) → `phase-06-context.md`
+- [ ] Phase 7: Worktree list synchronization (Est: 3-4h) → `phase-07-context.md`
 
 ## Progress Tracker
 
-**Completed:** 6/6 phases
-**Estimated Total:** 32-46 hours
+**Completed:** 6/7 phases
+**Estimated Total:** 35-50 hours
 **Time Spent:** 0 hours
 
 ## Story-to-Phase Mapping
@@ -29,6 +30,7 @@
 | 4 | Story 3 | Smooth per-card updates, timestamps, CSS transitions |
 | 5 | Story 5 | Priority-based refresh (most recent first) - stretch goal |
 | 6 | Refactor | Fix race condition, centralize state management |
+| 7 | New | Worktree list sync via hx-swap-oob (add/remove/reorder) |
 
 ## Key Decisions
 
@@ -37,6 +39,7 @@
 - **TTL handling:** Always render cache, always refresh (30s throttle)
 - **Error handling:** Silent failure with aging timestamps
 - **Tab visibility:** Refresh on tab focus via `visibilitychange`
+- **List sync:** Server-driven `hx-swap-oob` for surgical add/remove/reorder (no JS diffing)
 
 ## MVP vs Full Feature
 
@@ -60,3 +63,4 @@
 - Estimates are rough and will be refined during implementation
 - Phases 1+2 can be deployed together for immediate UX improvement
 - Phase 5 is optional - skip if time-constrained
+- Phase 7 added post-completion to fix gap: worktree list wasn't syncing (adds/removes/reorders)

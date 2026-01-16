@@ -309,3 +309,42 @@ M	.iw/core/test/StateRepositoryTest.scala
 ```
 
 ---
+
+## Human Review: Post-Completion Gap Analysis (2026-01-16)
+
+**Reviewer:** Michal
+
+**Context:** During code review discussion, identified a gap in the implementation - the worktree list itself never synchronizes when worktrees are added or removed while the dashboard is open.
+
+**Problem identified:**
+- Dashboard loads with N worktree cards, each polling for content updates
+- But the *set of cards* is fixed at initial page load
+- New worktrees (`iw start ISSUE-NEW`) never appear on open dashboard
+- Removed worktrees (`iw rm ISSUE-OLD`) get 404s, stuck in loading state
+
+**Decision made:**
+- Add Phase 7: Worktree list synchronization
+- Use HTMX `hx-swap-oob` pattern for surgical DOM updates
+- Server-driven approach (no client-side JS diffing)
+- Poll `/api/worktrees/changes?since=<timestamp>` with `hx-swap="none"`
+- Server returns only OOB swaps for additions/deletions/reorders
+
+**Research conducted:**
+- Perplexity search on HTMX hx-swap-oob patterns
+- Confirmed: `hx-swap-oob="beforeend:#target"` for additions
+- Confirmed: `hx-swap-oob="delete"` for removals
+- Confirmed: `hx-swap="none"` on poll trigger, only OOB processed
+
+**Files created:**
+- `phase-07-context.md` - Full story context with Gherkin scenarios
+- `phase-07-tasks.md` - Implementation task checklist
+
+**Impact on stories:**
+- New user story added (not in original analysis)
+- Extends Phase 3's HTMX foundation
+- Completes the dashboard's reactive behavior
+
+**Action items:**
+- [ ] Implement Phase 7 using `/iterative-works:ag-implement`
+
+---
