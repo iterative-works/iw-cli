@@ -122,6 +122,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
         // Render the card
         val now = Instant.now()
+        val sshHost = java.net.InetAddress.getLocalHost().getHostName()
         val result = WorktreeCardService.renderCard(
           issueId,
           state.worktrees,
@@ -131,6 +132,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           state.reviewStateCache,
           refreshThrottle,
           now,
+          sshHost,
           fetchFn,
           urlBuilder
         )

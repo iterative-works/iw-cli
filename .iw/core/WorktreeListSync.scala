@@ -4,7 +4,7 @@
 package iw.core.application
 
 import iw.core.domain.{WorktreeRegistration, CachedIssue, CachedProgress, CachedPR, CachedReviewState, IssueData, WorkflowProgress, PullRequestData, ReviewState}
-import iw.core.presentation.views.{WorktreeListView, TimestampFormatter}
+import iw.core.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 
@@ -77,24 +77,29 @@ object WorktreeListSync:
     now: Instant,
     sshHost: String
   ): String =
-    // Render card HTML directly
-    val issueDataTuple = issueData.map(c => (c.data, true, CachedIssue.isStale(c, now)))
-    val cardContent = renderCardContent(
-      registration,
-      issueDataTuple,
-      progress.map(_.progress),
-      prData.map(_.pr),
-      reviewState.map(c => Right(c.state)),
-      now,
-      sshHost
-    )
-
-    // Return div with OOB attribute and card ID
-    div(
-      id := s"card-${registration.issueId}",
-      attr("hx-swap-oob") := "beforeend:#worktree-list",
-      cardContent
-    ).render
+    issueData match
+      case Some(cached) =>
+        val isStale = CachedIssue.isStale(cached, now)
+        WorktreeCardRenderer.renderCard(
+          registration,
+          cached.data,
+          fromCache = true,
+          isStale = isStale,
+          progress.map(_.progress),
+          gitStatus = None,
+          prData.map(_.pr),
+          reviewState.map(c => Right(c.state)),
+          now,
+          sshHost,
+          HtmxCardConfig.oobAddition
+        ).render
+      case None =>
+        WorktreeCardRenderer.renderSkeletonCard(
+          registration,
+          gitStatus = None,
+          now,
+          HtmxCardConfig.oobAddition
+        ).render
 
   /** Generate HTMX OOB swap HTML for deleting a worktree card.
     *
@@ -137,26 +142,29 @@ object WorktreeListSync:
   ): String =
     val deleteHtml = generateDeletionOob(registration.issueId)
 
-    // Render card content
-    val issueDataTuple = issueData.map(c => (c.data, true, CachedIssue.isStale(c, now)))
-    val cardContent = renderCardContent(
-      registration,
-      issueDataTuple,
-      progress.map(_.progress),
-      prData.map(_.pr),
-      reviewState.map(c => Right(c.state)),
-      now,
-      sshHost
-    )
-
-    // Use afterbegin for position 0 (top), otherwise use beforeend
-    val swapStrategy = if position == 0 then "afterbegin:#worktree-list" else "beforeend:#worktree-list"
-
-    val addHtml = div(
-      id := s"card-${registration.issueId}",
-      attr("hx-swap-oob") := swapStrategy,
-      cardContent
-    ).render
+    val addHtml = issueData match
+      case Some(cached) =>
+        val isStale = CachedIssue.isStale(cached, now)
+        WorktreeCardRenderer.renderCard(
+          registration,
+          cached.data,
+          fromCache = true,
+          isStale = isStale,
+          progress.map(_.progress),
+          gitStatus = None,
+          prData.map(_.pr),
+          reviewState.map(c => Right(c.state)),
+          now,
+          sshHost,
+          HtmxCardConfig.oobAtPosition(position)
+        ).render
+      case None =>
+        WorktreeCardRenderer.renderSkeletonCard(
+          registration,
+          gitStatus = None,
+          now,
+          HtmxCardConfig.oobAtPosition(position)
+        ).render
 
     deleteHtml + addHtml
 
@@ -221,206 +229,3 @@ object WorktreeListSync:
       }
 
       (deletionsHtml ++ reordersHtml ++ additionsHtml).mkString
-
-  /** Render card content as Scalatags Frag.
-    *
-    * This renders the inner content of a worktree card for OOB swaps.
-    *
-    * @param worktree Worktree registration
-    * @param issueDataOpt Optional tuple of (IssueData, fromCache, isStale)
-    * @param progress Optional workflow progress
-    * @param prData Optional PR data
-    * @param reviewStateResult Optional review state result
-    * @param now Current timestamp
-    * @param sshHost SSH hostname for Zed links
-    * @return Frag with card content
-    */
-  private def renderCardContent(
-    worktree: WorktreeRegistration,
-    issueDataOpt: Option[(IssueData, Boolean, Boolean)],
-    progress: Option[WorkflowProgress],
-    prData: Option[PullRequestData],
-    reviewStateResult: Option[Either[String, ReviewState]],
-    now: Instant,
-    sshHost: String
-  ): Frag =
-    issueDataOpt match
-      case Some((data, fromCache, isStale)) =>
-        div(
-          cls := "worktree-card",
-          attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-          attr("hx-trigger") := "every 30s",
-          attr("hx-swap") := "outerHTML",
-          // Issue title
-          h3(data.title),
-          // Issue ID as clickable link
-          p(
-            cls := "issue-id",
-            a(
-              href := data.url,
-              worktree.issueId
-            )
-          ),
-          // PR link section (if available)
-          prData.map { pr =>
-            div(
-              cls := "pr-link",
-              a(
-                cls := "pr-button",
-                href := pr.url,
-                target := "_blank",
-                "View PR ↗"
-              ),
-              span(
-                cls := s"pr-badge ${pr.stateBadgeClass}",
-                pr.stateBadgeText
-              )
-            )
-          },
-          // Zed editor button
-          div(
-            cls := "zed-link",
-            a(
-              cls := "zed-button",
-              href := s"zed://ssh/$sshHost${worktree.path}",
-              attr("title") := "Open in Zed",
-              img(
-                src := "https://raw.githubusercontent.com/zed-industries/zed/main/crates/zed/resources/app-icon.png",
-                alt := "Zed",
-                attr("width") := "18",
-                attr("height") := "18"
-              )
-            )
-          ),
-          // Phase info and progress bar (if available)
-          progress.flatMap(_.currentPhaseInfo).map { phaseInfo =>
-            div(
-              cls := "phase-info",
-              span(
-                cls := "phase-label",
-                s"Phase ${phaseInfo.phaseNumber}/${progress.get.totalPhases}: ${phaseInfo.phaseName}"
-              ),
-              div(
-                cls := "progress-container",
-                div(
-                  cls := "progress-bar",
-                  attr("style") := s"width: ${phaseInfo.progressPercentage}%"
-                ),
-                span(
-                  cls := "progress-text",
-                  s"${phaseInfo.completedTasks}/${phaseInfo.totalTasks} tasks"
-                )
-              )
-            )
-          },
-          // Issue details (status, assignee, cache indicator, stale indicator)
-          div(
-            cls := "issue-details",
-            // Status badge
-            span(
-              cls := s"status-badge status-${WorktreeListView.statusClass(data.status)}",
-              data.status
-            ),
-            // Assignee (if present)
-            data.assignee.map(a =>
-              span(cls := "assignee", s" · Assigned: $a")
-            ),
-            // Cache indicator (if from cache)
-            if fromCache then
-              span(
-                cls := "cache-indicator",
-                s" · cached ${WorktreeListView.formatCacheAge(data.fetchedAt, now)}"
-              )
-            else
-              (),
-            // Stale indicator (if data is stale)
-            if isStale then
-              span(
-                cls := "stale-indicator",
-                s" · stale"
-              )
-            else
-              ()
-          ),
-          // Review artifacts section (based on review state result)
-          reviewStateResult match {
-            case None =>
-              // No review state file - don't show anything
-              ()
-            case Some(Left(error)) =>
-              // Invalid review state file - show error message
-              div(
-                cls := "review-artifacts review-error",
-                h4("Review Artifacts"),
-                p(cls := "review-error-message", "⚠ Review state unavailable"),
-                p(cls := "review-error-detail", "The review state file exists but could not be loaded. Check for JSON syntax errors.")
-              )
-            case Some(Right(state)) if state.artifacts.nonEmpty =>
-              // Valid review state with artifacts - show them
-              div(
-                cls := "review-artifacts",
-                // Header with phase number (if available)
-                h4(
-                  "Review Artifacts",
-                  state.phase.map { phaseNum =>
-                    span(cls := "review-phase", s" (Phase $phaseNum)")
-                  }
-                ),
-                // Status badge (if available)
-                state.status.map { statusValue =>
-                  div(
-                    cls := s"review-status ${WorktreeListView.statusBadgeClass(statusValue)}",
-                    span(cls := "review-status-label", WorktreeListView.formatStatusLabel(statusValue))
-                  )
-                },
-                // Message (if available)
-                state.message.map { msg =>
-                  p(cls := "review-message", msg)
-                },
-                // Artifacts list
-                ul(
-                  cls := "artifact-list",
-                  state.artifacts.map { artifact =>
-                    li(
-                      a(
-                        href := s"/worktrees/${worktree.issueId}/artifacts?path=${artifact.path}",
-                        artifact.label
-                      )
-                    )
-                  }
-                )
-              )
-            case Some(Right(state)) =>
-              // Valid review state but no artifacts - don't show anything
-              ()
-          },
-          // Update timestamp
-          p(
-            cls := "update-timestamp",
-            TimestampFormatter.formatUpdateTimestamp(data.fetchedAt, now)
-          ),
-          // Last activity
-          p(
-            cls := "last-activity",
-            s"Last activity: ${WorktreeListView.formatRelativeTime(worktree.lastSeenAt, now)}"
-          )
-        )
-      case None =>
-        // Skeleton card
-        div(
-          cls := "worktree-card skeleton-card",
-          attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
-          attr("hx-trigger") := "every 30s",
-          attr("hx-swap") := "outerHTML",
-          // Issue ID as non-clickable placeholder
-          h3(cls := "skeleton-title", "Loading..."),
-          p(
-            cls := "issue-id",
-            span(worktree.issueId)
-          ),
-          // Last activity
-          p(
-            cls := "last-activity",
-            s"Last activity: ${WorktreeListView.formatRelativeTime(worktree.lastSeenAt, now)}"
-          )
-        )
