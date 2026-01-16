@@ -338,9 +338,9 @@ object GitHubClient:
       // Parse array of issues
       val issuesArray = json.arr
       val issues = issuesArray.map { issueJson =>
-        // Format issue ID with # prefix (e.g., "#132")
+        // Use bare issue number as canonical ID (consistent with other trackers)
         val number = issueJson("number").num.toInt
-        val id = s"#$number"
+        val id = number.toString
 
         // Extract title and state (lowercase state for consistency)
         val title = issueJson("title").str
