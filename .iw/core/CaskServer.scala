@@ -169,7 +169,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       ujson.Obj("status" -> "throttled")
 
   @cask.get("/api/worktrees/changes")
-  def worktreeChanges(since: Option[Long] = None): cask.Response[String] =
+  def worktreeChanges(have: Option[String] = None): cask.Response[String] =
     // Resolve effective SSH host from server hostname
     val sshHost = java.net.InetAddress.getLocalHost().getHostName()
 
@@ -181,52 +181,32 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
     val currentWorktrees = state.listByActivity
     val currentIds = currentWorktrees.map(_.issueId)
 
-    // Determine what changed since the given timestamp
-    // For simplicity, if since is 0 or not provided, return all as additions
-    val sinceTimestamp = since.getOrElse(0L)
+    // Parse client's known IDs from `have` param (comma-separated)
+    val clientIds = have
+      .map(_.split(",").map(_.trim).filter(_.nonEmpty).toList)
+      .getOrElse(List.empty)
 
-    if sinceTimestamp == 0 then
-      // Initial load - return all worktrees as additions
-      val changes = WorktreeListSync.ListChanges(
-        additions = currentIds,
-        deletions = List.empty,
-        reorders = List.empty
+    // Detect changes between client's list and server's current list
+    val changes = WorktreeListSync.detectChanges(clientIds, currentIds)
+
+    // Generate OOB response for any changes
+    val html = WorktreeListSync.generateChangesResponse(
+      changes,
+      state.worktrees,
+      state.issueCache,
+      state.progressCache,
+      state.prCache,
+      state.reviewStateCache,
+      now,
+      sshHost
+    )
+
+    cask.Response(
+      data = html,
+      headers = Seq(
+        "Content-Type" -> "text/html; charset=UTF-8"
       )
-
-      val html = WorktreeListSync.generateChangesResponse(
-        changes,
-        state.worktrees,
-        state.issueCache,
-        state.progressCache,
-        state.prCache,
-        state.reviewStateCache,
-        now,
-        sshHost
-      )
-
-      cask.Response(
-        data = html,
-        headers = Seq(
-          "Content-Type" -> "text/html; charset=UTF-8",
-          "X-Worktree-Timestamp" -> now.toEpochMilli.toString
-        )
-      )
-    else
-      // Compare with previous state
-      // For Phase 7, we'll do a simple comparison with the current list
-      // In a real implementation, we'd track state changes with timestamps
-
-      // For now, assume no changes (client will poll regularly)
-      // TODO: Implement proper state tracking with timestamps
-      val html = ""
-
-      cask.Response(
-        data = html,
-        headers = Seq(
-          "Content-Type" -> "text/html; charset=UTF-8",
-          "X-Worktree-Timestamp" -> now.toEpochMilli.toString
-        )
-      )
+    )
 
   @cask.get("/health")
   def health(): ujson.Value =

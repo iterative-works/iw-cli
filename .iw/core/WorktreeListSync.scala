@@ -77,7 +77,8 @@ object WorktreeListSync:
     now: Instant,
     sshHost: String
   ): String =
-    issueData match
+    // Render card without OOB attribute (using polling config)
+    val cardHtml = issueData match
       case Some(cached) =>
         val isStale = CachedIssue.isStale(cached, now)
         WorktreeCardRenderer.renderCard(
@@ -91,15 +92,21 @@ object WorktreeListSync:
           reviewState.map(c => Right(c.state)),
           now,
           sshHost,
-          HtmxCardConfig.oobAddition
-        ).render
+          HtmxCardConfig.polling
+        )
       case None =>
         WorktreeCardRenderer.renderSkeletonCard(
           registration,
           gitStatus = None,
           now,
-          HtmxCardConfig.oobAddition
-        ).render
+          HtmxCardConfig.polling
+        )
+
+    // Wrap card in OOB carrier div - HTMX uses inner content for beforeend
+    div(
+      attr("hx-swap-oob") := "beforeend:#worktree-list",
+      cardHtml
+    ).render
 
   /** Generate HTMX OOB swap HTML for deleting a worktree card.
     *
@@ -142,7 +149,8 @@ object WorktreeListSync:
   ): String =
     val deleteHtml = generateDeletionOob(registration.issueId)
 
-    val addHtml = issueData match
+    // Render card without OOB attribute (using polling config)
+    val cardHtml = issueData match
       case Some(cached) =>
         val isStale = CachedIssue.isStale(cached, now)
         WorktreeCardRenderer.renderCard(
@@ -156,15 +164,22 @@ object WorktreeListSync:
           reviewState.map(c => Right(c.state)),
           now,
           sshHost,
-          HtmxCardConfig.oobAtPosition(position)
-        ).render
+          HtmxCardConfig.polling
+        )
       case None =>
         WorktreeCardRenderer.renderSkeletonCard(
           registration,
           gitStatus = None,
           now,
-          HtmxCardConfig.oobAtPosition(position)
-        ).render
+          HtmxCardConfig.polling
+        )
+
+    // Wrap card in OOB carrier div with position-based swap
+    val oobTarget = if position == 0 then "afterbegin:#worktree-list" else "beforeend:#worktree-list"
+    val addHtml = div(
+      attr("hx-swap-oob") := oobTarget,
+      cardHtml
+    ).render
 
     deleteHtml + addHtml
 
