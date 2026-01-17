@@ -81,6 +81,8 @@ object SearchResultsView:
         attr("hx-post") := "/api/worktrees/create",
         attr("hx-vals") := valsJson,
         attr("hx-target") := "#modal-body-content",
+        attr("hx-target-4xx") := "#modal-body-content",
+        attr("hx-target-5xx") := "#modal-body-content",
         attr("hx-swap") := "innerHTML",
         attr("hx-indicator") := "#creation-spinner"
       )

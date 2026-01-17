@@ -134,3 +134,9 @@ class CreationErrorViewTest extends FunSuite:
 
     assert(html.contains("Retry") || html.contains("Try Again"), "Should have retry button")
     assert(!html.contains("hx-vals"), "Should not have hx-vals when issueId is None")
+
+  test("retry button has hx-target-4xx and hx-target-5xx for error response handling"):
+    val html = CreationErrorView.render(errorWithRetry).render
+
+    assert(html.contains("hx-target-4xx"), "Should have hx-target-4xx attribute")
+    assert(html.contains("hx-target-5xx"), "Should have hx-target-5xx attribute")

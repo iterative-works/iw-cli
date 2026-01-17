@@ -601,12 +601,12 @@ class GitHubClientTest extends munit.FunSuite:
     assert(result.isRight)
     val issues = result.getOrElse(fail("Expected Right"))
     assertEquals(issues.length, 3)
-    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).id, "132")
     assertEquals(issues(0).title, "Add feature")
     assertEquals(issues(0).status, "open")
-    assertEquals(issues(1).id, "#131")
+    assertEquals(issues(1).id, "131")
     assertEquals(issues(1).title, "Fix bug")
-    assertEquals(issues(2).id, "#130")
+    assertEquals(issues(2).id, "130")
     assertEquals(issues(2).title, "Update docs")
 
   test("parseListRecentIssuesResponse parses empty array"):
@@ -656,7 +656,7 @@ class GitHubClientTest extends munit.FunSuite:
     assert(result.isRight)
     val issues = result.getOrElse(fail("Expected Right"))
     assertEquals(issues.length, 2)
-    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).id, "132")
     assertEquals(issues(0).title, "Add feature")
 
   test("listRecentIssues fails when gh CLI not available"):
@@ -748,9 +748,9 @@ class GitHubClientTest extends munit.FunSuite:
     assert(result.isRight)
     val issues = result.getOrElse(fail("Expected Right"))
     assertEquals(issues.length, 2)
-    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).id, "132")
     assertEquals(issues(0).title, "Add feature")
-    assertEquals(issues(1).id, "#131")
+    assertEquals(issues(1).id, "131")
     assertEquals(issues(1).title, "Fix bug")
 
   // ========== searchIssues Integration Tests ==========
@@ -779,7 +779,7 @@ class GitHubClientTest extends munit.FunSuite:
     assert(result.isRight)
     val issues = result.getOrElse(fail("Expected Right"))
     assertEquals(issues.length, 2)
-    assertEquals(issues(0).id, "#132")
+    assertEquals(issues(0).id, "132")
     assertEquals(issues(0).title, "Fix authentication bug")
 
   test("searchIssues when gh CLI not available"):

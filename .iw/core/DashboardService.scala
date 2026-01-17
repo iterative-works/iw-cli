@@ -68,6 +68,10 @@ object DashboardService:
           attr("integrity") := "sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC",
           attr("crossorigin") := "anonymous"
         ),
+        // Add HTMX response-targets extension for error status code handling
+        tag("script")(
+          src := "https://unpkg.com/htmx-ext-response-targets@2.0.0/response-targets.js"
+        ),
         tag("script")(raw("""
           document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
@@ -78,6 +82,7 @@ object DashboardService:
         tag("style")(raw(styles))
       ),
       body(
+        attr("hx-ext") := "response-targets",
         div(
           cls := "container",
           // Header with title and SSH host configuration
