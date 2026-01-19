@@ -22,14 +22,48 @@ Each skill needs a `SKILL.md` with YAML frontmatter:
 ---
 name: skill-name
 description: |
-  Brief description of what this skill covers.
-  IMPORTANT: Include trigger phrases - when should an agent use this skill?
+  One-sentence summary of PROBLEMS this skill solves (not tools it provides).
+
+  Use when:
+  - [Natural language trigger phrases matching what users actually say]
+  - [Problem statements, not command names]
 ---
 
 # Skill Title
 
 [Content here]
 ```
+
+### Writing Good Descriptions
+
+**Lead with problems, not tools.** Agents match skills based on user intent.
+
+**BAD (tool-centric):**
+```yaml
+description: |
+  Use iw-cli for worktree and issue management. Invoke when:
+  - Fetching issue details (`./iw issue [issue-id]`)
+  - Working on issues (`./iw start <issue-id>`)
+```
+
+**GOOD (problem-centric):**
+```yaml
+description: |
+  Fetch issue descriptions and manage development worktrees.
+
+  Use when:
+  - User asks to read, plan, or discuss an issue (e.g., "read the issue", "let's plan IW-48")
+  - Need issue description, title, status, or details from any tracker
+  - Starting work on an issue (creates isolated worktree + tmux session)
+  - Opening or removing existing worktrees
+```
+
+**Key principles:**
+1. First line = problems solved, not tool name
+2. "Use when" lists natural language phrases users actually say
+3. Include example phrases in parentheses ("read the issue", "let's plan...")
+4. Mention what data you can get (description, title, status) not just "details"
+5. Put most common use case first (usually fetching issue info)
 
 ## Guidelines
 
@@ -74,5 +108,6 @@ Write skill files to `.claude/skills/`. Examples:
 - Do NOT modify existing skills (like `iw-command-creation`)
 - Focus on USING iw-cli, not creating new commands
 - Include project-specific context from config.conf
-- Keep descriptions actionable for agents
+- **Description quality is critical** - agents select skills based on matching user phrases
+- Put "read/fetch issue description" use case prominently - it's the most common miss
 - CRITICAL: Always use `./iw` not `iw` - the script is project-local, not in PATH

@@ -1,13 +1,15 @@
 ---
 name: iw-cli-ops
 description: |
-  Use iw-cli for worktree and issue management operations. Invoke when:
-  - Working on a specific issue (use `./iw start <issue-id>` or `./iw open`)
-  - Removing completed worktrees (`./iw rm <issue-id>`)
-  - Fetching issue details (`./iw issue [issue-id]`)
-  - Checking environment setup (`./iw doctor`)
-  - Managing the dashboard server (`./iw server start|stop|status`)
-  - Submitting feedback about iw-cli itself (`./iw feedback`)
+  Fetch issue descriptions and manage development worktrees for isolated issue work.
+
+  Use when:
+  - Reading, planning, or discussing an issue (e.g., "read the issue", "what's issue 48 about?", "let's plan IW-48")
+  - Need issue title, description, status, or assignee from GitHub/Linear/YouTrack/GitLab
+  - Starting work on an issue (creates isolated worktree + tmux session)
+  - Opening or switching to an existing worktree
+  - Removing worktrees after merging or abandoning work
+  - Checking environment health ("is everything set up correctly?")
 ---
 
 # iw-cli Operations Guide
@@ -16,161 +18,107 @@ description: |
 
 This project uses **GitHub** for issue tracking.
 - Repository: `iterative-works/iw-cli`
-- Issue ID format: numeric (e.g., `48`, `132`)
-- Branch naming: `<issue-number>-description` (e.g., `48-worktree-feature`)
+- Team prefix: `IW`
+- Issue ID format: `IW-<number>` (e.g., `IW-48`, `IW-132`) or just the number
+- Branch naming: `IW-<number>` or `IW-<number>-description`
 
-## Available Commands
+## Common Workflows
 
-### Worktree Management
+### Fetching Issue Information
 
-| Command | Purpose |
-|---------|---------|
-| `./iw start <issue-id>` | Create worktree + tmux session for issue |
-| `./iw open [issue-id]` | Open existing worktree session (infers from branch if omitted) |
-| `./iw rm <issue-id> [--force]` | Remove worktree with safety checks |
+**Most common use case:** Get issue details before planning or discussing.
 
-**Examples:**
 ```bash
-./iw start 48              # Create worktree for issue #48
-./iw open                  # Open session for current branch's issue
-./iw rm 48                 # Remove worktree (prompts if uncommitted changes)
-./iw rm 48 --force         # Remove without safety prompts
+./iw issue 48              # Fetch issue #48 (IW-48)
+./iw issue IW-48           # Same, with full ID
+./iw issue                 # Fetch issue for current branch
 ```
 
-### Issue Operations
+Returns: ID, title, status, assignee, and full description.
+
+### Starting Work on an Issue
+
+Creates an isolated worktree with its own tmux session:
+
+```bash
+./iw start 48              # Creates ../iw-cli-IW-48/ worktree + tmux session
+```
+
+This:
+1. Creates a git worktree at `../iw-cli-IW-48/`
+2. Creates (or uses existing) branch `IW-48`
+3. Starts a tmux session named `iw-cli-IW-48`
+4. Switches to (or attaches) the session
+
+### Switching Between Issues
+
+```bash
+./iw open 48               # Switch to session for IW-48
+./iw open                  # Switch to session for current branch's issue
+```
+
+If inside tmux, switches sessions. If outside, attaches.
+
+### Cleaning Up After Merge
+
+```bash
+./iw rm 48                 # Prompts if uncommitted changes exist
+./iw rm 48 --force         # Skip safety prompts
+```
+
+Removes the worktree and kills the tmux session.
+
+## All Available Commands
 
 | Command | Purpose |
 |---------|---------|
-| `./iw issue [issue-id]` | Fetch and display issue details |
+| `./iw issue [id]` | Fetch and display issue details |
+| `./iw start <id>` | Create worktree + tmux session |
+| `./iw open [id]` | Open existing worktree session |
+| `./iw rm <id> [--force]` | Remove worktree safely |
+| `./iw doctor` | Check environment and configuration |
 | `./iw init [--force]` | Initialize project configuration |
-| `./iw doctor` | Check system dependencies and configuration |
+| `./iw server start\|stop\|status` | Manage dashboard server |
+| `./iw dashboard` | Start server + open in browser |
+| `./iw register` | Register current worktree with dashboard |
+| `./iw test [unit\|e2e]` | Run tests |
+| `./iw version [--verbose]` | Show version |
+| `./iw feedback "title" [--type bug\|feature]` | Submit feedback |
 
-**Examples:**
+## Getting Help
+
 ```bash
-./iw issue 48              # Show issue #48 details
-./iw issue                 # Show issue for current branch
-./iw doctor                # Verify git, config, and dependencies
+./iw --describe start      # Detailed docs for a command
+./iw --help                # List all commands
 ```
 
-### Dashboard & Server
+## Environment Setup
 
-| Command | Purpose |
-|---------|---------|
-| `./iw server start` | Start background dashboard server |
-| `./iw server stop` | Stop the dashboard server |
-| `./iw server status` | Show server status and uptime |
-| `./iw dashboard` | Start server + open in browser (foreground) |
-
-### Development Tools
-
-| Command | Purpose |
-|---------|---------|
-| `./iw test [unit\|e2e]` | Run tests (both by default) |
-| `./iw version [--verbose]` | Show version info |
-| `./iw feedback "title" [--type bug\|feature] [--description "..."]` | Submit iw-cli feedback |
-| `./iw claude-sync [--force]` | Regenerate Claude Code skills |
-
-**Examples:**
+For GitHub tracker (this project):
 ```bash
-./iw test                  # Run all tests
-./iw test unit             # Run only Scala unit tests
-./iw test e2e              # Run only BATS E2E tests
-./iw feedback "Bug in start command" --type bug
+gh auth login              # Authenticate GitHub CLI
+./iw doctor                # Verify setup
 ```
 
-## Getting Command Details
-
-For any command, use the `--describe` flag or read the source:
-```bash
-./iw --describe start      # Show detailed command documentation
-```
-
-Or read the command file directly:
-```bash
-cat .iw/commands/start.scala  # See full implementation
-```
+For other trackers:
+- **Linear:** Set `LINEAR_API_TOKEN` environment variable
+- **YouTrack:** Set `YOUTRACK_API_TOKEN` environment variable
+- **GitLab:** Run `glab auth login`
 
 ## Composing Ad-hoc Scripts
 
-For custom automation, compose scripts using core modules:
+For custom automation using iw-cli's core modules, see the `iw-command-creation` skill.
 
+Quick example:
 ```bash
-scala-cli run script.scala .iw/core/*.scala -- args
+scala-cli run script.scala /home/mph/Devel/projects/iw-cli/.iw/core/*.scala -- args
 ```
 
-### Key Core Modules
+Key modules: `IssueId`, `Issue`, `GitAdapter`, `GitWorktreeAdapter`, `TmuxAdapter`, `Output`, `ProcessAdapter`.
 
-| Module | Package | Purpose |
-|--------|---------|---------|
-| `IssueId.scala` | `iw.core` | Parse/validate issue IDs, extract from branches |
-| `Issue.scala` | `iw.core` | Issue entity and `IssueTracker` trait |
-| `Config.scala` | `iw.core` | `ProjectConfiguration`, `IssueTrackerType` |
-| `GitHubClient.scala` | `iw.core` | GitHub issue fetching via `gh` CLI |
-| `Git.scala` | `iw.core` | `GitAdapter` for repository operations |
-| `GitWorktree.scala` | `iw.core` | `GitWorktreeAdapter` for worktree ops |
-| `Tmux.scala` | `iw.core` | `TmuxAdapter` for session management |
-| `Output.scala` | `iw.core` | Formatted console output |
-| `Process.scala` | `iw.core` | `ProcessAdapter` for shell commands |
-| `WorktreePath.scala` | `iw.core` | Calculate worktree directory/session names |
+## Tips
 
-### Example: Custom Script
-
-```scala
-// script.scala - Get issue ID from current branch
-import iw.core.*
-
-@main def getCurrentIssue(): Unit =
-  val currentDir = os.pwd
-  GitAdapter.getCurrentBranch(currentDir) match
-    case Left(err) =>
-      Output.error(err)
-      sys.exit(1)
-    case Right(branch) =>
-      IssueId.fromBranch(branch) match
-        case Left(err) => Output.error(s"Not on an issue branch: $err")
-        case Right(id) => Output.info(s"Current issue: ${id.value}")
-```
-
-Run with:
-```bash
-scala-cli run script.scala .iw/core/*.scala
-```
-
-## Environment Variables
-
-| Variable | Purpose |
-|----------|---------|
-| `LINEAR_API_TOKEN` | Linear API token (for Linear tracker) |
-| `YOUTRACK_API_TOKEN` | YouTrack API token (for YouTrack tracker) |
-
-For GitHub tracker, ensure `gh` CLI is installed and authenticated:
-```bash
-gh auth login
-```
-
-## Workflow Tips
-
-1. **Starting work on an issue:**
-   ```bash
-   ./iw start 48   # Creates worktree at ../iw-cli-48/ with tmux session
-   ```
-
-2. **Switching between issues:**
-   ```bash
-   ./iw open 48    # Switches to or attaches session for issue 48
-   ```
-
-3. **Checking issue context:**
-   ```bash
-   ./iw issue      # Shows details for current branch's issue
-   ```
-
-4. **Cleaning up after merge:**
-   ```bash
-   ./iw rm 48      # Removes worktree and kills session
-   ```
-
-5. **Troubleshooting:**
-   ```bash
-   ./iw doctor     # Validates environment and configuration
-   ```
+1. **Issue inference:** Most commands infer the issue from the current branch name
+2. **Team prefix:** Numbers are auto-prefixed with `IW-` (e.g., `48` → `IW-48`)
+3. **Worktree isolation:** Each issue gets its own directory, separate from main
+4. **Tmux sessions:** Named after worktree directory for easy switching

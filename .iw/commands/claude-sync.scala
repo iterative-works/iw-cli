@@ -44,7 +44,9 @@ import iw.core.*
     .replace(".iw/commands/", s"$iwDir/commands/")
 
   // Check if skills already exist (unless --force)
+  // Note: iw-command-creation is a static skill copied from installation, not regenerated
   val skillsDir = os.pwd / ".claude" / "skills"
+  val staticSkills = Set("iw-command-creation")
   val existingSkills = if os.exists(skillsDir) then
     os.list(skillsDir)
       .filter(os.isDir)
@@ -52,17 +54,18 @@ import iw.core.*
       .toList
   else
     List.empty
+  val regeneratableSkills = existingSkills.filterNot(s => staticSkills.contains(s.last))
 
-  if existingSkills.nonEmpty && !force then
+  if regeneratableSkills.nonEmpty && !force then
     Output.warning("Existing iw skills found:")
-    existingSkills.foreach(s => Output.info(s"  - ${s.last}"))
+    regeneratableSkills.foreach(s => Output.info(s"  - ${s.last}"))
     Output.info("Use --force to regenerate")
     sys.exit(0)
 
-  // Remove existing iw skills if forcing
-  if force && existingSkills.nonEmpty then
-    Output.info("Removing existing iw skills...")
-    existingSkills.foreach { skill =>
+  // Remove only regeneratable skills (not static ones like iw-command-creation)
+  if force && regeneratableSkills.nonEmpty then
+    Output.info("Removing regeneratable iw skills...")
+    regeneratableSkills.foreach { skill =>
       os.remove.all(skill)
       Output.info(s"  Removed ${skill.last}")
     }
@@ -73,8 +76,11 @@ import iw.core.*
   os.makeDir.all(skillsDir)
 
   // Copy the iw-command-creation skill from the installation
+  // Skip if source and target are the same (self-hosting in iw-cli repo)
   val commandCreationSkillTarget = skillsDir / "iw-command-creation"
-  if os.exists(commandCreationSkillSource) then
+  if commandCreationSkillSource == commandCreationSkillTarget then
+    Output.info("iw-command-creation skill already in place (self-hosting)")
+  else if os.exists(commandCreationSkillSource) then
     Output.info("Copying iw-command-creation skill...")
     os.copy.over(commandCreationSkillSource, commandCreationSkillTarget)
     Output.success("Copied iw-command-creation")
