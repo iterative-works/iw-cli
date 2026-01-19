@@ -287,112 +287,71 @@ Straightforward test scenario. No implementation work needed if Stories 1-4 are 
 
 ---
 
+## Design Decisions (Resolved)
+
+### Decision 1: Complete isolation for dev mode config
+
+**Decision:** Dev mode uses completely isolated config.json in temp directory.
+
+**Rationale:** Complete isolation is required for integration tests. The config only contains `port` and `hosts` (trivial to generate defaults), so the cost of isolation is minimal while the benefit (no conflicts, safe CI runs) is significant.
+
+**Implementation:** Dev mode creates `config.json` in temp directory with default values (port 9876, hosts ["localhost"]).
+
+---
+
+### Decision 2: Comprehensive sample data
+
+**Decision:** Include comprehensive sample data covering all UI states.
+
+**Sample data includes:**
+- ~10 worktrees across all tracker types (Linear, GitHub, YouTrack)
+- All PR states (draft, open, merged, closed)
+- Various progress states and review states
+- Edge cases (missing assignee, old timestamps, different priorities)
+
+**Rationale:** The purpose of dev mode is UI testing, so we need diverse data to exercise all visual states and catch edge case bugs.
+
+---
+
+### Decision 3: Hot reload via scala-cli passthrough
+
+**Decision:** Support hot reload by passing `--restart` flag through to scala-cli.
+
+**Implementation:** When user runs `./iw server serve --restart`, we pass `--restart` to `scala-cli run`, which handles file watching and process restart automatically.
+
+**Important:** This is a scala-cli feature, not something we implement. The `--restart` flag is passed through verbatim to scala-cli. No custom file watching or restart logic needed.
+
+**Usage:** `scala-cli run server.scala --restart` watches sources, recompiles on changes, and fully restarts the server process.
+
+---
+
+### Decision 4: Server command structure with daemon/foreground separation
+
+**Decision:** Restructure server commands to clearly separate daemon and foreground modes.
+
+**Commands:**
+- `./iw server start [--dev] [--pid-file=<path>]` - daemonize, write PID, exit
+- `./iw server stop [--dev] [--pid-file=<path>]` - read PID, kill process
+- `./iw server status [--dev] [--pid-file=<path>]` - check if running
+- `./iw server serve [--dev] [--restart]` - foreground, no PID file
+
+**Flag behavior:**
+- `--dev` uses isolated state/config in temp directory, defaults to separate PID file in temp dir
+- `--pid-file=<path>` overrides PID location (enables multiple parallel servers for CI)
+- `--restart` only valid with `serve` (passthrough to scala-cli for hot reload)
+
+**Use cases:**
+- Interactive development: `./iw server serve --dev --restart`
+- CI test run: `./iw server start --dev --pid-file=/tmp/test-1.pid` → tests → `./iw server stop --dev --pid-file=/tmp/test-1.pid`
+- Parallel CI: Multiple servers with different `--pid-file` paths
+
+**Rationale:** This design supports both interactive development (foreground with hot reload) and CI automation (daemon with controllable PID files), while keeping production workflow unchanged.
+
+---
+
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Should --dev mode also use a custom config.json?
-
-Currently the server reads/writes config from `~/.local/share/iw/server/config.json`. In development mode, should we also isolate this?
-
-**Questions to answer:**
-1. Can dev mode safely share production config (port, hosts)?
-2. Should we use a dev-specific port to avoid conflicts?
-3. Does config isolation matter if state is already isolated?
-
-**Options:**
-- **Option A**: Use production config (shared port/hosts)
-  - Pros: Simpler implementation, fewer files to manage
-  - Cons: Port conflict if prod server running, could accidentally modify production config
-
-- **Option B**: Use isolated config in dev mode temp directory
-  - Pros: Complete isolation, no port conflicts, safer
-  - Cons: More complex, need to generate default dev config
-
-- **Option C**: Use production config read-only, default to different port
-  - Pros: Convenience of production settings, no conflicts, read-only is safer
-  - Cons: Need read-only enforcement in config repository
-
-**Impact:** Affects Story 1, Story 4, and Story 5. Determines whether dev mode can coexist with production server.
-
----
-
-### CLARIFY: Sample data scope and realism
-
-How comprehensive should the sample data be?
-
-**Questions to answer:**
-1. How many sample worktrees (3? 5? 10?)?
-2. Which tracker types to include (Linear, GitHub, YouTrack, all three)?
-3. Should sample data include edge cases (missing assignee, old timestamps, etc.)?
-4. Should sample PRs cover all states (draft, open, merged)?
-
-**Options:**
-- **Option A**: Minimal viable sample (3 worktrees, one tracker type)
-  - Pros: Fast implementation, easy to understand
-  - Cons: Doesn't test UI diversity, may miss visual bugs
-
-- **Option B**: Comprehensive sample (10 worktrees, all tracker types, all states)
-  - Pros: Tests all UI states, catches edge case bugs
-  - Cons: Longer implementation, overwhelming UI for simple tests
-
-- **Option C**: Configurable sample (--sample-data=minimal|full)
-  - Pros: Flexibility for different testing needs
-  - Cons: Most complex, two sets of fixtures to maintain
-
-**Impact:** Affects Story 3 estimate and testing effectiveness.
-
----
-
-### CLARIFY: Hot reload support
-
-Issue description mentions "possibly a '--dev' flag that enables hot reload". Should we implement hot reload?
-
-**Questions to answer:**
-1. What should hot reload watch (Scala code, HTML templates, both)?
-2. Is hot reload needed for UI testing or just nice-to-have?
-3. Does scala-cli support hot reload in our current setup?
-
-**Options:**
-- **Option A**: No hot reload in MVP (defer to future)
-  - Pros: Faster delivery, simpler scope
-  - Cons: Manual restart needed for CSS/template changes
-
-- **Option B**: Template hot reload only (watch view files)
-  - Pros: Useful for UI iteration, moderate complexity
-  - Cons: Still need restart for Scala logic changes
-
-- **Option C**: Full hot reload (scala-cli --watch)
-  - Pros: Best developer experience
-  - Cons: Complex integration with server lifecycle, may be fragile
-
-**Impact:** Could add 8-12h to Story 4 if included. Affects developer workflow significantly.
-
----
-
-### CLARIFY: Development mode and existing server lifecycle
-
-How should --dev mode interact with server.scala (start/stop/status commands)?
-
-**Questions to answer:**
-1. Should dev mode server register with ProcessManager (write PID file)?
-2. Can `./iw server status` see dev mode servers?
-3. Should dev server be stoppable via `./iw server stop`?
-
-**Options:**
-- **Option A**: Dev mode is entirely separate (no PID file, manual Ctrl+C stop)
-  - Pros: Clean separation, no conflicts with production
-  - Cons: Inconsistent with normal server lifecycle
-
-- **Option B**: Dev mode integrates with server lifecycle (separate PID file)
-  - Pros: Consistent tooling, manageable via server commands
-  - Cons: More complex, need to track dev vs prod servers
-
-- **Option C**: Dev mode as foreground-only (no daemon support)
-  - Pros: Simpler mental model, obvious when running
-  - Cons: Can't background dev server, terminal tied up
-
-**Impact:** Affects Story 1 and Story 4 implementation. Determines whether we can have multiple dev servers or background dev server.
-
----
+No unresolved CLARIFY markers remain. All design decisions have been made.
 
 ## Total Estimates
 
@@ -549,13 +508,8 @@ If a story fails in production, no rollback needed:
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved
 
 **Next Steps:**
-1. Resolve CLARIFY markers:
-   - Should dev mode use isolated config.json?
-   - How comprehensive should sample data be?
-   - Do we need hot reload in MVP?
-   - How should dev mode integrate with server lifecycle?
-2. Run `/iterative-works:ag-create-tasks IW-82` to map stories to implementation phases
-3. Run `/iterative-works:ag-implement IW-82` for iterative story-by-story implementation
+1. Run `/iterative-works:ag-create-tasks IW-82` to map stories to implementation phases
+2. Run `/iterative-works:ag-implement IW-82` for iterative story-by-story implementation
