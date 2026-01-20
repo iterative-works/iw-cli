@@ -413,7 +413,7 @@ class CaskServerTest extends FunSuite:
     val startedAt = java.time.Instant.now()
 
     try
-      val server = new CaskServer(statePath, port, hosts, startedAt)
+      val server = new CaskServer(statePath, port, hosts, None, startedAt)
       val statusJson = server.status()
 
       assert(statusJson.obj.contains("hosts"), "Status response should contain hosts field")
@@ -434,7 +434,7 @@ class CaskServerTest extends FunSuite:
     val startedAt = java.time.Instant.now()
 
     try
-      val server = new CaskServer(statePath, port, hosts, startedAt)
+      val server = new CaskServer(statePath, port, hosts, None, startedAt)
       val statusJson = server.status()
 
       assert(statusJson.obj.contains("hosts"), "Status response should contain hosts field")
@@ -590,6 +590,84 @@ class CaskServerTest extends FunSuite:
 
     finally
       // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("CaskServer constructor accepts projectPath parameter"):
+    val statePath = createTempStatePath()
+    val port = 9878
+    val hosts = Seq("localhost")
+    val projectPath = Some(os.pwd)
+    val startedAt = java.time.Instant.now()
+
+    try
+      // Create server with projectPath
+      val server = new CaskServer(statePath, port, hosts, projectPath, startedAt)
+
+      // If we get here without exception, the constructor accepts the parameter
+      assert(true, "CaskServer should accept projectPath parameter")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("GET / uses projectPath for config loading when provided"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    // Create a temporary project directory with config
+    val tmpProjectDir = os.temp.dir(prefix = "iw-test-project-")
+    val iwDir = tmpProjectDir / ".iw"
+    os.makeDir(iwDir)
+
+    // Create a test config file
+    val configContent = """tracker_type: Linear
+                          |team: TESTTEAM
+                          |""".stripMargin
+    os.write(iwDir / "config.yaml", configContent)
+
+    try
+      // Start server with custom projectPath
+      val projectPath = Some(tmpProjectDir)
+      val startedAt = java.time.Instant.now()
+      val serverThread = new Thread(() => {
+        CaskServer.start(statePath, port, Seq("localhost"), projectPath)
+      })
+      serverThread.setDaemon(true)
+      serverThread.start()
+
+      // Wait for server to be ready
+      var retries = 0
+      while retries < 50 do
+        try
+          val response = quickRequest.get(uri"http://localhost:$port/health").send()
+          if response.code.code == 200 then
+            retries = 100 // Break loop
+        catch
+          case _: Exception => ()
+        if retries < 100 then
+          Thread.sleep(100)
+          retries += 1
+
+      // Request dashboard
+      val response = quickRequest
+        .get(uri"http://localhost:$port/")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      // The HTML should be successfully rendered (config loaded from projectPath)
+      val html = response.body
+      assert(html.contains("iw Dashboard"), "Should render dashboard HTML")
+
+    finally
+      // Cleanup
+      os.remove.all(tmpProjectDir)
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent

@@ -1,16 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "context_ready",
+  "status": "implementing",
   "phase": 3,
-  "step": "tasks",
-  "branch": "IW-82",
+  "step": "implementation",
+  "branch": "IW-82-phase-03",
   "pr_url": null,
-  "git_sha": "fdd1ca7",
-  "last_updated": "2026-01-20T20:50:00Z",
-  "message": "Phase 3 context ready for review",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
-    {"label": "Phase 3 Context", "path": "project-management/issues/IW-82/phase-03-context.md"}
-  ]
+  "git_sha": "6e0f25e",
+  "last_updated": "2026-01-20T20:55:00Z",
+  "message": "Phase 3 implementation in progress"
 }

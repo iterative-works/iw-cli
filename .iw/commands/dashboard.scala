@@ -13,6 +13,7 @@ import java.nio.file.Paths
   // Parse command line arguments
   var statePath: Option[String] = None
   var sampleData: Boolean = false
+  var projectPath: Option[String] = None
 
   var i = 0
   while i < args.length do
@@ -23,9 +24,12 @@ import java.nio.file.Paths
       case "--sample-data" =>
         sampleData = true
         i += 1
+      case "--project" if i + 1 < args.length =>
+        projectPath = Some(args(i + 1))
+        i += 2
       case other =>
         Output.error(s"Unknown argument: $other")
-        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data]")
+        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data] [--project <path>]")
         sys.exit(1)
 
   val homeDir = sys.env.get("HOME") match
@@ -75,8 +79,10 @@ import java.nio.file.Paths
     Output.info("Starting dashboard server...")
     if statePath.isDefined || sampleData then
       Output.info(s"Using state file: $effectiveStatePath")
+    if projectPath.isDefined then
+      Output.info(s"Using project directory: ${projectPath.get}")
     // Start server in current process (foreground for Phase 1)
-    startServerAndOpenBrowser(effectiveStatePath, port, url)
+    startServerAndOpenBrowser(effectiveStatePath, port, url, projectPath)
   else
     Output.info(s"Server already running at $url")
     openBrowser(url)
@@ -87,10 +93,10 @@ def isServerRunning(healthUrl: String): Boolean =
     response.code.code == 200
   }.getOrElse(false)
 
-def startServerAndOpenBrowser(statePath: String, port: Int, url: String): Unit =
+def startServerAndOpenBrowser(statePath: String, port: Int, url: String, projectPath: Option[String]): Unit =
   // Start server in a separate thread
   val serverThread = new Thread(() => {
-    CaskServer.start(statePath, port)
+    CaskServer.start(statePath, port, projectPath = projectPath.map(p => os.Path(p)))
   })
   serverThread.setDaemon(false)
   serverThread.start()

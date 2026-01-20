@@ -23,6 +23,7 @@ object DashboardService:
     * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
     * @param sshHost SSH hostname for Zed editor remote connections
+    * @param projectPath Optional project path when custom project is specified
     * @return HTML page as string
     */
   def renderDashboard(
@@ -32,7 +33,8 @@ object DashboardService:
     prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
     config: Option[ProjectConfiguration],
-    sshHost: String
+    sshHost: String,
+    projectPath: Option[os.Path] = None
   ): String =
     val now = Instant.now()
 
@@ -88,7 +90,18 @@ object DashboardService:
           // Header with title and SSH host configuration
           div(
             cls := "dashboard-header",
-            h1("iw Dashboard"),
+            div(
+              cls := "dashboard-title-container",
+              h1("iw Dashboard"),
+              // Project path indicator (only shown when custom project is used)
+              projectPath.map { path =>
+                div(
+                  cls := "project-indicator",
+                  "Project: ",
+                  tag("code")(path.toString)
+                )
+              }
+            ),
             // SSH host configuration form
             tag("form")(
               cls := "ssh-host-form",
@@ -788,8 +801,31 @@ object DashboardService:
       margin-bottom: 30px;
     }
 
+    .dashboard-title-container {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
     .dashboard-header h1 {
       margin: 0;
+    }
+
+    .project-indicator {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .project-indicator code {
+      background: #f5f5f5;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #333;
     }
 
     /* SSH host configuration form */

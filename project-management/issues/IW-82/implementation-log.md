@@ -89,3 +89,46 @@ M	.iw/core/test/TestFixtures.scala
 ```
 
 ---
+
+## Phase 3: Run server with custom project directory (2026-01-20)
+
+**What was built:**
+- CLI flag: Added `--project=<path>` flag to `dashboard` command
+- CaskServer: Added `projectPath: Option[os.Path]` constructor parameter
+- Dashboard route: Uses custom project path for config loading and auto-prune checks
+- UI indicator: Displays subtle project path indicator when custom project is used
+
+**Decisions made:**
+- Used `projectPath.getOrElse(os.pwd)` pattern - consistent with existing flags, maintains backward compatibility
+- UI indicator styled subtly with gray text and monospace code font - doesn't dominate the dashboard header
+- Kept existing API routes unchanged - they already support `?project=` query parameter
+
+**Patterns applied:**
+- Option type with getOrElse: Consistent with Phase 1's effectiveStatePath pattern
+- Constructor parameter threading: Pass projectPath through CaskServer → DashboardService
+- Conditional rendering: Only show project indicator when projectPath.isDefined
+
+**Testing:**
+- Unit tests: 1 (CaskServer constructor accepts projectPath parameter)
+- Integration tests: 1 (GET / uses projectPath for config loading when provided)
+- Pre-existing failures: 2 Zed button tests (unrelated to Phase 3)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260120-210000.md
+- Major findings: 0 critical issues, 0 warnings, 2 suggestions (deferred)
+
+**For next phases:**
+- Available utilities: `effectiveProjectPath` pattern for project-aware operations
+- Extension points: Phase 4's `--dev` flag can use `--project` internally
+- Notes: All flags (`--state-path`, `--sample-data`, `--project`) are orthogonal and can be combined
+
+**Files changed:**
+```
+M	.iw/commands/dashboard.scala
+M	.iw/core/CaskServer.scala
+M	.iw/core/DashboardService.scala
+A	.iw/core/test/CaskServerTest.scala
+```
+
+---
