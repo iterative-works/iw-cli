@@ -8,7 +8,7 @@ import scala.util.{Try, Success, Failure}
 import sttp.client4.quick.*
 import java.nio.file.Paths
 
-@main def dashboard(): Unit =
+@main def dashboard(statePath: String = ""): Unit =
   val homeDir = sys.env.get("HOME") match
     case Some(home) => home
     case None =>
@@ -16,8 +16,11 @@ import java.nio.file.Paths
       sys.exit(1)
 
   val serverDir = s"$homeDir/.local/share/iw/server"
-  val statePath = s"$serverDir/state.json"
+  val defaultStatePath = s"$serverDir/state.json"
   val configPath = s"$serverDir/config.json"
+
+  // Use custom state path if provided, otherwise use production path
+  val effectiveStatePath = if statePath.isEmpty then defaultStatePath else statePath
 
   // Read or create default config
   val config = ServerConfigRepository.getOrCreateDefault(configPath) match
@@ -32,8 +35,9 @@ import java.nio.file.Paths
   // Check if server is already running
   if !isServerRunning(s"$url/health") then
     println("Starting dashboard server...")
+    println(s"Using state file: $effectiveStatePath")
     // Start server in current process (foreground for Phase 1)
-    startServerAndOpenBrowser(statePath, port, url)
+    startServerAndOpenBrowser(effectiveStatePath, port, url)
   else
     println(s"Server already running at $url")
     openBrowser(url)
