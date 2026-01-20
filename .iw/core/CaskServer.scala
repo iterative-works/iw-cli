@@ -96,7 +96,10 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         )
 
   @cask.get("/worktrees/:issueId/card")
-  def worktreeCard(issueId: String): cask.Response[String] =
+  def worktreeCard(issueId: String, have: Option[String] = None): cask.Response[String] =
+    // Note: `have` param is inherited from parent's hx-vals due to HTMX bug #1119
+    // (hx-disinherit doesn't work for hx-vals). Remove this param when bug is fixed.
+    // See: https://github.com/bigskysoftware/htmx/issues/1119
     // Get current server state (read-only)
     val state = stateService.getState
 

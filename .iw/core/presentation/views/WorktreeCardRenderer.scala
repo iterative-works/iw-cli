@@ -87,6 +87,7 @@ object WorktreeCardRenderer:
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
       attr("hx-trigger") := htmxConfig.trigger,
       attr("hx-swap") := htmxConfig.swap,
+      attr("hx-disinherit") := "hx-vals",  // Attempt to prevent inheriting parent's hx-vals (HTMX bug #1119 may prevent this)
       htmxConfig.oobSwap.map(oob => attr("hx-swap-oob") := oob),
       // Issue title
       h3(data.title),
@@ -224,6 +225,7 @@ object WorktreeCardRenderer:
       attr("hx-get") := s"/worktrees/${worktree.issueId}/card",
       attr("hx-trigger") := htmxConfig.trigger,
       attr("hx-swap") := htmxConfig.swap,
+      attr("hx-disinherit") := "hx-vals",  // Attempt to prevent inheriting parent's hx-vals (HTMX bug #1119 may prevent this)
       htmxConfig.oobSwap.map(oob => attr("hx-swap-oob") := oob),
       // Issue ID as non-clickable placeholder
       h3(cls := "skeleton-title", "Loading..."),
