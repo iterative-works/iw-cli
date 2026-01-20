@@ -41,3 +41,51 @@ M	.iw/commands/dashboard.scala
 ```
 
 ---
+
+## Phase 2: Load sample data for UI testing (2026-01-20)
+
+**What was built:**
+- `SampleDataGenerator.scala`: Pure utility generating complete `ServerState` with 5 sample worktrees
+- CLI flag: Added `--sample-data` flag to `dashboard` command for development mode
+- Test fixtures: Extended `TestFixtures.scala` with comprehensive sample data covering all domain types
+
+**Sample data design:**
+- 5 worktrees across 3 tracker types: Linear (IWLE-123, IWLE-456), GitHub (GH-100), YouTrack (YT-111, YT-222)
+- Edge cases: GH-100 has no PR, YT-111 has no workflow/review state, GH-100 has no assignee
+- PR states: Open (IWLE-123, YT-222), Merged (IWLE-456), Closed (YT-111)
+- Progress levels: 10% (GH-100), 33% (IWLE-123), 67% (YT-222), 100% (IWLE-456)
+
+**Decisions made:**
+- Used imperative argument parsing (`var` + `while`) for CLI flags - simple but noted for future refactoring
+- `generateSampleState()` uses `Instant.now()` for timestamps - generates fresh data each run
+- Sample data in TestFixtures uses `lazy val` - initialized only when accessed in tests
+
+**Patterns applied:**
+- Pure function: `SampleDataGenerator.generateSampleState()` has no side effects
+- Factory pattern: Central utility generates complete, consistent sample state
+- Test fixture composition: `SampleData` object provides reusable test data
+
+**Testing:**
+- Unit tests: 22 tests across `SampleDataGeneratorTest.scala` and `SampleDataTest.scala`
+- Test coverage: All cache types, edge cases, determinism, and serialization round-trip
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260120-113500.md
+- Major findings: 0 critical issues, 4 warnings (imperative arg parsing), 9 suggestions
+
+**For next phases:**
+- Available utilities: `SampleDataGenerator.generateSampleState()` for any sample data needs
+- Extension points: Sample data can be extended with more worktrees or cache scenarios
+- Notes: Warnings about imperative CLI parsing deferred - isolated to dashboard.scala
+
+**Files changed:**
+```
+M	.iw/commands/dashboard.scala
+A	.iw/core/domain/SampleDataGenerator.scala
+A	.iw/core/test/SampleDataGeneratorTest.scala
+A	.iw/core/test/SampleDataTest.scala
+M	.iw/core/test/TestFixtures.scala
+```
+
+---

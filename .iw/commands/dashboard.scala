@@ -2,17 +2,36 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
-import iw.core.infrastructure.CaskServer
-import iw.core.{ServerConfig, ServerConfigRepository}
+import iw.core.infrastructure.{CaskServer, StateRepository}
+import iw.core.domain.SampleDataGenerator
+import iw.core.{Output, ServerConfig, ServerConfigRepository}
 import scala.util.{Try, Success, Failure}
 import sttp.client4.quick.*
 import java.nio.file.Paths
 
-@main def dashboard(statePath: Option[String] = None): Unit =
+@main def dashboard(args: String*): Unit =
+  // Parse command line arguments
+  var statePath: Option[String] = None
+  var sampleData: Boolean = false
+
+  var i = 0
+  while i < args.length do
+    args(i) match
+      case "--state-path" if i + 1 < args.length =>
+        statePath = Some(args(i + 1))
+        i += 2
+      case "--sample-data" =>
+        sampleData = true
+        i += 1
+      case other =>
+        Output.error(s"Unknown argument: $other")
+        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data]")
+        sys.exit(1)
+
   val homeDir = sys.env.get("HOME") match
     case Some(home) => home
     case None =>
-      System.err.println("ERROR: HOME environment variable not set")
+      Output.error("HOME environment variable not set")
       sys.exit(1)
 
   val serverDir = s"$homeDir/.local/share/iw/server"
@@ -22,11 +41,30 @@ import java.nio.file.Paths
   // Use custom state path if provided, otherwise use default path
   val effectiveStatePath = statePath.getOrElse(defaultStatePath)
 
+  // If sample data flag is set, generate and persist sample data
+  if sampleData then
+    Output.info("Generating sample data...")
+    val sampleState = SampleDataGenerator.generateSampleState()
+    Output.info(s"Generated state with ${sampleState.worktrees.size} worktrees")
+    val repository = StateRepository(effectiveStatePath)
+    repository.write(sampleState) match
+      case Right(_) =>
+        Output.success(s"Sample data written to $effectiveStatePath")
+        // Verify the write by reading back
+        repository.read() match
+          case Right(readBack) =>
+            Output.success(s"Verified: Read back ${readBack.worktrees.size} worktrees from file")
+          case Left(err) =>
+            Output.warning(s"Failed to verify write: $err")
+      case Left(err) =>
+        Output.error(s"Failed to write sample data: $err")
+        sys.exit(1)
+
   // Read or create default config
   val config = ServerConfigRepository.getOrCreateDefault(configPath) match
     case Right(c) => c
     case Left(err) =>
-      System.err.println(s"ERROR: Failed to read config: $err")
+      Output.error(s"Failed to read config: $err")
       sys.exit(1)
 
   val port = config.port
@@ -34,12 +72,13 @@ import java.nio.file.Paths
 
   // Check if server is already running
   if !isServerRunning(s"$url/health") then
-    println("Starting dashboard server...")
-    statePath.foreach(p => println(s"Using custom state file: $p"))
+    Output.info("Starting dashboard server...")
+    if statePath.isDefined || sampleData then
+      Output.info(s"Using state file: $effectiveStatePath")
     // Start server in current process (foreground for Phase 1)
     startServerAndOpenBrowser(effectiveStatePath, port, url)
   else
-    println(s"Server already running at $url")
+    Output.info(s"Server already running at $url")
     openBrowser(url)
 
 def isServerRunning(healthUrl: String): Boolean =
@@ -58,13 +97,13 @@ def startServerAndOpenBrowser(statePath: String, port: Int, url: String): Unit =
 
   // Wait for server to be ready
   if waitForServer(s"$url/health", timeoutSeconds = 5) then
-    println(s"Server started successfully at $url")
+    Output.success(s"Server started successfully at $url")
     openBrowser(url)
-    println("Press Ctrl+C to stop the server")
+    Output.info("Press Ctrl+C to stop the server")
     // Keep main thread alive
     serverThread.join()
   else
-    System.err.println("ERROR: Server failed to start within 5 seconds")
+    Output.error("Server failed to start within 5 seconds")
     sys.exit(1)
 
 def waitForServer(healthUrl: String, timeoutSeconds: Int): Boolean =
@@ -88,7 +127,7 @@ def openBrowser(url: String): Unit =
   else if os.contains("win") then
     Seq("cmd", "/c", "start", url)
   else
-    println(s"Unable to detect platform. Please open $url manually")
+    Output.warning(s"Unable to detect platform. Please open $url manually")
     return
 
   Try {
@@ -96,7 +135,7 @@ def openBrowser(url: String): Unit =
     pb.start()
   } match
     case Success(_) =>
-      println(s"Opening browser to $url")
+      Output.info(s"Opening browser to $url")
     case Failure(ex) =>
-      println(s"Failed to open browser: ${ex.getMessage}")
-      println(s"Please open $url manually")
+      Output.warning(s"Failed to open browser: ${ex.getMessage}")
+      Output.info(s"Please open $url manually")
