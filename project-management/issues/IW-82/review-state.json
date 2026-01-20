@@ -1,12 +1,18 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "implementing",
+  "status": "awaiting_review",
   "phase": 3,
-  "step": "implementation",
+  "step": "review",
   "branch": "IW-82-phase-03",
-  "pr_url": null,
-  "git_sha": "6e0f25e",
-  "last_updated": "2026-01-20T20:55:00Z",
-  "message": "Phase 3 implementation in progress"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/151",
+  "git_sha": "667cac9",
+  "last_updated": "2026-01-20T21:05:00Z",
+  "message": "Phase 3 complete - Run server with custom project directory",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-82/implementation-log.md"},
+    {"label": "Phase 3 Context", "path": "project-management/issues/IW-82/phase-03-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-82/review-packet-phase-03.md"}
+  ]
 }
