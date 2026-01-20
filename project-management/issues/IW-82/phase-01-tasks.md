@@ -17,7 +17,7 @@
 - [ ] [test] Test that state file is created at custom path when worktree is registered
 
 ### Implementation
-- [x] [impl] Add `statePath: String = ""` parameter to `dashboard` main function
+- [x] [impl] Add `statePath: Option[String] = None` parameter to `dashboard` main function
 - [x] [impl] Implement state path resolution logic (use custom or default to production path)
 - [x] [impl] Pass effective state path to `startServerAndOpenBrowser`
 - [x] [impl] Print effective state path on startup for debugging

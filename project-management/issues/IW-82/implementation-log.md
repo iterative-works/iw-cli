@@ -14,11 +14,11 @@ This log tracks the evolution of implementation across phases.
 - Debug output: Prints effective state path on server startup
 
 **Decisions made:**
-- Used `String = ""` instead of `Option[String]` for CLI parameter because scala-cli's `@main` annotation requires simple types with defaults
-- Always print state path on startup (helpful for debugging, considered making it conditional but kept it simple)
+- Used `Option[String] = None` for CLI parameter - idiomatic Scala for optional values
+- Only print state path when custom path is provided (avoids noise in default case)
 
 **Patterns applied:**
-- Parameter defaulting: Using empty string as sentinel value for "not provided"
+- Option type: Using `Option[String]` with `getOrElse` for optional parameter handling
 - Existing infrastructure reuse: CaskServer and StateRepository already support custom paths
 
 **Testing:**
