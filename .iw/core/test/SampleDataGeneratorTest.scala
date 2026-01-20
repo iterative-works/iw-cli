@@ -90,3 +90,29 @@ class SampleDataGeneratorTest extends FunSuite:
     assert(prStates.contains(PRState.Open), "Should have Open PR")
     assert(prStates.contains(PRState.Merged), "Should have Merged PR")
     assert(prStates.contains(PRState.Closed), "Should have Closed PR")
+
+  test("generated state serializes correctly via StateRepository"):
+    import iw.core.infrastructure.StateRepository
+    import iw.tests.Fixtures
+    val tempDir = Fixtures.createTempDir("sample-data-test")
+    try
+      val statePath = (tempDir / "state.json").toString
+      val repository = StateRepository(statePath)
+      val sampleState = SampleDataGenerator.generateSampleState()
+
+      // Write sample state
+      repository.write(sampleState) match
+        case Right(_) => // OK
+        case Left(err) => fail(s"Failed to write sample state: $err")
+
+      // Read it back
+      repository.read() match
+        case Right(readState) =>
+          assertEquals(readState.worktrees.size, 5, "Should have 5 worktrees")
+          assertEquals(readState.issueCache.size, 5, "Should have 5 cached issues")
+          assertEquals(readState.progressCache.size, 4, "Should have 4 cached progress entries")
+          assertEquals(readState.prCache.size, 4, "Should have 4 cached PRs")
+          assertEquals(readState.reviewStateCache.size, 4, "Should have 4 cached review states")
+        case Left(err) => fail(s"Failed to read state: $err")
+    finally
+      os.remove.all(tempDir)

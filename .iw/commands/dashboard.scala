@@ -9,7 +9,25 @@ import scala.util.{Try, Success, Failure}
 import sttp.client4.quick.*
 import java.nio.file.Paths
 
-@main def dashboard(statePath: Option[String] = None, sampleData: Boolean = false): Unit =
+@main def dashboard(args: String*): Unit =
+  // Parse command line arguments
+  var statePath: Option[String] = None
+  var sampleData: Boolean = false
+
+  var i = 0
+  while i < args.length do
+    args(i) match
+      case "--state-path" if i + 1 < args.length =>
+        statePath = Some(args(i + 1))
+        i += 2
+      case "--sample-data" =>
+        sampleData = true
+        i += 1
+      case other =>
+        System.err.println(s"ERROR: Unknown argument: $other")
+        System.err.println("Usage: ./iw dashboard [--state-path <path>] [--sample-data]")
+        sys.exit(1)
+
   val homeDir = sys.env.get("HOME") match
     case Some(home) => home
     case None =>
@@ -27,10 +45,17 @@ import java.nio.file.Paths
   if sampleData then
     println("Generating sample data...")
     val sampleState = SampleDataGenerator.generateSampleState()
+    println(s"Generated state with ${sampleState.worktrees.size} worktrees")
     val repository = StateRepository(effectiveStatePath)
     repository.write(sampleState) match
       case Right(_) =>
         println(s"Sample data written to $effectiveStatePath")
+        // Verify the write by reading back
+        repository.read() match
+          case Right(readBack) =>
+            println(s"Verified: Read back ${readBack.worktrees.size} worktrees from file")
+          case Left(err) =>
+            System.err.println(s"WARNING: Failed to verify write: $err")
       case Left(err) =>
         System.err.println(s"ERROR: Failed to write sample data: $err")
         sys.exit(1)
