@@ -1,18 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "awaiting_review",
+  "status": "phase_complete",
   "phase": 2,
-  "step": "review",
-  "branch": "IW-82-phase-02",
+  "step": "merged",
+  "branch": "IW-82",
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/150",
-  "git_sha": "2ee9126ebd84b6d66435003dc39bb46b85ff1297",
-  "last_updated": "2026-01-20T11:45:00Z",
-  "message": "Phase 2 complete - Load sample data for UI testing",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-82/implementation-log.md"},
-    {"label": "Phase 2 Context", "path": "project-management/issues/IW-82/phase-02-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-82/review-packet-phase-02.md"}
-  ]
+  "git_sha": "f9567a1",
+  "last_updated": "2026-01-20T20:45:11Z",
+  "message": "Phase 2 merged - Ready for Phase 3"
 }
