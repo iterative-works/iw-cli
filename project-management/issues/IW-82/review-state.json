@@ -1,18 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "awaiting_review",
-  "phase": 1,
-  "step": "review",
-  "branch": "IW-82-phase-01",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/149",
-  "git_sha": "63560e71ca23842f878689ce8ea89eb00f2a6b21",
-  "last_updated": "2026-01-20T10:50:00Z",
-  "message": "Phase 1 complete - Run server with custom state file",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-82/implementation-log.md"},
-    {"label": "Phase 1 Context", "path": "project-management/issues/IW-82/phase-01-context.md"},
-    {"label": "Review Packet", "path": "project-management/issues/IW-82/review-packet-phase-01.md"}
-  ]
+  "status": "implementing",
+  "phase": 2,
+  "step": "implementation",
+  "branch": "IW-82-phase-02",
+  "pr_url": null,
+  "git_sha": "c6483d62ed20eaa07a9993a58a3a49577059b84a",
+  "last_updated": "2026-01-20T11:30:00Z",
+  "message": "Phase 2 implementation in progress"
 }

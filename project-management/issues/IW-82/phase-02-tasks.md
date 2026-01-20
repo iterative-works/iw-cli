@@ -14,43 +14,43 @@
 ### SampleData Fixtures (TestFixtures.scala)
 
 **WorktreeRegistration samples:**
-- [ ] [test] Test SampleData.sampleWorktrees returns 5 valid WorktreeRegistrations (Linear, GitHub, YouTrack)
-- [ ] [impl] Add 5 WorktreeRegistration samples (IWLE-123, IWLE-456, GH-100, YT-111, YT-222)
+- [x] [test] [x] [reviewed] Test SampleData.sampleWorktrees returns 5 valid WorktreeRegistrations (Linear, GitHub, YouTrack)
+- [x] [impl] [ ] [reviewed] Add 5 WorktreeRegistration samples (IWLE-123, IWLE-456, GH-100, YT-111, YT-222)
 
 **IssueData samples:**
-- [ ] [test] Test SampleData.sampleIssues returns IssueData with various statuses (In Progress, Done, Backlog, Under Review, Todo)
-- [ ] [test] Test at least one issue has assignee=None (edge case)
-- [ ] [impl] Add 5 IssueData samples with diverse statuses, including one without assignee
+- [x] [test] [x] [reviewed] Test SampleData.sampleIssues returns IssueData with various statuses (In Progress, Done, Backlog, Under Review, Todo)
+- [x] [test] [x] [reviewed] Test at least one issue has assignee=None (edge case)
+- [x] [impl] [ ] [reviewed] Add 5 IssueData samples with diverse statuses, including one without assignee
 
 **CachedIssue samples:**
-- [ ] [test] Test CachedIssue samples include fresh and stale timestamps
-- [ ] [test] Test CachedIssue.isStale() returns true for stale samples
-- [ ] [impl] Add CachedIssue samples (fresh, valid, stale)
+- [x] [test] [x] [reviewed] Test CachedIssue samples include fresh and stale timestamps
+- [x] [test] [x] [reviewed] Test CachedIssue.isStale() returns true for stale samples
+- [x] [impl] [ ] [reviewed] Add CachedIssue samples (fresh, valid, stale)
 
 **PullRequestData samples:**
-- [ ] [test] Test SampleData.samplePRs returns PRs with all states (Open, Merged, Closed)
-- [ ] [impl] Add 3 PullRequestData samples (Open, Merged, Closed)
+- [x] [test] [x] [reviewed] Test SampleData.samplePRs returns PRs with all states (Open, Merged, Closed)
+- [x] [impl] [ ] [reviewed] Add 3 PullRequestData samples (Open, Merged, Closed)
 
 **CachedPR samples:**
-- [ ] [test] Test CachedPR samples include fresh and stale timestamps
-- [ ] [impl] Add CachedPR samples for worktrees with PRs (4 worktrees have PRs, GH-100 has none)
+- [x] [test] [x] [reviewed] Test CachedPR samples include fresh and stale timestamps
+- [x] [impl] [ ] [reviewed] Add CachedPR samples for worktrees with PRs (4 worktrees have PRs, GH-100 has none)
 
 **WorkflowProgress samples:**
-- [ ] [test] Test WorkflowProgress samples cover all completion levels (0%, 25%, 50%, 75%, 100%)
-- [ ] [impl] Add 5 WorkflowProgress samples with PhaseInfo helpers
+- [x] [test] [x] [reviewed] Test WorkflowProgress samples cover all completion levels (0%, 25%, 50%, 75%, 100%)
+- [x] [impl] [ ] [reviewed] Add 5 WorkflowProgress samples with PhaseInfo helpers
 
 **CachedProgress samples:**
-- [ ] [test] Test CachedProgress samples include filesMtime validation
-- [ ] [impl] Add CachedProgress samples (fresh, stale)
+- [x] [test] [x] [reviewed] Test CachedProgress samples include filesMtime validation
+- [x] [impl] [ ] [reviewed] Add CachedProgress samples (fresh, stale)
 
 **ReviewState samples:**
-- [ ] [test] Test ReviewState samples cover statuses: awaiting_review, in_review, ready_to_merge
-- [ ] [test] Test ReviewState samples include both with and without artifacts
-- [ ] [impl] Add 4 ReviewState samples with varying artifacts
+- [x] [test] [x] [reviewed] Test ReviewState samples cover statuses: awaiting_review, in_review, ready_to_merge
+- [x] [test] [x] [reviewed] Test ReviewState samples include both with and without artifacts
+- [x] [impl] [ ] [reviewed] Add 4 ReviewState samples with varying artifacts
 
 **CachedReviewState samples:**
-- [ ] [test] Test CachedReviewState samples include fresh and stale
-- [ ] [impl] Add CachedReviewState samples
+- [x] [test] [x] [reviewed] Test CachedReviewState samples include fresh and stale
+- [x] [impl] [ ] [reviewed] Add CachedReviewState samples
 
 **JSON serialization:**
 - [ ] [test] Test all SampleData fixtures serialize to JSON and deserialize correctly (round-trip)
@@ -61,23 +61,23 @@
 **File: `.iw/core/domain/SampleDataGenerator.scala`**
 
 **Core generation:**
-- [ ] [test] Test generateSampleState() returns ServerState with 5 worktrees
-- [ ] [test] Test generated worktrees use 3 tracker types (Linear, GitHub, YouTrack)
-- [ ] [test] Test generateSampleState() is deterministic (same output each run)
-- [ ] [impl] Create SampleDataGenerator.scala with generateSampleState() function
+- [x] [test] [x] [reviewed] Test generateSampleState() returns ServerState with 5 worktrees
+- [x] [test] [x] [reviewed] Test generated worktrees use 3 tracker types (Linear, GitHub, YouTrack)
+- [x] [test] [x] [reviewed] Test generateSampleState() is deterministic (same output each run)
+- [x] [impl] [ ] [reviewed] Create SampleDataGenerator.scala with generateSampleState() function
 
 **Cache population:**
-- [ ] [test] Test issueCache contains entries for all 5 worktrees
-- [ ] [test] Test progressCache contains entries for all 5 worktrees
-- [ ] [test] Test prCache contains entries for 4 worktrees (GH-100 has no PR)
-- [ ] [test] Test reviewStateCache contains entries for 4 worktrees (YT-111 has no review)
-- [ ] [impl] Populate all cache maps in generateSampleState()
+- [x] [test] [x] [reviewed] Test issueCache contains entries for all 5 worktrees
+- [x] [test] [x] [reviewed] Test progressCache contains entries for all 5 worktrees
+- [x] [test] [x] [reviewed] Test prCache contains entries for 4 worktrees (GH-100 has no PR)
+- [x] [test] [x] [reviewed] Test reviewStateCache contains entries for 4 worktrees (YT-111 has no review)
+- [x] [impl] [ ] [reviewed] Populate all cache maps in generateSampleState()
 
 **Edge cases:**
-- [ ] [test] Test generated data includes missing assignee in at least one issue
-- [ ] [test] Test generated timestamps span multiple time periods (fresh to stale)
-- [ ] [test] Test generated PRs cover all PRState values
-- [ ] [impl] Ensure edge cases are properly represented in generated state
+- [x] [test] [x] [reviewed] Test generated data includes missing assignee in at least one issue
+- [x] [test] [x] [reviewed] Test generated timestamps span multiple time periods (fresh to stale)
+- [x] [test] [x] [reviewed] Test generated PRs cover all PRState values
+- [x] [impl] [ ] [reviewed] Ensure edge cases are properly represented in generated state
 
 **Persistence:**
 - [ ] [test] Test generateSampleState() output serializes correctly via StateRepository
@@ -90,16 +90,16 @@
 - [ ] [test] Test dashboard command accepts --sample-data flag
 - [ ] [test] Test sampleData parameter defaults to false
 - [ ] [test] Test --sample-data can combine with --state-path
-- [ ] [impl] Add sampleData: Boolean = false parameter to dashboard @main function
+- [x] [impl] [ ] [reviewed] Add sampleData: Boolean = false parameter to dashboard @main function
 
 **State initialization:**
 - [ ] [test] Test sample data initializes state at custom path when both flags provided
 - [ ] [test] Test sample state persists correctly and can be reread
-- [ ] [impl] When sampleData=true, call SampleDataGenerator and persist to effectiveStatePath
+- [x] [impl] [ ] [reviewed] When sampleData=true, call SampleDataGenerator and persist to effectiveStatePath
 
 **Isolation (Phase 1 integration):**
 - [ ] [test] Test production path unchanged when --state-path provided with --sample-data
-- [ ] [impl] Verify state isolation works with sample data
+- [x] [impl] [ ] [reviewed] Verify state isolation works with sample data
 
 ### Integration and Verification
 

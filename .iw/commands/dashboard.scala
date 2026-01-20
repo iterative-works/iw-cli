@@ -2,13 +2,14 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
-import iw.core.infrastructure.CaskServer
+import iw.core.infrastructure.{CaskServer, StateRepository}
+import iw.core.domain.SampleDataGenerator
 import iw.core.{ServerConfig, ServerConfigRepository}
 import scala.util.{Try, Success, Failure}
 import sttp.client4.quick.*
 import java.nio.file.Paths
 
-@main def dashboard(statePath: Option[String] = None): Unit =
+@main def dashboard(statePath: Option[String] = None, sampleData: Boolean = false): Unit =
   val homeDir = sys.env.get("HOME") match
     case Some(home) => home
     case None =>
@@ -21,6 +22,18 @@ import java.nio.file.Paths
 
   // Use custom state path if provided, otherwise use default path
   val effectiveStatePath = statePath.getOrElse(defaultStatePath)
+
+  // If sample data flag is set, generate and persist sample data
+  if sampleData then
+    println("Generating sample data...")
+    val sampleState = SampleDataGenerator.generateSampleState()
+    val repository = StateRepository(effectiveStatePath)
+    repository.write(sampleState) match
+      case Right(_) =>
+        println(s"Sample data written to $effectiveStatePath")
+      case Left(err) =>
+        System.err.println(s"ERROR: Failed to write sample data: $err")
+        sys.exit(1)
 
   // Read or create default config
   val config = ServerConfigRepository.getOrCreateDefault(configPath) match
@@ -35,7 +48,8 @@ import java.nio.file.Paths
   // Check if server is already running
   if !isServerRunning(s"$url/health") then
     println("Starting dashboard server...")
-    statePath.foreach(p => println(s"Using custom state file: $p"))
+    if statePath.isDefined || sampleData then
+      println(s"Using state file: $effectiveStatePath")
     // Start server in current process (foreground for Phase 1)
     startServerAndOpenBrowser(effectiveStatePath, port, url)
   else
