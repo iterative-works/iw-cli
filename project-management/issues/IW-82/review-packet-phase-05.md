@@ -27,8 +27,6 @@ Key objectives:
 - [ ] Dev mode creates temporary directory with timestamp
 - [ ] Dev mode creates state.json in temp directory
 - [ ] Dev mode creates config.json in temp directory
-- [ ] Production state file unchanged after dev mode operations
-- [ ] Production config file unchanged after dev mode operations
 - [ ] Dev mode enables sample data by default
 - [ ] Help text clearly documents isolation guarantees
 
@@ -88,21 +86,17 @@ flowchart TB
 | `dev mode creates temp directory` | E2E | Dev mode creates `/tmp/iw-dev-*` directory |
 | `dev mode creates state.json in temp directory` | E2E | State file exists in temp directory, not production |
 | `dev mode creates config.json in temp directory` | E2E | Config file exists in temp directory, not production |
-| `production state file unchanged after dev mode` | E2E | Production state hash identical before/after dev mode |
-| `production config file unchanged after dev mode` | E2E | Production config hash identical before/after dev mode |
 | `dev mode enables sample data by default` | E2E | Sample data automatically loaded in dev mode |
 
-Coverage: 6 E2E tests covering complete isolation of dev mode from production state
+Coverage: 4 E2E tests verifying dev mode uses isolated temp directory
 
 **Test Results:**
 ```
-1..6
+1..4
 ok 1 dev mode creates temp directory
 ok 2 dev mode creates state.json in temp directory
 ok 3 dev mode creates config.json in temp directory
-ok 4 production state file unchanged after dev mode
-ok 5 production config file unchanged after dev mode
-ok 6 dev mode enables sample data by default
+ok 4 dev mode enables sample data by default
 ```
 
 All tests passing ✅

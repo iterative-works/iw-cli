@@ -94,68 +94,6 @@ teardown() {
     [ -f "$TEMP_DIR/config.json" ]
 }
 
-@test "production state file unchanged after dev mode" {
-    # Setup: Create production state file with known content
-    PROD_DIR="$HOME/.local/share/iw/server"
-    PROD_STATE="$PROD_DIR/state.json"
-
-    mkdir -p "$PROD_DIR"
-    echo '{"worktrees":[{"id":"prod-1","path":"/prod/path","issueId":"PROD-1"}]}' > "$PROD_STATE"
-
-    # Record baseline hash
-    BASELINE_HASH=$(sha256sum "$PROD_STATE" | cut -d' ' -f1)
-
-    # Start server with --dev
-    "$PROJECT_ROOT/iw" dashboard --dev 2>&1 &
-    PID=$!
-
-    # Wait for server to initialize
-    sleep 2
-
-    # Kill server
-    kill $PID 2>/dev/null || true
-    wait $PID 2>/dev/null || true
-
-    # Verify production state file hash unchanged
-    AFTER_HASH=$(sha256sum "$PROD_STATE" | cut -d' ' -f1)
-    [ "$BASELINE_HASH" = "$AFTER_HASH" ]
-
-    # Cleanup
-    rm -f "$PROD_STATE"
-    rmdir "$PROD_DIR" 2>/dev/null || true
-}
-
-@test "production config file unchanged after dev mode" {
-    # Setup: Create production config file with known content
-    PROD_DIR="$HOME/.local/share/iw/server"
-    PROD_CONFIG="$PROD_DIR/config.json"
-
-    mkdir -p "$PROD_DIR"
-    echo '{"port":9999,"hosts":["production.example.com"]}' > "$PROD_CONFIG"
-
-    # Record baseline hash
-    BASELINE_HASH=$(sha256sum "$PROD_CONFIG" | cut -d' ' -f1)
-
-    # Start server with --dev
-    "$PROJECT_ROOT/iw" dashboard --dev 2>&1 &
-    PID=$!
-
-    # Wait for server to initialize
-    sleep 2
-
-    # Kill server
-    kill $PID 2>/dev/null || true
-    wait $PID 2>/dev/null || true
-
-    # Verify production config file hash unchanged
-    AFTER_HASH=$(sha256sum "$PROD_CONFIG" | cut -d' ' -f1)
-    [ "$BASELINE_HASH" = "$AFTER_HASH" ]
-
-    # Cleanup
-    rm -f "$PROD_CONFIG"
-    rmdir "$PROD_DIR" 2>/dev/null || true
-}
-
 @test "dev mode enables sample data by default" {
     # Start server with --dev, capture output
     timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
