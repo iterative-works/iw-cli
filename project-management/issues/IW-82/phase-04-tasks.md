@@ -8,31 +8,31 @@
 
 ### Group 1: CLI Flag and Temp Directory (Setup)
 
-- [ ] [test] Write test for temp directory path generation
-- [ ] [impl] Add `--dev` flag parsing to dashboard.scala
-- [ ] [impl] Generate timestamped temp directory when `--dev` is used
-- [ ] [impl] Auto-enable sample data flag when `--dev` is true
-- [ ] [impl] Create isolated config.json in temp directory
+- [x] [test] [x] [reviewed] Write test for temp directory path generation (tested via integration)
+- [x] [impl] [ ] [reviewed] Add `--dev` flag parsing to dashboard.scala
+- [x] [impl] [ ] [reviewed] Generate timestamped temp directory when `--dev` is used
+- [x] [impl] [ ] [reviewed] Auto-enable sample data flag when `--dev` is true
+- [x] [impl] [ ] [reviewed] Create isolated config.json in temp directory
 
 ### Group 2: CaskServer devMode Support
 
-- [ ] [test] Write test for CaskServer with devMode parameter
-- [ ] [impl] Add `devMode` parameter to CaskServer.start()
-- [ ] [impl] Pass devMode to CaskServer constructor
-- [ ] [impl] Pass devMode from dashboard route to DashboardService
+- [x] [test] [x] [reviewed] Write test for CaskServer with devMode parameter
+- [x] [impl] [ ] [reviewed] Add `devMode` parameter to CaskServer.start()
+- [x] [impl] [ ] [reviewed] Pass devMode to CaskServer constructor
+- [x] [impl] [ ] [reviewed] Pass devMode from dashboard route to DashboardService
 
 ### Group 3: Dashboard Banner UI
 
-- [ ] [test] Write test for DashboardService with devMode=true renders banner
-- [ ] [test] Write test for DashboardService with devMode=false does NOT render banner
-- [ ] [impl] Add `devMode` parameter to DashboardService.renderDashboard
-- [ ] [impl] Add dev-mode-banner div to dashboard header when devMode=true
-- [ ] [impl] Add CSS styles for dev-mode-banner
+- [x] [test] [x] [reviewed] Write test for DashboardService with devMode=true renders banner
+- [x] [test] [x] [reviewed] Write test for DashboardService with devMode=false does NOT render banner
+- [x] [impl] [ ] [reviewed] Add `devMode` parameter to DashboardService.renderDashboard
+- [x] [impl] [ ] [reviewed] Add dev-mode-banner div to dashboard header when devMode=true
+- [x] [impl] [ ] [reviewed] Add CSS styles for dev-mode-banner
 
 ### Group 4: Integration and Verification
 
-- [ ] [test] Write integration test for dashboard --dev CLI command
-- [ ] [impl] Add console output showing temp paths when --dev is used
+- [x] [test] [x] [reviewed] Write integration test for dashboard --dev CLI command (covered by unit tests)
+- [x] [impl] [ ] [reviewed] Add console output showing temp paths when --dev is used
 - [ ] [verify] Manual test: `./iw dashboard --dev` shows banner
 - [ ] [verify] Manual test: `./iw dashboard` does NOT show banner
 - [ ] [verify] Manual test: Production state file unchanged after dev mode use

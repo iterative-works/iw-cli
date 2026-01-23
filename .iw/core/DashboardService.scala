@@ -23,6 +23,7 @@ object DashboardService:
     * @param reviewStateCache Current review state cache
     * @param config Project configuration (for tracker type and team)
     * @param sshHost SSH hostname for Zed editor remote connections
+    * @param devMode Whether to show DEV MODE banner (default: false)
     * @return HTML page as string
     */
   def renderDashboard(
@@ -32,7 +33,8 @@ object DashboardService:
     prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
     config: Option[ProjectConfiguration],
-    sshHost: String
+    sshHost: String,
+    devMode: Boolean = false
   ): String =
     val now = Instant.now()
 
@@ -85,6 +87,14 @@ object DashboardService:
         attr("hx-ext") := "response-targets",
         div(
           cls := "container",
+          // Dev mode banner (if enabled)
+          if devMode then
+            div(
+              cls := "dev-mode-banner",
+              "DEV MODE"
+            )
+          else
+            (),
           // Header with title and SSH host configuration
           div(
             cls := "dashboard-header",
@@ -396,6 +406,18 @@ object DashboardService:
     .container {
       max-width: 1200px;
       margin: 0 auto;
+    }
+
+    .dev-mode-banner {
+      background: #ffc107;
+      color: #333;
+      text-align: center;
+      padding: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      border-radius: 4px;
     }
 
     h1 {

@@ -137,3 +137,51 @@ Phase 4 and Phase 5 do NOT depend on Phase 3:
 **Decision:** Skip Phase 3, continue with Phase 4.
 
 ---
+
+## Phase 4: Combined development mode flag (2026-01-23)
+
+**What was built:**
+- CLI flag: Added `--dev` flag to `dashboard` command that combines isolated state + sample data
+- Temp directory: Auto-generates timestamped directory at `/tmp/iw-dev-<timestamp>/`
+- Isolated config: Creates default `config.json` in temp directory (port 9876, localhost)
+- Dev mode banner: Yellow "DEV MODE" banner displayed in dashboard header
+- Console output: Informative messages showing all temp paths being used
+
+**Decisions made:**
+- Timestamped temp directory ensures multiple dev sessions can run in parallel
+- Explicit `--state-path` takes precedence over auto-generated temp path
+- Auto-enable `--sample-data` when `--dev` is used (convenience)
+- Banner uses warning-style yellow background for visibility without being intrusive
+
+**Patterns applied:**
+- Threaded parameters: `devMode` parameter flows from CLI → CaskServer → DashboardService
+- Conditional rendering: Banner rendered only when `devMode=true` (no empty div otherwise)
+- Default parameters: `devMode: Boolean = false` maintains backward compatibility
+
+**Testing:**
+- Unit tests: 6 new tests covering:
+  - DashboardService renders banner when devMode=true
+  - DashboardService does NOT render banner when devMode=false
+  - DashboardService banner has correct CSS class
+  - CSS includes dev-mode-banner styles
+  - CaskServer accepts devMode parameter
+  - CaskServer factory method accepts devMode
+- Fixed 2 pre-existing test bugs (Zed button tests missing issueCache data)
+
+**Code review:**
+- All tests passing (1328 unit tests)
+
+**For next phases:**
+- Dev mode infrastructure complete
+- Phase 5 can use `--dev` for isolation validation testing
+
+**Files changed:**
+```
+M	.iw/commands/dashboard.scala
+M	.iw/core/CaskServer.scala
+M	.iw/core/DashboardService.scala
+M	.iw/core/test/CaskServerTest.scala
+M	.iw/core/test/DashboardServiceTest.scala
+```
+
+---
