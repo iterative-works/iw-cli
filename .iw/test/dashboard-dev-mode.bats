@@ -52,46 +52,51 @@ teardown() {
 }
 
 @test "dev mode creates state.json in temp directory" {
-    # Start server with --dev, capture output
-    OUTPUT=$("$PROJECT_ROOT/iw" dashboard --dev 2>&1 &)
+    # Start server with --dev, capture output to file
+    timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
     # Wait for initialization
     sleep 2
 
-    # Extract temp directory from typical output pattern
-    # Look for line like "  - State file: /tmp/iw-dev-<timestamp>/state.json"
-    TEMP_DIR=$(echo "$OUTPUT" | grep -o "/tmp/iw-dev-[0-9]*" | head -1)
-
     # Kill server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
 
-    # Verify temp directory was created
+    # Extract temp directory from output
+    TEMP_DIR=$(grep -o "/tmp/iw-dev-[0-9]*" /tmp/test-output.txt | head -1)
+
+    # Verify temp directory was found
     [ -n "$TEMP_DIR" ]
 
     # Verify state.json exists in temp directory
     [ -f "$TEMP_DIR/state.json" ]
+
+    # Cleanup
+    rm -f /tmp/test-output.txt
 }
 
 @test "dev mode creates config.json in temp directory" {
-    # Start server with --dev, capture output
-    OUTPUT=$("$PROJECT_ROOT/iw" dashboard --dev 2>&1 &)
+    # Start server with --dev, capture output to file
+    timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
     # Wait for initialization
     sleep 2
 
-    # Extract temp directory
-    TEMP_DIR=$(echo "$OUTPUT" | grep -o "/tmp/iw-dev-[0-9]*" | head -1)
-
     # Kill server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
 
+    # Extract temp directory from output
+    TEMP_DIR=$(grep -o "/tmp/iw-dev-[0-9]*" /tmp/test-output.txt | head -1)
+
     # Verify config.json exists in temp directory
     [ -n "$TEMP_DIR" ]
     [ -f "$TEMP_DIR/config.json" ]
+
+    # Cleanup
+    rm -f /tmp/test-output.txt
 }
 
 @test "dev mode enables sample data by default" {
