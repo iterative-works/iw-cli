@@ -1,12 +1,12 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "phase_complete",
-  "phase": 2,
-  "step": "merged",
+  "status": "phase_skipped",
+  "phase": 3,
+  "step": "skipped",
   "branch": "IW-82",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/150",
-  "git_sha": "f9567a1",
-  "last_updated": "2026-01-20T20:45:11Z",
-  "message": "Phase 2 merged - Ready for Phase 3"
+  "pr_url": null,
+  "git_sha": "286f4d0",
+  "last_updated": "2026-01-23T10:30:00Z",
+  "message": "Phase 3 skipped after investigation - Ready for Phase 4"
 }

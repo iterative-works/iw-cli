@@ -89,3 +89,51 @@ M	.iw/core/test/TestFixtures.scala
 ```
 
 ---
+
+## Phase 3: Run server with custom project directory - SKIPPED (2026-01-23)
+
+**Status:** Skipped after investigation
+
+**Original intent:**
+The analysis proposed a `--project=<path>` flag to "run the dashboard server pointing to a specific project directory" for testing UI features in a different project context.
+
+**Investigation findings:**
+
+After implementing and reviewing, we discovered the analysis was based on incorrect assumptions about the dashboard architecture:
+
+1. **The dashboard is global, not project-specific**
+   - It shows ALL registered worktrees from all projects
+   - Main projects are derived FROM the worktrees themselves via `MainProjectService.deriveFromWorktrees()`
+   - There is no "current project" concept at the dashboard level
+
+2. **The `config` parameter in `renderDashboard()` is dead code**
+   - It's passed but never used
+   - Each worktree card loads its OWN config from its own `wt.path`
+   - The config loaded at route level has no effect
+
+3. **Auto-prune wouldn't change with `--project`**
+   - Worktree paths are absolute (e.g., `/home/user/projects/foo`)
+   - `os.Path(wt.path, basePath)` ignores `basePath` for absolute paths
+   - Changing the base path has no effect
+
+4. **API routes already support `?project=` parameters**
+   - `/api/issues/search?project=<path>` - already works
+   - `/api/worktrees/create` with `projectPath` form field - already works
+   - The UI passes these via HTMX calls
+
+**Conclusion:**
+
+The `--project` flag as designed would accomplish nothing useful. The testing use cases are already covered:
+- **Testing with isolated state** → `--state-path` (Phase 1)
+- **Testing with sample data** → `--sample-data` (Phase 2)
+- **Testing with specific tracker config** → API `?project=` params (already exist)
+
+**Impact on remaining phases:**
+
+Phase 4 and Phase 5 do NOT depend on Phase 3:
+- Phase 4 combines `--state-path` + `--sample-data` into `--dev` flag
+- Phase 5 validates isolation (state file, not project config)
+
+**Decision:** Skip Phase 3, continue with Phase 4.
+
+---
