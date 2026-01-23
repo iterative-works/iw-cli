@@ -119,9 +119,9 @@ flowchart LR
     end
 
     subgraph dev["Dev Mode Environment"]
-        DT[/tmp/iw-dev-{timestamp}/]
-        DS[state.json<br/><i>with sample data</i>]
-        DC[config.json<br/><i>port: 9876</i>]
+        DT["/tmp/iw-dev-TIMESTAMP/"]
+        DS[state.json<br/>with sample data]
+        DC[config.json<br/>port: 9877]
         DT --> DS
         DT --> DC
     end

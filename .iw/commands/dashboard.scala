@@ -58,8 +58,8 @@ import java.nio.file.Paths
     // Auto-enable sample data in dev mode
     sampleData = true
 
-    // Create default config in temp directory
-    val defaultConfig = ServerConfig(port = 9876, hosts = List("localhost"))
+    // Create default config in temp directory (use different port than production default to avoid conflict)
+    val defaultConfig = ServerConfig(port = 9877, hosts = List("localhost"))
     ServerConfigRepository.write(defaultConfig, tempConfigPath) match
       case Right(_) =>
         Output.info(s"Created dev mode config at $tempConfigPath")
