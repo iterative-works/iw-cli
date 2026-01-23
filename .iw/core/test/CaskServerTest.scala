@@ -594,3 +594,62 @@ class CaskServerTest extends FunSuite:
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
       if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  // Dev Mode Tests (IW-82 Phase 4)
+
+  test("CaskServer constructor accepts devMode parameter"):
+    val statePath = createTempStatePath()
+    val port = 9999  // Use fixed port for unit test (not actually starting server)
+    val hosts = Seq("localhost")
+    val startedAt = java.time.Instant.now()
+
+    try
+      // Test devMode = true
+      val serverWithDevMode = new CaskServer(statePath, port, hosts, startedAt, devMode = true)
+      assert(serverWithDevMode != null, "Server should be created with devMode=true")
+
+      // Test devMode = false (default)
+      val serverWithoutDevMode = new CaskServer(statePath, port, hosts, startedAt, devMode = false)
+      assert(serverWithoutDevMode != null, "Server should be created with devMode=false")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+
+  test("CaskServer.start() accepts devMode parameter"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    var serverStarted = false
+
+    try
+      // Start server with devMode=true in background thread
+      val serverThread = new Thread(() => {
+        CaskServer.start(statePath, port, Seq("localhost"), devMode = true)
+      })
+      serverThread.setDaemon(true)
+      serverThread.start()
+
+      // Wait for server to be ready
+      var retries = 0
+      while retries < 50 && !serverStarted do
+        try
+          val response = quickRequest.get(uri"http://localhost:$port/health").send()
+          if response.code.code == 200 then
+            // Server started successfully with devMode parameter
+            serverStarted = true
+        catch
+          case _: Exception => ()
+        Thread.sleep(100)
+        retries += 1
+
+      assert(serverStarted, "Server failed to start with devMode parameter")
+
+    finally
+      // Cleanup
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)

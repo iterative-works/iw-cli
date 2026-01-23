@@ -13,6 +13,7 @@ import java.nio.file.Paths
   // Parse command line arguments
   var statePath: Option[String] = None
   var sampleData: Boolean = false
+  var devMode: Boolean = false
 
   var i = 0
   while i < args.length do
@@ -23,9 +24,12 @@ import java.nio.file.Paths
       case "--sample-data" =>
         sampleData = true
         i += 1
+      case "--dev" =>
+        devMode = true
+        i += 1
       case other =>
         Output.error(s"Unknown argument: $other")
-        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data]")
+        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data] [--dev]")
         sys.exit(1)
 
   val homeDir = sys.env.get("HOME") match
@@ -36,10 +40,43 @@ import java.nio.file.Paths
 
   val serverDir = s"$homeDir/.local/share/iw/server"
   val defaultStatePath = s"$serverDir/state.json"
-  val configPath = s"$serverDir/config.json"
+  val defaultConfigPath = s"$serverDir/config.json"
 
-  // Use custom state path if provided, otherwise use default path
-  val effectiveStatePath = statePath.getOrElse(defaultStatePath)
+  // Handle dev mode: create timestamped temp directory and auto-enable sample data
+  val (effectiveStatePath, effectiveConfigPath, effectiveDevMode) = if devMode then
+    val timestamp = System.currentTimeMillis()
+    val tempDir = s"/tmp/iw-dev-$timestamp"
+    val tempStatePath = s"$tempDir/state.json"
+    val tempConfigPath = s"$tempDir/config.json"
+
+    // Create temp directory
+    os.makeDir.all(os.Path(tempDir))
+
+    // Auto-enable sample data in dev mode
+    sampleData = true
+
+    // Create default config in temp directory
+    val defaultConfig = ServerConfig(port = 9876, hosts = List("localhost"))
+    ServerConfigRepository.write(defaultConfig, tempConfigPath) match
+      case Right(_) =>
+        Output.info(s"Created dev mode config at $tempConfigPath")
+      case Left(err) =>
+        Output.error(s"Failed to create dev config: $err")
+        sys.exit(1)
+
+    Output.info(s"Dev mode enabled:")
+    Output.info(s"  - Temp directory: $tempDir")
+    Output.info(s"  - State file: $tempStatePath")
+    Output.info(s"  - Config file: $tempConfigPath")
+    Output.info(s"  - Sample data: enabled")
+
+    // Explicit state-path takes precedence
+    val finalStatePath = statePath.getOrElse(tempStatePath)
+    (finalStatePath, tempConfigPath, true)
+  else
+    // Normal mode: use custom state path if provided, otherwise use default path
+    val finalStatePath = statePath.getOrElse(defaultStatePath)
+    (finalStatePath, defaultConfigPath, false)
 
   // If sample data flag is set, generate and persist sample data
   if sampleData then
@@ -61,7 +98,7 @@ import java.nio.file.Paths
         sys.exit(1)
 
   // Read or create default config
-  val config = ServerConfigRepository.getOrCreateDefault(configPath) match
+  val config = ServerConfigRepository.getOrCreateDefault(effectiveConfigPath) match
     case Right(c) => c
     case Left(err) =>
       Output.error(s"Failed to read config: $err")
@@ -76,7 +113,7 @@ import java.nio.file.Paths
     if statePath.isDefined || sampleData then
       Output.info(s"Using state file: $effectiveStatePath")
     // Start server in current process (foreground for Phase 1)
-    startServerAndOpenBrowser(effectiveStatePath, port, url)
+    startServerAndOpenBrowser(effectiveStatePath, port, url, effectiveDevMode)
   else
     Output.info(s"Server already running at $url")
     openBrowser(url)
@@ -87,10 +124,10 @@ def isServerRunning(healthUrl: String): Boolean =
     response.code.code == 200
   }.getOrElse(false)
 
-def startServerAndOpenBrowser(statePath: String, port: Int, url: String): Unit =
+def startServerAndOpenBrowser(statePath: String, port: Int, url: String, devMode: Boolean = false): Unit =
   // Start server in a separate thread
   val serverThread = new Thread(() => {
-    CaskServer.start(statePath, port)
+    CaskServer.start(statePath, port, devMode = devMode)
   })
   serverThread.setDaemon(false)
   serverThread.start()
