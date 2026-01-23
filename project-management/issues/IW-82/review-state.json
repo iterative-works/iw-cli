@@ -1,16 +1,17 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "context_ready",
+  "status": "awaiting_review",
   "phase": 4,
-  "step": "tasks",
-  "branch": "IW-82",
-  "pr_url": null,
-  "git_sha": "470de37",
-  "last_updated": "2026-01-23T14:30:00Z",
-  "message": "Phase 4 context ready for review",
+  "step": "review",
+  "branch": "IW-82-phase-04",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/153",
+  "git_sha": "784c734",
+  "last_updated": "2026-01-23T15:00:00Z",
+  "message": "Phase 4 complete - PR awaiting review",
   "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
-    {"label": "Phase 4 Context", "path": "project-management/issues/IW-82/phase-04-context.md"}
+    {"label": "Phase 4 Context", "path": "project-management/issues/IW-82/phase-04-context.md"},
+    {"label": "Phase 4 Tasks", "path": "project-management/issues/IW-82/phase-04-tasks.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-82/implementation-log.md"}
   ]
 }
