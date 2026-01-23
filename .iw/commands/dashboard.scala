@@ -27,9 +27,12 @@ import java.nio.file.Paths
       case "--dev" =>
         devMode = true
         i += 1
+      case "--help" | "-h" =>
+        printHelp()
+        sys.exit(0)
       case other =>
         Output.error(s"Unknown argument: $other")
-        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data] [--dev]")
+        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data] [--dev] [--help]")
         sys.exit(1)
 
   val homeDir = sys.env.get("HOME") match
@@ -176,3 +179,36 @@ def openBrowser(url: String): Unit =
     case Failure(ex) =>
       Output.warning(s"Failed to open browser: ${ex.getMessage}")
       Output.info(s"Please open $url manually")
+
+def printHelp(): Unit =
+  println("""Usage: ./iw dashboard [OPTIONS]
+    |
+    |Start the iw dashboard server and open it in a browser.
+    |
+    |Options:
+    |  --state-path <path>  Use a custom state file location
+    |  --sample-data        Load sample data for demonstration
+    |  --dev                Development mode with complete isolation
+    |  --help, -h           Show this help message
+    |
+    |Development Mode (--dev):
+    |  Creates a completely isolated environment for safe experimentation:
+    |  - Uses temporary directory: /tmp/iw-dev-<timestamp>/
+    |  - State file: <temp-dir>/state.json
+    |  - Config file: <temp-dir>/config.json
+    |  - Automatically enables sample data
+    |  - Production files are NEVER modified or accessed
+    |
+    |Isolation Guarantees:
+    |  When using --dev mode, your production data remains untouched:
+    |  - Production state file (~/.local/share/iw/server/state.json) is never read or written
+    |  - Production config file (~/.local/share/iw/server/config.json) is never modified
+    |  - All operations happen in isolated temporary directory
+    |  - Safe to experiment without affecting real worktree registrations
+    |
+    |Examples:
+    |  ./iw dashboard                    # Start with default production data
+    |  ./iw dashboard --dev              # Start in isolated dev mode with sample data
+    |  ./iw dashboard --sample-data      # Start with sample data in production location
+    |  ./iw dashboard --state-path /tmp/test.json  # Use custom state file
+    |""".stripMargin)

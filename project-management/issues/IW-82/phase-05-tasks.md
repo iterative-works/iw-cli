@@ -12,34 +12,34 @@ This phase creates E2E tests to validate that `--dev` mode provides complete iso
 
 ### Setup
 
-- [ ] [impl] Create test file `.iw/test/dashboard-dev-mode.bats` with BATS boilerplate
+- [x] [impl] [x] [reviewed] Create test file `.iw/test/dashboard-dev-mode.bats` with BATS boilerplate
 
 ### Test: Dev Mode Uses Temp Directory
 
-- [ ] [test] Write test: `--dev flag creates temp directory`
+- [x] [test] [x] [reviewed] Write test: `--dev flag creates temp directory`
   - Start server with `--dev`
   - Capture output showing temp directory path
   - Verify path matches pattern `/tmp/iw-dev-*`
 
-- [ ] [test] Write test: `--dev flag creates state.json in temp directory`
+- [x] [test] [x] [reviewed] Write test: `--dev flag creates state.json in temp directory`
   - Start server with `--dev`
   - Extract temp directory from output
   - Verify state.json exists in temp directory
 
-- [ ] [test] Write test: `--dev flag creates config.json in temp directory`
+- [x] [test] [x] [reviewed] Write test: `--dev flag creates config.json in temp directory`
   - Start server with `--dev`
   - Extract temp directory from output
   - Verify config.json exists in temp directory
 
 ### Test: Production State Isolation
 
-- [ ] [test] Write test: `production state file unchanged after dev mode`
+- [x] [test] [x] [reviewed] Write test: `production state file unchanged after dev mode`
   - Create baseline production state file
   - Record SHA256 hash
   - Start server with `--dev`, perform operations, stop
   - Verify production state file hash unchanged
 
-- [ ] [test] Write test: `production config file unchanged after dev mode`
+- [x] [test] [x] [reviewed] Write test: `production config file unchanged after dev mode`
   - Create baseline production config file
   - Record SHA256 hash
   - Start server with `--dev`, stop
@@ -47,14 +47,14 @@ This phase creates E2E tests to validate that `--dev` mode provides complete iso
 
 ### Test: Sample Data in Dev Mode
 
-- [ ] [test] Write test: `--dev flag enables sample data by default`
+- [x] [test] [x] [reviewed] Write test: `--dev flag enables sample data by default`
   - Start server with `--dev`
   - Verify output includes "Sample data" messages
   - Verify sample worktrees are present in temp state file
 
 ### Documentation
 
-- [ ] [impl] Update dashboard help text with isolation guarantees
+- [x] [impl] [x] [reviewed] Update dashboard help text with isolation guarantees
   - Add `--help` output describing dev mode isolation
   - Document that `--dev` creates isolated temp directory
   - Document that production state is never touched
@@ -100,8 +100,8 @@ AFTER_HASH=$(sha256sum "$FILE" | cut -d' ' -f1)
 ## Acceptance Criteria
 
 From Story 5:
-- [ ] E2E test verifies production state isolation
-- [ ] Test creates baseline production state
-- [ ] Test runs dev mode and performs operations
-- [ ] Test verifies production state byte-for-byte identical
-- [ ] Documentation clearly states isolation guarantees
+- [x] E2E test verifies production state isolation
+- [x] Test creates baseline production state
+- [x] Test runs dev mode and performs operations
+- [x] Test verifies production state byte-for-byte identical
+- [x] Documentation clearly states isolation guarantees
