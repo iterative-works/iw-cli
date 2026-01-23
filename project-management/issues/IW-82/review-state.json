@@ -1,12 +1,18 @@
 {
   "version": 1,
   "issue_id": "IW-82",
-  "status": "implementing",
+  "status": "awaiting_review",
   "phase": 5,
-  "step": "implementation",
+  "step": "review",
   "branch": "IW-82-phase-05",
-  "pr_url": null,
-  "git_sha": "09edf7c",
-  "last_updated": "2026-01-23T15:40:00Z",
-  "message": "Phase 5 implementation in progress"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/154",
+  "git_sha": "95a3cfe001b74a6dc0c0f6729decc0419207fae7",
+  "last_updated": "2026-01-23T14:05:22Z",
+  "message": "Phase 5 complete - Validate development mode isolation",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-82/implementation-log.md"},
+    {"label": "Phase 5 Context", "path": "project-management/issues/IW-82/phase-05-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-82/review-packet-phase-05.md"}
+  ]
 }
