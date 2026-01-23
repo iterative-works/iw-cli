@@ -8,6 +8,7 @@ import iw.core.{Output, ServerConfig, ServerConfigRepository}
 import scala.util.{Try, Success, Failure}
 import sttp.client4.quick.*
 import java.nio.file.Paths
+import java.net.ServerSocket
 
 @main def dashboard(args: String*): Unit =
   // Parse command line arguments
@@ -58,8 +59,9 @@ import java.nio.file.Paths
     // Auto-enable sample data in dev mode
     sampleData = true
 
-    // Create default config in temp directory (use different port than production default to avoid conflict)
-    val defaultConfig = ServerConfig(port = 9877, hosts = List("localhost"))
+    // Find available port dynamically (enables parallel test runs)
+    val devPort = findAvailablePort()
+    val defaultConfig = ServerConfig(port = devPort, hosts = List("localhost"))
     ServerConfigRepository.write(defaultConfig, tempConfigPath) match
       case Right(_) =>
         Output.info(s"Created dev mode config at $tempConfigPath")
@@ -71,6 +73,7 @@ import java.nio.file.Paths
     Output.info(s"  - Temp directory: $tempDir")
     Output.info(s"  - State file: $tempStatePath")
     Output.info(s"  - Config file: $tempConfigPath")
+    Output.info(s"  - Port: $devPort")
     Output.info(s"  - Sample data: enabled")
 
     // Explicit state-path takes precedence
@@ -197,6 +200,7 @@ def printHelp(): Unit =
     |  - State file: <temp-dir>/state.json
     |  - Config file: <temp-dir>/config.json
     |  - Automatically enables sample data
+    |  - Uses dynamically assigned port (avoids conflicts)
     |  - Production files are NEVER modified or accessed
     |
     |Isolation Guarantees:
@@ -212,3 +216,9 @@ def printHelp(): Unit =
     |  ./iw dashboard --sample-data      # Start with sample data in production location
     |  ./iw dashboard --state-path /tmp/test.json  # Use custom state file
     |""".stripMargin)
+
+def findAvailablePort(): Int =
+  val socket = new ServerSocket(0)
+  val port = socket.getLocalPort
+  socket.close()
+  port

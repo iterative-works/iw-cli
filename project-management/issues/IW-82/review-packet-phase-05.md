@@ -121,7 +121,7 @@ flowchart LR
     subgraph dev["Dev Mode Environment"]
         DT["/tmp/iw-dev-TIMESTAMP/"]
         DS[state.json<br/>with sample data]
-        DC[config.json<br/>port: 9877]
+        DC[config.json<br/>port: dynamic]
         DT --> DS
         DT --> DC
     end
