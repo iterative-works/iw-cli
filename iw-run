@@ -6,8 +6,10 @@ set -euo pipefail
 
 # Directory where this script is located (the installation directory)
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMMANDS_DIR="${IW_COMMANDS_DIR:-$INSTALL_DIR/commands}"
-CORE_DIR="${IW_CORE_DIR:-$INSTALL_DIR/core}"
+export IW_COMMANDS_DIR="${IW_COMMANDS_DIR:-$INSTALL_DIR/commands}"
+export IW_CORE_DIR="${IW_CORE_DIR:-$INSTALL_DIR/core}"
+COMMANDS_DIR="$IW_COMMANDS_DIR"
+CORE_DIR="$IW_CORE_DIR"
 
 # Project directory where iw was invoked (passed as IW_PROJECT_DIR or current dir)
 PROJECT_DIR="${IW_PROJECT_DIR:-$(pwd)}"

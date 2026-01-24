@@ -96,13 +96,17 @@ object ProcessManager:
     Try {
       // Use scala-cli to run the server-daemon script with core library
       val hostsArg = hosts.mkString(",")
-      val coreDir = os.pwd / ".iw" / "core"
+      val coreDir = os.Path(
+        sys.env.getOrElse("IW_CORE_DIR", (os.pwd / ".iw" / "core").toString)
+      )
+      val commandsDir = sys.env.getOrElse("IW_COMMANDS_DIR", (os.pwd / ".iw" / "commands").toString)
       val coreFiles = os.walk(coreDir)
         .filter(p => p.ext == "scala" && !p.toString.contains("/test/"))
         .map(_.toString)
         .toSeq
 
-      val command = Seq("scala-cli", "run", ".iw/commands/server-daemon.scala") ++
+      val daemonScript = s"$commandsDir/server-daemon.scala"
+      val command = Seq("scala-cli", "run", daemonScript) ++
         coreFiles ++
         Seq("--", statePath, port.toString, hostsArg)
 
