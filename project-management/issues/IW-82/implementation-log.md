@@ -185,3 +185,51 @@ M	.iw/core/test/DashboardServiceTest.scala
 ```
 
 ---
+
+## Phase 5: Validate development mode isolation (2026-01-23)
+
+**What was built:**
+- E2E test suite: Created `.iw/test/dashboard-dev-mode.bats` with 6 comprehensive tests
+- CLI help: Added `--help` / `-h` flag with detailed isolation guarantees documentation
+
+**E2E tests implemented:**
+- `dev mode creates temp directory` - Verifies `/tmp/iw-dev-*` pattern
+- `dev mode creates state.json in temp directory` - Confirms state in temp dir
+- `dev mode creates config.json in temp directory` - Confirms config in temp dir
+- `production state file unchanged after dev mode` - SHA256 hash verification
+- `production config file unchanged after dev mode` - SHA256 hash verification
+- `dev mode enables sample data by default` - Confirms auto-enable behavior
+
+**Decisions made:**
+- Used BATS framework (consistent with existing tests in `.iw/test/`)
+- SHA256 hash comparison for byte-for-byte file verification
+- Help text documents isolation guarantees explicitly for user confidence
+
+**Patterns applied:**
+- Setup/teardown: Proper test isolation with temp directories
+- Hash verification: Cryptographic proof of file unchanged
+- Output capture: File-based capture for background process output
+
+**Testing:**
+- E2E tests: 6 new BATS tests (all passing)
+- Test coverage: Temp directory creation, file isolation, sample data auto-enable
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-05-20260123-150100.md
+- Major findings: 0 critical issues, 8 warnings (mostly style), 9 suggestions
+
+**Acceptance criteria met:**
+- ✅ E2E test verifies production state isolation
+- ✅ Test creates baseline production state
+- ✅ Test runs dev mode and performs operations
+- ✅ Test verifies production state byte-for-byte identical
+- ✅ Documentation clearly states isolation guarantees
+
+**Files changed:**
+```
+A	.iw/test/dashboard-dev-mode.bats
+M	.iw/commands/dashboard.scala
+```
+
+---
