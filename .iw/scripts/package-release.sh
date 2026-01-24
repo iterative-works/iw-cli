@@ -24,8 +24,15 @@ cp "$PROJECT_ROOT/iw-run" "$RELEASE_PACKAGE_DIR/"
 # Copy all command files
 cp "$PROJECT_ROOT/.iw/commands"/*.scala "$RELEASE_PACKAGE_DIR/commands/"
 
-# Copy all core files
-cp "$PROJECT_ROOT/.iw/core"/*.scala "$RELEASE_PACKAGE_DIR/core/"
+# Copy all core files (recursively, preserving directory structure)
+# Exclude test/ and .scala-build/ directories
+rsync -a \
+    --exclude='test/' \
+    --exclude='.scala-build/' \
+    --include='*/' \
+    --include='*.scala' \
+    --exclude='*' \
+    "$PROJECT_ROOT/.iw/core/" "$RELEASE_PACKAGE_DIR/core/"
 
 # Create tarball
 cd "$RELEASE_DIR"
