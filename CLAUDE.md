@@ -60,6 +60,15 @@ Run `./iw claude-sync --force` when:
 Generated skills go to `.claude/skills/iw-cli-ops/`. These are separate from the
 `iw-command-creation` skill which teaches how to create new iw commands.
 
+## Server Configuration
+
+The dashboard server config is at `~/.local/share/iw/server/config.json`.
+
+See [docs/server-config.md](docs/server-config.md) for full documentation on:
+- Config file format and fields
+- Host binding options
+- Troubleshooting
+
 ## Testing
 
 Run all tests (unit + E2E):
