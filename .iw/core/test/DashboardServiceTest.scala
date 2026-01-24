@@ -11,7 +11,8 @@ import iw.core.domain.{
   CachedReviewState,
   CachedIssue,
   CachedProgress,
-  CachedPR
+  CachedPR,
+  IssueData
 }
 import java.time.Instant
 
@@ -31,6 +32,19 @@ class DashboardServiceTest extends FunSuite:
       team = "IWLE",
       registeredAt = now,
       lastSeenAt = now
+    )
+
+  private def createCachedIssue(issueId: String): CachedIssue =
+    CachedIssue(
+      IssueData(
+        id = issueId,
+        title = s"Test issue $issueId",
+        status = "In Progress",
+        assignee = Some("Developer"),
+        description = None,
+        url = s"https://linear.app/issue/$issueId",
+        fetchedAt = now
+      )
     )
 
   // Review State Integration Tests
@@ -328,9 +342,10 @@ class DashboardServiceTest extends FunSuite:
 
   test("renderDashboard includes Zed button with configured SSH host"):
     val worktree = createWorktree("IWLE-ZED-1", "/home/user/projects/my-project")
+    val issueCache = Map("IWLE-ZED-1" -> createCachedIssue("IWLE-ZED-1"))
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
+      issueCache = issueCache,
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
@@ -346,10 +361,14 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard Zed button uses correct SSH host for multiple worktrees"):
     val worktree1 = createWorktree("IWLE-ZED-2", "/home/user/project-a")
     val worktree2 = createWorktree("IWLE-ZED-3", "/home/user/project-b")
+    val issueCache = Map(
+      "IWLE-ZED-2" -> createCachedIssue("IWLE-ZED-2"),
+      "IWLE-ZED-3" -> createCachedIssue("IWLE-ZED-3")
+    )
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
-      issueCache = Map.empty,
+      issueCache = issueCache,
       progressCache = Map.empty,
       prCache = Map.empty,
       reviewStateCache = Map.empty,
@@ -574,3 +593,74 @@ class DashboardServiceTest extends FunSuite:
 
     assert(aIndex < bIndex, "IW-A should appear before IW-B (stable sort)")
     assert(bIndex < cIndex, "IW-B should appear before IW-C (stable sort)")
+
+  // Dev Mode Banner Tests (IW-82 Phase 4)
+
+  test("renderDashboard with devMode=true renders DEV MODE banner"):
+    val worktree = createWorktree("IW-82-TEST-1")
+    val html = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost",
+      devMode = true
+    )
+
+    // Verify banner div is rendered
+    assert(html.contains("<div class=\"dev-mode-banner\">"), "Should contain dev-mode-banner div element")
+    assert(html.contains(">DEV MODE<"), "Should contain DEV MODE text in div")
+
+  test("renderDashboard with devMode=false does NOT render DEV MODE banner"):
+    val worktree = createWorktree("IW-82-TEST-2")
+    val html = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost",
+      devMode = false
+    )
+
+    // Verify banner div is NOT rendered (CSS class definition is OK to exist)
+    assert(!html.contains("<div class=\"dev-mode-banner\">"), "Should NOT contain dev-mode-banner div element")
+    assert(!html.contains(">DEV MODE<"), "Should NOT contain DEV MODE text in body")
+
+  test("renderDashboard with devMode=false by default does NOT render banner"):
+    val worktree = createWorktree("IW-82-TEST-3")
+    val html = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost"
+      // devMode not specified, should default to false
+    )
+
+    // Verify banner div is NOT rendered (CSS class definition is OK to exist)
+    assert(!html.contains("<div class=\"dev-mode-banner\">"), "Should NOT contain dev-mode-banner div element when devMode not specified")
+    assert(!html.contains(">DEV MODE<"), "Should NOT contain DEV MODE text in body when devMode not specified")
+
+  test("renderDashboard includes dev-mode-banner CSS styles"):
+    val worktree = createWorktree("IW-82-TEST-4")
+    val html = DashboardService.renderDashboard(
+      worktrees = List(worktree),
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost",
+      devMode = true
+    )
+
+    // Verify CSS styles are present
+    assert(html.contains(".dev-mode-banner"), "Should contain .dev-mode-banner CSS class definition")
+    assert(html.contains("background: #ffc107") || html.contains("background:#ffc107"), "Should have yellow background")
+    assert(html.contains("font-weight: bold") || html.contains("font-weight:bold"), "Should have bold text")

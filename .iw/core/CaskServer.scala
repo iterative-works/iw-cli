@@ -9,7 +9,7 @@ import iw.core.domain.{ServerState, IssueData, WorktreeCreationError}
 import iw.core.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
 import java.time.Instant
 
-class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant) extends cask.MainRoutes:
+class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant, devMode: Boolean = false) extends cask.MainRoutes:
   private val repository = StateRepository(statePath)
   private val stateService = new ServerStateService(repository)
   private val refreshThrottle = RefreshThrottle()
@@ -52,7 +52,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       state.prCache,
       state.reviewStateCache,
       config,
-      sshHost = effectiveSshHost
+      sshHost = effectiveSshHost,
+      devMode = devMode
     )
 
     cask.Response(
@@ -756,9 +757,9 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
   initialize()
 
 object CaskServer:
-  def start(statePath: String, port: Int = 9876, hosts: Seq[String] = Seq("localhost")): Unit =
+  def start(statePath: String, port: Int = 9876, hosts: Seq[String] = Seq("localhost"), devMode: Boolean = false): Unit =
     val startedAt = Instant.now()
-    val server = new CaskServer(statePath, port, hosts, startedAt)
+    val server = new CaskServer(statePath, port, hosts, startedAt, devMode)
 
     // Create builder and add listener for each host
     val builder = hosts.foldLeft(io.undertow.Undertow.builder) { (b, host) =>

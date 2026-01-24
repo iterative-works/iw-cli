@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue_id": "IW-82",
+  "status": "phase_complete",
+  "phase": 5,
+  "step": "merged",
+  "branch": "IW-82",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/154",
+  "git_sha": "0c18cad92348b1d9d8071fded3e868d29aea99cf",
+  "last_updated": "2026-01-24T09:28:44Z",
+  "message": "Phase 5 merged - Validate development mode isolation",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-82/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-82/implementation-log.md"},
+    {"label": "Phase 5 Context", "path": "project-management/issues/IW-82/phase-05-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-82/review-packet-phase-05.md"}
+  ]
+}
