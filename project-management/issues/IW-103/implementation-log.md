@@ -184,3 +184,45 @@ M  .iw/test/issue-create.bats
 ```
 
 ---
+
+## Phase 6: GitLab issue creation (2026-01-25)
+
+**What was built:**
+- Feature: `.iw/commands/issue.scala` - Added GitLab tracker support to handleCreateSubcommand
+- Helper: `createGitLabIssue()` function for GitLab-specific issue creation flow
+- Tests: `.iw/test/issue-create.bats` - 3 new GitLab E2E tests
+
+**Decisions made:**
+- Reuse existing `GitLabClient.validateGlabPrerequisites()` for CLI validation
+- Use `GitLabClient.buildCreateIssueCommandWithoutLabel()` to build glab command
+- Pass command as array to `CommandRunner.execute("glab", args)` (not split like GitHub)
+- Follow same error handling pattern as GitHub for consistency
+
+**Patterns applied:**
+- CLI prerequisite validation: Check glab installed and authenticated before API call
+- Tracker type branching: Added `case IssueTrackerType.GitLab` alongside GitHub/Linear
+- Helper function extraction: `createGitLabIssue()` follows `createGitHubIssue()` pattern
+
+**Testing:**
+- E2E tests: 3 new tests (16 total in issue-create.bats)
+- Coverage: glab not installed, glab not authenticated, successful creation
+- Mocking: PATH manipulation for glab CLI (same pattern as gh)
+
+**Code review:**
+- Iterations: 1
+- Major findings: No critical issues. Code follows Scala 3 idioms correctly.
+
+**For next phases:**
+- Available utilities: `createGitLabIssue()` pattern for YouTrack
+- Extension points: Tracker type match ready for YouTrack
+- Notes: YouTrack requires implementing YouTrackClient.createIssue (new method)
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+M  .iw/test/issue-create.bats
+A  project-management/issues/IW-103/phase-06-context.md
+A  project-management/issues/IW-103/phase-06-tasks.md
+```
+
+---

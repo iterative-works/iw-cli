@@ -309,3 +309,123 @@ EOF
     [[ "$output" == *"LINEAR_API_TOKEN"* ]]
     [[ "$output" == *"not set"* ]]
 }
+
+# ========== Phase 6: GitLab Issue Creation Tests ==========
+
+@test "issue create fails with helpful message when glab CLI not installed" {
+    # Create a GitLab config
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = gitlab
+  repository = "company/platform/api-service"
+  teamPrefix = API
+}
+project {
+  name = api-service
+}
+EOF
+
+    # Mock which command to report glab is not found
+    mkdir -p bin
+    cat > bin/which <<'SCRIPT'
+#!/bin/bash
+# Return false for glab, true for everything else
+if [[ "$1" == "glab" ]]; then
+    exit 1
+else
+    # Use real which for other commands
+    /usr/bin/which "$@"
+fi
+SCRIPT
+    chmod +x bin/which
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test issue"
+
+    # Assert failure with helpful message
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"glab CLI is not installed"* ]]
+    [[ "$output" == *"https://gitlab.com/gitlab-org/cli"* ]]
+    [[ "$output" == *"glab auth login"* ]]
+}
+
+@test "issue create fails with auth instructions when glab not authenticated" {
+    # Create a GitLab config
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = gitlab
+  repository = "company/platform/api-service"
+  teamPrefix = API
+}
+project {
+  name = api-service
+}
+EOF
+
+    # Mock glab command that returns exit code for auth status failure
+    mkdir -p bin
+    cat > bin/glab <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "No accounts logged in." >&2
+    exit 1
+elif [[ "$1" == "issue" && "$2" == "create" ]]; then
+    # This should not be reached since validation should fail first
+    echo "Unexpected: issue create called when not authenticated" >&2
+    exit 1
+else
+    echo "Unexpected glab command: $*" >&2
+    exit 1
+fi
+SCRIPT
+    chmod +x bin/glab
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test issue"
+
+    # Assert failure with auth instructions
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"glab is not authenticated"* ]]
+    [[ "$output" == *"glab auth login"* ]]
+}
+
+@test "issue create with GitLab tracker succeeds" {
+    # Create a GitLab config
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = gitlab
+  repository = "company/platform/api-service"
+  teamPrefix = API
+}
+project {
+  name = api-service
+}
+EOF
+
+    # Mock glab command that returns success
+    mkdir -p bin
+    cat > bin/glab <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to gitlab.com"
+    exit 0
+fi
+echo "https://gitlab.com/company/platform/api-service/-/issues/789"
+exit 0
+SCRIPT
+    chmod +x bin/glab
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test GitLab issue" --description "Test body"
+
+    # Assert success
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Issue created: #789"* ]]
+    [[ "$output" == *"URL: https://gitlab.com/company/platform/api-service/-/issues/789"* ]]
+}
