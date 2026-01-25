@@ -226,3 +226,51 @@ A  project-management/issues/IW-103/phase-06-tasks.md
 ```
 
 ---
+
+## Phase 7: YouTrack issue creation (2026-01-25)
+
+**What was built:**
+- Feature: `.iw/core/YouTrackClient.scala` - Added createIssue method and helpers
+- Methods: `buildCreateIssueUrl`, `buildCreateIssueBody`, `parseCreateIssueResponse`, `buildIssueUrl`, `createIssue`
+- Helper: `createYouTrackIssue()` function in `.iw/commands/issue.scala`
+- Tests: `.iw/core/test/YouTrackClientCreateIssueTest.scala` - 11 unit tests
+- E2E: 2 new tests in `.iw/test/issue-create.bats` (17 total)
+
+**Decisions made:**
+- Implemented YouTrackClient.createIssue using REST API (POST to /api/issues)
+- Used `config.team` as project ID (same as Linear pattern)
+- Used `config.youtrackBaseUrl` for base URL (existing config field)
+- Issue URL format: `{baseUrl}/issue/{issueId}` (YouTrack standard)
+- Removed "not yet supported" fallback - all 4 trackers now supported
+
+**Patterns applied:**
+- REST API issue creation: POST JSON body with project, summary, description
+- Token validation pattern: Check YOUTRACK_API_TOKEN env var before API call
+- Helper function extraction: `createYouTrackIssue()` follows other tracker patterns
+- URL normalization: Strip trailing slash from baseUrl before building URLs
+
+**Testing:**
+- Unit tests: 11 tests for YouTrackClient createIssue helpers
+- E2E tests: 2 new tests (17 total in issue-create.bats)
+- Coverage: Token validation, baseUrl validation
+- Note: HTTP success path testing requires mocking infrastructure (known limitation)
+
+**Code review:**
+- Iterations: 1
+- Major findings: No critical issues. Suggestion for opaque type on project ID (deferred).
+
+**Completion:**
+- All 4 tracker types supported: GitHub, Linear, GitLab, YouTrack
+- Issue IW-103 feature complete
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+M  .iw/core/YouTrackClient.scala
+A  .iw/core/test/YouTrackClientCreateIssueTest.scala
+M  .iw/test/issue-create.bats
+A  project-management/issues/IW-103/phase-07-context.md
+A  project-management/issues/IW-103/phase-07-tasks.md
+```
+
+---
