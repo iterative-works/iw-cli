@@ -7,32 +7,32 @@
 ## Tasks
 
 ### Setup
-- [ ] [impl] [ ] [reviewed] Review GitHubClient.createIssue patterns and reusable components
+- [x] [impl] [x] [reviewed] Review GitHubClient.createIssue patterns and reusable components
 
 ### Tests (TDD - Write First)
-- [ ] [impl] [ ] [reviewed] Create E2E test: `iw issue create --title "Test" --description "Body"` succeeds (GitHub tracker)
-- [ ] [impl] [ ] [reviewed] Create E2E test: `iw issue create --title "Test"` works without description
-- [ ] [impl] [ ] [reviewed] Create E2E test: `iw issue create` without --title shows help and exits 1
-- [ ] [impl] [ ] [reviewed] Create E2E test: Success output contains "Issue created:" and URL
-- [ ] [impl] [ ] [reviewed] Create unit test: IssueCreateParser parses --title correctly
-- [ ] [impl] [ ] [reviewed] Create unit test: IssueCreateParser parses --title and --description
-- [ ] [impl] [ ] [reviewed] Create unit test: IssueCreateParser returns error when --title missing
+- [x] [impl] [x] [reviewed] Create E2E test: `iw issue create --title "Test" --description "Body"` succeeds (GitHub tracker)
+- [x] [impl] [x] [reviewed] Create E2E test: `iw issue create --title "Test"` works without description
+- [x] [impl] [x] [reviewed] Create E2E test: `iw issue create` without --title shows help and exits 1
+- [x] [impl] [x] [reviewed] Create E2E test: Success output contains "Issue created:" and URL
+- [x] [impl] [x] [reviewed] Create unit test: IssueCreateParser parses --title correctly
+- [x] [impl] [x] [reviewed] Create unit test: IssueCreateParser parses --title and --description
+- [x] [impl] [x] [reviewed] Create unit test: IssueCreateParser returns error when --title missing
 
 ### Implementation
-- [ ] [impl] [ ] [reviewed] Create IssueCreateParser with parse(args) method returning Either[String, IssueCreateRequest]
-- [ ] [impl] [ ] [reviewed] Define IssueCreateRequest case class with title and description fields
-- [ ] [impl] [ ] [reviewed] Implement handleCreateSubcommand: parse arguments using IssueCreateParser
-- [ ] [impl] [ ] [reviewed] Implement handleCreateSubcommand: load configuration using loadConfig()
-- [ ] [impl] [ ] [reviewed] Implement handleCreateSubcommand: validate tracker type is GitHub
-- [ ] [impl] [ ] [reviewed] Implement handleCreateSubcommand: validate gh prerequisites
-- [ ] [impl] [ ] [reviewed] Implement handleCreateSubcommand: call GitHubClient to create issue
-- [ ] [impl] [ ] [reviewed] Implement handleCreateSubcommand: output success message with issue number and URL
-- [ ] [impl] [ ] [reviewed] Handle error cases with appropriate error messages
+- [x] [impl] [x] [reviewed] Create IssueCreateParser with parse(args) method returning Either[String, IssueCreateRequest]
+- [x] [impl] [x] [reviewed] Define IssueCreateRequest case class with title and description fields
+- [x] [impl] [x] [reviewed] Implement handleCreateSubcommand: parse arguments using IssueCreateParser
+- [x] [impl] [x] [reviewed] Implement handleCreateSubcommand: load configuration using loadConfig()
+- [x] [impl] [x] [reviewed] Implement handleCreateSubcommand: validate tracker type is GitHub
+- [x] [impl] [x] [reviewed] Implement handleCreateSubcommand: validate gh prerequisites
+- [x] [impl] [x] [reviewed] Implement handleCreateSubcommand: call GitHubClient to create issue
+- [x] [impl] [x] [reviewed] Implement handleCreateSubcommand: output success message with issue number and URL
+- [x] [impl] [x] [reviewed] Handle error cases with appropriate error messages
 
 ### Integration
-- [ ] [impl] [ ] [reviewed] Verify all E2E tests pass with real GitHub repository
-- [ ] [impl] [ ] [reviewed] Manual smoke test: create real issue in test repository
-- [ ] [impl] [ ] [reviewed] Verify existing `iw issue` fetch command still works
+- [x] [impl] [x] [reviewed] Verify all E2E tests pass with real GitHub repository
+- [x] [impl] [x] [reviewed] Manual smoke test: create real issue in test repository
+- [x] [impl] [x] [reviewed] Verify existing `iw issue` fetch command still works
 
 ## Success Criteria
 
@@ -45,4 +45,4 @@
 - [ ] Non-GitHub trackers show "not yet supported" message
 - [ ] No regressions in existing commands
 
-**Phase Status:** Not Started
+**Phase Status:** Complete ✓
