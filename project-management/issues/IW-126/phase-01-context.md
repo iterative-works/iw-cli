@@ -6,23 +6,46 @@
 
 ## Goals
 
-Refactor the `.iw/core/` directory to separate public API modules (intended for script composition) from internal implementation details (dashboard services, caches, views). This creates a self-documenting structure where directory location declares API stability intent.
+Reorganize `.iw/core/` by architectural responsibility rather than visibility. This creates a structure where:
+- Directory location indicates what kind of code it is (pure types, I/O adapters, presentation)
+- Public API for scripts = everything except `dashboard/`
+- The structure is self-documenting via `ARCHITECTURE.md`
+
+## Architectural Approach
+
+Based on FCIS (Functional Core Imperative Shell) principles, adapted for iw-cli's simpler needs:
+
+```
+.iw/core/
+├── model/        # Pure domain types - no I/O, no side effects
+├── adapters/     # I/O operations - shell commands, API clients
+├── output/       # CLI presentation - console formatting
+└── dashboard/    # Dashboard server internals - not for scripts
+```
+
+**Why this structure:**
+- `model/` = functional core (pure, testable without mocks)
+- `adapters/` = imperative shell (I/O boundary)
+- `output/` = presentation (CLI-specific formatting)
+- `dashboard/` = internal implementation (server, caches, views)
+
+**Public API** = `model/` + `adapters/` + `output/` (documented in llms.txt)
+**Internal** = `dashboard/` (not documented)
 
 ## Scope
 
 ### In Scope
-- Analyze current module usage in `.iw/commands/` to identify public API candidates
-- Create `api/` subdirectory in `.iw/core/` for public modules
-- Create `internal/` subdirectory for implementation details
-- Move modules to appropriate locations based on usage analysis
-- Update all imports in `.iw/commands/` files
-- Update `project.scala` if needed for package organization
-- Ensure all tests continue to pass
+- Create new directory structure: `model/`, `adapters/`, `output/`, `dashboard/`
+- Move modules to appropriate locations based on responsibility
+- Update all imports in `.iw/commands/` and `.iw/core/` files
+- Create `ARCHITECTURE.md` documenting placement criteria
+- Update `project.scala` for package organization
+- Ensure all tests pass
 
 ### Out of Scope
-- Documentation (Phase 2)
+- Documentation in llms.txt (Phase 2)
 - Skill updates (Phase 3)
-- Any API changes to the modules themselves
+- API changes to modules themselves
 - Creating new modules or removing functionality
 
 ## Dependencies
@@ -31,142 +54,178 @@ Refactor the `.iw/core/` directory to separate public API modules (intended for 
 None (this is Phase 1)
 
 ### External
-- Understanding of Scala package/import conventions
+- Scala package/import conventions
 - scala-cli module organization patterns
 
 ## Technical Approach
 
-### 1. Analysis: Identify Public vs Internal
+### 1. Module Classification
 
-**Public API candidates** (used by `.iw/commands/` or skill examples):
-- `Output.scala` - Console output formatting (heavily used)
-- `Git.scala` - Git operations via GitAdapter
-- `GitWorktree.scala` - Worktree management
-- `IssueId.scala` - Issue ID parsing/validation
-- `Issue.scala` - Issue domain type
-- `Config.scala` - Configuration types
-- `ConfigRepository.scala` - Config loading
-- `Process.scala` - Shell execution
-- `Prompt.scala` - User prompts
-- `Constants.scala` - Shared constants
-- `WorktreePath.scala` - Path handling
+**model/** - Pure domain types (no I/O):
+- `IssueId.scala` - issue ID parsing/validation
+- `Issue.scala` - issue domain type
+- `IssueData.scala` - issue data structures
+- `Config.scala` - configuration types
+- `ConfigRepository.scala` - config loading (interface)
+- `Constants.scala` - shared constants
+- `WorktreePath.scala` - path value object
+- `WorktreePriority.scala` - priority enum
+- `WorktreeRegistration.scala` - registration data
+- `ApiToken.scala` - token value object
+- `GitStatus.scala` - status data type
+- `ReviewState.scala` - review state data
+- `PhaseInfo.scala` - phase data
+- `WorkflowProgress.scala` - progress data
+- `PullRequestData.scala` - PR data
+- `ServerConfig.scala` - server config types
+- `ServerStatus.scala` - status enum
+- `ServerState.scala` - state data
+- `CacheConfig.scala` - cache config types
+- `DeletionSafety.scala` - safety enum/rules
 
-**Internal modules** (dashboard, caching, services):
-- `CaskServer.scala` - HTTP server implementation
-- `DashboardService.scala` - Dashboard business logic
-- `*CacheService.scala` - All caching services
-- `*View.scala` - Presentation components
-- `Server*.scala` - Server-related modules
-- `Worktree*Service.scala` - Internal worktree services
+**adapters/** - I/O operations (shell, network, filesystem):
+- `Git.scala` - git operations via shell
+- `GitWorktree.scala` - worktree operations via shell
+- `Process.scala` - shell command execution
+- `Prompt.scala` - user input prompts
+- `Tmux.scala` - tmux operations
+- `GitHubClient.scala` - GitHub API client
+- `LinearClient.scala` - Linear API client
+- `GitLabClient.scala` - GitLab API client
+- `YouTrackClient.scala` - YouTrack API client
+- `CommandRunner.scala` - command execution
+- `Log.scala` - logging operations
 
-**Infrastructure adapters** (keep in infrastructure/):
-- `GitHubClient.scala`
-- `LinearClient.scala`
-- `GitLabClient.scala`
-- `YouTrackClient.scala`
+**output/** - CLI presentation:
+- `Output.scala` - console output formatting
+- `IssueFormatter.scala` - issue display formatting
+- `MarkdownRenderer.scala` - markdown rendering
+- `TimestampFormatter.scala` - timestamp display
+
+**dashboard/** - Server internals (not for scripts):
+- `CaskServer.scala` - HTTP server
+- `DashboardService.scala` - dashboard logic
+- `IssueCacheService.scala` - issue caching
+- `PullRequestCacheService.scala` - PR caching
+- `CachedIssue.scala`, `CachedPR.scala`, `CachedProgress.scala`, `CachedReviewState.scala`
+- `ServerClient.scala` - server communication
+- `ServerConfigRepository.scala` - server config persistence
+- `ServerLifecycleService.scala` - server lifecycle
+- `ServerStateService.scala` - server state management
+- `StateRepository.scala` - state persistence
+- `ReviewStateService.scala` - review state management
+- `WorkflowProgressService.scala` - progress tracking
+- `WorktreeCardService.scala` - card rendering service
+- `WorktreeListSync.scala` - list synchronization
+- `WorktreeListView.scala` - list view
+- `WorktreeRegistrationService.scala` - registration service
+- `WorktreeUnregistrationService.scala` - unregistration service
+- `GitStatusService.scala` - git status service
+- `GitHubHookDoctor.scala` - hook diagnostics
+- `DoctorChecks.scala` - diagnostic checks
+- `ArtifactService.scala` - artifact handling
+- `FeedbackParser.scala` - feedback parsing
+- `MarkdownTaskParser.scala` - task parsing
+- `IssueSearchService.scala`, `IssueSearchResult.scala` - search
+- `PathValidator.scala` - path validation service
+- `RefreshThrottle.scala` - throttling
+- `ProcessManager.scala` - process management
+- Existing subdirectories: `application/`, `domain/`, `infrastructure/`, `presentation/`
 
 ### 2. Directory Structure After Refactoring
 
 ```
 .iw/core/
-├── api/                    # Public API - stable, documented
-│   ├── Output.scala
-│   ├── Git.scala
-│   ├── GitWorktree.scala
+├── model/                  # Pure domain types
 │   ├── IssueId.scala
 │   ├── Issue.scala
 │   ├── Config.scala
-│   ├── ConfigRepository.scala
+│   ├── WorktreePath.scala
+│   └── ... (other pure types)
+│
+├── adapters/               # I/O operations
+│   ├── Git.scala
+│   ├── GitWorktree.scala
 │   ├── Process.scala
 │   ├── Prompt.scala
-│   ├── Constants.scala
-│   └── WorktreePath.scala
+│   ├── GitHubClient.scala
+│   └── ... (other adapters)
 │
-├── internal/               # Internal - no stability guarantees
+├── output/                 # CLI presentation
+│   ├── Output.scala
+│   ├── IssueFormatter.scala
+│   └── ... (other formatters)
+│
+├── dashboard/              # Server internals
 │   ├── CaskServer.scala
 │   ├── DashboardService.scala
-│   ├── CachedProgress.scala
-│   ├── CachedIssue.scala
-│   ├── CachedPR.scala
-│   ├── CachedReviewState.scala
-│   ├── ... (remaining internal modules)
+│   ├── services/           # Moved from root
+│   ├── cache/              # Cache-related
+│   └── ... (all internal stuff)
 │
-├── infrastructure/         # Adapters - selectively public
-│   ├── GitHubClient.scala
-│   ├── LinearClient.scala
-│   ├── GitLabClient.scala
-│   ├── YouTrackClient.scala
-│   └── CreationLockRegistry.scala
-│
-├── domain/                 # Keep as-is
-├── application/            # Keep as-is
-├── presentation/           # Keep as-is (views are internal)
-└── project.scala           # Update package declarations
+├── ARCHITECTURE.md         # Documents this structure
+├── project.scala
+└── test/
 ```
 
 ### 3. Import Update Strategy
 
-Commands currently use:
-- `import iw.core.*` - wildcard import
-- `import iw.core.Output` - specific imports
-- `import iw.core.infrastructure.*` - infrastructure imports
+**Current imports:**
+```scala
+import iw.core.*
+import iw.core.Output
+import iw.core.infrastructure.{GitHubHookDoctor => CoreGitHubHookDoctor}
+```
 
-After refactoring, update to:
-- `import iw.core.api.*` - for public API
-- `import iw.core.internal.*` - for internal (if needed)
-- Infrastructure imports stay the same
+**After refactoring:**
+```scala
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
+// Dashboard internals (only used within dashboard):
+import iw.core.dashboard.*
+```
 
-### 4. Package Declaration Updates
+### 4. ARCHITECTURE.md Content
 
-Each moved file needs its package updated:
-- Public API: `package iw.core.api`
-- Internal: `package iw.core.internal`
-
-The `project.scala` file may need updates to configure scala-cli to recognize the new structure.
+Create `.iw/core/ARCHITECTURE.md` with:
+- Directory structure explanation
+- Placement decision criteria (flowchart)
+- Public API scope definition
+- llms.txt maintenance rules
+- Import conventions
+- Dependency rules
 
 ## Files to Modify
 
 ### Create Directories
-- `.iw/core/api/` (new)
-- `.iw/core/internal/` (new)
+- `.iw/core/model/`
+- `.iw/core/adapters/`
+- `.iw/core/output/`
+- `.iw/core/dashboard/`
 
-### Move to api/
-- `Output.scala`
-- `Git.scala`
-- `GitWorktree.scala`
-- `IssueId.scala`
-- `Issue.scala`
-- `Config.scala`
-- `ConfigRepository.scala`
-- `Process.scala`
-- `Prompt.scala`
-- `Constants.scala`
-- `WorktreePath.scala`
+### Create Files
+- `.iw/core/ARCHITECTURE.md`
 
-### Move to internal/
-All remaining modules in `.iw/core/` root (except `project.scala`)
+### Move Files
+See classification in Section 1 above.
 
 ### Update Imports
-All 18 files in `.iw/commands/`:
-- `claude-sync.scala`
-- `dashboard.scala`
-- `doctor.scala`
-- `feedback.scala`
-- `github.hook-doctor.scala`
-- `init.scala`
-- `issue.hook-doctor.scala`
-- `issue.scala`
-- `legacy-branches.hook-doctor.scala`
-- `open.scala`
-- (and 8 more)
+- All 18 files in `.iw/commands/`
+- All files in `.iw/core/` that cross-reference moved modules
+- Test files in `.iw/core/test/`
 
-### Possibly Update
-- `.iw/core/project.scala` - Package organization
+### Update Package Declarations
+Each moved file needs package updated:
+- `package iw.core.model`
+- `package iw.core.adapters`
+- `package iw.core.output`
+- `package iw.core.dashboard`
 
 ## Testing Strategy
 
 ### Compilation Test
-After each batch of moves, verify:
+After each batch of moves:
 ```bash
 scala-cli compile .iw/core/
 ```
@@ -178,27 +237,35 @@ After all moves complete:
 ```
 
 ### Manual Verification
-- Run a few commands to verify they still work:
-  - `./iw issue IW-126`
-  - `./iw doctor`
-  - `./iw dashboard` (if applicable)
+- `./iw issue IW-126` - uses model + adapters + output
+- `./iw doctor` - uses adapters
+- `./iw worktree list` - uses model + adapters
+- `./iw dashboard` - uses dashboard internals
 
 ## Acceptance Criteria
 
-1. **Structure**: `.iw/core/api/` contains public modules, `.iw/core/internal/` contains internal modules
-2. **Compilation**: All code compiles without errors
-3. **Tests**: `./iw test` passes completely
-4. **Commands**: All 18 commands work correctly
-5. **Imports**: Commands use `iw.core.api.*` for public API
-6. **Clean separation**: No public API module imports from internal (allowed: internal imports from api)
+1. **Structure**: Four directories exist with modules placed by responsibility
+2. **ARCHITECTURE.md**: Documents structure and placement criteria
+3. **Compilation**: All code compiles without errors
+4. **Tests**: `./iw test` passes completely
+5. **Commands**: All 18 commands work correctly
+6. **Imports**: Commands use `iw.core.model.*`, `iw.core.adapters.*`, `iw.core.output.*`
+7. **Dependencies**:
+   - `model/` has no dependencies on other core directories
+   - `adapters/` may depend on `model/`
+   - `output/` may depend on `model/`
+   - `dashboard/` may depend on all others
 
 ## Risks and Mitigations
 
 ### Risk: Circular dependencies after split
-- **Mitigation**: Analyze dependencies before moving; some modules may need to stay together
+- **Mitigation**: `model/` must remain pure with no dependencies; analyze before moving
+
+### Risk: Some modules don't fit cleanly
+- **Mitigation**: When unclear, prefer `adapters/` for anything with I/O, `model/` for pure data
 
 ### Risk: Tests fail due to import changes
-- **Mitigation**: Update test imports along with production code imports
+- **Mitigation**: Update test imports along with production code; batch by directory
 
 ### Risk: Package organization breaks scala-cli
 - **Mitigation**: Small incremental moves with compile checks after each
@@ -206,5 +273,5 @@ After all moves complete:
 ## Notes
 
 - Keep module filenames identical - only package paths change
-- Maintain backward compatibility within this PR (can break in future release)
+- Existing `application/`, `domain/`, `infrastructure/`, `presentation/` subdirectories move into `dashboard/`
 - Document import migration in PR description for users updating their scripts
