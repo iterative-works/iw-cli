@@ -2,53 +2,108 @@
 
 **Issue:** IW-126
 **Created:** 2026-01-25
+**Updated:** 2026-01-25
 **Status:** Draft
-**Classification:** Simple
+**Classification:** Feature
 
 ## Problem Statement
 
 Agents using the `iw-command-creation` skill currently need to read full Scala source files to understand what APIs are available in iw-cli's core modules. This creates friction in the workflow and slows down script composition.
 
-We need structured, LLM-readable documentation (llms.txt format) that provides quick API reference for core modules, enabling agents to quickly orient themselves when composing scripts from iw-cli's functional building blocks.
+Additionally, the current `.iw/core/` directory mixes public API modules (intended for script composition) with internal implementation details (dashboard services, caches, views). This makes it unclear which modules are stable and supported for external use.
 
-**User Value:** Faster agent workflow when creating custom commands, reduced context needed to understand available APIs, better discoverability of core module capabilities.
+We need:
+1. A clear public API boundary in the module structure
+2. Structured, LLM-readable documentation (llms.txt format) for the public API
+3. Integration with the iw-command-creation skill so agents can discover and use the docs
+
+**User Value:** Faster agent workflow when creating custom commands, reduced context needed to understand available APIs, better discoverability of core module capabilities, and clear contract for what's stable/supported.
+
+## Design Decisions (Resolved)
+
+The following decisions were made during analysis clarification:
+
+### Format: Standard llms.txt with per-module markdown files
+- Follow the [llms.txt standard](https://llmstxt.org): H1 title, blockquote summary, H2 sections with links
+- Main `llms.txt` index file linking to per-module `.md` documentation files
+- Per-module files contain: overview, API signatures, usage examples
+
+### Scope: Public API only (structural criterion)
+- Refactor `.iw/core/` to have explicit public/internal boundaries
+- Only modules in the public API directory get detailed documentation
+- Directory structure declares intent - no ambiguity about what to document
+- Sustainable: future modules automatically included/excluded based on location
+
+### Integration: Update skill with dynamic path resolution
+- Update `iw-command-creation` skill to reference llms.txt
+- Use path relative to iw-cli installation (e.g., `$IW_CORE_DIR/../llms.txt`)
+- llms.txt lifecycle tied to iw-cli releases, not `claude-sync`
 
 ## User Stories
 
-### Story 1: Agent discovers available core modules and their purpose
+### Story 1: Developer understands which modules are public API
 
 ```gherkin
-Feature: Quick module discovery
+Feature: Clear public API boundary
+  As a developer creating iw-cli scripts
+  I want to know which modules are part of the stable public API
+  So that I can depend on them without risk of breaking changes
+
+Scenario: Public modules are clearly separated
+  Given the developer explores the .iw/core/ directory
+  When they look at the directory structure
+  Then public API modules are in a dedicated location (e.g., core/api/)
+  And internal modules are in a separate location (e.g., core/internal/)
+  And the boundary is self-documenting through structure
+```
+
+**Estimated Effort:** 3-4h
+**Complexity:** Medium (requires careful analysis of current usage)
+
+**Technical Feasibility:**
+- Need to analyze which modules are used by `.iw/commands/` and external scripts
+- Some modules may need minor refactoring if they mix public/internal concerns
+- Imports in existing commands will need updating
+
+**Acceptance:**
+- Clear directory separation between public and internal modules
+- All existing commands still compile and work
+- Public API contains modules needed for script composition
+
+---
+
+### Story 2: Agent discovers available public modules
+
+```gherkin
+Feature: Quick module discovery via llms.txt
   As an agent using iw-command-creation skill
-  I want to see a list of all core modules with brief descriptions
+  I want to see a list of all public modules with brief descriptions
   So that I can quickly identify which modules to use for my task
 
-Scenario: Agent reads master module index
+Scenario: Agent reads llms.txt index
   Given the agent needs to compose a script using iw-cli modules
-  When the agent reads the core modules index
-  Then the agent sees all available modules listed
-  And each module has a one-line purpose description
-  And modules are grouped by category (infrastructure, domain, presentation, etc.)
+  When the agent reads the llms.txt file
+  Then the agent sees all public API modules listed
+  And each module has a one-line description
+  And each entry links to detailed per-module documentation
 ```
 
 **Estimated Effort:** 2-3h
 **Complexity:** Straightforward
 
 **Technical Feasibility:**
-Straightforward because:
-- Single documentation file to create
-- Information already exists in source file PURPOSE comments
-- Clear structure based on existing module organization
-- No integration or implementation needed
+- Standard llms.txt format is well-defined
+- Information exists in source file PURPOSE comments
+- Only need to document public API modules (bounded scope)
 
 **Acceptance:**
-- Agent can read one file to see all available modules
-- Each module listed with category and purpose
-- File format follows llms.txt conventions
+- `llms.txt` follows standard format (H1, blockquote, H2 sections with links)
+- All public API modules are listed
+- Links point to per-module `.md` files
 
 ---
 
-### Story 2: Agent understands module APIs without reading source
+### Story 3: Agent understands module APIs without reading source
 
 ```gherkin
 Feature: Detailed module API reference
@@ -56,352 +111,263 @@ Feature: Detailed module API reference
   I want to see function signatures and return types for a module
   So that I can use the module correctly without reading source files
 
-Scenario: Agent looks up Git operations API
+Scenario: Agent looks up GitAdapter API
   Given the agent needs to use GitAdapter in a script
-  When the agent reads GitAdapter documentation
-  Then the agent sees all available functions with signatures
+  When the agent reads the GitAdapter documentation
+  Then the agent sees all public functions with signatures
   And each function has parameter types and return types
-  And common usage patterns are documented
+  And usage examples demonstrate common patterns
   And the agent can compose correct code without reading Git.scala
 ```
 
-**Estimated Effort:** 3-4h
-**Complexity:** Straightforward
+**Estimated Effort:** 4-6h (depends on number of public modules)
+**Complexity:** Straightforward but repetitive
 
 **Technical Feasibility:**
-Straightforward because:
-- Extract signatures from existing well-typed Scala code
-- APIs are already stable and documented in source comments
-- Focus on most commonly used modules first (Output, Git, GitWorktree, IssueId, Config)
-- Can defer less-used modules to later
+- Extract signatures from well-typed Scala code
+- Focus on modules in the public API directory
+- Can use existing commands as source for examples
 
 **Acceptance:**
-- Agent can find function signatures without reading .scala files
-- Type information is accurate and complete
-- Usage examples show common patterns
-- Documentation covers 5-7 most frequently used modules
+- Each public module has a corresponding `.md` file
+- Files contain: overview, API signatures with types, usage examples
+- Examples are copy-paste ready and show error handling patterns
 
 ---
 
-### Story 3: Agent sees concrete usage examples for each module
+### Story 4: Agent finds documentation via skill
 
 ```gherkin
-Feature: Module usage examples
-  As an agent creating a new iw-cli command
-  I want to see working code examples for each module
-  So that I can understand patterns and compose scripts faster
+Feature: Skill references llms.txt documentation
+  As an agent using the iw-command-creation skill
+  I want the skill to point me to llms.txt documentation
+  So that I can find API reference without searching
 
-Scenario: Agent learns how to use Output module
-  Given the agent needs to format command output
-  When the agent reads Output module documentation
-  Then the agent sees example code for info, error, success, warning
-  And examples show proper error handling patterns
-  And examples demonstrate section and keyValue formatting
-  And the agent can copy-paste patterns into the script
+Scenario: Skill includes documentation path
+  Given the agent loads the iw-command-creation skill
+  When the agent reads the skill instructions
+  Then the skill references the llms.txt location
+  And the path works regardless of iw-cli installation location
+  And the agent can read llms.txt to discover modules
 ```
 
-**Estimated Effort:** 2-3h
+**Estimated Effort:** 1-2h
 **Complexity:** Straightforward
 
 **Technical Feasibility:**
-Straightforward because:
-- Can extract examples from existing commands in `.iw/commands/`
-- iw-command-creation skill already has good examples
-- Focus on real-world usage patterns already proven in codebase
+- Skill already references `$IW_CORE_DIR` for module paths
+- Add reference to llms.txt using same pattern
+- Minor text update to skill file
 
 **Acceptance:**
-- Each documented module has at least one concrete example
-- Examples are copy-paste ready
-- Examples show error handling with Either types
-- Examples demonstrate integration between modules
+- `iw-command-creation` skill mentions llms.txt
+- Path uses environment variable or relative reference
+- Agents can follow the reference to find documentation
 
 ## Architectural Sketch
 
-**Purpose:** Define WHAT documentation files are needed and WHERE they go.
+### Directory Structure (After Refactoring)
 
-### For Story 1: Module Discovery
+```
+.iw/
+├── core/
+│   ├── api/                    # Public API - documented in llms.txt
+│   │   ├── Output.scala
+│   │   ├── Git.scala
+│   │   ├── GitWorktree.scala
+│   │   ├── IssueId.scala
+│   │   ├── Issue.scala
+│   │   ├── Config.scala
+│   │   ├── ConfigRepository.scala
+│   │   ├── Process.scala
+│   │   ├── Prompt.scala
+│   │   ├── Constants.scala
+│   │   └── WorktreePath.scala
+│   │
+│   ├── internal/               # Internal implementation - not documented
+│   │   ├── CaskServer.scala
+│   │   ├── DashboardService.scala
+│   │   ├── CachedProgress.scala
+│   │   └── ...
+│   │
+│   ├── infrastructure/         # Adapters - selectively documented
+│   │   ├── GitHubClient.scala
+│   │   ├── LinearClient.scala
+│   │   └── ...
+│   │
+│   └── domain/                 # Domain models - documented if public
+│       └── ...
+│
+├── llms.txt                    # Index file (standard format)
+└── docs/                       # Per-module documentation
+    ├── Output.md
+    ├── Git.md
+    ├── GitWorktree.md
+    └── ...
+```
 
-**Documentation Files Needed:**
-- `modules-index.llms.txt` - Master index of all core modules
+### llms.txt Format (Standard)
 
-**Information to Include:**
-- List of all modules grouped by category
-- One-line purpose per module
-- Quick navigation to detailed docs
-- Module dependency relationships if relevant
+```markdown
+# iw-cli Core Modules
 
-**Placement:**
-- `.iw/core/modules-index.llms.txt` (alongside core modules)
+> Functional Scala modules for CLI automation: git operations, issue tracking,
+> console output, and shell execution. Import with `import iw.core.api.*`
 
----
+## Public API
 
-### For Story 2: API Reference
+- [Output](docs/Output.md): Console output formatting (info, error, success, section)
+- [Git](docs/Git.md): Git operations via GitAdapter (branch, remote, status)
+- [GitWorktree](docs/GitWorktree.md): Worktree management via GitWorktreeAdapter
+- [IssueId](docs/IssueId.md): Issue ID parsing and validation
+- [Config](docs/Config.md): Configuration types and repository
 
-**Documentation Files Needed:**
-- Per-module llms.txt files for commonly used modules
-  - `Output.llms.txt`
-  - `Git.llms.txt` (GitAdapter)
-  - `GitWorktree.llms.txt` (GitWorktreeAdapter)
-  - `IssueId.llms.txt`
-  - `Config.llms.txt` and `ConfigRepository.llms.txt`
-  - `Process.llms.txt` (ProcessAdapter)
-  - `Prompt.llms.txt`
+## Optional
 
-**Information to Include:**
-- Function signatures with full type information
-- Return types (especially Either[String, T] patterns)
-- Parameter descriptions
-- Brief description per function
+- [GitHubClient](docs/GitHubClient.md): GitHub API via gh CLI
+- [LinearClient](docs/LinearClient.md): Linear API client
+```
 
-**Placement:**
-- `.iw/core/<ModuleName>.llms.txt` (alongside corresponding .scala file)
+### Per-Module Documentation Format
 
----
+```markdown
+# Output
 
-### For Story 3: Usage Examples
+> Console output formatting with consistent styling for CLI tools.
 
-**Documentation Enhancement:**
-- Add examples section to each per-module llms.txt file
-- Extract from existing commands
+## Import
 
-**Information to Include:**
-- Minimal working example per function/pattern
-- Error handling examples
-- Integration examples (e.g., Git + IssueId)
-- Common patterns (reading config, checking branch, etc.)
+\`\`\`scala
+import iw.core.api.Output
+\`\`\`
 
-**Placement:**
-- Embedded in the per-module llms.txt files created in Story 2
+## API
 
-## Technical Risks & Uncertainties
+### info(message: String): Unit
+Print an informational message to stdout.
 
-### CLARIFY: llms.txt format and conventions
+### error(message: String): Unit
+Print an error message to stderr.
 
-We need to establish the exact format for llms.txt files.
+### success(message: String): Unit
+Print a success message with checkmark (✓).
 
-**Questions to answer:**
-1. Should we follow a specific llms.txt standard or create our own format optimized for iw-cli?
-2. What's the ideal structure: markdown-like, structured sections, or freeform text?
-3. Should we include type aliases and case class definitions from the modules?
-4. How much detail: just signatures, or also implementation notes?
+...
 
-**Options:**
-- **Option A**: Use standard llms.txt markdown format with clear sections (Overview, API, Examples)
-  - Pros: Familiar format, good readability, works well with LLM parsing
-  - Cons: May need to establish conventions since llms.txt is loosely specified
-- **Option B**: Create structured custom format optimized for API docs (similar to API reference docs)
-  - Pros: More precise, could be machine-parseable later
-  - Cons: More work to design, less familiar
-- **Option C**: Simple freeform text focused on LLM readability
-  - Pros: Easiest to write, flexible
-  - Cons: Less structured, harder to maintain consistency
+## Examples
 
-**Impact:** Affects all three stories - format choice determines effort and maintainability.
+\`\`\`scala
+Output.section("Processing")
+Output.info("Starting...")
+Output.success("Done!")
+Output.keyValue("Files", "42")
+\`\`\`
+```
 
----
+## Technical Risks & Considerations
 
-### CLARIFY: Scope of module coverage
+### Risk: Breaking existing commands during refactoring
+- **Mitigation:** Update imports in all `.iw/commands/` files as part of refactoring
+- **Mitigation:** Run full test suite after restructuring
+- **Mitigation:** Keep module names identical, only change package paths
 
-Which modules should be documented in detail vs just listed in the index?
+### Risk: Unclear boundary between public and internal
+- **Mitigation:** Start with clear criterion: "used by commands or skill examples = public"
+- **Mitigation:** Can adjust boundary in future releases if needed
 
-**Questions to answer:**
-1. Should we document all 69+ core modules or focus on the most commonly used?
-2. How do we prioritize which modules get detailed docs first?
-3. Should presentation layer modules (views, renderers) be included?
-4. Should infrastructure adapters for issue trackers (GitHub, Linear, etc.) be fully documented?
-
-**Options:**
-- **Option A**: Document top 10-15 most commonly used modules in detail, list the rest in index
-  - Pros: Focused effort, covers 80% of use cases, can expand later
-  - Cons: Some modules left undocumented
-- **Option B**: Document all modules comprehensively
-  - Pros: Complete coverage
-  - Cons: Significant effort (20-30h+), many modules rarely used in scripts
-- **Option C**: Document only the "scriptable" modules (exclude server/presentation layer)
-  - Pros: Focused on actual use case (script composition)
-  - Cons: Artificial boundary, may exclude useful modules
-
-**Impact:** Affects estimate significantly - Option A keeps us in Simple range, Option B would push to Feature.
-
----
-
-### CLARIFY: Integration with iw-command-creation skill
-
-How should the llms.txt files integrate with the existing skill?
-
-**Questions to answer:**
-1. Should the iw-command-creation skill be updated to reference llms.txt files?
-2. Should llms.txt files be auto-generated or manually curated?
-3. Should there be a command like `./iw docs Output` to read module docs?
-4. How do we keep docs in sync with code changes?
-
-**Options:**
-- **Option A**: Manual curation, update skill to point agents to llms.txt
-  - Pros: High quality, curated examples, focused content
-  - Cons: Manual maintenance required
-- **Option B**: Auto-generate from source comments and type signatures
-  - Pros: Always in sync, less maintenance
-  - Cons: Requires tooling, may need source comment improvements
-- **Option C**: Hybrid - auto-generate structure, manually add examples
-  - Pros: Balance of automation and quality
-  - Cons: Most complex approach
-
-**Impact:** Affects maintainability and long-term sustainability of docs.
+### Consideration: Documentation maintenance
+- llms.txt files are manually curated (not auto-generated)
+- Updated when public API changes (part of normal code review)
+- `claude-sync` does NOT touch llms.txt (only updates skills)
 
 ## Total Estimates
 
 **Story Breakdown:**
-- Story 1 (Module discovery index): 2-3 hours
-- Story 2 (API reference docs): 3-4 hours
-- Story 3 (Usage examples): 2-3 hours
+- Story 1 (Refactor for public API): 3-4 hours
+- Story 2 (Create llms.txt index): 2-3 hours
+- Story 3 (Per-module documentation): 4-6 hours
+- Story 4 (Update skill): 1-2 hours
 
-**Total Range:** 7-10 hours
+**Total Range:** 10-15 hours
 
-**Confidence:** Medium
+**Confidence:** Medium-High
 
 **Reasoning:**
-- **Known factor**: Clear scope for Simple issue, existing source material (PURPOSE comments, type signatures)
-- **Unknown factor**: llms.txt format conventions not yet established (CLARIFY marker)
-- **Known factor**: Module coverage scope needs decision (CLARIFY marker) - estimate assumes Option A (top 10-15 modules)
-- **Risk factor**: If we choose comprehensive coverage (all 69 modules), estimate would double to 15-20h
+- Refactoring scope is bounded (only moving files, updating imports)
+- Documentation scope is bounded by public API (structural criterion)
+- Format is standardized (llms.txt spec)
+- Existing material (PURPOSE comments, skill examples) reduces writing effort
 
 ## Testing Approach
 
-**Per Story Testing:**
+### Story 1 (Refactoring)
+- All existing commands must compile after refactoring
+- Run `./iw test` to verify no regressions
+- Verify imports work from external scripts
 
-Each story should have verification that agents can actually use the documentation.
+### Story 2-3 (Documentation)
+- Documented signatures must match actual source code
+- Examples must be syntactically correct Scala
+- Examples should compile with core modules
 
-**Story 1:**
-- Unit: N/A (documentation file)
-- Integration: Verify file is accessible from agent context
-- E2E: Agent can list modules and identify correct module for a task
+### Story 4 (Skill Update)
+- Skill file must parse correctly
+- Path references must resolve in installed iw-cli
 
-**Story 2:**
-- Unit: Verify all documented signatures match actual source code
-- Integration: Check that type information is accurate
-- E2E: Agent can compose working code using only the llms.txt files
+## Implementation Sequence
 
-**Story 3:**
-- Unit: All examples are syntactically correct Scala
-- Integration: Examples can actually compile with core modules
-- E2E: Agent can copy-paste examples and they work
+**Phase 1: Establish Public API Boundary (Story 1)**
+1. Analyze current module usage in commands and skills
+2. Create `api/` and `internal/` directories
+3. Move modules to appropriate locations
+4. Update all imports in commands
+5. Verify tests pass
 
-**Test Data Strategy:**
-- Use actual core module source as source of truth
-- Extract real examples from existing commands in `.iw/commands/`
-- Validate against working iw-cli installation
+**Phase 2: Create Documentation (Stories 2-3)**
+1. Create `llms.txt` index file
+2. Create per-module `.md` files for public API
+3. Extract examples from existing commands
+4. Verify documentation accuracy
 
-**Regression Coverage:**
-- Existing iw-command-creation skill should still work
-- Commands in `.iw/commands/` should still compile/run
-- No changes to actual code, only adding documentation
-
-## Deployment Considerations
-
-### Distribution
-llms.txt files should be included in iw-cli releases alongside core modules.
-
-**File locations in release:**
-- `.iw/core/modules-index.llms.txt`
-- `.iw/core/<Module>.llms.txt` for documented modules
-
-### Installation
-Files are automatically present when iw-cli is installed or updated - no special deployment steps.
-
-### Rollout Strategy
-Can deploy incrementally:
-1. Deploy Story 1 (index) first - provides immediate value
-2. Add Story 2 docs module by module (start with Output, Git, IssueId)
-3. Enhance with Story 3 examples as modules are documented
-
-No feature flags needed - documentation is purely additive.
-
-### Rollback Plan
-If documentation is incorrect or confusing:
-- Simply remove or update the problematic llms.txt file
-- No code changes needed
-- No risk to existing functionality
+**Phase 3: Integrate with Skill (Story 4)**
+1. Update `iw-command-creation` skill to reference llms.txt
+2. Use `$IW_CORE_DIR` or similar for path resolution
+3. Test that agents can find and use documentation
 
 ## Dependencies
 
 ### Prerequisites
-- Access to current iw-cli core modules source
-- Understanding of most common use cases for script composition
-- Decision on llms.txt format (CLARIFY marker)
+- Understanding of which modules are used externally
+- Existing `.iw/commands/` as reference for public API usage
 
 ### Story Dependencies
-- Story 2 depends on Story 1 for context (agents need to know modules exist before reading details)
-- Story 3 builds on Story 2 (examples reference the API documented in Story 2)
-- Stories could be delivered incrementally: 1 → 2 (per module) → 3 (per module)
+- Story 1 must complete before Stories 2-3 (need to know what's public)
+- Stories 2-3 can proceed in parallel
+- Story 4 can start after Story 2 (needs llms.txt to exist)
 
 ### External Blockers
-None - this is purely additive documentation work.
+None
 
----
+## Deployment Considerations
 
-## Implementation Sequence
+### Distribution
+- llms.txt and docs/ included in iw-cli releases
+- Part of the tarball alongside core modules
 
-**Recommended Story Order:**
+### Backward Compatibility
+- Import paths change from `iw.core.*` to `iw.core.api.*`
+- Existing scripts will need import updates
+- Consider: provide migration note in release notes
 
-1. **Story 1: Module Discovery** - Establishes foundation, provides immediate value (agents can see what exists)
-2. **Story 2: API Reference** - Builds on index, enables script composition without reading source
-3. **Story 3: Usage Examples** - Polishes docs with practical patterns, makes composition even faster
-
-**Iteration Plan:**
-
-- **Iteration 1** (Story 1): Create master index - quick win, immediate value
-- **Iteration 2** (Stories 2-3, partial): Document top 5 modules (Output, Git, GitWorktree, IssueId, Config) with examples
-- **Iteration 3** (Stories 2-3, completion): Document remaining high-value modules, refine examples based on feedback
-
-**Incremental Delivery:**
-Each documented module provides value independently. Can ship:
-- After Story 1: Agents know what modules exist
-- After first 3 modules in Story 2: Agents can compose basic scripts
-- After all stories: Complete documentation coverage
-
-## Documentation Requirements
-
-- [ ] llms.txt files themselves serve as the documentation
-- [ ] Update iw-command-creation skill to reference llms.txt files (brief mention)
-- [ ] Consider adding `./iw docs <module>` command for easy access (future enhancement, out of scope)
-- [ ] No user-facing docs needed (target audience is agents, not humans)
+### Rollout
+- Can deploy incrementally: refactoring first, then docs
+- Each phase provides value independently
 
 ---
 
 **Analysis Status:** Ready for Review
 
 **Next Steps:**
-1. Resolve CLARIFY markers:
-   - Decide on llms.txt format and structure
-   - Define module coverage scope (top N vs all modules)
-   - Choose manual vs auto-generated approach
-2. After CLARIFY resolution, ready to implement Story 1
-3. Can deliver incrementally: Story 1 → Story 2 (per module) → Story 3 (per module)
-
----
-
-## Appendix: Core Modules by Category
-
-**Most Commonly Used in Scripts (high priority for Story 2):**
-- Output.scala - Console formatting
-- Git.scala (GitAdapter) - Git operations
-- GitWorktree.scala (GitWorktreeAdapter) - Worktree management
-- IssueId.scala - Issue ID parsing
-- Config.scala, ConfigRepository.scala - Configuration
-- Process.scala (ProcessAdapter) - Shell execution
-- Prompt.scala - Interactive input
-
-**Domain Models (medium priority):**
-- Issue.scala - Issue entity and tracker trait
-- WorktreePath.scala - Path calculations
-- Constants.scala - Shared constants
-- IssueData.scala - Issue data structures
-
-**Infrastructure Clients (lower priority for scripts):**
-- GitHubClient.scala, LinearClient.scala, YouTrackClient.scala, GitLabClient.scala
-- May be useful for advanced scripts but less commonly needed
-
-**Services and Presentation (lowest priority):**
-- Dashboard services, view renderers, cache services
-- Rarely used directly in ad-hoc scripts
-- Could be listed in index but skip detailed docs initially
+1. Review and approve analysis
+2. `/iterative-works:ag-create-tasks IW-126` to generate implementation phases
+3. `/iterative-works:ag-implement IW-126` to begin implementation
