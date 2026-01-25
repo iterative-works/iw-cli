@@ -121,3 +121,24 @@ M  .iw/test/issue-create.bats
 ```
 
 ---
+
+## Phase 4: Title-only creation (2026-01-25)
+
+**Status:** Already implemented in Phase 2
+
+**What was verified:**
+- IssueCreateParser designed with optional `--description` from the start
+- E2E test "issue create with title only succeeds" already exists and passes
+- No additional implementation required
+
+**Notes:**
+- Phase 2's design anticipated this requirement
+- `description: Option[String]` in `IssueCreateRequest` makes `--description` optional
+- Test coverage already included in Phase 2
+
+**Files changed:**
+```
+(No changes - functionality already complete)
+```
+
+---
