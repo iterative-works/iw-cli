@@ -74,9 +74,8 @@ def handleCreateSubcommand(args: Seq[String]): Unit =
             case IssueTrackerType.GitLab =>
               createGitLabIssue(request.title, description, config)
 
-            case _ =>
-              Output.error("Issue creation for this tracker not yet supported")
-              sys.exit(1)
+            case IssueTrackerType.YouTrack =>
+              createYouTrackIssue(request.title, description, config)
 
 private def showCreateHelp(): Unit =
   println("Create a new issue in the configured tracker")
@@ -177,6 +176,28 @@ private def createGitLabIssue(title: String, description: String, config: Projec
               Output.success(s"Issue created: #${createdIssue.id}")
               Output.info(s"URL: ${createdIssue.url}")
               sys.exit(0)
+
+private def createYouTrackIssue(title: String, description: String, config: ProjectConfiguration): Unit =
+  val baseUrl = config.youtrackBaseUrl.getOrElse {
+    Output.error(s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}")
+    sys.exit(1)
+  }
+
+  val project = config.team
+
+  ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
+    case None =>
+      Output.error(s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set")
+      sys.exit(1)
+    case Some(token) =>
+      YouTrackClient.createIssue(project, title, description, baseUrl, token) match
+        case Left(error) =>
+          Output.error(s"Failed to create issue: $error")
+          sys.exit(1)
+        case Right(createdIssue) =>
+          Output.success(s"Issue created: ${createdIssue.id}")
+          Output.info(s"URL: ${createdIssue.url}")
+          sys.exit(0)
 
 def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, IssueId] =
   if args.isEmpty then

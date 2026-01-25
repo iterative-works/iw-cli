@@ -178,8 +178,8 @@ SCRIPT
     [[ "$output" == *"Usage:"* ]]
 }
 
-@test "issue create for YouTrack tracker shows not supported message" {
-    # Create a YouTrack config (not yet supported)
+@test "issue create for YouTrack tracker requires YOUTRACK_API_TOKEN" {
+    # Create a YouTrack config
     mkdir -p .iw
     cat > .iw/config.conf <<EOF
 tracker {
@@ -192,12 +192,16 @@ project {
 }
 EOF
 
+    # Ensure YOUTRACK_API_TOKEN is not set
+    unset YOUTRACK_API_TOKEN
+
     # Run issue create command
     run "$PROJECT_ROOT/iw" issue create --title "Test issue"
 
-    # Assert failure with not supported message
+    # Assert failure with token error
     [ "$status" -eq 1 ]
-    [[ "$output" == *"not yet supported"* ]]
+    [[ "$output" == *"YOUTRACK_API_TOKEN"* ]]
+    [[ "$output" == *"not set"* ]]
 }
 
 # ========== Phase 3: Prerequisite Validation Tests ==========
@@ -428,4 +432,30 @@ SCRIPT
     [ "$status" -eq 0 ]
     [[ "$output" == *"Issue created: #789"* ]]
     [[ "$output" == *"URL: https://gitlab.com/company/platform/api-service/-/issues/789"* ]]
+}
+
+# ========== Phase 7: YouTrack Issue Creation Tests ==========
+
+@test "issue create for YouTrack requires baseUrl in config" {
+    # Create a YouTrack config without baseUrl
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = youtrack
+  team = TEST
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Set token so we don't fail on that first
+    export YOUTRACK_API_TOKEN="test-token-12345"
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test issue"
+
+    # Assert failure with baseUrl error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"baseUrl"* ]] || [[ "$output" == *"base URL"* ]]
 }
