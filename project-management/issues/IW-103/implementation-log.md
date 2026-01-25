@@ -44,3 +44,47 @@ A  .iw/test/issue-create.bats
 ```
 
 ---
+
+## Phase 2: GitHub issue creation (2026-01-25)
+
+**What was built:**
+- Parser: `.iw/core/IssueCreateParser.scala` - Argument parser for --title and --description flags
+- Model: `IssueCreateRequest` case class with title and optional description
+- Implementation: Full `handleCreateSubcommand()` in `.iw/commands/issue.scala`
+- Tests: 8 unit tests for parser + 4 new E2E tests (10 total)
+
+**Decisions made:**
+- Reuse GitHubClient infrastructure (validateGhPrerequisites, buildCreateIssueCommandWithoutLabel, parseCreateIssueResponse)
+- Use separate IssueCreateParser in core module for testability
+- Support multi-word flag values by consuming args until next flag
+- Show help and exit 1 when --title is missing (consistent with help-first design)
+
+**Patterns applied:**
+- Either-based error handling: Parser returns Either[String, IssueCreateRequest]
+- Flag extraction: takeWhile(!_.startsWith("--")) for multi-word values
+- Infrastructure reuse: Leverage existing GitHubClient methods from feedback command
+
+**Testing:**
+- Unit tests: 8 tests for IssueCreateParser
+- E2E tests: 4 new tests (10 total including Phase 1)
+- Coverage: Title-only, title+description, missing title, non-GitHub tracker
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260125-163500.md
+- Major findings: No critical issues. Minor style/testing suggestions (optional improvements).
+
+**For next phases:**
+- Available utilities: IssueCreateParser for argument parsing
+- Extension points: Can add more flags (--assignee, --label) to parser
+- Notes: Non-GitHub trackers show "not yet supported" message
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+A  .iw/core/IssueCreateParser.scala
+A  .iw/core/test/IssueCreateParserTest.scala
+M  .iw/test/issue-create.bats
+```
+
+---
