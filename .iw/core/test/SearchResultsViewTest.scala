@@ -4,7 +4,8 @@
 package iw.core.presentation.views
 
 import munit.FunSuite
-import iw.core.domain.IssueSearchResult
+import iw.core.dashboard.IssueSearchResult
+import iw.core.model.Issue
 
 class SearchResultsViewTest extends FunSuite:
 

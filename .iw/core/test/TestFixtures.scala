@@ -3,11 +3,22 @@
 package iw.tests
 
 import iw.core.*
-import iw.core.domain.*
+import iw.core.dashboard.domain.*
 import munit.FunSuite
 import scala.sys.process.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import iw.core.model.CachedIssue
+import iw.core.model.CachedPR
+import iw.core.model.CachedProgress
+import iw.core.model.CachedReviewState
+import iw.core.model.ReviewState
+import iw.core.model.ReviewArtifact
+import iw.core.model.Issue
+import iw.core.model.IssueData
+import iw.core.model.WorkflowProgress
+import iw.core.model.PullRequestData
+import iw.core.model.WorktreeRegistration
 
 /** Shared fixtures trait for test setup and teardown.
   *

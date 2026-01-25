@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.infrastructure.MarkdownRenderer
+import iw.core.output.MarkdownRenderer
 
 class MarkdownRendererTest extends munit.FunSuite:
 

@@ -6,45 +6,45 @@
 
 ## Setup
 
-- [ ] [setup] Create directory structure: model/, adapters/, output/, dashboard/
-- [ ] [setup] Create ARCHITECTURE.md with structure documentation
+- [x] [setup] Create directory structure: model/, adapters/, output/, dashboard/
+- [x] [setup] Create ARCHITECTURE.md with structure documentation
 
 ## Model Layer (Pure Domain Types)
 
-- [ ] [impl] Move pure value types to model/: IssueId, Issue, IssueData, Config
-- [ ] [impl] Move pure value types to model/: ConfigRepository, Constants, WorktreePath, WorktreePriority
-- [ ] [impl] Move pure value types to model/: WorktreeRegistration, ApiToken, GitStatus, ReviewState
-- [ ] [impl] Move pure value types to model/: PhaseInfo, WorkflowProgress, PullRequestData
-- [ ] [impl] Move pure value types to model/: ServerConfig, ServerStatus, ServerState, CacheConfig, DeletionSafety
+- [x] [impl] Move pure value types to model/: IssueId, Issue, IssueData, Config
+- [x] [impl] Move pure value types to model/: ConfigRepository, Constants, WorktreePath, WorktreePriority
+- [x] [impl] Move pure value types to model/: WorktreeRegistration, ApiToken, GitStatus, ReviewState
+- [x] [impl] Move pure value types to model/: PhaseInfo, WorkflowProgress, PullRequestData
+- [x] [impl] Move pure value types to model/: ServerConfig, ServerStatus, ServerState, CacheConfig, DeletionSafety
 
 ## Adapters Layer (I/O Operations)
 
-- [ ] [impl] Move I/O adapters to adapters/: Git, GitWorktree, Process, Prompt
-- [ ] [impl] Move I/O adapters to adapters/: Tmux, CommandRunner, Log
-- [ ] [impl] Move API clients to adapters/: GitHubClient, LinearClient, GitLabClient, YouTrackClient
+- [x] [impl] Move I/O adapters to adapters/: Git, GitWorktree, Process, Prompt
+- [x] [impl] Move I/O adapters to adapters/: Tmux, CommandRunner, Log
+- [x] [impl] Move API clients to adapters/: GitHubClient, LinearClient, GitLabClient, YouTrackClient
 
 ## Output Layer (CLI Presentation)
 
-- [ ] [impl] Move CLI output modules to output/: Output, IssueFormatter
-- [ ] [impl] Move CLI output modules to output/: MarkdownRenderer, TimestampFormatter
+- [x] [impl] Move CLI output modules to output/: Output, IssueFormatter
+- [x] [impl] Move CLI output modules to output/: MarkdownRenderer, TimestampFormatter
 
 ## Dashboard Layer (Server Internals)
 
-- [ ] [impl] Move dashboard services to dashboard/: CaskServer, DashboardService
-- [ ] [impl] Move cache services to dashboard/: IssueCacheService, PullRequestCacheService
-- [ ] [impl] Move cache types to dashboard/: CachedIssue, CachedPR, CachedProgress, CachedReviewState
-- [ ] [impl] Move server services to dashboard/: ServerClient, ServerConfigRepository, ServerLifecycleService
-- [ ] [impl] Move server services to dashboard/: ServerStateService, StateRepository, ReviewStateService
-- [ ] [impl] Move workflow services to dashboard/: WorkflowProgressService, WorktreeCardService
-- [ ] [impl] Move worktree services to dashboard/: WorktreeListSync, WorktreeListView, WorktreeRegistrationService, WorktreeUnregistrationService
-- [ ] [impl] Move utility services to dashboard/: GitStatusService, GitHubHookDoctor, DoctorChecks
-- [ ] [impl] Move utility services to dashboard/: ArtifactService, FeedbackParser, MarkdownTaskParser
-- [ ] [impl] Move utility services to dashboard/: IssueSearchService, IssueSearchResult, PathValidator, RefreshThrottle, ProcessManager
-- [ ] [impl] Move existing subdirectories to dashboard/: application/, domain/, infrastructure/, presentation/
+- [x] [impl] Move dashboard services to dashboard/: CaskServer, DashboardService
+- [x] [impl] Move cache services to dashboard/: IssueCacheService, PullRequestCacheService
+- [x] [impl] Move cache types to dashboard/: CachedIssue, CachedPR, CachedProgress, CachedReviewState
+- [x] [impl] Move server services to dashboard/: ServerClient, ServerConfigRepository, ServerLifecycleService
+- [x] [impl] Move server services to dashboard/: ServerStateService, StateRepository, ReviewStateService
+- [x] [impl] Move workflow services to dashboard/: WorkflowProgressService, WorktreeCardService
+- [x] [impl] Move worktree services to dashboard/: WorktreeListSync, WorktreeListView, WorktreeRegistrationService, WorktreeUnregistrationService
+- [x] [impl] Move utility services to dashboard/: GitStatusService, GitHubHookDoctor, DoctorChecks
+- [x] [impl] Move utility services to dashboard/: ArtifactService, FeedbackParser, MarkdownTaskParser
+- [x] [impl] Move utility services to dashboard/: IssueSearchService, IssueSearchResult, PathValidator, RefreshThrottle, ProcessManager
+- [x] [impl] Move existing subdirectories to dashboard/: application/, domain/, infrastructure/, presentation/
 
 ## Import Updates
 
-- [ ] [impl] Update imports in .iw/commands/*.scala to use new package paths
+- [x] [impl] Update imports in .iw/commands/*.scala to use new package paths
 - [ ] [impl] Update internal cross-references within .iw/core/ modules
 - [ ] [impl] Update test imports in .iw/core/test/
 

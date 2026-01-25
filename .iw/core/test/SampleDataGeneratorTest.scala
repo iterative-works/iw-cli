@@ -4,6 +4,7 @@
 package iw.core.domain
 
 import munit.FunSuite
+import iw.core.model.ServerState
 
 class SampleDataGeneratorTest extends FunSuite:
 
@@ -92,7 +93,7 @@ class SampleDataGeneratorTest extends FunSuite:
     assert(prStates.contains(PRState.Closed), "Should have Closed PR")
 
   test("generated state serializes correctly via StateRepository"):
-    import iw.core.infrastructure.StateRepository
+    import iw.core.dashboard.StateRepository
     import iw.tests.Fixtures
     val tempDir = Fixtures.createTempDir("sample-data-test")
     try

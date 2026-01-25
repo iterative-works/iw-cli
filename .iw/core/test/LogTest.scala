@@ -2,7 +2,8 @@
 package iw.tests
 
 // PURPOSE: Verifies log level filtering and environment variable configuration
-import iw.core.{Log, LogLevel}
+import iw.core.adapters.Log
+import iw.core.LogLevel
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 

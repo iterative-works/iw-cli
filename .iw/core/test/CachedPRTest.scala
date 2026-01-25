@@ -5,6 +5,8 @@ package iw.core.domain
 
 import munit.FunSuite
 import java.time.Instant
+import iw.core.model.CachedPR
+import iw.core.model.PullRequestData
 
 class CachedPRTest extends FunSuite:
 

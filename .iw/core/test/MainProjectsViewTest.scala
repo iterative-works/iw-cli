@@ -4,8 +4,8 @@
 package iw.tests
 
 import iw.core.*
-import iw.core.domain.*
-import iw.core.presentation.views.MainProjectsView
+import iw.core.dashboard.domain.*
+import iw.core.dashboard.MainProjectsView
 import munit.FunSuite
 
 class MainProjectsViewTest extends FunSuite:

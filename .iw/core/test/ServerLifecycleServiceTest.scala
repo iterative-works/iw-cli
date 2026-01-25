@@ -3,10 +3,12 @@
 
 package iw.core.test
 
-import iw.core.{ServerLifecycleService, ServerStatus}
-import iw.core.domain.ServerState
+import iw.core.dashboard.ServerLifecycleService
+import iw.core.model.ServerStatus
+import iw.core.model.ServerState
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import iw.core.model.WorktreeRegistration
 
 class ServerLifecycleServiceTest extends munit.FunSuite:
 
@@ -127,12 +129,12 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
     assertEquals(message, "Server running on port 9876")
 
   test("Format security warning returns None when no warning needed"):
-    val analysis = iw.core.SecurityAnalysis(Seq.empty, false, false)
+    val analysis = iw.core.model.SecurityAnalysis(Seq.empty, false, false)
     val warning = ServerLifecycleService.formatSecurityWarning(analysis)
     assertEquals(warning, None)
 
   test("Format security warning for bind-all (0.0.0.0)"):
-    val analysis = iw.core.SecurityAnalysis(Seq("0.0.0.0"), true, true)
+    val analysis = iw.core.model.SecurityAnalysis(Seq("0.0.0.0"), true, true)
     val warning = ServerLifecycleService.formatSecurityWarning(analysis)
     assert(warning.isDefined)
     assert(warning.get.contains("WARNING: Server is accessible from all network interfaces"))
@@ -140,14 +142,14 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
     assert(warning.get.contains("Ensure your firewall is properly configured"))
 
   test("Format security warning for bind-all (::)"):
-    val analysis = iw.core.SecurityAnalysis(Seq("::"), true, true)
+    val analysis = iw.core.model.SecurityAnalysis(Seq("::"), true, true)
     val warning = ServerLifecycleService.formatSecurityWarning(analysis)
     assert(warning.isDefined)
     assert(warning.get.contains("WARNING: Server is accessible from all network interfaces"))
     assert(warning.get.contains("::"))
 
   test("Format security warning for specific exposed hosts"):
-    val analysis = iw.core.SecurityAnalysis(Seq("100.64.1.5"), false, true)
+    val analysis = iw.core.model.SecurityAnalysis(Seq("100.64.1.5"), false, true)
     val warning = ServerLifecycleService.formatSecurityWarning(analysis)
     assert(warning.isDefined)
     assert(warning.get.contains("WARNING: Server is accessible from non-localhost interfaces"))
@@ -155,7 +157,7 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
     assert(warning.get.contains("Ensure your firewall is properly configured"))
 
   test("Format security warning lists multiple exposed hosts"):
-    val analysis = iw.core.SecurityAnalysis(Seq("192.168.1.100", "10.0.0.1"), false, true)
+    val analysis = iw.core.model.SecurityAnalysis(Seq("192.168.1.100", "10.0.0.1"), false, true)
     val warning = ServerLifecycleService.formatSecurityWarning(analysis)
     assert(warning.isDefined)
     assert(warning.get.contains("192.168.1.100"))

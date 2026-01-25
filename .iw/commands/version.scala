@@ -5,7 +5,7 @@
 // EXAMPLE: iw version
 // EXAMPLE: iw version --verbose
 
-import iw.core.Output
+import iw.core.output.Output
 
 val iwVersion = "0.1.0"
 val iwScalaVersion = "3.3.1"

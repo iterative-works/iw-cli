@@ -3,7 +3,7 @@
 package iw.tests
 
 import iw.core.*
-import iw.core.infrastructure.GitHubHookDoctor
+import iw.core.dashboard.GitHubHookDoctor
 import munit.FunSuite
 
 class GitHubHookDoctorTest extends FunSuite:

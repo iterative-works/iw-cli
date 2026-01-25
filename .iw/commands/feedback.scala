@@ -10,7 +10,9 @@
 //   iw feedback "Feature request" --description "Would be nice to have X"
 //   iw feedback "Command crashes" --type bug --description "When I run Y, it fails"
 
-import iw.core.*
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
 
 @main def feedback(args: String*): Unit =
   // Handle --help flag

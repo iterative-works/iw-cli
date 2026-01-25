@@ -3,9 +3,9 @@
 
 package iw.tests
 
-import iw.core.application.ServerStateService
-import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR, ReviewState, ReviewArtifact, CachedReviewState}
-import iw.core.infrastructure.StateRepository
+import iw.core.dashboard.ServerStateService
+import iw.core.model.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR, ReviewState, ReviewArtifact, CachedReviewState}
+import iw.core.dashboard.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{Executors, TimeUnit, CountDownLatch}

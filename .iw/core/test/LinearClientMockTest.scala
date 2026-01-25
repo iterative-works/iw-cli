@@ -7,6 +7,7 @@ import iw.core.*
 import munit.FunSuite
 import sttp.client4.testing.SyncBackendStub
 import sttp.model.StatusCode
+import iw.core.model.Issue
 
 class LinearClientMockTest extends FunSuite:
 

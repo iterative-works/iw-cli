@@ -4,7 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.GitStatus
+import iw.core.model.GitStatus
 
 class GitStatusServiceTest extends FunSuite:
 

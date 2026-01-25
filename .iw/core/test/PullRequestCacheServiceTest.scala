@@ -4,7 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.{PullRequestData, PRState, CachedPR}
+import iw.core.model.{PullRequestData, PRState, CachedPR}
 import java.time.Instant
 
 class PullRequestCacheServiceTest extends FunSuite:

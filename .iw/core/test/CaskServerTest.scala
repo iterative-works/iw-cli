@@ -9,6 +9,7 @@ import sttp.client4.Response
 import java.nio.file.{Files, Paths}
 import java.io.File
 import scala.util.Random
+import iw.core.model.Issue
 
 class CaskServerTest extends FunSuite:
 

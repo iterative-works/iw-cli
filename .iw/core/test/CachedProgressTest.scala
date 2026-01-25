@@ -4,6 +4,8 @@
 package iw.core.domain
 
 import munit.FunSuite
+import iw.core.model.CachedProgress
+import iw.core.model.WorkflowProgress
 
 class CachedProgressTest extends FunSuite:
 

@@ -4,8 +4,10 @@
 package iw.core.domain
 
 import munit.FunSuite
-import iw.core.Issue
+import iw.core.model.Issue
 import java.time.Instant
+import iw.core.model.CachedIssue
+import iw.core.model.IssueData
 
 class CachedIssueTest extends FunSuite:
 

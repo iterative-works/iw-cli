@@ -4,7 +4,8 @@
 package iw.core.presentation.views
 
 import munit.FunSuite
-import iw.core.domain.UserFriendlyError
+import iw.core.dashboard.domain.UserFriendlyError
+import iw.core.model.Issue
 
 class CreationErrorViewTest extends FunSuite:
 

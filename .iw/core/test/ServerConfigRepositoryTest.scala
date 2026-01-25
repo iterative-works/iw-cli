@@ -3,7 +3,8 @@
 
 package iw.core.test
 
-import iw.core.{ServerConfig, ServerConfigRepository}
+import iw.core.dashboard.ServerConfigRepository
+import iw.core.model.ServerConfig
 import java.nio.file.{Files, Paths}
 
 class ServerConfigRepositoryTest extends munit.FunSuite:

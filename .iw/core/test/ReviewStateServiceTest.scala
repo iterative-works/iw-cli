@@ -3,8 +3,8 @@
 
 package iw.core.test
 
-import iw.core.application.ReviewStateService
-import iw.core.domain.{ReviewState, ReviewArtifact, CachedReviewState}
+import iw.core.dashboard.ReviewStateService
+import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
 
 class ReviewStateServiceTest extends munit.FunSuite:
 

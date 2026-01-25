@@ -3,8 +3,17 @@
 
 package iw.tests
 
-import iw.core.domain.{ServerState, WorktreeRegistration}
+import iw.core.model.{ServerState, WorktreeRegistration}
 import java.time.Instant
+import iw.core.model.CachedIssue
+import iw.core.model.CachedPR
+import iw.core.model.CachedProgress
+import iw.core.model.CachedReviewState
+import iw.core.model.ReviewState
+import iw.core.model.Issue
+import iw.core.model.IssueData
+import iw.core.model.WorkflowProgress
+import iw.core.model.PullRequestData
 
 class ServerStateTest extends munit.FunSuite:
   test("ServerState with empty worktrees map"):

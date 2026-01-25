@@ -5,6 +5,7 @@ package iw.tests
 
 import iw.core.*
 import munit.FunSuite
+import iw.core.model.Issue
 
 class LinearClientCreateIssueTest extends FunSuite:
 

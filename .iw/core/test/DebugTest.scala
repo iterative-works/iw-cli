@@ -1,7 +1,7 @@
 // PURPOSE: Debug test to understand stdout capture issue
 package iw.tests
 
-import iw.core.Output
+import iw.core.output.Output
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 

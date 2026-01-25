@@ -2,7 +2,7 @@
 // PURPOSE: Run CaskServer in daemon mode (background)
 // PURPOSE: Entry point for background server process
 
-import iw.core.infrastructure.CaskServer
+import iw.core.dashboard.CaskServer
 
 @main
 def main(args: String*): Unit =

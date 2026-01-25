@@ -4,7 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.{ServerState, WorktreeRegistration}
+import iw.core.model.{ServerState, WorktreeRegistration}
 import java.time.Instant
 
 class WorktreeRegistrationServiceTest extends FunSuite:

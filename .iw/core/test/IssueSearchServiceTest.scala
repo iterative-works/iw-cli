@@ -4,8 +4,8 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.{IssueId, ProjectConfiguration, IssueTrackerType, Issue, ApiToken}
-import iw.core.domain.IssueSearchResult
+import iw.core.model.{IssueId, ProjectConfiguration, IssueTrackerType, Issue, ApiToken}
+import iw.core.dashboard.IssueSearchResult
 
 class IssueSearchServiceTest extends FunSuite:
 

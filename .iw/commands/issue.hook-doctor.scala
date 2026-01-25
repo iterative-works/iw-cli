@@ -1,7 +1,9 @@
 // PURPOSE: Doctor check for issue command - validates Linear API token
 // PURPOSE: Exposes check to verify LINEAR_API_TOKEN environment variable
 
-import iw.core.*
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
 
 object IssueHookDoctor:
   // Pure function - easily testable in isolation

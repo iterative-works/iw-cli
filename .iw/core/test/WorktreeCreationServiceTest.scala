@@ -4,8 +4,9 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.{IssueData, WorktreeCreationResult, WorktreeCreationError}
-import iw.core.{ProjectConfiguration, IssueTrackerType}
+import iw.core.model.IssueData
+import iw.core.{WorktreeCreationResult, WorktreeCreationError}
+import iw.core.model.{ProjectConfiguration, IssueTrackerType}
 import java.time.Instant
 
 class WorktreeCreationServiceTest extends FunSuite:

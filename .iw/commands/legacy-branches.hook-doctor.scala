@@ -1,7 +1,9 @@
 // PURPOSE: Doctor check for legacy numeric branches
 // PURPOSE: Detects bare numeric branches and warns about migration to TEAM-NNN format
 
-import iw.core.*
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
 import scala.util.Try
 
 object LegacyBranchesHookDoctor:

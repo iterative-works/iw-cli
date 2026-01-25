@@ -3,8 +3,8 @@
 
 package iw.core.test
 
-import iw.core.application.ArtifactService
-import iw.core.domain.{ServerState, WorktreeRegistration}
+import iw.core.dashboard.ArtifactService
+import iw.core.model.{ServerState, WorktreeRegistration}
 import java.nio.file.{Path, Paths}
 import java.time.Instant
 

@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.domain.{ReviewState, ReviewArtifact}
+import iw.core.model.{ReviewState, ReviewArtifact}
 
 class ReviewStateTest extends munit.FunSuite:
 

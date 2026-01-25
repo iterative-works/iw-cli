@@ -4,16 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.{
-  WorktreeRegistration,
-  ReviewState,
-  ReviewArtifact,
-  CachedReviewState,
-  CachedIssue,
-  CachedProgress,
-  CachedPR,
-  IssueData
-}
+import iw.core.model.{WorktreeRegistration, ReviewState, ReviewArtifact, CachedReviewState, CachedIssue, CachedProgress, CachedPR, IssueData}
 import java.time.Instant
 
 class DashboardServiceTest extends FunSuite:
