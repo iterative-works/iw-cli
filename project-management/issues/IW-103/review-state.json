@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issue_id": "IW-103",
+  "status": "analysis_ready",
+  "phase": 0,
+  "step": "analysis",
+  "branch": "IW-103",
+  "pr_url": null,
+  "git_sha": "a61e9ebf061409e8530dca8b5d9f1012072a769d",
+  "last_updated": "2026-01-25T08:37:34Z",
+  "message": "Analysis complete - ready for review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-103/analysis.md"}
+  ]
+}

@@ -25,7 +25,7 @@ Scenario: Successfully create GitHub issue with title and description
   Given I am in a project configured for GitHub tracker
   And gh CLI is installed and authenticated
   And repository is set to "iterative-works/test-project"
-  When I run "./iw issue create 'Fix login bug' --description 'Users cannot login with SSO'"
+  When I run "./iw issue create --title 'Fix login bug' --description 'Users cannot login with SSO'"
   Then a new issue is created in GitHub repository
   And the issue has title "Fix login bug"
   And the issue has body "Users cannot login with SSO"
@@ -65,7 +65,7 @@ Scenario: Successfully create Linear issue with title and description
   Given I am in a project configured for Linear tracker
   And LINEAR_API_TOKEN environment variable is set to valid token
   And team ID is configured as "abc123-team-uuid"
-  When I run "./iw issue create 'Implement search' --description 'Add full-text search to products'"
+  When I run "./iw issue create --title 'Implement search' --description 'Add full-text search to products'"
   Then a new issue is created in Linear team
   And the issue has title "Implement search"
   And the issue has description "Add full-text search to products"
@@ -104,7 +104,7 @@ Scenario: Successfully create GitLab issue with title and description
   Given I am in a project configured for GitLab tracker
   And glab CLI is installed and authenticated
   And repository is set to "company/platform/api-service"
-  When I run "./iw issue create 'API rate limiting' --description 'Implement rate limiting for public API'"
+  When I run "./iw issue create --title 'API rate limiting' --description 'Implement rate limiting for public API'"
   Then a new issue is created in GitLab repository
   And the issue has title "API rate limiting"
   And the issue has description "Implement rate limiting for public API"
@@ -144,7 +144,7 @@ Scenario: Successfully create YouTrack issue with title and description
   And YOUTRACK_API_TOKEN environment variable is set
   And YouTrack base URL is configured as "https://company.youtrack.cloud"
   And project ID is configured as "PROJ"
-  When I run "./iw issue create 'Memory leak' --description 'Application crashes after 24h runtime'"
+  When I run "./iw issue create --title 'Memory leak' --description 'Application crashes after 24h runtime'"
   Then a new issue is created in YouTrack project
   And the issue has summary "Memory leak"
   And the issue has description "Application crashes after 24h runtime"
@@ -183,7 +183,7 @@ Feature: Validate prerequisites before creating issue
 Scenario: GitHub tracker with gh CLI not installed
   Given I am in a project configured for GitHub tracker
   And gh CLI is not installed
-  When I run "./iw issue create 'Test issue'"
+  When I run "./iw issue create --title 'Test issue'"
   Then I see error message "gh CLI is not installed"
   And I see installation instructions for gh CLI
   And the command exits with code 1
@@ -191,14 +191,14 @@ Scenario: GitHub tracker with gh CLI not installed
 Scenario: Linear tracker with missing API token
   Given I am in a project configured for Linear tracker
   And LINEAR_API_TOKEN environment variable is not set
-  When I run "./iw issue create 'Test issue'"
+  When I run "./iw issue create --title 'Test issue'"
   Then I see error message "LINEAR_API_TOKEN environment variable is not set"
   And the command exits with code 1
 
 Scenario: GitLab tracker with glab not authenticated
   Given I am in a project configured for GitLab tracker
   And glab CLI is installed but not authenticated
-  When I run "./iw issue create 'Test issue'"
+  When I run "./iw issue create --title 'Test issue'"
   Then I see error message "glab is not authenticated"
   And I see authentication instructions
   And the command exits with code 1
@@ -206,7 +206,7 @@ Scenario: GitLab tracker with glab not authenticated
 Scenario: YouTrack tracker with missing base URL
   Given I am in a project configured for YouTrack tracker
   And baseUrl is not configured in .iw/config.conf
-  When I run "./iw issue create 'Test issue'"
+  When I run "./iw issue create --title 'Test issue'"
   Then I see error message "YouTrack base URL not configured"
   And I see configuration instructions
   And the command exits with code 1
@@ -242,7 +242,7 @@ Feature: Create issue with title only
 Scenario: Create GitHub issue with title only
   Given I am in a project configured for GitHub tracker
   And gh CLI is installed and authenticated
-  When I run "./iw issue create 'Quick bug note'"
+  When I run "./iw issue create --title 'Quick bug note'"
   Then a new issue is created in GitHub repository
   And the issue has title "Quick bug note"
   And the issue has empty description
@@ -251,7 +251,7 @@ Scenario: Create GitHub issue with title only
 Scenario: Create Linear issue with title only
   Given I am in a project configured for Linear tracker
   And LINEAR_API_TOKEN is set
-  When I run "./iw issue create 'Add dark mode'"
+  When I run "./iw issue create --title 'Add dark mode'"
   Then a new issue is created in Linear team
   And the issue has title "Add dark mode"
   And the issue has empty description
@@ -263,15 +263,14 @@ Scenario: Create Linear issue with title only
 
 **Technical Feasibility:**
 Straightforward - argument parser needs to support:
-- Title as first positional argument (possibly quoted multi-word string)
+- Required --title flag
 - Optional --description flag
 - Default description to empty string if not provided
 
 All tracker clients already handle empty descriptions correctly (seen in feedback.scala and existing client implementations).
 
 **Acceptance:**
-- Command works without --description flag
-- Multi-word titles work correctly (either quoted or unquoted)
+- Command works with only --title flag (no --description required)
 - Empty description is passed to tracker API
 - No client-side validation requires description
 
@@ -289,8 +288,8 @@ Scenario: Run command without arguments
   Given I am in any iw-cli project
   When I run "./iw issue create"
   Then I see usage help text
-  And help shows examples of title-only creation
-  And help shows examples with --description flag
+  And help shows examples with --title flag
+  And help shows examples with --title and --description flags
   And the command exits with code 1
 
 Scenario: Run command with --help flag
@@ -310,10 +309,10 @@ Straightforward - follows pattern from feedback.scala which has showHelp() funct
 - Exit with appropriate code (0 for --help, 1 for missing args)
 
 **Acceptance:**
-- Help text shows command signature
-- Examples cover both title-only and title+description usage
+- Help text shows command signature with --title and --description flags
+- Examples cover both --title only and --title with --description
 - Matches style of other iw-cli help outputs
-- --help exits with 0, missing args exits with 1
+- --help exits with 0, missing --title exits with 1
 
 ## Architectural Sketch
 
@@ -337,7 +336,7 @@ Straightforward - follows pattern from feedback.scala which has showHelp() funct
 - CommandRunner.execute (exists)
 
 **Presentation Layer:**
-- CLI command interface: `./iw issue create <title> [--description <text>]`
+- CLI command interface: `./iw issue create --title <title> [--description <text>]`
 - Output formatter for created issue (number + URL)
 
 ---
@@ -419,10 +418,10 @@ Straightforward - follows pattern from feedback.scala which has showHelp() funct
 ### For Story 6: Title-only creation
 
 **Application Layer:**
-- IssueCreateParser enhancement to handle optional description
+- IssueCreateParser: --title required, --description optional
 
 **Presentation Layer:**
-- Argument parsing for positional title arg
+- Flag-based argument parsing (--title, --description)
 
 ---
 
@@ -434,175 +433,51 @@ Straightforward - follows pattern from feedback.scala which has showHelp() funct
 **Presentation Layer:**
 - Help text content
 
-## Technical Risks & Uncertainties
+## Technical Decisions (Resolved)
 
-### CLARIFY: Issue type / label support
+### Decision: No label support in MVP
+**Status:** RESOLVED
 
-Currently, feedback.scala uses FeedbackParser.IssueType (Bug | Feature) to apply labels to created issues. Should `iw issue create` support issue types/labels for user's projects?
-
-**Questions to answer:**
-1. Do we want to support `--type bug|feature` flag for user projects?
-2. If yes, how do we map types to tracker-specific labels (each project may have different labels)?
-3. Should we support arbitrary `--labels` flag for advanced users?
-4. Or keep MVP simple: title + description only, no labels?
-
-**Options:**
-- **Option A: No labels in MVP** - Only support title + description. Simplest implementation. Users can add labels via web UI after creation.
-  - Pros: Simplest, fastest to implement, covers 80% use case
-  - Cons: Users need second step to add labels
-
-- **Option B: Support --type flag with default mapping** - Map bug/feature to common label names (like feedback.scala does)
-  - Pros: Covers common case, consistent with feedback command
-  - Cons: Assumes user's project has "bug" and "feature" labels, may fail silently or error
-
-- **Option C: Support --labels flag with arbitrary labels** - Let users specify `--labels bug,priority-high`
-  - Pros: Maximum flexibility, works with any project label structure
-  - Cons: More complex parsing, need to handle label validation errors gracefully
-
-- **Option D: Configurable label mapping** - Add optional label config to `.iw/config.conf`
-  - Pros: Project-specific label mapping, reusable
-  - Cons: More complex config, extra setup burden
-
-**Impact:** Affects Story 1-4 implementation. If we support labels, all tracker clients need label parameter handling. If not, we can simplify to just title + description.
+MVP supports title + description only. Users can add labels via web UI after creation. This is the simplest approach covering 80% of use cases.
 
 ---
 
-### CLARIFY: Command structure - subcommand or flag?
+### Decision: Subcommand structure `iw issue create`
+**Status:** RESOLVED
 
-Should issue creation be a subcommand (`iw issue create`) or a flag on existing command (`iw issue --create`)?
-
-**Questions to answer:**
-1. Does `iw issue create` align with user mental model?
-2. Should we support both `iw issue create` and `iw create-issue` for discoverability?
-3. How does this affect help output and command routing?
-
-**Options:**
-- **Option A: Subcommand `iw issue create`** - Hierarchical structure
-  - Pros: Groups related operations (view, create, list, etc.), scalable for future operations
-  - Cons: Requires routing logic in issue.scala or separate command file
-
-- **Option B: Separate command `iw create-issue`** - Flat structure
-  - Pros: Simple routing, follows existing pattern (feedback, start, init, etc.)
-  - Cons: Doesn't group with `iw issue` conceptually, less discoverable
-
-- **Option C: Flag-based `iw issue --create`** - Flag-driven
-  - Pros: Single command file handles both view and create
-  - Cons: Awkward UX (mixing view and create args), complex arg parsing
-
-**Impact:** Affects command script structure, help text, and user experience. Also impacts whether we modify `.iw/commands/issue.scala` or create new `.iw/commands/issue-create.scala`.
-
-**Recommendation:** Option A (subcommand) aligns with best practices for CLI design and scales better. But this needs routing mechanism - either smart dispatcher in issue.scala or bootstrap script routing.
+Use hierarchical command structure: `iw issue create`. This groups related operations and scales for future commands (list, close, etc.). Requires routing logic in issue.scala to detect "create" subcommand.
 
 ---
 
-### CLARIFY: Interactive mode support
+### Decision: Non-interactive mode only in MVP
+**Status:** RESOLVED
 
-Acceptance criteria mentions "both interactive and non-interactive modes." Do we need interactive mode in MVP?
-
-**Questions to answer:**
-1. What does interactive mode mean? Prompt for title, then description?
-2. Is this a must-have or nice-to-have?
-3. How does interactive mode work with different terminals (TTY detection)?
-4. Can we defer interactive mode to future iteration?
-
-**Options:**
-- **Option A: Non-interactive only in MVP** - Require all args on command line
-  - Pros: Simpler, works in scripts/CI, clear scope
-  - Cons: May not satisfy acceptance criteria "both interactive and non-interactive modes"
-
-- **Option B: Simple interactive prompts** - If title missing, prompt for it; if description missing, prompt
-  - Pros: Better UX for manual usage, satisfies acceptance criteria
-  - Cons: More complex (TTY detection, prompt library, testing), doesn't work in non-TTY environments
-
-- **Option C: Editor-based interactive** - Like git commit -e, open $EDITOR for description
-  - Pros: Rich description editing, familiar pattern
-  - Cons: Complex implementation, requires temp file handling, may be overkill
-
-**Impact:** Affects Story 1-4 implementation complexity. Interactive mode requires prompt library (or custom input handling) and TTY detection. May double implementation effort.
-
-**Recommendation:** Clarify with user if interactive mode is MVP requirement or future enhancement. If MVP, Option B (simple prompts) is reasonable. If not required immediately, defer to avoid scope creep.
+Require all args on command line. Interactive prompts deferred to future iteration. This keeps scope clear and works well for scripts/CI and agent usage.
 
 ---
 
-### CLARIFY: YouTrack project field requirement
+### Decision: Reuse team field for YouTrack project
+**Status:** RESOLVED
 
-YouTrack API requires project ID to create issues. Current ProjectConfiguration has `team` field (used for Linear), but YouTrack may need explicit project ID.
-
-**Questions to answer:**
-1. Does YouTrack use the `team` field from config as project ID?
-2. Do we need a separate `youtrackProject` field in config?
-3. How do we map IssueId prefix (e.g., "PROJ" in "PROJ-123") to YouTrack project?
-
-**Options:**
-- **Option A: Reuse team field** - Assume config.team is the YouTrack project ID
-  - Pros: No config changes needed, simple
-  - Cons: May not be semantically correct (team vs project), unclear if Linear team UUID works for YouTrack
-
-- **Option B: Add youtrackProject config field** - Explicit project ID in config
-  - Pros: Clear separation, correct semantics
-  - Cons: Requires config migration, more complex ProjectConfiguration
-
-- **Option C: Extract from IssueId prefix** - Use team prefix from IssueId (e.g., "PROJ" from "PROJ-123")
-  - Pros: No config changes, follows YouTrack convention
-  - Cons: May not work if user wants different prefix in IssueId vs YouTrack project
-
-**Impact:** Affects Story 4 implementation and potentially ProjectConfiguration domain model.
+Assume `config.team` contains the YouTrack project ID. No config changes needed. This keeps implementation simple.
 
 ---
 
-### CLARIFY: Multi-word title argument parsing
+### Decision: Use explicit --title flag
+**Status:** RESOLVED
 
-How should users specify multi-word titles? Quoted string or all args before --description?
-
-**Questions to answer:**
-1. Should `./iw issue create Fix login bug` work (unquoted multi-word)?
-2. Or require quotes: `./iw issue create "Fix login bug"`?
-3. What happens with: `./iw issue create Fix the login bug --description Details`?
-
-**Options:**
-- **Option A: Require quotes for multi-word titles**
-  - Pros: Unambiguous parsing, explicit
-  - Cons: Extra typing, easy to forget quotes
-
-- **Option B: Auto-join args before first flag** - All args before `--` become title
-  - Pros: Convenient, matches feedback.scala pattern
-  - Cons: Slightly magical, may surprise users
-
-- **Option C: Single arg only, force quotes or dashes** - First arg is title, must quote multi-word
-  - Pros: Simple parsing, explicit
-  - Cons: Inconvenient UX
-
-**Impact:** Affects IssueCreateParser implementation in all stories.
-
-**Recommendation:** Option B (auto-join before flag) matches existing feedback.scala pattern and provides best UX. Document clearly in help text.
+Since agents will be primary users, use explicit named flags for clarity:
+```
+iw issue create --title "Fix login bug" --description "Details"
+```
+This is unambiguous and cleaner for programmatic use.
 
 ---
 
-### CLARIFY: Error handling for API failures
+### Decision: Pass through raw errors
+**Status:** RESOLVED
 
-When issue creation fails (network error, validation error, permissions), how much detail should we show?
-
-**Questions to answer:**
-1. Do we show raw API error messages or translate to user-friendly text?
-2. Should we suggest remediation steps?
-3. Do we log failures anywhere for debugging?
-
-**Options:**
-- **Option A: Pass through tracker error messages**
-  - Pros: Maximum detail, simple implementation
-  - Cons: May expose API internals, not user-friendly
-
-- **Option B: Translate to friendly messages with remediation**
-  - Pros: Better UX, actionable errors
-  - Cons: More code, may lose detail
-
-- **Option C: Hybrid - friendly message + raw error if verbose flag**
-  - Pros: Best of both, helps debugging
-  - Cons: More complex
-
-**Impact:** Affects error handling in all stories.
-
-**Recommendation:** Start with Option A for MVP (pass through), add Option C (verbose mode) if time permits.
+Show tracker's error message directly. Maximum detail with simple implementation. Can add friendly messages later if needed.
 
 ## Total Estimates
 
@@ -804,16 +679,8 @@ None identified. All tracker APIs are public and documented:
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
 
 **Next Steps:**
-1. **CLARIFY REQUIRED** - Resolve CLARIFY markers with Michal:
-   - Label support strategy (Option A recommended: no labels in MVP)
-   - Command structure (Option A recommended: subcommand `iw issue create`)
-   - Interactive mode requirement (defer or implement?)
-   - YouTrack project field mapping (Option A or C recommended)
-   - Multi-word title parsing (Option B recommended: auto-join)
-
-2. Once CLARIFY items resolved, run `/iterative-works:ag-create-tasks IW-103` to map stories to implementation phases
-
-3. Run `/iterative-works:ag-implement IW-103` for iterative story-by-story implementation
+1. Run `/iterative-works:ag-create-tasks IW-103` to map stories to implementation phases
+2. Run `/iterative-works:ag-implement IW-103` for iterative story-by-story implementation
