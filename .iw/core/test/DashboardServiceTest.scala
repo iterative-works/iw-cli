@@ -4,7 +4,9 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.model.{WorktreeRegistration, ReviewState, ReviewArtifact, CachedReviewState, CachedIssue, CachedProgress, CachedPR, IssueData}
+import iw.core.model.{CachedIssue, CachedPR, CachedProgress, CachedReviewState, IssueData, PhaseInfo, PRState, PullRequestData, ReviewArtifact, ReviewState, WorkflowProgress, WorktreeRegistration}
+import iw.core.dashboard.{DashboardService, IssueCacheService, RefreshThrottle, GitStatusService, PullRequestCacheService, WorkflowProgressService, ReviewStateService}
+import iw.core.adapters.{GitHubClient, LinearClient}
 import java.time.Instant
 
 class DashboardServiceTest extends FunSuite:

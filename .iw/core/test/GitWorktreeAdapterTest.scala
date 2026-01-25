@@ -2,8 +2,9 @@
 // PURPOSE: Tests worktree creation, branch handling, and existence checks with real git
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.{GitWorktreeAdapter, ProcessAdapter}
 import munit.FunSuite
+import iw.core.adapters.ProcessResult
 
 class GitWorktreeAdapterTest extends FunSuite:
 

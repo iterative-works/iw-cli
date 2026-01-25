@@ -8,6 +8,7 @@ import iw.core.model.{Issue, IssueId}
 import iw.core.model.{IssueData, CachedIssue}
 import java.time.Instant
 import scala.collection.mutable.ArrayBuffer
+import iw.core.dashboard.IssueCacheService
 
 class IssueCacheServiceTest extends FunSuite:
 

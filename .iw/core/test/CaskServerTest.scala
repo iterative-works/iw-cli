@@ -10,6 +10,8 @@ import java.nio.file.{Files, Paths}
 import java.io.File
 import scala.util.Random
 import iw.core.model.Issue
+import iw.core.dashboard.{CaskServer, Check}
+import iw.core.dashboard.StateRepository
 
 class CaskServerTest extends FunSuite:
 

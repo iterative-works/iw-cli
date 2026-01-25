@@ -7,6 +7,7 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
+import iw.core.dashboard.{Check, CheckResult, DoctorChecks}
 
 val ConfigPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 

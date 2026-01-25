@@ -2,7 +2,8 @@
 package iw.tests
 
 // PURPOSE: Verifies GitAdapter can read git remote URL from actual git repos
-import iw.core.*
+import iw.core.adapters.GitAdapter
+import iw.core.model.GitRemote
 import scala.sys.process.*
 
 class GitTest extends munit.FunSuite, Fixtures:

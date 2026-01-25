@@ -2,7 +2,7 @@
 package iw.tests
 
 // PURPOSE: Verifies safety checks for worktree deletion operations
-import iw.core.*
+import iw.core.model.DeletionSafety
 
 class DeletionSafetyTest extends munit.FunSuite:
 

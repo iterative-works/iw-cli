@@ -3,12 +3,13 @@
 
 package iw.tests
 
-import iw.core.*
+import iw.core.model.{IssueTrackerType, ProjectConfiguration, WorktreeRegistration}
 import iw.core.dashboard.application.*
 import iw.core.dashboard.domain.*
 import java.time.Instant
 import munit.FunSuite
 import iw.core.model.WorktreeRegistration
+import iw.core.dashboard.application.MainProjectService
 
 class MainProjectServiceTest extends FunSuite:
   test("deriveFromWorktrees with empty list returns empty list"):

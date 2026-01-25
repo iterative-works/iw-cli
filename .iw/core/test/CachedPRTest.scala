@@ -7,6 +7,7 @@ import munit.FunSuite
 import java.time.Instant
 import iw.core.model.CachedPR
 import iw.core.model.PullRequestData
+import iw.core.model.PRState
 
 class CachedPRTest extends FunSuite:
 

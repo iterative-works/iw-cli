@@ -3,9 +3,10 @@
 
 package iw.tests
 
-import iw.core.*
+import iw.core.dashboard.domain.MainProject
+import iw.core.dashboard.presentation.views.MainProjectsView
 import iw.core.dashboard.domain.*
-import iw.core.dashboard.MainProjectsView
+import iw.core.dashboard.presentation.views.MainProjectsView
 import munit.FunSuite
 
 class MainProjectsViewTest extends FunSuite:

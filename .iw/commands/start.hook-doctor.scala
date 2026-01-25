@@ -4,6 +4,7 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
+import iw.core.dashboard.{Check, CheckResult}
 
 object StartHookDoctor:
   // Pure function - easily testable in isolation

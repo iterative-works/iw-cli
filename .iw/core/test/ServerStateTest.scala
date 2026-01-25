@@ -14,6 +14,7 @@ import iw.core.model.Issue
 import iw.core.model.IssueData
 import iw.core.model.WorkflowProgress
 import iw.core.model.PullRequestData
+import iw.core.model.PRState
 
 class ServerStateTest extends munit.FunSuite:
   test("ServerState with empty worktrees map"):
@@ -111,15 +112,15 @@ class ServerStateTest extends munit.FunSuite:
       registeredAt = now,
       lastSeenAt = now
     )
-    val issueCache = Map("IWLE-123" -> iw.core.domain.CachedIssue(
-      iw.core.domain.IssueData("IWLE-123", "Test Issue", "In Progress", None, None, "http://example.com", now)
+    val issueCache = Map("IWLE-123" -> iw.core.model.CachedIssue(
+      iw.core.model.IssueData("IWLE-123", "Test Issue", "In Progress", None, None, "http://example.com", now)
     ))
-    val progressCache = Map("IWLE-123" -> iw.core.domain.CachedProgress(
-      iw.core.domain.WorkflowProgress(None, 0, List.empty, 0, 0),
+    val progressCache = Map("IWLE-123" -> iw.core.model.CachedProgress(
+      iw.core.model.WorkflowProgress(None, 0, List.empty, 0, 0),
       Map.empty
     ))
-    val prCache = Map("IWLE-123" -> iw.core.domain.CachedPR(
-      iw.core.domain.PullRequestData("http://example.com/pr/123", iw.core.domain.PRState.Open, 123, "Test PR"),
+    val prCache = Map("IWLE-123" -> iw.core.model.CachedPR(
+      iw.core.model.PullRequestData("http://example.com/pr/123", iw.core.model.PRState.Open, 123, "Test PR"),
       now
     ))
 
@@ -181,8 +182,8 @@ class ServerStateTest extends munit.FunSuite:
       registeredAt = now,
       lastSeenAt = now
     )
-    val reviewStateCache = Map("IWLE-123" -> iw.core.domain.CachedReviewState(
-      iw.core.domain.ReviewState(None, None, None, List.empty),
+    val reviewStateCache = Map("IWLE-123" -> iw.core.model.CachedReviewState(
+      iw.core.model.ReviewState(None, None, None, List.empty),
       Map.empty
     ))
 

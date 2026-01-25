@@ -45,17 +45,17 @@
 ## Import Updates
 
 - [x] [impl] Update imports in .iw/commands/*.scala to use new package paths
-- [ ] [impl] Update internal cross-references within .iw/core/ modules
-- [ ] [impl] Update test imports in .iw/core/test/
+- [x] [impl] Update internal cross-references within .iw/core/ modules
+- [x] [impl] Update test imports in .iw/core/test/
 
 ## Verification
 
-- [ ] [test] Verify compilation: scala-cli compile .iw/core/
-- [ ] [test] Run full test suite: ./iw test
-- [ ] [verify] Manual test: ./iw issue IW-126 (uses model + adapters + output)
-- [ ] [verify] Manual test: ./iw doctor (uses adapters)
-- [ ] [verify] Manual test: ./iw worktree list (uses model + adapters)
-- [ ] [verify] Manual test: ./iw dashboard (uses dashboard internals)
+- [x] [test] Verify compilation: scala-cli compile .iw/core/
+- [x] [test] Run full test suite: ./iw test
+- [x] [verify] Manual test: ./iw issue IW-126 (uses model + adapters + output)
+- [x] [verify] Manual test: ./iw doctor (uses adapters)
+- [x] [verify] Manual test: ./iw register (uses model + adapters)
+- [x] [verify] Manual test: ./iw dashboard (uses dashboard internals)
 
 ## Notes
 

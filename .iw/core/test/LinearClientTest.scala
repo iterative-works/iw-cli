@@ -2,7 +2,8 @@
 // PURPOSE: Tests token validation with real API calls (requires LINEAR_API_TOKEN)
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.LinearClient
+import iw.core.model.{ApiToken, Issue}
 import munit.FunSuite
 import iw.core.model.Issue
 

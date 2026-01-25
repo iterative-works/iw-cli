@@ -4,7 +4,8 @@
 package iw.core.domain
 
 import munit.FunSuite
-import iw.core.model.ServerState
+import iw.core.model.{ServerState, PRState}
+import iw.core.dashboard.domain.SampleDataGenerator
 
 class SampleDataGeneratorTest extends FunSuite:
 

@@ -5,6 +5,8 @@ package iw.core.infrastructure
 
 import munit.FunSuite
 import java.util.Random
+import iw.core.dashboard.CaskServer
+import iw.core.dashboard.ServerClient
 
 class ServerClientTest extends FunSuite:
 

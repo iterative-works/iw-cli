@@ -5,6 +5,8 @@ package iw.core.presentation.views
 
 import munit.FunSuite
 import iw.core.dashboard.domain.WorktreeCreationResult
+import iw.core.dashboard.Check
+import iw.core.dashboard.presentation.views.CreationSuccessView
 
 class CreationSuccessViewTest extends FunSuite:
 

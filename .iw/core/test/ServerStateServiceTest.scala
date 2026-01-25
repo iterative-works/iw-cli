@@ -9,6 +9,7 @@ import iw.core.dashboard.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{Executors, TimeUnit, CountDownLatch}
+import iw.core.model.Issue
 
 class ServerStateServiceTest extends munit.FunSuite:
   val tempDir = FunFixture[Path](

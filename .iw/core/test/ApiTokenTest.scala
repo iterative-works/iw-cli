@@ -2,7 +2,7 @@
 // PURPOSE: Verifies secure handling of API tokens with masked toString
 package iw.tests
 
-import iw.core.*
+import iw.core.model.ApiToken
 
 class ApiTokenTest extends munit.FunSuite:
 

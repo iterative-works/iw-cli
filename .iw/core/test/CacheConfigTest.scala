@@ -4,6 +4,7 @@
 package iw.core.domain
 
 import munit.FunSuite
+import iw.core.model.CacheConfig
 
 class CacheConfigTest extends FunSuite:
 

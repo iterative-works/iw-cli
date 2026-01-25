@@ -5,6 +5,7 @@ package iw.core.domain
 
 import munit.FunSuite
 import iw.core.model.WorkflowProgress
+import iw.core.model.PhaseInfo
 
 class WorkflowProgressTest extends FunSuite:
 

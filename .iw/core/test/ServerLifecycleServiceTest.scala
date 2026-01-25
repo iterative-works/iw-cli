@@ -9,6 +9,7 @@ import iw.core.model.ServerState
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import iw.core.model.WorktreeRegistration
+import iw.core.model.SecurityAnalysis
 
 class ServerLifecycleServiceTest extends munit.FunSuite:
 
@@ -70,7 +71,7 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
   test("Create status with worktrees"):
     // Create a state with worktrees
     val now = Instant.now()
-    val registration1 = iw.core.domain.WorktreeRegistration(
+    val registration1 = iw.core.model.WorktreeRegistration(
       issueId = "IWLE-111",
       path = "/test/path1",
       trackerType = "Linear",
@@ -78,7 +79,7 @@ class ServerLifecycleServiceTest extends munit.FunSuite:
       registeredAt = now,
       lastSeenAt = now
     )
-    val registration2 = iw.core.domain.WorktreeRegistration(
+    val registration2 = iw.core.model.WorktreeRegistration(
       issueId = "IWLE-222",
       path = "/test/path2",
       trackerType = "Linear",

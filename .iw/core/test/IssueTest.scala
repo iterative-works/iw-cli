@@ -2,7 +2,7 @@
 // PURPOSE: Tests Issue case class creation with all field combinations
 package iw.tests
 
-import iw.core.*
+import iw.core.model.Issue
 import munit.FunSuite
 import iw.core.model.Issue
 

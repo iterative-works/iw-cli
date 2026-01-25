@@ -5,6 +5,7 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
+import iw.core.dashboard.{ProcessManager, ServerConfigRepository, ServerLifecycleService}
 import sttp.client4.quick.*
 import java.nio.file.Paths
 

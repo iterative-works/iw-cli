@@ -5,6 +5,7 @@ package iw.tests
 import iw.core.dashboard.WorktreeListSync
 import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue}
 import java.time.Instant
+import iw.core.model.Issue
 
 class WorktreeListSyncTest extends munit.FunSuite:
 

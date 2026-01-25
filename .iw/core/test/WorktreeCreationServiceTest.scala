@@ -4,9 +4,11 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.model.IssueData
-import iw.core.{WorktreeCreationResult, WorktreeCreationError}
-import iw.core.model.{ProjectConfiguration, IssueTrackerType}
+import iw.core.model.{Issue, IssueData, IssueTrackerType, ProjectConfiguration}
+import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
+import iw.core.dashboard.application.WorktreeCreationService
+import iw.core.dashboard.infrastructure.CreationLockRegistry
+import iw.core.adapters.{GitWorktreeAdapter, ProcessAdapter, TmuxAdapter}
 import java.time.Instant
 
 class WorktreeCreationServiceTest extends FunSuite:
@@ -359,7 +361,7 @@ class WorktreeCreationServiceTest extends FunSuite:
   // Group D: Tests for createWithLock
 
   override def beforeEach(context: BeforeEach): Unit =
-    iw.core.infrastructure.CreationLockRegistry.clear()
+    iw.core.dashboard.infrastructure.CreationLockRegistry.clear()
 
   test("createWithLock acquires lock before creation"):
     val fetchIssue = (id: String) => Right(testIssueData)
@@ -385,7 +387,7 @@ class WorktreeCreationServiceTest extends FunSuite:
     val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
 
     // First creation acquires lock
-    iw.core.infrastructure.CreationLockRegistry.tryAcquire("IW-79")
+    iw.core.dashboard.infrastructure.CreationLockRegistry.tryAcquire("IW-79")
 
     // Second creation should fail with CreationInProgress
     val result = WorktreeCreationService.createWithLock(
@@ -423,7 +425,7 @@ class WorktreeCreationServiceTest extends FunSuite:
     )
 
     // Lock should be released after successful creation
-    assert(!iw.core.infrastructure.CreationLockRegistry.isLocked("IW-79"),
+    assert(!iw.core.dashboard.infrastructure.CreationLockRegistry.isLocked("IW-79"),
       "Lock should be released after successful creation")
 
   test("createWithLock releases lock on failure"):
@@ -443,5 +445,5 @@ class WorktreeCreationServiceTest extends FunSuite:
 
     assert(result.isLeft, "Creation should fail")
     // Lock should be released even on failure
-    assert(!iw.core.infrastructure.CreationLockRegistry.isLocked("IW-79"),
+    assert(!iw.core.dashboard.infrastructure.CreationLockRegistry.isLocked("IW-79"),
       "Lock should be released even after failed creation")

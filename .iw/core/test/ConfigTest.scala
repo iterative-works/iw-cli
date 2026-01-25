@@ -2,7 +2,8 @@
 // PURPOSE: Verifies GitRemote URL parsing, tracker detection, and configuration serialization
 package iw.tests
 
-import iw.core.*
+import iw.core.model.{ConfigSerializer, GitRemote, IssueTrackerType, ProjectConfiguration, TrackerDetector}
+import iw.core.model.TeamPrefixValidator
 
 class ConfigTest extends munit.FunSuite:
 
