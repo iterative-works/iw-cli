@@ -8,34 +8,63 @@ import iw.core.*
 import iw.core.infrastructure.ServerClient
 
 @main def issue(args: String*): Unit =
-  val result = for {
-    config <- loadConfig()
-    issueId <- getIssueId(args, config)
-    issue <- fetchIssue(issueId, config)
-  } yield (issue, issueId, config)
+  // Handle subcommands
+  if args.nonEmpty && args(0) == "create" then
+    handleCreateSubcommand(args.tail)
+  else
+    // Default behavior: fetch and display issue
+    val result = for {
+      config <- loadConfig()
+      issueId <- getIssueId(args, config)
+      issue <- fetchIssue(issueId, config)
+    } yield (issue, issueId, config)
 
-  result match
-    case Right((issue, issueId, config)) =>
-      val formatted = IssueFormatter.format(issue)
-      println(formatted)
+    result match
+      case Right((issue, issueId, config)) =>
+        val formatted = IssueFormatter.format(issue)
+        println(formatted)
 
-      // Update dashboard timestamp (best-effort)
-      val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
-      val worktreePath = WorktreePath(config.projectName, issueId)
-      val targetPath = worktreePath.resolve(currentDir)
+        // Update dashboard timestamp (best-effort)
+        val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
+        val worktreePath = WorktreePath(config.projectName, issueId)
+        val targetPath = worktreePath.resolve(currentDir)
 
-      ServerClient.updateLastSeen(
-        issueId.value,
-        targetPath.toString,
-        config.trackerType.toString,
-        issueId.team
-      ) match
-        case Left(_) => () // Ignore errors silently at exit
-        case Right(_) => ()
+        ServerClient.updateLastSeen(
+          issueId.value,
+          targetPath.toString,
+          config.trackerType.toString,
+          issueId.team
+        ) match
+          case Left(_) => () // Ignore errors silently at exit
+          case Right(_) => ()
 
-    case Left(error) =>
-      Output.error(error)
-      sys.exit(1)
+      case Left(error) =>
+        Output.error(error)
+        sys.exit(1)
+
+def handleCreateSubcommand(args: Seq[String]): Unit =
+  // Handle --help flag
+  if args.contains("--help") || args.contains("-h") then
+    showCreateHelp()
+    sys.exit(0)
+
+  // Placeholder for actual implementation (Phase 2+)
+  showCreateHelp()
+  sys.exit(1)
+
+private def showCreateHelp(): Unit =
+  println("Create a new issue in the configured tracker")
+  println()
+  println("Usage:")
+  println("  iw issue create --title \"Issue title\" [--description \"Details\"]")
+  println()
+  println("Arguments:")
+  println("  --title        Issue title (required)")
+  println("  --description  Detailed description (optional)")
+  println()
+  println("Examples:")
+  println("  iw issue create --title \"Bug in start command\"")
+  println("  iw issue create --title \"Feature request\" --description \"Would be nice to have X\"")
 
 def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, IssueId] =
   if args.isEmpty then
