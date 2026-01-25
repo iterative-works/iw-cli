@@ -178,28 +178,19 @@ SCRIPT
     [[ "$output" == *"Usage:"* ]]
 }
 
-@test "issue create for non-GitHub tracker shows not supported message" {
-    # Create a Linear config
+@test "issue create for YouTrack tracker shows not supported message" {
+    # Create a YouTrack config (not yet supported)
     mkdir -p .iw
     cat > .iw/config.conf <<EOF
 tracker {
-  type = linear
+  type = youtrack
   team = TEST
+  baseUrl = "https://example.youtrack.cloud"
 }
 project {
   name = test-project
 }
 EOF
-
-    # Mock gh command - should not be called
-    mkdir -p bin
-    cat > bin/gh <<'SCRIPT'
-#!/bin/bash
-echo "Should not be called for Linear tracker" >&2
-exit 1
-SCRIPT
-    chmod +x bin/gh
-    export PATH="$TEST_DIR/bin:$PATH"
 
     # Run issue create command
     run "$PROJECT_ROOT/iw" issue create --title "Test issue"
@@ -290,4 +281,31 @@ SCRIPT
     [ "$status" -ne 0 ]
     [[ "$output" == *"gh is not authenticated"* ]]
     [[ "$output" == *"gh auth login"* ]]
+}
+
+# ========== Phase 5: Linear Issue Creation Tests ==========
+
+@test "issue create for Linear tracker requires LINEAR_API_TOKEN" {
+    # Create a Linear config
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = linear
+  team = "test-team-uuid"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Ensure LINEAR_API_TOKEN is not set
+    unset LINEAR_API_TOKEN
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test issue"
+
+    # Assert failure with token error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"LINEAR_API_TOKEN"* ]]
+    [[ "$output" == *"not set"* ]]
 }

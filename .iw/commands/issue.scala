@@ -62,56 +62,18 @@ def handleCreateSubcommand(args: Seq[String]): Unit =
           Output.error(error)
           sys.exit(1)
         case Right(config) =>
-          // Validate tracker type is GitHub (Phase 2 only)
-          if config.trackerType != IssueTrackerType.GitHub then
-            Output.error("Issue creation for this tracker not yet supported")
-            sys.exit(1)
+          val description = request.description.getOrElse("")
 
-          // Get repository from config
-          val repository = config.repository.getOrElse {
-            Output.error("GitHub repository not configured. Run 'iw init' first.")
-            sys.exit(1)
-          }
+          config.trackerType match
+            case IssueTrackerType.GitHub =>
+              createGitHubIssue(request.title, description, config)
 
-          // Validate gh prerequisites
-          GitHubClient.validateGhPrerequisites(repository) match
-            case Left(GitHubClient.GhPrerequisiteError.GhNotInstalled) =>
-              Output.error(GitHubClient.formatGhNotInstalledError())
+            case IssueTrackerType.Linear =>
+              createLinearIssue(request.title, description, config)
+
+            case _ =>
+              Output.error("Issue creation for this tracker not yet supported")
               sys.exit(1)
-            case Left(GitHubClient.GhPrerequisiteError.GhNotAuthenticated) =>
-              Output.error(GitHubClient.formatGhNotAuthenticatedError())
-              sys.exit(1)
-            case Left(GitHubClient.GhPrerequisiteError.GhOtherError(msg)) =>
-              Output.error(s"gh CLI error: $msg")
-              sys.exit(1)
-            case Right(_) =>
-              // Create the issue
-              val description = request.description.getOrElse("")
-              val command = GitHubClient.buildCreateIssueCommandWithoutLabel(
-                repository,
-                request.title,
-                description
-              )
-
-              // Execute gh command (first element is command, rest are args)
-              val cmd = command.head
-              val cmdArgs = command.tail
-
-              import iw.core.infrastructure.CommandRunner
-              CommandRunner.execute(cmd, cmdArgs) match
-                case Left(error) =>
-                  Output.error(s"Failed to create issue: $error")
-                  sys.exit(1)
-                case Right(output) =>
-                  // Parse the response to get issue number and URL
-                  GitHubClient.parseCreateIssueResponse(output) match
-                    case Left(error) =>
-                      Output.error(s"Failed to parse issue response: $error")
-                      sys.exit(1)
-                    case Right(createdIssue) =>
-                      Output.success(s"Issue created: #${createdIssue.id}")
-                      Output.info(s"URL: ${createdIssue.url}")
-                      sys.exit(0)
 
 private def showCreateHelp(): Unit =
   println("Create a new issue in the configured tracker")
@@ -126,6 +88,58 @@ private def showCreateHelp(): Unit =
   println("Examples:")
   println("  iw issue create --title \"Bug in start command\"")
   println("  iw issue create --title \"Feature request\" --description \"Would be nice to have X\"")
+
+private def createGitHubIssue(title: String, description: String, config: ProjectConfiguration): Unit =
+  val repository = config.repository.getOrElse {
+    Output.error("GitHub repository not configured. Run 'iw init' first.")
+    sys.exit(1)
+  }
+
+  GitHubClient.validateGhPrerequisites(repository) match
+    case Left(GitHubClient.GhPrerequisiteError.GhNotInstalled) =>
+      Output.error(GitHubClient.formatGhNotInstalledError())
+      sys.exit(1)
+    case Left(GitHubClient.GhPrerequisiteError.GhNotAuthenticated) =>
+      Output.error(GitHubClient.formatGhNotAuthenticatedError())
+      sys.exit(1)
+    case Left(GitHubClient.GhPrerequisiteError.GhOtherError(msg)) =>
+      Output.error(s"gh CLI error: $msg")
+      sys.exit(1)
+    case Right(_) =>
+      val command = GitHubClient.buildCreateIssueCommandWithoutLabel(repository, title, description)
+      val cmd = command.head
+      val cmdArgs = command.tail
+
+      import iw.core.infrastructure.CommandRunner
+      CommandRunner.execute(cmd, cmdArgs) match
+        case Left(error) =>
+          Output.error(s"Failed to create issue: $error")
+          sys.exit(1)
+        case Right(output) =>
+          GitHubClient.parseCreateIssueResponse(output) match
+            case Left(error) =>
+              Output.error(s"Failed to parse issue response: $error")
+              sys.exit(1)
+            case Right(createdIssue) =>
+              Output.success(s"Issue created: #${createdIssue.id}")
+              Output.info(s"URL: ${createdIssue.url}")
+              sys.exit(0)
+
+private def createLinearIssue(title: String, description: String, config: ProjectConfiguration): Unit =
+  ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
+    case None =>
+      Output.error(s"${Constants.EnvVars.LinearApiToken} environment variable is not set")
+      sys.exit(1)
+    case Some(token) =>
+      val teamId = config.team
+      LinearClient.createIssue(title, description, teamId, token) match
+        case Left(error) =>
+          Output.error(s"Failed to create issue: $error")
+          sys.exit(1)
+        case Right(createdIssue) =>
+          Output.success(s"Issue created: #${createdIssue.id}")
+          Output.info(s"URL: ${createdIssue.url}")
+          sys.exit(0)
 
 def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, IssueId] =
   if args.isEmpty then
