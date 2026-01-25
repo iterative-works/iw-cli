@@ -71,6 +71,9 @@ def handleCreateSubcommand(args: Seq[String]): Unit =
             case IssueTrackerType.Linear =>
               createLinearIssue(request.title, description, config)
 
+            case IssueTrackerType.GitLab =>
+              createGitLabIssue(request.title, description, config)
+
             case _ =>
               Output.error("Issue creation for this tracker not yet supported")
               sys.exit(1)
@@ -140,6 +143,40 @@ private def createLinearIssue(title: String, description: String, config: Projec
           Output.success(s"Issue created: #${createdIssue.id}")
           Output.info(s"URL: ${createdIssue.url}")
           sys.exit(0)
+
+private def createGitLabIssue(title: String, description: String, config: ProjectConfiguration): Unit =
+  val repository = config.repository.getOrElse {
+    Output.error("GitLab repository not configured. Run 'iw init' first.")
+    sys.exit(1)
+  }
+
+  GitLabClient.validateGlabPrerequisites(repository) match
+    case Left(GitLabClient.GlabPrerequisiteError.GlabNotInstalled) =>
+      Output.error(GitLabClient.formatGlabNotInstalledError())
+      sys.exit(1)
+    case Left(GitLabClient.GlabPrerequisiteError.GlabNotAuthenticated) =>
+      Output.error(GitLabClient.formatGlabNotAuthenticatedError())
+      sys.exit(1)
+    case Left(GitLabClient.GlabPrerequisiteError.GlabError(msg)) =>
+      Output.error(s"glab CLI error: $msg")
+      sys.exit(1)
+    case Right(_) =>
+      val args = GitLabClient.buildCreateIssueCommandWithoutLabel(repository, title, description)
+
+      import iw.core.infrastructure.CommandRunner
+      CommandRunner.execute("glab", args) match
+        case Left(error) =>
+          Output.error(s"Failed to create issue: $error")
+          sys.exit(1)
+        case Right(output) =>
+          GitLabClient.parseCreateIssueResponse(output) match
+            case Left(error) =>
+              Output.error(s"Failed to parse issue response: $error")
+              sys.exit(1)
+            case Right(createdIssue) =>
+              Output.success(s"Issue created: #${createdIssue.id}")
+              Output.info(s"URL: ${createdIssue.url}")
+              sys.exit(0)
 
 def getIssueId(args: Seq[String], config: ProjectConfiguration): Either[String, IssueId] =
   if args.isEmpty then
