@@ -88,3 +88,36 @@ M  .iw/test/issue-create.bats
 ```
 
 ---
+
+## Phase 3: Prerequisite validation (2026-01-25)
+
+**What was built:**
+- E2E tests: 2 new tests in `.iw/test/issue-create.bats` for prerequisite validation
+
+**Decisions made:**
+- Follow same mock pattern as feedback.bats (proven to work)
+- Test both "gh not installed" and "gh not authenticated" scenarios
+- Verify error messages contain actionable instructions (URLs, commands)
+
+**Patterns applied:**
+- Shell mocking via PATH manipulation (mock scripts in $TEST_DIR/bin)
+- Consistent error message verification across commands
+
+**Testing:**
+- E2E tests: 2 new tests (12 total in issue-create.bats)
+- Verification: All feedback.bats tests still pass (no regressions)
+
+**Code review:**
+- Iterations: 1
+- Major findings: No critical issues.
+
+**For next phases:**
+- Prerequisite validation pattern established for other trackers
+- Same mocking approach can be used for Linear/GitLab/YouTrack tests
+
+**Files changed:**
+```
+M  .iw/test/issue-create.bats
+```
+
+---
