@@ -4,8 +4,7 @@
 package iw.core.dashboard
 
 import iw.core.model.{WorktreeRegistration, CachedIssue, CachedProgress, CachedPR, CachedReviewState, IssueData, WorkflowProgress, PullRequestData, ReviewState}
-import iw.core.dashboard.WorktreeCardRenderer
-import iw.core.model.HtmxCardConfig
+import iw.core.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 

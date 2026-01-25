@@ -4,10 +4,10 @@
 package iw.core.dashboard
 
 import iw.core.model.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState}
+import iw.core.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration
-import iw.core.dashboard.WorktreeListView
 
 object WorktreeListView:
   /** Render worktree list with issue data, progress, git status, PR data, and review state.

@@ -3,10 +3,8 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState}
-import iw.core.dashboard.WorktreeCardRenderer
-import iw.core.model.HtmxCardConfig
-import iw.core.model.{Issue, IssueId}
+import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue, WorkflowProgress, CachedProgress, GitStatus, PullRequestData, CachedPR, ReviewState, CachedReviewState, Issue, IssueId}
+import iw.core.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try

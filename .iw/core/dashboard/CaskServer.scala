@@ -5,8 +5,9 @@ package iw.core.dashboard
 
 import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter}
 import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
-import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync}
-import iw.core.dashboard.application.{WorktreeCreationService, CardRenderResult, WorktreeCreationError}
+import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
+import iw.core.dashboard.application.WorktreeCreationService
+import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
 import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
 import java.time.Instant
 

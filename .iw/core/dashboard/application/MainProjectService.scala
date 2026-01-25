@@ -4,7 +4,7 @@
 package iw.core.dashboard.application
 
 import iw.core.model.WorktreeRegistration
-import iw.core.MainProject
+import iw.core.dashboard.domain.MainProject
 import iw.core.adapters.ConfigFileRepository
 import iw.core.model.{ProjectConfiguration, Constants}
 

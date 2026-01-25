@@ -5,10 +5,11 @@ package iw.core.dashboard
 
 import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, WorktreePriority, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
 import iw.core.adapters.{LinearClient, YouTrackClient, GitHubClient, ConfigFileRepository, CommandRunner}
+import iw.core.dashboard.application.MainProjectService
+import iw.core.dashboard.presentation.views.MainProjectsView
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try
-import iw.core.dashboard.WorktreeListView
 
 object DashboardService:
   /** Render dashboard with cached data only (read-only).

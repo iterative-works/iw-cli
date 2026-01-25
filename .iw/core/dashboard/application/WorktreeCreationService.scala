@@ -3,9 +3,8 @@
 
 package iw.core.dashboard.application
 
-import iw.core.model.{ProjectConfiguration, IssueId, WorktreePath}
-import iw.core.model.IssueData
-import iw.core.{WorktreeCreationResult, WorktreeCreationError}
+import iw.core.model.{ProjectConfiguration, IssueId, WorktreePath, IssueData}
+import iw.core.dashboard.domain.{WorktreeCreationResult, WorktreeCreationError}
 import iw.core.dashboard.infrastructure.CreationLockRegistry
 
 object WorktreeCreationService:

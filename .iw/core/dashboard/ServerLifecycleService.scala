@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.model.ServerState
+import iw.core.model.{ServerState, ServerStatus, SecurityAnalysis}
 import java.time.Instant
 import java.time.Duration
 
