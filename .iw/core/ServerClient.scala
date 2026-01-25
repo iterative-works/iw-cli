@@ -15,6 +15,12 @@ object ServerClient:
   private val configPath = s"$serverDir/config.json"
   private val pidPath = s"$serverDir/server.pid"
 
+  /** Check if server communication is disabled via environment variable.
+    * Useful for testing to prevent tests from registering worktrees in production dashboard.
+    */
+  private def isServerDisabled: Boolean =
+    Option(System.getenv("IW_SERVER_DISABLED")).exists(v => v == "1" || v.toLowerCase == "true")
+
   private def getServerConfig(): ServerConfig =
     ServerConfigRepository.getOrCreateDefault(configPath) match
       case Right(config) => config
@@ -110,6 +116,8 @@ object ServerClient:
     team: String,
     statePath: String = s"${System.getProperty("user.home")}/.local/share/iw/server/state.json"
   ): Either[String, Unit] =
+    if isServerDisabled then return Right(())
+
     val port = getServerPort()
     // Ensure server is running
     ensureServerRunning(statePath) match
@@ -169,6 +177,8 @@ object ServerClient:
    * @return Right(()) on success, Left(error message) on failure
    */
   def unregisterWorktree(issueId: String): Either[String, Unit] =
+    if isServerDisabled then return Right(())
+
     val port = getServerPort()
     try
       val response = quickRequest

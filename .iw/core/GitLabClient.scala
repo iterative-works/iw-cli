@@ -351,3 +351,34 @@ Check your network connection and try again.""".stripMargin
           case Right(output) => parseCreateIssueResponse(output)
       case Left(error) => Left(error)
       case Right(output) => parseCreateIssueResponse(output)
+
+  /** Create a new GitLab issue via glab CLI without labels.
+    *
+    * Simplified version for issue creation without label support.
+    *
+    * @param repository GitLab repository path
+    * @param title Issue title
+    * @param description Issue description
+    * @return Right(CreatedIssue) on success, Left(error message) on failure
+    */
+  def createIssue(
+    repository: String,
+    title: String,
+    description: String
+  ): Either[String, CreatedIssue] =
+    // Validate prerequisites before attempting creation
+    validateGlabPrerequisites(repository) match
+      case Left(GlabPrerequisiteError.GlabNotInstalled) =>
+        return Left(formatGlabNotInstalledError())
+      case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
+        return Left(formatGlabNotAuthenticatedError())
+      case Left(GlabPrerequisiteError.GlabError(msg)) =>
+        return Left(s"glab CLI error: $msg")
+      case Right(_) =>
+        // Proceed with issue creation
+
+    val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
+
+    CommandRunner.execute("glab", args) match
+      case Left(error) => Left(error)
+      case Right(output) => parseCreateIssueResponse(output)

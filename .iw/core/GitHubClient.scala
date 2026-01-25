@@ -196,6 +196,39 @@ object GitHubClient:
       case Left(error) => Left(error)
       case Right(output) => parseCreateIssueResponse(output)
 
+  /** Create a new GitHub issue via gh CLI without labels.
+    *
+    * Simplified version for issue creation without label support.
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param title Issue title
+    * @param description Issue description
+    * @return Right(CreatedIssue) on success, Left(error message) on failure
+    */
+  def createIssue(
+    repository: String,
+    title: String,
+    description: String
+  ): Either[String, CreatedIssue] =
+    // Validate prerequisites before attempting creation
+    validateGhPrerequisites(repository) match
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
+        return Left(formatGhNotInstalledError())
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
+        return Left(formatGhNotAuthenticatedError())
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
+        return Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        // Proceed with issue creation
+
+    val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
+    val command = args.head
+    val commandArgs = args.tail
+
+    CommandRunner.execute(command, commandArgs) match
+      case Left(error) => Left(error)
+      case Right(output) => parseCreateIssueResponse(output)
+
   /** Check if error is related to labels (for graceful fallback). */
   private def isLabelError(error: String): Boolean =
     val lowerError = error.toLowerCase

@@ -1,5 +1,5 @@
 // PURPOSE: YouTrack REST API client for issue operations
-// PURPOSE: Provides fetchIssue to retrieve issue details from YouTrack
+// PURPOSE: Provides fetchIssue and createIssue for YouTrack issue management
 
 package iw.core
 
@@ -168,6 +168,83 @@ object YouTrackClient:
           parseListRecentIssuesResponse(response.body)
         case StatusCode.Unauthorized =>
           Left("API token is invalid or expired")
+        case _ =>
+          Left(s"YouTrack API error: ${response.code}")
+    catch
+      case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  def buildCreateIssueUrl(baseUrl: String): String =
+    val normalizedBase = baseUrl.stripSuffix("/")
+    s"$normalizedBase/api/issues"
+
+  def buildCreateIssueBody(project: String, title: String, description: String): String =
+    import upickle.default.*
+    val body = ujson.Obj(
+      "project" -> ujson.Obj("id" -> project),
+      "summary" -> title,
+      "description" -> description
+    )
+    ujson.write(body)
+
+  def buildIssueUrl(baseUrl: String, issueId: String): String =
+    val normalizedBase = baseUrl.stripSuffix("/")
+    s"$normalizedBase/issue/$issueId"
+
+  def parseCreateIssueResponse(json: String, baseUrl: String): Either[String, CreatedIssue] =
+    try
+      val parsed = ujson.read(json)
+
+      // Check for error response
+      if parsed.obj.contains("error") then
+        return Left(parsed("error").str)
+
+      // Extract idReadable from successful response
+      if !parsed.obj.contains("idReadable") then
+        return Left("Malformed response: missing 'idReadable' field")
+
+      val issueId = parsed("idReadable").str
+      val url = buildIssueUrl(baseUrl, issueId)
+
+      Right(CreatedIssue(issueId, url))
+    catch
+      case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
+
+  def createIssue(
+    project: String,
+    title: String,
+    description: String,
+    baseUrl: String,
+    token: ApiToken
+  ): Either[String, CreatedIssue] =
+    try
+      val url = buildCreateIssueUrl(baseUrl)
+      val body = buildCreateIssueBody(project, title, description)
+
+      val response = quickRequest
+        .post(uri"$url")
+        .header("Authorization", s"Bearer ${token.value}")
+        .header("Accept", "application/json")
+        .header("Content-Type", "application/json")
+        .body(body)
+        .send()
+
+      response.code match
+        case StatusCode.Ok =>
+          parseCreateIssueResponse(response.body, baseUrl)
+        case StatusCode.Unauthorized =>
+          Left("API token is invalid or expired")
+        case StatusCode.BadRequest =>
+          // Try to extract error message from response body
+          try
+            val parsed = ujson.read(response.body)
+            if parsed.obj.contains("error") then
+              Left(s"YouTrack API error: ${parsed("error").str}")
+            else
+              Left(s"YouTrack API error: ${response.code}")
+          catch
+            case _: Exception => Left(s"YouTrack API error: ${response.code}")
+        case StatusCode.NotFound =>
+          Left(s"Project '$project' not found")
         case _ =>
           Left(s"YouTrack API error: ${response.code}")
     catch
