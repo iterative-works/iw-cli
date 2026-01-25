@@ -121,3 +121,66 @@ M  .iw/test/issue-create.bats
 ```
 
 ---
+
+## Phase 4: Title-only creation (2026-01-25)
+
+**Status:** Already implemented in Phase 2
+
+**What was verified:**
+- IssueCreateParser designed with optional `--description` from the start
+- E2E test "issue create with title only succeeds" already exists and passes
+- No additional implementation required
+
+**Notes:**
+- Phase 2's design anticipated this requirement
+- `description: Option[String]` in `IssueCreateRequest` makes `--description` optional
+- Test coverage already included in Phase 2
+
+**Files changed:**
+```
+(No changes - functionality already complete)
+```
+
+---
+
+## Phase 5: Linear issue creation (2026-01-25)
+
+**What was built:**
+- Feature: `.iw/commands/issue.scala` - Added Linear tracker support to handleCreateSubcommand
+- Helper: `createLinearIssue()` function for Linear-specific issue creation flow
+- Refactor: Replaced hardcoded GitHub check with tracker type pattern match
+- Tests: `.iw/test/issue-create.bats` - Added Linear E2E test, updated YouTrack test
+
+**Decisions made:**
+- Reuse existing `LinearClient.createIssue()` infrastructure from feedback command
+- Follow same pattern as `createGitHubIssue()` for consistency
+- Use `ApiToken.fromEnv(Constants.EnvVars.LinearApiToken)` for token validation
+- Get teamId from `config.team` field
+- Defer success tests requiring HTTP mocking or real API
+
+**Patterns applied:**
+- Tracker type branching: Added case for `IssueTrackerType.Linear` alongside GitHub
+- Token validation pattern: Check env var before API call with clear error message
+- Helper function extraction: Separate functions for each tracker type
+
+**Testing:**
+- E2E tests: 1 new test (13 total in issue-create.bats)
+- Updated test: Changed "non-GitHub" test to use YouTrack (Linear now supported)
+- Coverage: Token validation tested; success path deferred (needs mocking)
+
+**Code review:**
+- Iterations: 1
+- Major findings: No critical issues. Suggestions for Scala 3 features (opaque types) - optional improvements.
+
+**For next phases:**
+- Available utilities: `createLinearIssue()` pattern can be followed for GitLab/YouTrack
+- Extension points: Tracker type match in handleCreateSubcommand ready for new cases
+- Notes: Linear success tests require HTTP mocking infrastructure
+
+**Files changed:**
+```
+M  .iw/commands/issue.scala
+M  .iw/test/issue-create.bats
+```
+
+---
