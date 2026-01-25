@@ -208,3 +208,86 @@ SCRIPT
     [ "$status" -eq 1 ]
     [[ "$output" == *"not yet supported"* ]]
 }
+
+# ========== Phase 3: Prerequisite Validation Tests ==========
+
+@test "issue create fails with helpful message when gh CLI not installed" {
+    # Create a GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = github
+  repository = "iterative-works/test-project"
+  teamPrefix = TEST
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Mock which command to report gh is not found
+    mkdir -p bin
+    cat > bin/which <<'SCRIPT'
+#!/bin/bash
+# Return false for gh, true for everything else
+if [[ "$1" == "gh" ]]; then
+    exit 1
+else
+    # Use real which for other commands
+    /usr/bin/which "$@"
+fi
+SCRIPT
+    chmod +x bin/which
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test issue"
+
+    # Assert failure with helpful message
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"gh CLI is not installed"* ]]
+    [[ "$output" == *"https://cli.github.com/"* ]]
+    [[ "$output" == *"gh auth login"* ]]
+}
+
+@test "issue create fails with auth instructions when gh not authenticated" {
+    # Create a GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf <<EOF
+tracker {
+  type = github
+  repository = "iterative-works/test-project"
+  teamPrefix = TEST
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Mock gh command that returns exit code 4 for auth status
+    mkdir -p bin
+    cat > bin/gh <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "You are not logged in to any GitHub hosts. Run gh auth login to authenticate." >&2
+    exit 4
+elif [[ "$1" == "issue" && "$2" == "create" ]]; then
+    # This should not be reached since validation should fail first
+    echo "Unexpected: issue create called when not authenticated" >&2
+    exit 1
+else
+    echo "Unexpected gh command: $*" >&2
+    exit 1
+fi
+SCRIPT
+    chmod +x bin/gh
+    export PATH="$TEST_DIR/bin:$PATH"
+
+    # Run issue create command
+    run "$PROJECT_ROOT/iw" issue create --title "Test issue"
+
+    # Assert failure with auth instructions
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"gh is not authenticated"* ]]
+    [[ "$output" == *"gh auth login"* ]]
+}
