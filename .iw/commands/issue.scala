@@ -97,35 +97,14 @@ private def createGitHubIssue(title: String, description: String, config: Projec
     sys.exit(1)
   }
 
-  GitHubClient.validateGhPrerequisites(repository) match
-    case Left(GitHubClient.GhPrerequisiteError.GhNotInstalled) =>
-      Output.error(GitHubClient.formatGhNotInstalledError())
+  GitHubClient.createIssue(repository, title, description) match
+    case Left(error) =>
+      Output.error(s"Failed to create issue: $error")
       sys.exit(1)
-    case Left(GitHubClient.GhPrerequisiteError.GhNotAuthenticated) =>
-      Output.error(GitHubClient.formatGhNotAuthenticatedError())
-      sys.exit(1)
-    case Left(GitHubClient.GhPrerequisiteError.GhOtherError(msg)) =>
-      Output.error(s"gh CLI error: $msg")
-      sys.exit(1)
-    case Right(_) =>
-      val command = GitHubClient.buildCreateIssueCommandWithoutLabel(repository, title, description)
-      val cmd = command.head
-      val cmdArgs = command.tail
-
-      import iw.core.infrastructure.CommandRunner
-      CommandRunner.execute(cmd, cmdArgs) match
-        case Left(error) =>
-          Output.error(s"Failed to create issue: $error")
-          sys.exit(1)
-        case Right(output) =>
-          GitHubClient.parseCreateIssueResponse(output) match
-            case Left(error) =>
-              Output.error(s"Failed to parse issue response: $error")
-              sys.exit(1)
-            case Right(createdIssue) =>
-              Output.success(s"Issue created: #${createdIssue.id}")
-              Output.info(s"URL: ${createdIssue.url}")
-              sys.exit(0)
+    case Right(createdIssue) =>
+      Output.success(s"Issue created: #${createdIssue.id}")
+      Output.info(s"URL: ${createdIssue.url}")
+      sys.exit(0)
 
 private def createLinearIssue(title: String, description: String, config: ProjectConfiguration): Unit =
   ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
@@ -149,33 +128,14 @@ private def createGitLabIssue(title: String, description: String, config: Projec
     sys.exit(1)
   }
 
-  GitLabClient.validateGlabPrerequisites(repository) match
-    case Left(GitLabClient.GlabPrerequisiteError.GlabNotInstalled) =>
-      Output.error(GitLabClient.formatGlabNotInstalledError())
+  GitLabClient.createIssue(repository, title, description) match
+    case Left(error) =>
+      Output.error(s"Failed to create issue: $error")
       sys.exit(1)
-    case Left(GitLabClient.GlabPrerequisiteError.GlabNotAuthenticated) =>
-      Output.error(GitLabClient.formatGlabNotAuthenticatedError())
-      sys.exit(1)
-    case Left(GitLabClient.GlabPrerequisiteError.GlabError(msg)) =>
-      Output.error(s"glab CLI error: $msg")
-      sys.exit(1)
-    case Right(_) =>
-      val args = GitLabClient.buildCreateIssueCommandWithoutLabel(repository, title, description)
-
-      import iw.core.infrastructure.CommandRunner
-      CommandRunner.execute("glab", args) match
-        case Left(error) =>
-          Output.error(s"Failed to create issue: $error")
-          sys.exit(1)
-        case Right(output) =>
-          GitLabClient.parseCreateIssueResponse(output) match
-            case Left(error) =>
-              Output.error(s"Failed to parse issue response: $error")
-              sys.exit(1)
-            case Right(createdIssue) =>
-              Output.success(s"Issue created: #${createdIssue.id}")
-              Output.info(s"URL: ${createdIssue.url}")
-              sys.exit(0)
+    case Right(createdIssue) =>
+      Output.success(s"Issue created: #${createdIssue.id}")
+      Output.info(s"URL: ${createdIssue.url}")
+      sys.exit(0)
 
 private def createYouTrackIssue(title: String, description: String, config: ProjectConfiguration): Unit =
   val baseUrl = config.youtrackBaseUrl.getOrElse {
