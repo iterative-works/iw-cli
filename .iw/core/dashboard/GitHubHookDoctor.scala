@@ -2,9 +2,8 @@
 // PURPOSE: Provides checkGhInstalled and checkGhAuthenticated for doctor hooks
 package iw.core.dashboard
 
-import iw.core.adapters.GitHubClient
+import iw.core.adapters.{GitHubClient, CommandRunner}
 import iw.core.model.{IssueTrackerType, ProjectConfiguration}
-import iw.core.CheckResult
 
 object GitHubHookDoctor:
 
