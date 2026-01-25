@@ -1,15 +1,20 @@
 {
-  "version": 1,
+  "version": 2,
   "issue_id": "IW-126",
-  "status": "analysis_ready",
-  "phase": 0,
-  "step": "analysis",
+  "status": "context_ready",
+  "phase": 1,
+  "step": "tasks",
   "branch": "IW-126",
   "pr_url": null,
-  "git_sha": "f6f8840e7d561071169855a746ced891697b029d",
-  "last_updated": "2026-01-25T11:35:00Z",
-  "message": "Analysis updated after clarification - ready for review",
+  "git_sha": "555c4e5a497067f5e488b724192e46b0edd40d01",
+  "last_updated": "2026-01-25T12:15:00Z",
+  "batch_mode": false,
+  "phase_checkpoints": {
+    "1": { "context_sha": "555c4e5a497067f5e488b724192e46b0edd40d01" }
+  },
+  "message": "Phase 1 context revised with FCIS-based structure",
   "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-126/analysis.md"}
+    {"label": "Analysis", "path": "project-management/issues/IW-126/analysis.md"},
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-126/phase-01-context.md"}
   ]
 }
