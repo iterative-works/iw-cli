@@ -4,8 +4,10 @@
 //   [issue-id]: Optional issue identifier to fetch. If not provided, infers from current branch
 // EXAMPLE: iw issue IWLE-123
 
-import iw.core.*
-import iw.core.infrastructure.ServerClient
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
+import iw.core.dashboard.ServerClient
 
 @main def issue(args: String*): Unit =
   // Handle subcommands

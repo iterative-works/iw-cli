@@ -2,7 +2,7 @@
 // PURPOSE: Tests extraction from various branch naming patterns
 package iw.tests
 
-import iw.core.*
+import iw.core.model.IssueId
 import munit.FunSuite
 
 class IssueIdFromBranchTest extends FunSuite:

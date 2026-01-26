@@ -2,8 +2,10 @@
 // PURPOSE: Tests YouTrackClient with various response scenarios including customFields
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.YouTrackClient
+import iw.core.model.{Issue, IssueId}
 import munit.FunSuite
+import iw.core.model.Issue
 
 class YouTrackIssueTrackerTest extends FunSuite:
 

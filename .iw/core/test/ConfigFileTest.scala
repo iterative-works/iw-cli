@@ -2,7 +2,7 @@
 package iw.tests
 
 // PURPOSE: Verifies configuration can be written to and read from HOCON format
-import iw.core.*
+import iw.core.model.{ConfigSerializer, IssueTrackerType, ProjectConfiguration}
 import com.typesafe.config.ConfigFactory
 
 class ConfigFileTest extends munit.FunSuite, Fixtures:

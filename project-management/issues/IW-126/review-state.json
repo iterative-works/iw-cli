@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "issue_id": "IW-126",
+  "status": "awaiting_review",
+  "phase": 1,
+  "step": "review",
+  "branch": "IW-126-phase-01",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/163",
+  "git_sha": "28d61da95d6a5dfb7a371169892e75f5d302f79d",
+  "last_updated": "2026-01-26T12:14:48Z",
+  "batch_mode": false,
+  "phase_checkpoints": {
+    "1": { "context_sha": "555c4e5a497067f5e488b724192e46b0edd40d01" }
+  },
+  "message": "Phase 1 complete - awaiting PR review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-126/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-126/implementation-log.md"},
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-126/phase-01-context.md"},
+    {"label": "Core Guidelines", "path": ".iw/core/CLAUDE.md"}
+  ]
+}

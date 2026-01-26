@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.presentation.views.ArtifactView
+import iw.core.dashboard.presentation.views.ArtifactView
 
 class ArtifactViewTest extends munit.FunSuite:
 

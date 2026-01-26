@@ -3,9 +3,11 @@
 
 package iw.core.test
 
-import iw.core.domain.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, ReviewArtifact}
-import iw.core.presentation.views.WorktreeListView
+import iw.core.model.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, ReviewArtifact}
+import iw.core.dashboard.WorktreeListView
 import java.time.Instant
+import iw.core.dashboard.Check
+import iw.core.model.Issue
 
 class WorktreeListViewTest extends munit.FunSuite:
 

@@ -4,6 +4,9 @@
 package iw.core.application
 
 import munit.FunSuite
+import iw.core.model.Issue
+import iw.core.dashboard.MarkdownTaskParser
+import iw.core.dashboard.PhaseIndexEntry
 
 class MarkdownTaskParserTest extends FunSuite:
 

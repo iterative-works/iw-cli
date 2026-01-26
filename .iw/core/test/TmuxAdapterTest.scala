@@ -2,7 +2,7 @@
 // PURPOSE: Tests session creation, existence checks, and cleanup with real tmux
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.{ProcessAdapter, TmuxAdapter}
 import munit.FunSuite
 
 class TmuxAdapterTest extends FunSuite:

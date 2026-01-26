@@ -3,7 +3,9 @@
 // ARGS:
 //   [--force]: Regenerate skills even if they exist
 
-import iw.core.*
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
 
 @main def `claude-sync`(args: String*): Unit =
   val force = args.contains("--force")

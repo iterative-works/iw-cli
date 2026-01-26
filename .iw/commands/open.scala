@@ -2,8 +2,10 @@
 // PURPOSE: Infers issue ID from current branch when no parameter given.
 // USAGE: iw open [issue-id]
 
-import iw.core.*
-import iw.core.infrastructure.ServerClient
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
+import iw.core.dashboard.ServerClient
 
 @main def open(args: String*): Unit =
   // Load config first to get team prefix

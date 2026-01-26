@@ -2,8 +2,10 @@
 // PURPOSE: Tests IssueFormatter.format with various field combinations
 package iw.tests
 
-import iw.core.*
+import iw.core.model.Issue
+import iw.core.output.IssueFormatter
 import munit.FunSuite
+import iw.core.model.Issue
 
 class IssueFormatterTest extends FunSuite:
 

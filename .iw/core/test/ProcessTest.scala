@@ -2,7 +2,7 @@
 // PURPOSE: Tests commandExists with both real and non-existent commands
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.ProcessAdapter
 import munit.FunSuite
 
 class ProcessTest extends FunSuite:

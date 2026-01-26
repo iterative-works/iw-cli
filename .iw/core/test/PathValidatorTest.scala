@@ -2,7 +2,7 @@
 // PURPOSE: Tests PathValidator security validation for directory traversal prevention
 package iw.tests
 
-import iw.core.*
+import iw.core.dashboard.PathValidator
 import munit.FunSuite
 import java.nio.file.{Path, Paths}
 import java.io.File

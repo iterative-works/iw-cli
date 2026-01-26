@@ -5,6 +5,8 @@ package iw.core.infrastructure
 
 import munit.FunSuite
 import java.io.File
+import iw.core.adapters.CommandRunner
+import iw.core.output.Output
 
 class CommandRunnerTest extends FunSuite:
 

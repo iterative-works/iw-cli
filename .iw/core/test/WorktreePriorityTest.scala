@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.domain.{WorktreeRegistration, WorktreePriority}
+import iw.core.model.{WorktreeRegistration, WorktreePriority}
 import java.time.Instant
 
 class WorktreePriorityTest extends munit.FunSuite:

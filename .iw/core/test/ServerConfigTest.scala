@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.ServerConfig
+import iw.core.model.ServerConfig
 
 class ServerConfigTest extends munit.FunSuite:
 

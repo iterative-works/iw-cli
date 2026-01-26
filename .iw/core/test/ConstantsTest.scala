@@ -2,7 +2,8 @@
 // PURPOSE: Tests that constants are accessible and have expected values
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.TmuxAdapter
+import iw.core.model.Constants
 import munit.FunSuite
 import java.util.UUID
 

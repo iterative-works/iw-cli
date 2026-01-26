@@ -2,8 +2,10 @@
 // PURPOSE: Auto-detects issue ID from current branch and sends registration to dashboard
 // USAGE: iw register
 
-import iw.core.*
-import iw.core.infrastructure.ServerClient
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
+import iw.core.dashboard.ServerClient
 
 @main def register(args: String*): Unit =
   val currentDir = os.pwd

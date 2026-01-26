@@ -2,7 +2,7 @@
 // PURPOSE: Tests LinearClient.fetchIssue with various response scenarios
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.LinearClient
 import munit.FunSuite
 
 class LinearIssueTrackerTest extends FunSuite:

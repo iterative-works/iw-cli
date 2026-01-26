@@ -3,10 +3,12 @@
 
 package iw.core.test
 
-import iw.core.application.ArtifactService
-import iw.core.domain.{ServerState, WorktreeRegistration}
+import iw.core.dashboard.ArtifactService
+import iw.core.model.{ServerState, WorktreeRegistration}
 import java.nio.file.{Path, Paths}
 import java.time.Instant
+import iw.core.dashboard.PathValidator
+import iw.core.output.MarkdownRenderer
 
 class ArtifactServiceTest extends munit.FunSuite:
 

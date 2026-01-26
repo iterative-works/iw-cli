@@ -3,8 +3,9 @@
 
 package iw.tests
 
-import iw.core.domain.WorktreeRegistration
+import iw.core.model.WorktreeRegistration
 import java.time.Instant
+import iw.core.model.Issue
 
 class WorktreeRegistrationTest extends munit.FunSuite:
   test("WorktreeRegistration creation with all fields"):

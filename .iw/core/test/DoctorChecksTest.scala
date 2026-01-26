@@ -2,7 +2,9 @@
 // PURPOSE: Tests check execution order and result formatting
 package iw.tests
 
-import iw.core.*
+import iw.core.dashboard.{Check, CheckResult}
+import iw.core.dashboard.DoctorChecks
+import iw.core.model.{IssueTrackerType, ProjectConfiguration}
 import munit.FunSuite
 
 class DoctorChecksTest extends FunSuite:
