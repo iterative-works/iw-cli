@@ -2,7 +2,7 @@
 
 **Issue:** IW-164
 **Created:** 2026-01-26
-**Status:** Draft
+**Status:** Ready for Implementation
 **Classification:** Simple
 
 ## Problem Statement
@@ -180,77 +180,33 @@ This story documents and tests the working pattern that Stories 1-2 should follo
 **Server State:**
 - Already working - serves as reference pattern for Stories 1-2
 
-## Technical Risks & Uncertainties
+## Design Decisions
 
-### CLARIFY: Should progress and PR use filesystem reads or cache-only reads on refresh?
+### RESOLVED: Data fetching strategy (hybrid approach)
 
-There are two distinct patterns in the codebase:
+**Decision:** Use hybrid approach optimized for each data type:
 
-**Pattern A: Always read from filesystem (like review state)**
-- Read from filesystem on every card refresh
-- Use mtime-based caching to avoid re-parsing if files unchanged
-- Simple, consistent behavior
-- Works well for cheap operations (file reads, JSON parsing)
+| Data Type | Strategy | Rationale |
+|-----------|----------|-----------|
+| Progress | Filesystem + mtime | Task file parsing is cheap, follow review state pattern |
+| PR | Server cache + TTL | CLI calls (`gh pr view`) are expensive, cache is critical |
+| Review State | Filesystem + mtime | Already working, reference pattern |
 
-**Pattern B: Cache in server state, read from cache (intended for progress/PR)**
-- Populate server-side cache on first read
-- Card refresh reads from cache only
-- Requires cache invalidation strategy
-- Better for expensive operations (CLI calls, API requests)
-
-**Questions to answer:**
-1. Should progress use Pattern A (filesystem + mtime) or Pattern B (server cache)?
-2. Should PR use Pattern A or Pattern B?
-3. If Pattern B: When should caches be invalidated/refreshed?
-
-**Options:**
-
-**Option A: Both use filesystem reads (like review state)**
-- Pros: Simple, consistent, no cache invalidation needed
-- Cons: Filesystem I/O on every refresh (but mitigated by mtime caching)
-- Best for: Progress (task file parsing is cheap)
-
-**Option B: Both use server cache (fix existing cache population)**
-- Pros: Faster card refresh (no I/O), explicit cache control
-- Cons: Cache invalidation complexity, stale data risk
-- Best for: PR data (CLI calls are expensive)
-
-**Option C: Hybrid approach**
-- Progress uses Pattern A (filesystem + mtime)
-- PR uses Pattern B (server cache with TTL)
-- Pros: Optimizes each data type appropriately
-- Cons: Two different patterns to maintain
-
-**Impact:** Affects implementation approach for both stories. Story 1 (progress) likely benefits from Pattern A. Story 2 (PR) likely needs Pattern B due to expensive CLI calls.
-
-**Recommendation:** Option C (hybrid). Progress should follow review state pattern (filesystem + mtime). PR should use fixed server cache (populate cache in CardRenderResult).
+**Implementation:**
+- **Story 1 (Progress):** Modify `WorktreeCardService.renderCard` to read from filesystem on every refresh (like review state does), using mtime-based caching to avoid re-parsing unchanged files. Return fetched data in `CardRenderResult.fetchedProgress`.
+- **Story 2 (PR):** Fix cache population by returning fetched PR data in `CardRenderResult.fetchedPR`. Server cache with TTL prevents excessive CLI calls.
 
 ---
 
-### CLARIFY: Should initial dashboard render also populate caches?
+### RESOLVED: Initial dashboard render does NOT populate caches
 
-Currently, `DashboardService.renderDashboard` reads progress/PR data from filesystem/CLI but doesn't populate caches. Only card refresh should populate caches (via `CardRenderResult`).
+**Decision:** Only card refresh populates caches via `CardRenderResult`.
 
-**Questions to answer:**
-1. Should initial dashboard render populate caches?
-2. If yes, how? (CardRenderResult pattern doesn't apply to full dashboard render)
-3. If no, is initial render + first refresh acceptable UX?
-
-**Options:**
-
-**Option A: Initial render populates caches**
-- Pros: Caches warm immediately, consistent behavior
-- Cons: Requires different cache population path for initial render
-- Implementation: `DashboardService.renderDashboard` would need to call `stateService.updateProgressCache`/`updatePRCache`
-
-**Option B: Only card refresh populates caches (current design)**
-- Pros: Single code path for cache population (via CardRenderResult)
-- Cons: First refresh after initial render reads empty cache (acceptable if using Pattern A)
-- Implementation: No changes to `DashboardService`
-
-**Impact:** Affects whether we need to modify `DashboardService.renderDashboard` or only fix `WorktreeCardService.renderCard`.
-
-**Recommendation:** If using Pattern A (filesystem reads), Option B is fine. If using Pattern B (server cache), Option A is better for UX.
+**Rationale:**
+- Single code path for cache population (simpler)
+- With hybrid approach, progress reads filesystem anyway (no empty cache problem)
+- PR cache populates on first card refresh (acceptable UX)
+- No changes needed to `DashboardService.renderDashboard`
 
 ## Total Estimates
 
@@ -267,11 +223,9 @@ Currently, `DashboardService.renderDashboard` reads progress/PR data from filesy
 - Well-understood bug with clear root cause
 - Working reference pattern exists (review state)
 - Small, focused changes to existing code
-- Main uncertainty is design decision (CLARIFY markers), not technical difficulty
+- Design decisions resolved (hybrid approach, no initial cache population)
 - Testing approach is straightforward (verify data persists across refresh)
 - No complex domain logic or external dependencies
-
-The upper bound (6h) assumes Option C (hybrid approach) and Option A (initial render populates caches), which requires changes to multiple services. The lower bound (4h) assumes simpler approaches following existing patterns.
 
 ## Testing Approach
 
@@ -373,10 +327,9 @@ All three stories could be implemented together in 4-6 hours since they follow t
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
 
 **Next Steps:**
-1. Resolve CLARIFY markers (filesystem vs cache strategy)
-2. Implement Story 3 (regression test) to establish reference pattern
-3. Implement Stories 1-2 following the chosen pattern
-4. Verify all three data types (progress, PR, review state) persist across refresh
+1. `/iterative-works:ag-create-tasks IW-164` - Generate phase-based task index
+2. `/iterative-works:ag-implement IW-164` - Begin story-by-story implementation
+3. Verify all three data types (progress, PR, review state) persist across refresh
