@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issue_id": "IW-164",
+  "status": "analysis_ready",
+  "phase": 0,
+  "step": "analysis",
+  "branch": "IW-164",
+  "pr_url": null,
+  "git_sha": "f36e8b16bb5e2134ffa336db3f71bf0b0409cd9d",
+  "last_updated": "2026-01-26T17:37:04Z",
+  "message": "Analysis complete with design decisions resolved - ready for implementation",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-164/analysis.md"}
+  ]
+}
