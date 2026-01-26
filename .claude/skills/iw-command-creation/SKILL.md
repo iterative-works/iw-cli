@@ -102,40 +102,48 @@ No `//> using file` directives needed - the iw launcher handles the classpath au
 
 ## Finding Core Module Documentation
 
-The core modules are located in the iw-cli installation. To find them:
+Complete API documentation is available in llms.txt format. The documentation includes
+function signatures, parameter types, return types, and real usage examples.
 
 ```bash
-# Check where iw-cli is installed
-echo $IW_CORE_DIR
+# Read the main index (lists all modules with descriptions)
+cat $IW_CORE_DIR/../llms.txt
 
-# Or find it relative to the iw command
-ls $(dirname $(which iw))/../core/
+# Read detailed documentation for a specific module
+cat $IW_CORE_DIR/../docs/Output.md
+cat $IW_CORE_DIR/../docs/Git.md
 ```
 
-To explore a module's API, read its source:
-```bash
-cat $IW_CORE_DIR/Output.scala
-cat $IW_CORE_DIR/Git.scala
-```
+The llms.txt follows the [standard format](https://llmstxt.org):
+- H1 title with blockquote summary
+- H2 sections grouping related modules
+- Links to detailed per-module documentation in `docs/`
+
+Each module doc includes:
+- Import statement
+- All public functions with signatures
+- Usage examples extracted from real commands
 
 ## Available Core Modules
 
-| Module | Purpose |
-|--------|---------|
-| `Output.scala` | Console output (info, error, success, warning, section, keyValue) |
-| `Config.scala` | Configuration types (ProjectConfiguration, IssueTrackerType) |
-| `ConfigRepository.scala` | Read/write config files |
-| `IssueId.scala` | Parse and validate issue IDs, extract from branch names |
-| `Issue.scala` | Issue entity and IssueTracker trait |
-| `WorktreePath.scala` | Calculate worktree paths and session names |
-| `Git.scala` | GitAdapter - branch operations, remote info, uncommitted changes |
-| `GitWorktree.scala` | GitWorktreeAdapter - worktree create/remove/list |
-| `Tmux.scala` | TmuxAdapter - session management |
-| `Process.scala` | ProcessAdapter - shell command execution |
-| `Prompt.scala` | Interactive prompts (confirm, ask) |
-| `GitHubClient.scala` | GitHub API via `gh` CLI |
-| `LinearClient.scala` | Linear API client |
-| `YouTrackClient.scala` | YouTrack API client |
+For detailed API documentation with signatures and examples, see `$IW_CORE_DIR/../llms.txt`.
+
+**Quick reference:**
+
+| Module | Purpose | Docs |
+|--------|---------|------|
+| Output | Console output (info, error, success, section, keyValue) | [docs/Output.md](docs/Output.md) |
+| Config | Configuration types (ProjectConfiguration, IssueTrackerType) | [docs/Config.md](docs/Config.md) |
+| ConfigRepository | Read/write config files | [docs/ConfigRepository.md](docs/ConfigRepository.md) |
+| IssueId | Parse and validate issue IDs, extract from branch names | [docs/IssueId.md](docs/IssueId.md) |
+| Issue | Issue entity and IssueTracker trait | [docs/Issue.md](docs/Issue.md) |
+| Git | GitAdapter - branch operations, remote info, status | [docs/Git.md](docs/Git.md) |
+| GitWorktree | GitWorktreeAdapter - worktree create/remove/list | [docs/GitWorktree.md](docs/GitWorktree.md) |
+| Process | ProcessAdapter - shell command execution | [docs/Process.md](docs/Process.md) |
+| Prompt | Interactive prompts (confirm, ask) | [docs/Prompt.md](docs/Prompt.md) |
+| GitHubClient | GitHub API via `gh` CLI | [docs/GitHubClient.md](docs/GitHubClient.md) |
+| LinearClient | Linear API client | [docs/LinearClient.md](docs/LinearClient.md) |
+| YouTrackClient | YouTrack API client | [docs/YouTrackClient.md](docs/YouTrackClient.md) |
 
 ## Example: Simple Command
 
@@ -216,7 +224,8 @@ scala-cli run my-script.scala $IW_CORE_DIR/*.scala -- --flag value
 
 ## Tips
 
-1. **Check existing commands** for patterns: `cat $(dirname $(which iw))/../commands/*.scala`
-2. **Use `Either` returns** - most adapters return `Either[String, T]` for error handling
-3. **Keep it functional** - pure functions, effects at the edges
-4. **Read the source** - when unsure about an API, read the module's source file
+1. **Read llms.txt first** - start with `cat $IW_CORE_DIR/../llms.txt` to see all available modules
+2. **Check existing commands** for patterns: `cat $(dirname $(which iw))/../commands/*.scala`
+3. **Use `Either` returns** - most adapters return `Either[String, T]` for error handling
+4. **Keep it functional** - pure functions, effects at the edges
+5. **Read module docs** - for detailed API, read `$IW_CORE_DIR/../docs/<Module>.md`
