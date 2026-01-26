@@ -96,10 +96,24 @@ object WorktreeCardService:
         // Refresh review state from filesystem (cheap, always do it)
         val freshReviewState = fetchReviewStateForWorktree(worktree, reviewStateCache)
 
-        // Get other data (progress, git status, PR, review state)
-        val progress = progressCache.get(issueId).map(_.progress)
+        // Refresh progress from filesystem (cheap, always do it)
+        val freshProgress = fetchProgressForWorktree(worktree, progressCache)
+
+        // Get progress (fresh or cached)
+        val (progress, progressCacheUpdate) = freshProgress match {
+          case Some(cached) =>
+            (Some(cached.progress), Some(cached))
+          case None =>
+            (progressCache.get(issueId).map(_.progress), None)
+        }
+
         val gitStatus = None // TODO: Fetch git status if needed
-        val prData = prCache.get(issueId).map(_.pr)
+
+        // Get PR data (return cached CachedPR for server cache update)
+        val (prData, prCacheUpdate) = prCache.get(issueId) match {
+          case Some(cached) => (Some(cached.pr), Some(cached))
+          case None => (None, None)
+        }
 
         // Use fresh review state if available, otherwise use cached
         val (reviewStateResult, reviewStateCacheUpdate) = freshReviewState match {
@@ -124,7 +138,7 @@ object WorktreeCardService:
               worktree, gitStatus, now, HtmxCardConfig.polling
             ).render
 
-        CardRenderResult(html, fetchedCachedIssue, None, None, reviewStateCacheUpdate)
+        CardRenderResult(html, fetchedCachedIssue, progressCacheUpdate, prCacheUpdate, reviewStateCacheUpdate)
 
   /** Fetch review state for a single worktree.
     *
@@ -178,4 +192,55 @@ object WorktreeCardService:
       case Right(cached) =>
         // Valid state
         Some(Right(cached))
+    }
+
+  /** Fetch workflow progress for a single worktree.
+    *
+    * Reads phase task files from the worktree and computes progress.
+    * Uses cache with mtime validation.
+    *
+    * Returns:
+    * - None: No phase files found (normal case, not an error)
+    * - Some(cached): Valid progress data
+    *
+    * @param wt Worktree registration
+    * @param cache Current progress cache
+    * @return Option[CachedProgress]
+    */
+  private def fetchProgressForWorktree(
+    wt: WorktreeRegistration,
+    cache: Map[String, CachedProgress]
+  ): Option[CachedProgress] =
+    // File I/O wrapper: read file lines
+    val readFile = (path: String) => Try {
+      val source = scala.io.Source.fromFile(path)
+      try source.getLines().toSeq
+      finally source.close()
+    }.toEither.left.map(_.getMessage)
+
+    // File I/O wrapper: get file modification time
+    val getMtime = (path: String) => Try {
+      java.nio.file.Files.getLastModifiedTime(
+        java.nio.file.Paths.get(path)
+      ).toMillis
+    }.toEither.left.map(_.getMessage)
+
+    // Call WorkflowProgressService with injected I/O functions
+    WorkflowProgressService.fetchProgressCached(
+      wt.issueId,
+      wt.path,
+      cache,
+      readFile,
+      getMtime
+    ) match {
+      case Left(err) if err.contains("No phase files found") =>
+        // Normal case - no phase files
+        None
+      case Left(err) =>
+        // Other error - log warning and return None
+        System.err.println(s"[WARN] Failed to load progress for ${wt.issueId}: $err")
+        None
+      case Right(cached) =>
+        // Valid progress
+        Some(cached)
     }
