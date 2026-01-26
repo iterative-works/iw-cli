@@ -17,6 +17,6 @@
     {"label": "Analysis", "path": "project-management/issues/IW-126/analysis.md"},
     {"label": "Implementation Log", "path": "project-management/issues/IW-126/implementation-log.md"},
     {"label": "Phase 1 Context", "path": "project-management/issues/IW-126/phase-01-context.md"},
-    {"label": "Architecture", "path": ".iw/core/ARCHITECTURE.md"}
+    {"label": "Core Guidelines", "path": ".iw/core/CLAUDE.md"}
   ]
 }

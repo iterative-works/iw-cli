@@ -10,7 +10,7 @@ This log tracks the evolution of implementation across phases.
 
 **What was built:**
 - Directory structure: `.iw/core/model/`, `.iw/core/adapters/`, `.iw/core/output/`, `.iw/core/dashboard/`
-- Architecture documentation: `.iw/core/ARCHITECTURE.md` - FCIS pattern overview
+- Core guidelines: `.iw/core/CLAUDE.md` - FCIS pattern (auto-loads in Claude context)
 - Package reorganization: 196 files reorganized by architectural responsibility
 
 **Decisions made:**

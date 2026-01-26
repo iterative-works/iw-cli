@@ -7,7 +7,7 @@
 ## Setup
 
 - [x] [setup] Create directory structure: model/, adapters/, output/, dashboard/
-- [x] [setup] Create ARCHITECTURE.md with structure documentation
+- [x] [setup] Create CLAUDE.md with structure documentation
 
 ## Model Layer (Pure Domain Types)
 
