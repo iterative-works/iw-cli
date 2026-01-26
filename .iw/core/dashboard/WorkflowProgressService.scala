@@ -13,6 +13,30 @@ import iw.core.model.Issue
   */
 object WorkflowProgressService:
 
+  /** Fetch workflow progress with cache support, returning CachedProgress.
+    *
+    * Checks cache validity using file modification times.
+    * Re-parses task files if cache is invalid or missing.
+    * Returns CachedProgress so caller can update server cache.
+    *
+    * File I/O is injected for testability (FCIS pattern).
+    *
+    * @param issueId Issue identifier (e.g., "IWLE-123")
+    * @param worktreePath Path to worktree root
+    * @param cache Existing progress cache
+    * @param readFile Function to read file lines (injected I/O)
+    * @param getMtime Function to get file modification time (injected I/O)
+    * @return Either error message or CachedProgress
+    */
+  def fetchProgressCached(
+    issueId: String,
+    worktreePath: String,
+    cache: Map[String, CachedProgress],
+    readFile: String => Either[String, Seq[String]],
+    getMtime: String => Either[String, Long]
+  ): Either[String, CachedProgress] =
+    fetchProgressInternal(issueId, worktreePath, cache, readFile, getMtime)
+
   /** Fetch workflow progress with cache support.
     *
     * Checks cache validity using file modification times.
@@ -34,6 +58,16 @@ object WorkflowProgressService:
     readFile: String => Either[String, Seq[String]],
     getMtime: String => Either[String, Long]
   ): Either[String, WorkflowProgress] =
+    fetchProgressInternal(issueId, worktreePath, cache, readFile, getMtime).map(_.progress)
+
+  /** Internal implementation that returns CachedProgress. */
+  private def fetchProgressInternal(
+    issueId: String,
+    worktreePath: String,
+    cache: Map[String, CachedProgress],
+    readFile: String => Either[String, Seq[String]],
+    getMtime: String => Either[String, Long]
+  ): Either[String, CachedProgress] =
     val taskDir = s"$worktreePath/project-management/issues/$issueId"
     val tasksFilePath = s"$taskDir/tasks.md"
 
@@ -74,8 +108,8 @@ object WorkflowProgressService:
         // Check cache validity
         cache.get(issueId) match {
           case Some(cached) if CachedProgress.isValid(cached, allMtimes) =>
-            // Cache is valid, return cached progress
-            Right(cached.progress)
+            // Cache is valid, return cached CachedProgress
+            Right(cached)
 
           case _ =>
             // Cache invalid or missing, parse files
@@ -85,7 +119,9 @@ object WorkflowProgressService:
               .getOrElse(List.empty)
 
             parsePhaseFiles(existingFiles, readFile).map { phaseInfos =>
-              computeProgress(phaseInfos, phaseIndex)
+              val progress = computeProgress(phaseInfos, phaseIndex)
+              // Wrap in CachedProgress with current mtimes
+              CachedProgress(progress, allMtimes)
             }
         }
 

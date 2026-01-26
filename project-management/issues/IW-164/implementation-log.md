@@ -41,3 +41,42 @@ M  .iw/core/test/YouTrackClientCreateIssueTest.scala
 ```
 
 ---
+
+## Phase 2: Progress bars persist across card refresh (2026-01-26)
+
+**What was built:**
+- Service: `.iw/core/dashboard/WorkflowProgressService.scala` - New `fetchProgressCached` method returning `CachedProgress`
+- Service: `.iw/core/dashboard/WorktreeCardService.scala` - New `fetchProgressForWorktree` method, modified `renderCard`
+- Tests: `.iw/core/test/WorktreeCardServiceTest.scala` - 3 new tests for progress persistence
+
+**Decisions made:**
+- Follow the exact review state pattern (documented in Phase 1)
+- Preserve backward compatibility: keep original `fetchProgress` method, add new `fetchProgressCached`
+- Extract internal implementation to `fetchProgressInternal` for code reuse
+
+**Patterns applied:**
+- FCIS (Functional Core, Imperative Shell): I/O functions (readFile, getMtime) injected into pure service
+- Mtime-based caching: Return cached data when file mtimes unchanged
+- Cache update pattern: Return `CachedProgress` in `CardRenderResult.fetchedProgress` for server to update cache
+
+**Testing:**
+- Unit tests: 3 tests added (progress persistence)
+- All 166+ existing tests continue to pass
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260126.md
+- Major findings: None (0 critical, 0 warnings, 0 suggestions)
+
+**For next phases:**
+- Same pattern can be applied to PR caching (Phase 3)
+- PR has TTL-based caching rather than mtime, but same return pattern applies
+
+**Files changed:**
+```
+M  .iw/core/dashboard/WorkflowProgressService.scala
+M  .iw/core/dashboard/WorktreeCardService.scala
+M  .iw/core/test/WorktreeCardServiceTest.scala
+```
+
+---
