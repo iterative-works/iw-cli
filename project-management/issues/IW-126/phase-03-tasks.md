@@ -6,24 +6,24 @@
 
 ## Setup
 
-- [ ] [prep] Read current skill file and understand structure
-- [ ] [prep] Verify llms.txt and docs/ paths exist
+- [x] [prep] Read current skill file and understand structure
+- [x] [prep] Verify llms.txt and docs/ paths exist
 
 ## Implementation
 
-- [ ] [impl] Update "Finding Core Module Documentation" section to reference llms.txt
-- [ ] [impl] Add note about llms.txt format and how to use it
-- [ ] [impl] Update "Available Core Modules" section to mention detailed docs location
+- [x] [impl] Update "Finding Core Module Documentation" section to reference llms.txt
+- [x] [impl] Add note about llms.txt format and how to use it
+- [x] [impl] Update "Available Core Modules" section to mention detailed docs location
 
 ## Verification
 
-- [ ] [verify] Test path resolution: `$IW_CORE_DIR/../llms.txt` exists
-- [ ] [verify] Verify skill YAML frontmatter is still valid
-- [ ] [verify] Verify markdown structure is correct
+- [x] [verify] Test path resolution: `$IW_CORE_DIR/../llms.txt` exists
+- [x] [verify] Verify skill YAML frontmatter is still valid
+- [x] [verify] Verify markdown structure is correct
 
 ## Acceptance Criteria Checklist
 
-- [ ] Skill references llms.txt instead of source files
-- [ ] Path uses relative reference from $IW_CORE_DIR
-- [ ] Skill still provides quick module overview
-- [ ] Agents can follow the path to find documentation
+- [x] Skill references llms.txt instead of source files
+- [x] Path uses relative reference from $IW_CORE_DIR
+- [x] Skill still provides quick module overview
+- [x] Agents can follow the path to find documentation

@@ -1,23 +1,18 @@
 {
   "version": 2,
   "issue_id": "IW-126",
-  "status": "awaiting_review",
-  "phase": 2,
-  "step": "review",
-  "branch": "IW-126-phase-02",
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/165",
-  "git_sha": "0d1ed7e2022e3ceba5c954fe2980bdc2da8f78cb",
-  "last_updated": "2026-01-26T14:10:00Z",
+  "status": "implementing",
+  "phase": 3,
+  "step": "implementation",
+  "branch": "IW-126-phase-03",
+  "pr_url": null,
+  "git_sha": "5ed930e6d4b58ffb3b6d539865d1ce5724c68247",
+  "last_updated": "2026-01-26T15:35:00Z",
   "batch_mode": false,
   "phase_checkpoints": {
     "1": { "context_sha": "555c4e5a497067f5e488b724192e46b0edd40d01" },
-    "2": { "context_sha": "d0c796aac21faf45a13e071d4bb1413a09cc9bfe" }
+    "2": { "context_sha": "d0c796aac21faf45a13e071d4bb1413a09cc9bfe" },
+    "3": { "context_sha": "f0418cb643e1bf9730c3c5759bc81f46581abce4" }
   },
-  "message": "Phase 2 complete - awaiting PR review",
-  "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-126/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-126/implementation-log.md"},
-    {"label": "Phase 2 Context", "path": "project-management/issues/IW-126/phase-02-context.md"},
-    {"label": "llms.txt", "path": ".iw/llms.txt"}
-  ]
+  "message": "Phase 3 implementation in progress"
 }
