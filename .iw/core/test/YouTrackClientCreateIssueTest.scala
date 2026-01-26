@@ -4,6 +4,7 @@
 package iw.tests
 
 import iw.core.*
+import iw.core.adapters.YouTrackClient
 import munit.FunSuite
 
 class YouTrackClientCreateIssueTest extends FunSuite:
