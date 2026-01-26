@@ -12,7 +12,9 @@
 // EXAMPLE: iw init --tracker=gitlab --team-prefix=PROJ --base-url=https://gitlab.company.com
 // EXAMPLE: iw init --tracker=youtrack --team=MEDH --base-url=https://youtrack.example.com
 
-import iw.core.*
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
 
 def parseArg(args: Seq[String], prefix: String): Option[String] =
   args.find(_.startsWith(prefix)).map(_.drop(prefix.length))

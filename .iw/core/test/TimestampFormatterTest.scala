@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.presentation.views.TimestampFormatter
+import iw.core.output.TimestampFormatter
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 

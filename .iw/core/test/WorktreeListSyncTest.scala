@@ -2,9 +2,10 @@
 // PURPOSE: Verifies list synchronization logic for detecting additions, deletions, and reorders
 package iw.tests
 
-import iw.core.application.WorktreeListSync
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue}
+import iw.core.dashboard.WorktreeListSync
+import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue}
 import java.time.Instant
+import iw.core.model.Issue
 
 class WorktreeListSyncTest extends munit.FunSuite:
 

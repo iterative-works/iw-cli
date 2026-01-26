@@ -2,7 +2,8 @@
 package iw.tests
 
 // PURPOSE: Verifies ConfigFileRepository can write and read HOCON config files
-import iw.core.*
+import iw.core.adapters.ConfigFileRepository
+import iw.core.model.{IssueTrackerType, ProjectConfiguration}
 
 class ConfigRepositoryTest extends munit.FunSuite, Fixtures:
 

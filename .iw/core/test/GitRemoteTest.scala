@@ -2,7 +2,7 @@
 package iw.tests
 
 // PURPOSE: Verifies host extraction from various git URL formats and error handling
-import iw.core.*
+import iw.core.model.GitRemote
 
 class GitRemoteTest extends munit.FunSuite:
 

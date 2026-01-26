@@ -2,7 +2,7 @@
 package iw.tests
 
 // PURPOSE: Verifies correct formatting of info, error, success, section, and keyValue output
-import iw.core.Output
+import iw.core.output.Output
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 

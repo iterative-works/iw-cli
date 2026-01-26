@@ -3,9 +3,10 @@
 
 package iw.tests
 
-import iw.core.application.{WorktreeCardService, CardRenderResult, RefreshThrottle}
-import iw.core.domain.{WorktreeRegistration, IssueData, CachedIssue}
-import iw.core.{Issue, IssueId}
+import iw.core.dashboard.{WorktreeCardService, RefreshThrottle}
+import iw.core.dashboard.CardRenderResult
+import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue}
+import iw.core.model.{Issue, IssueId}
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 

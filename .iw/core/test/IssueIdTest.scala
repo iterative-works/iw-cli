@@ -2,7 +2,7 @@
 // PURPOSE: Tests valid/invalid formats and branch name conversion
 package iw.tests
 
-import iw.core.*
+import iw.core.model.IssueId
 import munit.FunSuite
 
 class IssueIdTest extends FunSuite:

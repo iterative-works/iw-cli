@@ -2,8 +2,9 @@
 // PURPOSE: Provides reusable FunFixtures for temp directories, git repos, and sample data
 package iw.tests
 
-import iw.core.*
-import iw.core.domain.*
+import iw.core.adapters.{GitAdapter, Log, ProcessAdapter, TmuxAdapter}
+import iw.core.model.*
+import iw.core.dashboard.domain.*
 import munit.FunSuite
 import scala.sys.process.*
 import java.time.Instant

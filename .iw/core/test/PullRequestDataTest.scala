@@ -4,6 +4,8 @@
 package iw.core.domain
 
 import munit.FunSuite
+import iw.core.model.PullRequestData
+import iw.core.model.PRState
 
 class PullRequestDataTest extends FunSuite:
 

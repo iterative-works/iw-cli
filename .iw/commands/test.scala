@@ -7,7 +7,9 @@
 // EXAMPLE: iw test unit
 // EXAMPLE: iw test e2e
 
-import iw.core.*
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
 
 @main def test(args: String*): Unit =
   val testType = args.headOption.getOrElse("all")

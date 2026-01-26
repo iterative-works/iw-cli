@@ -2,8 +2,10 @@
 // PURPOSE: Kills tmux session and removes worktree with safety checks
 // USAGE: iw rm <issue-id> [--force]
 
-import iw.core.*
-import iw.core.infrastructure.ServerClient
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
+import iw.core.dashboard.ServerClient
 
 @main def rm(args: String*): Unit =
   // Parse arguments

@@ -9,7 +9,7 @@
 Reorganize `.iw/core/` by architectural responsibility rather than visibility. This creates a structure where:
 - Directory location indicates what kind of code it is (pure types, I/O adapters, presentation)
 - Public API for scripts = everything except `dashboard/`
-- The structure is self-documenting via `ARCHITECTURE.md`
+- The structure is self-documenting via `CLAUDE.md`
 
 ## Architectural Approach
 
@@ -38,7 +38,7 @@ Based on FCIS (Functional Core Imperative Shell) principles, adapted for iw-cli'
 - Create new directory structure: `model/`, `adapters/`, `output/`, `dashboard/`
 - Move modules to appropriate locations based on responsibility
 - Update all imports in `.iw/commands/` and `.iw/core/` files
-- Create `ARCHITECTURE.md` documenting placement criteria
+- Create `CLAUDE.md` documenting placement criteria
 - Update `project.scala` for package organization
 - Ensure all tests pass
 
@@ -163,7 +163,7 @@ None (this is Phase 1)
 │   ├── cache/              # Cache-related
 │   └── ... (all internal stuff)
 │
-├── ARCHITECTURE.md         # Documents this structure
+├── CLAUDE.md         # Documents this structure
 ├── project.scala
 └── test/
 ```
@@ -186,9 +186,9 @@ import iw.core.output.*
 import iw.core.dashboard.*
 ```
 
-### 4. ARCHITECTURE.md Content
+### 4. CLAUDE.md Content
 
-Create `.iw/core/ARCHITECTURE.md` with:
+Create `.iw/core/CLAUDE.md` with:
 - Directory structure explanation
 - Placement decision criteria (flowchart)
 - Public API scope definition
@@ -205,7 +205,7 @@ Create `.iw/core/ARCHITECTURE.md` with:
 - `.iw/core/dashboard/`
 
 ### Create Files
-- `.iw/core/ARCHITECTURE.md`
+- `.iw/core/CLAUDE.md`
 
 ### Move Files
 See classification in Section 1 above.
@@ -245,7 +245,7 @@ After all moves complete:
 ## Acceptance Criteria
 
 1. **Structure**: Four directories exist with modules placed by responsibility
-2. **ARCHITECTURE.md**: Documents structure and placement criteria
+2. **CLAUDE.md**: Documents structure and placement criteria
 3. **Compilation**: All code compiles without errors
 4. **Tests**: `./iw test` passes completely
 5. **Commands**: All 18 commands work correctly

@@ -2,7 +2,7 @@
 // PURPOSE: Tests directory name calculation, path resolution, and session naming
 package iw.tests
 
-import iw.core.*
+import iw.core.model.{IssueId, WorktreePath}
 import munit.FunSuite
 
 class WorktreePathTest extends FunSuite:

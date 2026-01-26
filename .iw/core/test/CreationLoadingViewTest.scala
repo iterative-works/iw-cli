@@ -4,6 +4,7 @@
 package iw.core.presentation.views
 
 import munit.FunSuite
+import iw.core.dashboard.presentation.views.CreationLoadingView
 
 class CreationLoadingViewTest extends FunSuite:
 

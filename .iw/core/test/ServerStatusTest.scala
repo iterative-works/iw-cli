@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.ServerStatus
+import iw.core.model.ServerStatus
 import java.time.Instant
 
 class ServerStatusTest extends munit.FunSuite:

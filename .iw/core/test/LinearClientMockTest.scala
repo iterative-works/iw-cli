@@ -3,10 +3,13 @@
 
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.LinearClient
+import iw.core.model.{ApiToken, Issue, IssueId}
 import munit.FunSuite
 import sttp.client4.testing.SyncBackendStub
 import sttp.model.StatusCode
+import iw.core.model.Issue
+import iw.core.adapters.CreatedIssue
 
 class LinearClientMockTest extends FunSuite:
 

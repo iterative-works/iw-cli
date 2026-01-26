@@ -3,8 +3,9 @@
 
 package iw.core.test
 
-import iw.core.ProcessManager
+import iw.core.dashboard.ProcessManager
 import java.nio.file.{Files, Paths}
+import iw.core.dashboard.Check
 
 class ProcessManagerTest extends munit.FunSuite:
 

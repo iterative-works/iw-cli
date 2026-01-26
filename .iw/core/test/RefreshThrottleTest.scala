@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.application.RefreshThrottle
+import iw.core.dashboard.RefreshThrottle
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 

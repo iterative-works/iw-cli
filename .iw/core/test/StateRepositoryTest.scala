@@ -3,8 +3,8 @@
 
 package iw.tests
 
-import iw.core.domain.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR}
-import iw.core.infrastructure.StateRepository
+import iw.core.model.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR}
+import iw.core.dashboard.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path, Paths}
 
@@ -537,7 +537,7 @@ class StateRepositoryTest extends munit.FunSuite:
       val statePath = tempDir.resolve("state.json")
       val repo = StateRepository(statePath.toString)
 
-      import iw.core.domain.{ReviewState, ReviewArtifact}
+      import iw.core.model.{ReviewState, ReviewArtifact}
       val reviewState = ReviewState(
         status = Some("awaiting_review"),
         phase = Some(8),
@@ -567,7 +567,7 @@ class StateRepositoryTest extends munit.FunSuite:
       val statePath = tempDir.resolve("state.json")
       val repo = StateRepository(statePath.toString)
 
-      import iw.core.domain.{ReviewState, ReviewArtifact, CachedReviewState}
+      import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
       val reviewState = ReviewState(
         status = Some("awaiting_review"),
         phase = Some(8),
@@ -594,7 +594,7 @@ class StateRepositoryTest extends munit.FunSuite:
       val statePath = tempDir.resolve("state.json")
       val repo = StateRepository(statePath.toString)
 
-      import iw.core.domain.{ReviewState, ReviewArtifact, CachedReviewState}
+      import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
       val reviewState = ReviewState(
         status = Some("in_review"),
         phase = Some(3),

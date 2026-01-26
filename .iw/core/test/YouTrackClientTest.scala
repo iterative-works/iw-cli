@@ -2,7 +2,7 @@
 // PURPOSE: Tests URL building and response parsing for recent issues endpoint
 package iw.tests
 
-import iw.core.*
+import iw.core.adapters.YouTrackClient
 import munit.FunSuite
 
 class YouTrackClientTest extends FunSuite:

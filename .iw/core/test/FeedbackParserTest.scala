@@ -3,7 +3,8 @@
 
 package iw.tests
 
-import iw.core.*
+import iw.core.dashboard.FeedbackParser
+import iw.core.model.Constants
 
 class FeedbackParserTest extends munit.FunSuite:
 

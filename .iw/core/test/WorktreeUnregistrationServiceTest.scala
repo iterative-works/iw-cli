@@ -4,8 +4,10 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.domain.{ServerState, WorktreeRegistration, CachedIssue, IssueData, CachedProgress, WorkflowProgress, CachedPR, PullRequestData, PRState}
+import iw.core.model.{ServerState, WorktreeRegistration, CachedIssue, IssueData, CachedProgress, WorkflowProgress, CachedPR, PullRequestData, PRState}
 import java.time.Instant
+import iw.core.dashboard.WorktreeUnregistrationService
+import iw.core.model.Issue
 
 class WorktreeUnregistrationServiceTest extends FunSuite:
 

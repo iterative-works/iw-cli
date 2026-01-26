@@ -5,6 +5,7 @@ package iw.core.infrastructure
 
 import munit.FunSuite
 import java.time.Duration
+import iw.core.dashboard.infrastructure.CreationLockRegistry
 
 class CreationLockRegistryTest extends FunSuite:
 

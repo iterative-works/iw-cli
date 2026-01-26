@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.domain.MainProject
+import iw.core.dashboard.domain.MainProject
 import munit.FunSuite
 
 class MainProjectTest extends FunSuite:
