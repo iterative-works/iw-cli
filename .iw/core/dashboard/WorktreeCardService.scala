@@ -108,7 +108,12 @@ object WorktreeCardService:
         }
 
         val gitStatus = None // TODO: Fetch git status if needed
-        val prData = prCache.get(issueId).map(_.pr)
+
+        // Get PR data (return cached CachedPR for server cache update)
+        val (prData, prCacheUpdate) = prCache.get(issueId) match {
+          case Some(cached) => (Some(cached.pr), Some(cached))
+          case None => (None, None)
+        }
 
         // Use fresh review state if available, otherwise use cached
         val (reviewStateResult, reviewStateCacheUpdate) = freshReviewState match {
@@ -133,7 +138,7 @@ object WorktreeCardService:
               worktree, gitStatus, now, HtmxCardConfig.polling
             ).render
 
-        CardRenderResult(html, fetchedCachedIssue, progressCacheUpdate, None, reviewStateCacheUpdate)
+        CardRenderResult(html, fetchedCachedIssue, progressCacheUpdate, prCacheUpdate, reviewStateCacheUpdate)
 
   /** Fetch review state for a single worktree.
     *

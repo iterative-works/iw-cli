@@ -491,3 +491,87 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       Files.deleteIfExists(issueDir.getParent)
       Files.deleteIfExists(issueDir.getParent.getParent)
       Files.deleteIfExists(tempDir)
+
+  // ============================================================================
+  // PR Persistence Tests (IW-164 Phase 3)
+  // ============================================================================
+  // These tests verify that PR data from the cache is returned in
+  // CardRenderResult.fetchedPR so the server can update its cache after HTMX
+  // card refresh. Unlike progress (mtime-based), PR uses TTL-based caching.
+  // ============================================================================
+
+  test("renderCard returns fetchedPR when PR cache has data"):
+    import iw.core.model.{PullRequestData, PRState, CachedPR}
+
+    val now = Instant.now()
+    val issueId = "IW-PR"
+    val worktree = WorktreeRegistration(
+      issueId = issueId,
+      path = "/tmp/worktree-pr",
+      trackerType = "Linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val throttle = RefreshThrottle()
+
+    // Pre-populate PR cache
+    val prData = PullRequestData(
+      url = "https://github.com/org/repo/pull/123",
+      state = PRState.Open,
+      number = 123,
+      title = "Test PR"
+    )
+    val cachedPR = CachedPR(prData, now)
+    val prCache = Map(issueId -> cachedPR)
+
+    val result = WorktreeCardService.renderCard(
+      issueId,
+      Map(issueId -> worktree),
+      Map.empty,
+      Map.empty,
+      prCache, // Pre-populated PR cache
+      Map.empty,
+      throttle,
+      now,
+      "test-server",
+      (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+      (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
+    )
+
+    // Verify fetchedPR is populated when cache has data
+    assert(result.fetchedPR.isDefined, "fetchedPR should be Some when PR cache has data")
+    val returned = result.fetchedPR.get
+    assertEquals(returned.pr.number, 123)
+    assertEquals(returned.pr.title, "Test PR")
+    assertEquals(returned.pr.state, PRState.Open)
+
+  test("renderCard returns None for fetchedPR when no PR cached"):
+    val now = Instant.now()
+    val issueId = "IW-NOPR"
+    val worktree = WorktreeRegistration(
+      issueId = issueId,
+      path = "/tmp/worktree-no-pr",
+      trackerType = "Linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val throttle = RefreshThrottle()
+
+    val result = WorktreeCardService.renderCard(
+      issueId,
+      Map(issueId -> worktree),
+      Map.empty,
+      Map.empty,
+      Map.empty, // Empty PR cache
+      Map.empty,
+      throttle,
+      now,
+      "test-server",
+      (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+      (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
+    )
+
+    // Verify fetchedPR is None when no cache data
+    assert(result.fetchedPR.isEmpty, "fetchedPR should be None when PR cache is empty")

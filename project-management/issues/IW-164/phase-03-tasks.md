@@ -11,22 +11,22 @@ Fix PR cache so links remain visible after HTMX card refresh. Unlike progress, P
 
 ### Implementation
 
-- [ ] [impl] Modify WorktreeCardService.renderCard to return cached PR in fetchedPR
-- [ ] [impl] Update CardRenderResult construction to include PR cache update
+- [x] [impl] Modify WorktreeCardService.renderCard to return cached PR in fetchedPR
+- [x] [impl] Update CardRenderResult construction to include PR cache update
 
 ### Tests
 
-- [ ] [test] WorktreeCardService.renderCard returns fetchedPR when PR cache has data
-- [ ] [test] WorktreeCardService.renderCard returns None for fetchedPR when no PR cached
+- [x] [test] WorktreeCardService.renderCard returns fetchedPR when PR cache has data
+- [x] [test] WorktreeCardService.renderCard returns None for fetchedPR when no PR cached
 
 ### Verification
 
-- [ ] [impl] Run all tests to ensure no regressions
+- [x] [impl] Run all tests to ensure no regressions
 
 ## Acceptance Criteria
 
-- [ ] PR links visible after HTMX card refresh
-- [ ] CardRenderResult.fetchedPR populated when PR is cached
-- [ ] All existing tests pass
+- [x] PR links visible after HTMX card refresh
+- [x] CardRenderResult.fetchedPR populated when PR is cached
+- [x] All existing tests pass
 
-**Phase Status:** Not Started
+**Phase Status:** Complete
