@@ -14,17 +14,19 @@ Create regression tests to document and verify the working review state pattern.
 
 ### Tests
 
-- [ ] [test] WorktreeCardService.renderCard returns fetchedReviewState when review-state.json exists
-- [ ] [test] WorktreeCardService.renderCard returns None for fetchedReviewState when no review-state.json
-- [ ] [test] CardRenderResult includes review state in rendered HTML when present
+- [x] [test] WorktreeCardService.renderCard returns fetchedReviewState when review-state.json exists
+- [x] [test] WorktreeCardService.renderCard returns None for fetchedReviewState when no review-state.json
+- [x] [test] CardRenderResult includes review state in rendered HTML when present
 
 ### Integration
 
-- [ ] [impl] Run all existing tests to ensure no regressions
-- [ ] [impl] Document the working pattern in test comments
+- [x] [impl] Run all existing tests to ensure no regressions
+- [x] [impl] Document the working pattern in test comments
 
 ## Acceptance Criteria
 
-- [ ] New tests pass and document the working pattern
-- [ ] All existing tests continue to pass
-- [ ] No changes to production code (these are regression tests)
+- [x] New tests pass and document the working pattern
+- [x] All existing tests continue to pass
+- [x] No changes to production code (these are regression tests)
+
+**Phase Status:** Complete
