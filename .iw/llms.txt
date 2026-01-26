@@ -1,0 +1,59 @@
+# iw-cli Core Modules
+
+> Functional Scala modules for CLI automation and issue tracking. Organized as FCIS (Functional Core, Imperative Shell) with pure domain types, I/O adapters, and output formatting.
+
+## Quick Start
+
+Import the modules you need in your `.iw/commands/*.scala` scripts:
+
+```scala
+import iw.core.model.*      // Pure domain types
+import iw.core.adapters.*   // I/O operations
+import iw.core.output.*     // CLI formatting
+```
+
+## Model (Pure Types)
+
+Pure domain types with no I/O. Safe to use anywhere.
+
+- [IssueId](docs/IssueId.md): Issue ID parsing and validation (TEAM-123 format)
+- [Issue](docs/Issue.md): Issue entity with title, status, assignee, description
+- [Config](docs/Config.md): Configuration types (ProjectConfiguration, IssueTrackerType, GitRemote)
+- [Constants](docs/Constants.md): Environment variables, config keys, paths
+- [WorktreeTypes](docs/WorktreeTypes.md): WorktreePath, WorktreeRegistration, WorktreePriority
+- [ApiToken](docs/ApiToken.md): Secure API token wrapper with masked toString
+- [GitStatus](docs/GitStatus.md): Git repository status (branch, clean/dirty)
+- [WorkflowTypes](docs/WorkflowTypes.md): ReviewState, PhaseInfo, WorkflowProgress, PullRequestData
+- [ServerTypes](docs/ServerTypes.md): ServerConfig, ServerStatus, ServerState, CacheConfig, DeletionSafety
+
+## Adapters (I/O Operations)
+
+Adapters for shell commands, file I/O, and external APIs.
+
+- [Git](docs/Git.md): Git operations (getRemoteUrl, getCurrentBranch, hasUncommittedChanges)
+- [GitWorktree](docs/GitWorktree.md): Worktree management (create, remove, check existence)
+- [Process](docs/Process.md): Shell execution (run, runStreaming, commandExists)
+- [CommandRunner](docs/CommandRunner.md): Command execution with stdout/stderr capture
+- [ConfigRepository](docs/ConfigRepository.md): Configuration file read/write
+- [Log](docs/Log.md): Logging with debug/info/warn/error levels
+- [Prompt](docs/Prompt.md): Interactive console input (ask, confirm)
+- [Tmux](docs/Tmux.md): Tmux session management
+- [GitHubClient](docs/GitHubClient.md): GitHub API via gh CLI
+- [LinearClient](docs/LinearClient.md): Linear API via GraphQL
+- [GitLabClient](docs/GitLabClient.md): GitLab API via glab CLI
+- [YouTrackClient](docs/YouTrackClient.md): YouTrack REST API
+
+## Output (CLI Formatting)
+
+Console output and formatting utilities.
+
+- [Output](docs/Output.md): Console output helpers (info, error, success, section, keyValue)
+- [IssueFormatter](docs/IssueFormatter.md): Format Issue for CLI display
+- [MarkdownRenderer](docs/MarkdownRenderer.md): Convert Markdown to HTML
+- [TimestampFormatter](docs/TimestampFormatter.md): Format timestamps as relative time
+
+## Architecture Notes
+
+Dependencies flow inward: `adapters/` imports `model/`, `output/` imports `model/`.
+
+Scripts in `.iw/commands/` should NOT import from `dashboard/` (internal API).
