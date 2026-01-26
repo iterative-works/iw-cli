@@ -13,6 +13,7 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
+import iw.core.dashboard.FeedbackParser
 
 @main def feedback(args: String*): Unit =
   // Handle --help flag
