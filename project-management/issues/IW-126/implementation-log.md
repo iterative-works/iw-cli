@@ -88,3 +88,40 @@ This log tracks the evolution of implementation across phases.
 - `.iw/docs/*.md` (25 module documentation files)
 
 ---
+
+## Phase 3: Integrate llms.txt with iw-command-creation skill (2026-01-26)
+
+**What was built:**
+- Updated skill: `.claude/skills/iw-command-creation/SKILL.md` now references llms.txt
+- New "Finding Core Module Documentation" section pointing to llms.txt
+- Enhanced "Available Core Modules" table with docs column
+- Updated Tips section to prioritize llms.txt reading
+
+**Decisions made:**
+- Path resolution uses `$IW_CORE_DIR/../llms.txt` pattern for installation-independent access
+- Kept quick reference table for convenience while pointing to detailed docs
+- Prioritized llms.txt reading in Tips section as first step for agents
+
+**Patterns applied:**
+- Progressive disclosure: Quick reference table → llms.txt index → detailed module docs
+- Installation-agnostic paths: Using environment variable + relative path
+
+**Testing:**
+- Path resolution: Verified `$IW_CORE_DIR/../llms.txt` and `../docs/` work
+- YAML validation: Skill frontmatter remains valid
+- Markdown structure: All sections render correctly
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260126-142011.md
+- Result: Passed (documentation-only phase)
+
+**For next phases:**
+- The documentation loop is complete: Agent → Skill → llms.txt → docs/*.md → API usage
+- Future skill updates should maintain llms.txt references
+- New public modules need corresponding docs and llms.txt entry
+
+**Files changed:**
+- `.claude/skills/iw-command-creation/SKILL.md` (skill update)
+
+---
