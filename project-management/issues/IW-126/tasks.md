@@ -2,14 +2,14 @@
 
 **Issue:** IW-126
 **Created:** 2026-01-25
-**Status:** 1/3 phases complete (33%)
+**Status:** 2/3 phases complete (67%)
 
 ## Phase Index
 
 - [x] Phase 1: Establish public API boundary (Est: 3-4h) → `phase-01-context.md`
       Story 1: Refactor core modules to separate public API from internal implementation
 
-- [ ] Phase 2: Create llms.txt documentation (Est: 6-9h) → `phase-02-context.md`
+- [x] Phase 2: Create llms.txt documentation (Est: 6-9h) → `phase-02-context.md`
       Stories 2-3: Create index file and per-module API documentation with examples
 
 - [ ] Phase 3: Integrate with skill (Est: 1-2h) → `phase-03-context.md`
@@ -17,7 +17,7 @@
 
 ## Progress Tracker
 
-**Completed:** 1/3 phases
+**Completed:** 2/3 phases
 **Estimated Total:** 10-15 hours
 **Time Spent:** 0 hours
 
