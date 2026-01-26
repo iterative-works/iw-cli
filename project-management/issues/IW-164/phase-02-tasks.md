@@ -10,29 +10,29 @@ Fix progress cache so bars remain visible after HTMX card refresh by following t
 ## Tasks
 
 ### Analysis
-- [ ] [impl] Understand current progress fetching flow in WorktreeCardService.renderCard
+- [x] [impl] Understand current progress fetching flow in WorktreeCardService.renderCard
 
 ### Implementation
 
-- [ ] [impl] Add fetchProgressForWorktree method to WorktreeCardService
-- [ ] [impl] Modify WorkflowProgressService.fetchProgress to return CachedProgress
-- [ ] [impl] Call fetchProgressForWorktree in renderCard method
-- [ ] [impl] Return fetched progress in CardRenderResult.fetchedProgress
+- [x] [impl] Add fetchProgressForWorktree method to WorktreeCardService
+- [x] [impl] Modify WorkflowProgressService.fetchProgress to return CachedProgress
+- [x] [impl] Call fetchProgressForWorktree in renderCard method
+- [x] [impl] Return fetched progress in CardRenderResult.fetchedProgress
 
 ### Tests
 
-- [ ] [test] WorktreeCardService.renderCard returns fetchedProgress when task files exist
-- [ ] [test] WorktreeCardService.renderCard returns None for fetchedProgress when no task files
-- [ ] [test] Mtime-based caching works (cache hit when files unchanged)
+- [x] [test] WorktreeCardService.renderCard returns fetchedProgress when task files exist
+- [x] [test] WorktreeCardService.renderCard returns None for fetchedProgress when no task files
+- [x] [test] Mtime-based caching works (cache hit when files unchanged)
 
 ### Verification
 
-- [ ] [impl] Run all tests to ensure no regressions
+- [x] [impl] Run all tests to ensure no regressions
 
 ## Acceptance Criteria
 
-- [ ] Progress bars visible after HTMX card refresh
-- [ ] CardRenderResult.fetchedProgress populated when task files exist
-- [ ] All existing tests pass
+- [x] Progress bars visible after HTMX card refresh
+- [x] CardRenderResult.fetchedProgress populated when task files exist
+- [x] All existing tests pass
 
-**Phase Status:** Not Started
+**Phase Status:** Complete

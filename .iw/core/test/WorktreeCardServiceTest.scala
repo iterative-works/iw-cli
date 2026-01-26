@@ -314,3 +314,180 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       Files.deleteIfExists(issueDir.getParent)
       Files.deleteIfExists(issueDir.getParent.getParent)
       Files.deleteIfExists(tempDir)
+
+  // ============================================================================
+  // Progress Persistence Tests (IW-164 Phase 2)
+  // ============================================================================
+  // These tests verify that progress data is fetched from filesystem on card
+  // refresh and returned in CardRenderResult.fetchedProgress so the server
+  // can update its cache.
+  // ============================================================================
+
+  test("renderCard returns fetchedProgress when phase task files exist"):
+    // Create temporary directory with phase task files
+    val tempDir = Files.createTempDirectory("test-worktree-progress")
+    val issueDir = tempDir.resolve("project-management/issues/IW-PROG")
+    Files.createDirectories(issueDir)
+
+    // Create a phase task file with some completed tasks
+    val phaseFile = issueDir.resolve("phase-01-tasks.md")
+    val phaseContent =
+      """# Phase 1 Tasks
+        |
+        |- [x] Task 1
+        |- [x] Task 2
+        |- [ ] Task 3
+        |""".stripMargin
+    Files.write(phaseFile, phaseContent.getBytes)
+
+    try
+      val now = Instant.now()
+      val issueId = "IW-PROG"
+      val worktree = WorktreeRegistration(
+        issueId = issueId,
+        path = tempDir.toString,
+        trackerType = "Linear",
+        team = "IW",
+        registeredAt = now,
+        lastSeenAt = now
+      )
+      val throttle = RefreshThrottle()
+
+      val result = WorktreeCardService.renderCard(
+        issueId,
+        Map(issueId -> worktree),
+        Map.empty,
+        Map.empty, // Empty progress cache
+        Map.empty,
+        Map.empty,
+        throttle,
+        now,
+        "test-server",
+        (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+        (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
+      )
+
+      // Verify fetchedProgress is populated
+      assert(result.fetchedProgress.isDefined, "fetchedProgress should be Some when phase files exist")
+      val cached = result.fetchedProgress.get
+      assertEquals(cached.progress.totalPhases, 1)
+      assertEquals(cached.progress.overallTotal, 3)
+      assertEquals(cached.progress.overallCompleted, 2)
+    finally
+      // Cleanup
+      Files.deleteIfExists(phaseFile)
+      Files.deleteIfExists(issueDir)
+      Files.deleteIfExists(issueDir.getParent)
+      Files.deleteIfExists(issueDir.getParent.getParent)
+      Files.deleteIfExists(tempDir)
+
+  test("renderCard returns None for fetchedProgress when no phase files"):
+    // Create temporary directory WITHOUT phase files
+    val tempDir = Files.createTempDirectory("test-worktree-no-progress")
+    val issueDir = tempDir.resolve("project-management/issues/IW-NOPROG")
+    Files.createDirectories(issueDir)
+
+    try
+      val now = Instant.now()
+      val issueId = "IW-NOPROG"
+      val worktree = WorktreeRegistration(
+        issueId = issueId,
+        path = tempDir.toString,
+        trackerType = "Linear",
+        team = "IW",
+        registeredAt = now,
+        lastSeenAt = now
+      )
+      val throttle = RefreshThrottle()
+
+      val result = WorktreeCardService.renderCard(
+        issueId,
+        Map(issueId -> worktree),
+        Map.empty,
+        Map.empty, // Empty progress cache
+        Map.empty,
+        Map.empty,
+        throttle,
+        now,
+        "test-server",
+        (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+        (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
+      )
+
+      // Verify fetchedProgress is None when no phase files
+      assert(result.fetchedProgress.isEmpty, "fetchedProgress should be None when no phase files exist")
+    finally
+      // Cleanup
+      Files.deleteIfExists(issueDir)
+      Files.deleteIfExists(issueDir.getParent)
+      Files.deleteIfExists(issueDir.getParent.getParent)
+      Files.deleteIfExists(tempDir)
+
+  test("renderCard uses cached progress when mtime unchanged"):
+    import iw.core.model.{WorkflowProgress, PhaseInfo, CachedProgress}
+
+    // Create temporary directory with phase task file
+    val tempDir = Files.createTempDirectory("test-worktree-cached-progress")
+    val issueDir = tempDir.resolve("project-management/issues/IW-CPROG")
+    Files.createDirectories(issueDir)
+
+    val phaseFile = issueDir.resolve("phase-01-tasks.md")
+    val phaseContent =
+      """# Phase 1 Tasks
+        |
+        |- [x] New task
+        |""".stripMargin
+    Files.write(phaseFile, phaseContent.getBytes)
+
+    try
+      val now = Instant.now()
+      val issueId = "IW-CPROG"
+      val worktree = WorktreeRegistration(
+        issueId = issueId,
+        path = tempDir.toString,
+        trackerType = "Linear",
+        team = "IW",
+        registeredAt = now,
+        lastSeenAt = now
+      )
+      val throttle = RefreshThrottle()
+
+      // Pre-populate cache with existing progress (same mtime as file)
+      val fileMtime = Files.getLastModifiedTime(phaseFile).toMillis
+      val cachedProgress = WorkflowProgress(
+        currentPhase = Some(99),
+        totalPhases = 99,
+        phases = List(PhaseInfo(99, "Cached Phase", "/cached", 99, 50)),
+        overallCompleted = 50,
+        overallTotal = 99
+      )
+      val progressCache = Map(
+        issueId -> CachedProgress(cachedProgress, Map(phaseFile.toString -> fileMtime))
+      )
+
+      val result = WorktreeCardService.renderCard(
+        issueId,
+        Map(issueId -> worktree),
+        Map.empty,
+        progressCache, // Pre-populated cache
+        Map.empty,
+        Map.empty,
+        throttle,
+        now,
+        "test-server",
+        (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+        (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
+      )
+
+      // Verify cached state is returned (cache hit)
+      assert(result.fetchedProgress.isDefined, "fetchedProgress should be Some")
+      val returned = result.fetchedProgress.get
+      assertEquals(returned.progress.totalPhases, 99, "Should return cached progress when mtime unchanged")
+      assertEquals(returned.progress.overallTotal, 99)
+    finally
+      // Cleanup
+      Files.deleteIfExists(phaseFile)
+      Files.deleteIfExists(issueDir)
+      Files.deleteIfExists(issueDir.getParent)
+      Files.deleteIfExists(issueDir.getParent.getParent)
+      Files.deleteIfExists(tempDir)
