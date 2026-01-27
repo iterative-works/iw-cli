@@ -173,7 +173,7 @@ object WorkflowProgressService:
 
     WorkflowProgress(
       currentPhase = currentPhase,
-      totalPhases = phases.size,
+      totalPhases = if phaseIndex.nonEmpty then phaseIndex.size else phases.size,
       phases = phases,
       overallCompleted = overallCompleted,
       overallTotal = overallTotal

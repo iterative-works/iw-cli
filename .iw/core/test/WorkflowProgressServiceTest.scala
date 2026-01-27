@@ -5,7 +5,7 @@ package iw.core.application
 
 import munit.FunSuite
 import iw.core.model.{PhaseInfo, WorkflowProgress, CachedProgress}
-import iw.core.dashboard.WorkflowProgressService
+import iw.core.dashboard.{WorkflowProgressService, PhaseIndexEntry}
 
 class WorkflowProgressServiceTest extends FunSuite:
 
@@ -179,3 +179,52 @@ class WorkflowProgressServiceTest extends FunSuite:
     assertEquals(progress.overallTotal, 5)
     assertEquals(progress.overallCompleted, 3)
     assertEquals(progress.currentPhase, Some(2)) // Phase 2 is in progress
+
+  test("computeProgress uses Phase Index size when Phase Index is non-empty (6-entry index, 3 files)"):
+    val phases = List(
+      PhaseInfo(1, "Phase 1", "/p1", 10, 10),
+      PhaseInfo(2, "Phase 2", "/p2", 15, 8),
+      PhaseInfo(3, "Phase 3", "/p3", 20, 0)
+    )
+    val phaseIndex = List(
+      PhaseIndexEntry(1, true, "Phase 1"),
+      PhaseIndexEntry(2, true, "Phase 2"),
+      PhaseIndexEntry(3, false, "Phase 3"),
+      PhaseIndexEntry(4, false, "Phase 4"),
+      PhaseIndexEntry(5, false, "Phase 5"),
+      PhaseIndexEntry(6, false, "Phase 6")
+    )
+
+    val progress = WorkflowProgressService.computeProgress(phases, phaseIndex)
+
+    assertEquals(progress.totalPhases, 6) // Should use phaseIndex.size, not phases.size
+
+  test("computeProgress uses Phase Index size when it matches file count (4-entry index, 4 files)"):
+    val phases = List(
+      PhaseInfo(1, "Phase 1", "/p1", 10, 10),
+      PhaseInfo(2, "Phase 2", "/p2", 15, 15),
+      PhaseInfo(3, "Phase 3", "/p3", 20, 5),
+      PhaseInfo(4, "Phase 4", "/p4", 8, 0)
+    )
+    val phaseIndex = List(
+      PhaseIndexEntry(1, true, "Phase 1"),
+      PhaseIndexEntry(2, true, "Phase 2"),
+      PhaseIndexEntry(3, false, "Phase 3"),
+      PhaseIndexEntry(4, false, "Phase 4")
+    )
+
+    val progress = WorkflowProgressService.computeProgress(phases, phaseIndex)
+
+    assertEquals(progress.totalPhases, 4) // Should use phaseIndex.size
+
+  test("computeProgress falls back to file count when Phase Index is empty (empty index, 3 files)"):
+    val phases = List(
+      PhaseInfo(1, "Phase 1", "/p1", 10, 10),
+      PhaseInfo(2, "Phase 2", "/p2", 15, 8),
+      PhaseInfo(3, "Phase 3", "/p3", 20, 0)
+    )
+    val phaseIndex = List.empty[PhaseIndexEntry]
+
+    val progress = WorkflowProgressService.computeProgress(phases, phaseIndex)
+
+    assertEquals(progress.totalPhases, 3) // Should fall back to phases.size
