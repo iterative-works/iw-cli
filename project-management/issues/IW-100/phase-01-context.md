@@ -87,12 +87,12 @@ All existing `WorkflowProgressServiceTest` tests should continue passing unchang
 
 ## Acceptance Criteria
 
-- [ ] `computeProgress` uses `phaseIndex.size` when `phaseIndex.nonEmpty`
-- [ ] `computeProgress` falls back to `phases.size` when `phaseIndex.isEmpty`
-- [ ] Test: 6-phase index with 3 files returns `totalPhases = 6`
-- [ ] Test: Empty phase index with 3 files returns `totalPhases = 3`
-- [ ] All existing tests pass
-- [ ] No changes to other files beyond the two listed
+- [x] `computeProgress` uses `phaseIndex.size` when `phaseIndex.nonEmpty`
+- [x] `computeProgress` falls back to `phases.size` when `phaseIndex.isEmpty`
+- [x] Test: 6-phase index with 3 files returns `totalPhases = 6`
+- [x] Test: Empty phase index with 3 files returns `totalPhases = 3`
+- [x] All existing tests pass
+- [x] No changes to other files beyond the two listed
 
 ## Implementation Notes
 
