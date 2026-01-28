@@ -16,26 +16,26 @@ This phase ensures that when a new worktree is created, its card appears at the 
 
 ## Setup
 
-- [x] Read the existing `WorktreeListSync.scala` implementation
-- [x] Read the existing `WorktreeListSyncTest.scala` tests
+- [ ] Read the existing `WorktreeListSync.scala` implementation
+- [ ] Read the existing `WorktreeListSyncTest.scala` tests
 
 ---
 
 ## Tests - findPredecessor helper
 
-- [x] **Test: `findPredecessor` returns `None` for empty list**
+- [ ] **Test: `findPredecessor` returns `None` for empty list**
   - Input: newId = "IW-100", existingIds = List.empty
   - Expected: None
 
-- [x] **Test: `findPredecessor` returns `None` when new ID should be first**
+- [ ] **Test: `findPredecessor` returns `None` when new ID should be first**
   - Input: newId = "IW-050", existingIds = List("IW-100", "IW-200")
   - Expected: None (IW-050 < IW-100, no predecessor)
 
-- [x] **Test: `findPredecessor` returns correct predecessor for middle insertion**
+- [ ] **Test: `findPredecessor` returns correct predecessor for middle insertion**
   - Input: newId = "IW-150", existingIds = List("IW-100", "IW-200", "IW-300")
   - Expected: Some("IW-100")
 
-- [x] **Test: `findPredecessor` returns last ID when new ID should be last**
+- [ ] **Test: `findPredecessor` returns last ID when new ID should be last**
   - Input: newId = "IW-400", existingIds = List("IW-100", "IW-200", "IW-300")
   - Expected: Some("IW-300")
 
@@ -43,7 +43,7 @@ This phase ensures that when a new worktree is created, its card appears at the 
 
 ## Implementation - findPredecessor helper
 
-- [x] **Implement `findPredecessor` function in `WorktreeListSync`**
+- [ ] **Implement `findPredecessor` function in `WorktreeListSync`**
   - Pure function: `def findPredecessor(newId: String, existingIds: List[String]): Option[String]`
   - Returns the largest existing ID that is less than newId (alphabetically)
   - Returns None if newId should be first
@@ -52,45 +52,45 @@ This phase ensures that when a new worktree is created, its card appears at the 
 
 ## Tests - generateAdditionOob with predecessorId
 
-- [x] **Test: `generateAdditionOob` with `predecessorId = None` uses `afterbegin`**
+- [ ] **Test: `generateAdditionOob` with `predecessorId = None` uses `afterbegin`**
   - Verify HTML contains `hx-swap-oob="afterbegin:#worktree-list"`
 
-- [x] **Test: `generateAdditionOob` with `predecessorId = Some("IW-100")` uses `afterend`**
+- [ ] **Test: `generateAdditionOob` with `predecessorId = Some("IW-100")` uses `afterend`**
   - Verify HTML contains `hx-swap-oob="afterend:#card-IW-100"`
 
 ---
 
 ## Implementation - generateAdditionOob signature change
 
-- [x] **Update `generateAdditionOob` to accept `predecessorId` parameter**
+- [ ] **Update `generateAdditionOob` to accept `predecessorId` parameter**
   - Add parameter: `predecessorId: Option[String]`
   - Change OOB swap attribute from hardcoded `beforeend:#worktree-list` to:
     - `afterbegin:#worktree-list` when predecessorId is None
     - `afterend:#card-{predecessorId}` when predecessorId is Some
 
-- [x] **Update existing test for `generateAdditionOob`**
+- [ ] **Update existing test for `generateAdditionOob`**
   - The existing test expects `beforeend:#worktree-list`, update it to pass `None` for predecessorId and expect `afterbegin:#worktree-list`
 
 ---
 
 ## Tests - generateChangesResponse with predecessor calculation
 
-- [x] **Test: Addition inserts at beginning when ID is smallest**
+- [ ] **Test: Addition inserts at beginning when ID is smallest**
   - existingIds: ["IW-100", "IW-200"]
   - addition: "IW-050"
   - Verify OOB swap uses `afterbegin:#worktree-list`
 
-- [x] **Test: Addition inserts in middle at correct position**
+- [ ] **Test: Addition inserts in middle at correct position**
   - existingIds: ["IW-100", "IW-200", "IW-300"]
   - addition: "IW-150"
   - Verify OOB swap uses `afterend:#card-IW-100`
 
-- [x] **Test: Addition inserts at end when ID is largest**
+- [ ] **Test: Addition inserts at end when ID is largest**
   - existingIds: ["IW-100", "IW-200"]
   - addition: "IW-300"
   - Verify OOB swap uses `afterend:#card-IW-200`
 
-- [x] **Test: Multiple additions each get correct predecessor**
+- [ ] **Test: Multiple additions each get correct predecessor**
   - existingIds: ["IW-100", "IW-300"]
   - additions: ["IW-050", "IW-200"]
   - Verify IW-050 uses `afterbegin:#worktree-list`
@@ -100,12 +100,12 @@ This phase ensures that when a new worktree is created, its card appears at the 
 
 ## Implementation - generateChangesResponse predecessor calculation
 
-- [x] **Update `generateChangesResponse` to calculate predecessor for each addition**
+- [ ] **Update `generateChangesResponse` to calculate predecessor for each addition**
   - For each addition, determine the predecessor from the current sorted list
   - Pass predecessorId to `generateAdditionOob`
   - Note: Need to pass currentIds (sorted list of existing IDs) to this function or compute it internally
 
-- [x] **Add `currentIds` parameter to `generateChangesResponse`**
+- [ ] **Add `currentIds` parameter to `generateChangesResponse`**
   - Need the sorted list of current IDs to calculate predecessors
   - This is the newIds list from `detectChanges`
 
@@ -113,14 +113,14 @@ This phase ensures that when a new worktree is created, its card appears at the 
 
 ## Integration
 
-- [x] **Run all unit tests to verify no regressions**
+- [ ] **Run all unit tests to verify no regressions**
   - `./iw test unit`
   - Ensure all existing tests still pass
 
-- [x] **Verify existing deletion OOB behavior unchanged**
+- [ ] **Verify existing deletion OOB behavior unchanged**
   - Review `generateDeletionOob` - should not need changes
 
-- [x] **Verify existing reorder OOB behavior unchanged**
+- [ ] **Verify existing reorder OOB behavior unchanged**
   - Review `generateReorderOob` - should not need changes
 
 ---
@@ -141,8 +141,6 @@ This phase ensures that when a new worktree is created, its card appears at the 
   - Start dashboard with worktrees IW-100, IW-200
   - Create worktree for IW-300
   - Verify card appears at bottom
-
-NOTE: Manual verification should be performed by the user after Phase 2 implementation is complete.
 
 ---
 
