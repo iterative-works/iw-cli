@@ -1,17 +1,23 @@
 {
   "version": 2,
   "issue_id": "IW-175",
-  "status": "implementing",
+  "status": "phase_merged",
   "phase": 2,
-  "step": "implementation",
-  "branch": "IW-175-phase-02",
-  "pr_url": null,
-  "git_sha": "494d4ac2f8143743a88683b31ac7fab36060f6a2",
-  "last_updated": "2026-01-28T08:37:00Z",
+  "step": "complete",
+  "branch": "IW-175",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/177",
+  "git_sha": "547de8c49da3342629760c1230d6857a7c60ccaf",
+  "last_updated": "2026-01-28T09:51:00Z",
   "batch_mode": true,
   "phase_checkpoints": {
     "1": { "context_sha": "422a490303842058ff3e23881a289cca321fce85" },
     "2": { "context_sha": "d485a987e378d8193e6a211955e1709725178f00" }
   },
-  "message": "Phase 2 implementation in progress"
+  "message": "Phase 2 auto-merged - continuing to next phase",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-175/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-175/implementation-log.md"},
+    {"label": "Phase 2 Context", "path": "project-management/issues/IW-175/phase-02-context.md"},
+    {"label": "Review Packet", "path": "project-management/issues/IW-175/review-packet-phase-02.md"}
+  ]
 }
