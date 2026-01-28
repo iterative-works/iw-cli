@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/iterative-works/iw-cli/schemas/review-state.schema.json",
+  "title": "Review State",
+  "description": "Defines the contract for review-state.json files used by iw-cli workflow tools and the dashboard. Each issue directory contains a review-state.json that tracks the current workflow state.",
+  "type": "object",
+  "required": ["version", "issue_id", "status", "artifacts", "last_updated"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version number. Incremented only for breaking changes (removed fields, changed types). Adding optional fields does not require a version bump."
+    },
+    "issue_id": {
+      "type": "string",
+      "description": "Issue identifier from the project tracker (e.g., \"IW-136\", \"PROJ-42\")."
+    },
+    "status": {
+      "type": "string",
+      "description": "Current workflow status. Open enum -- any string is accepted. Known values: analysis_ready, context_ready, tasks_ready, implementing, awaiting_review, review_failed, phase_merged, refactoring_complete, all_complete, complete."
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "List of artifacts produced during the workflow. Required but may be an empty array.",
+      "items": {
+        "$ref": "#/definitions/artifact"
+      },
+      "examples": [
+        [
+          {"label": "Analysis", "path": "project-management/issues/IW-136/analysis.md"},
+          {"label": "Implementation Log", "path": "project-management/issues/IW-136/implementation-log.md"}
+        ]
+      ]
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 date-time indicating when this state was last modified (e.g., \"2026-01-28T17:05:00Z\").",
+      "format": "date-time"
+    },
+    "phase": {
+      "description": "Current phase number or label. Accepts an integer for numbered phases (e.g., 1, 2, 3) or a string for named phases (e.g., \"final\", \"1-R1\").",
+      "oneOf": [
+        {"type": "integer"},
+        {"type": "string"}
+      ]
+    },
+    "step": {
+      "type": "string",
+      "description": "Current step within the phase (e.g., \"analysis\", \"tasks\", \"implementation\", \"review\", \"complete\")."
+    },
+    "branch": {
+      "type": "string",
+      "description": "Git branch name associated with this issue or phase."
+    },
+    "pr_url": {
+      "description": "URL of the pull request, or null if no PR has been created yet.",
+      "oneOf": [
+        {"type": "string"},
+        {"type": "null"}
+      ]
+    },
+    "git_sha": {
+      "type": "string",
+      "description": "Git commit SHA (short or full) representing the latest relevant commit."
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable message describing the current state or last action taken."
+    },
+    "batch_mode": {
+      "type": "boolean",
+      "description": "Whether this issue is being processed in batch mode (multiple phases automated sequentially)."
+    },
+    "phase_checkpoints": {
+      "type": "object",
+      "description": "Map of phase number strings to checkpoint objects. Each checkpoint records the context file SHA at the start of that phase, enabling revert-to-phase functionality.",
+      "additionalProperties": {
+        "$ref": "#/definitions/phase_checkpoint"
+      },
+      "examples": [
+        {
+          "1": {"context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b"},
+          "2": {"context_sha": "d485a987e378d8193e6a211955e1709725178f00"}
+        }
+      ]
+    },
+    "available_actions": {
+      "type": "array",
+      "description": "Actions the dashboard or CLI can offer to the user based on current state. Each action maps to a skill that can be invoked.",
+      "items": {
+        "$ref": "#/definitions/action"
+      },
+      "examples": [
+        [
+          {"id": "implement", "label": "Start Implementation", "skill": "iterative-works:ag-implement"},
+          {"id": "verify", "label": "Verify Phase", "skill": "iterative-works:ag-verify"}
+        ]
+      ]
+    }
+  },
+  "definitions": {
+    "artifact": {
+      "type": "object",
+      "description": "A workflow artifact with a human-readable label and a path relative to the project root.",
+      "required": ["label", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable name of the artifact (e.g., \"Analysis\", \"Implementation Log\")."
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to the artifact file, relative to the project root."
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "description": "An action that can be offered to the user in the dashboard or CLI.",
+      "required": ["id", "label", "skill"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Machine-readable identifier for the action (e.g., \"implement\", \"verify\")."
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label displayed to the user (e.g., \"Start Implementation\")."
+        },
+        "skill": {
+          "type": "string",
+          "description": "Skill identifier to invoke when the action is triggered (e.g., \"iterative-works:ag-implement\")."
+        }
+      }
+    },
+    "phase_checkpoint": {
+      "type": "object",
+      "description": "Checkpoint data for a single phase, recording the context file SHA for revert support.",
+      "required": ["context_sha"],
+      "additionalProperties": false,
+      "properties": {
+        "context_sha": {
+          "type": "string",
+          "description": "Git blob SHA of the phase context file at the start of that phase."
+        }
+      }
+    }
+  }
+}

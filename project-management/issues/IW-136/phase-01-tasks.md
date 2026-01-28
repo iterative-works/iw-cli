@@ -5,30 +5,30 @@
 
 ## Setup
 
-- [ ] [setup] Create `schemas/` directory at project root
+- [x] [setup] Create `schemas/` directory at project root
 
 ## Schema Definition
 
-- [ ] [impl] Create `schemas/review-state.schema.json` with JSON Schema Draft-07 structure
-- [ ] [impl] Define required fields: version, issue_id, status, artifacts, last_updated
-- [ ] [impl] Define optional fields: phase (oneOf integer/string), step, branch, pr_url, git_sha, message, batch_mode, phase_checkpoints, available_actions
-- [ ] [impl] Add descriptions for every field
-- [ ] [impl] Add examples for complex fields (artifacts, available_actions, phase_checkpoints)
-- [ ] [impl] Define nested schemas: artifact object, action object, phase checkpoint object
+- [x] [impl] Create `schemas/review-state.schema.json` with JSON Schema Draft-07 structure
+- [x] [impl] Define required fields: version, issue_id, status, artifacts, last_updated
+- [x] [impl] Define optional fields: phase (oneOf integer/string), step, branch, pr_url, git_sha, message, batch_mode, phase_checkpoints, available_actions
+- [x] [impl] Add descriptions for every field
+- [x] [impl] Add examples for complex fields (artifacts, available_actions, phase_checkpoints)
+- [x] [impl] Define nested schemas: artifact object, action object, phase checkpoint object
 
 ## Documentation
 
-- [ ] [docs] Create `schemas/README.md` with versioning policy
+- [x] [docs] Create `schemas/README.md` with versioning policy
 
 ## Test Fixtures
 
-- [ ] [test] Create `.iw/core/test/resources/review-state/valid-minimal.json` - required fields only
-- [ ] [test] Create `.iw/core/test/resources/review-state/valid-full.json` - all fields populated
-- [ ] [test] Create `.iw/core/test/resources/review-state/invalid-missing-required.json` - missing required fields
-- [ ] [test] Create `.iw/core/test/resources/review-state/invalid-wrong-types.json` - wrong field types
+- [x] [test] Create `.iw/core/test/resources/review-state/valid-minimal.json` - required fields only
+- [x] [test] Create `.iw/core/test/resources/review-state/valid-full.json` - all fields populated
+- [x] [test] Create `.iw/core/test/resources/review-state/invalid-missing-required.json` - missing required fields
+- [x] [test] Create `.iw/core/test/resources/review-state/invalid-wrong-types.json` - wrong field types
 
 ## Validation
 
-- [ ] [test] Verify schema file is valid JSON (parseable)
-- [ ] [test] Verify all existing review-state.json files in project-management/issues/ are compatible with schema
-- [ ] [test] Create BATS E2E test verifying schema file exists and is valid JSON
+- [x] [test] Verify schema file is valid JSON (parseable)
+- [x] [test] Verify all existing review-state.json files in project-management/issues/ are compatible with schema
+- [x] [test] Create BATS E2E test verifying schema file exists and is valid JSON
