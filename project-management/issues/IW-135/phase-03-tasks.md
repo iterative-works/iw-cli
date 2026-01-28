@@ -8,23 +8,25 @@
 
 ### Tests First (TDD)
 
-- [ ] [test] Add E2E test: `iw config` with no arguments shows usage
-- [ ] [test] Add E2E test: `iw config get` without field shows "Missing required argument" error
-- [ ] [test] Add E2E test: `iw config --invalid` shows "Unknown option" error
-- [ ] [test] Add E2E test: Usage output includes "iw config get <field>"
-- [ ] [test] Add E2E test: Usage output includes list of available fields
+- [x] [test] [x] [reviewed] Add E2E test: `iw config` with no arguments shows usage
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get` without field shows "Missing required argument" error
+- [x] [test] [x] [reviewed] Add E2E test: `iw config --invalid` shows "Unknown option" error
+- [x] [test] [x] [reviewed] Add E2E test: Usage output includes "iw config get <field>"
+- [x] [test] [x] [reviewed] Add E2E test: Usage output includes list of available fields
 
 ### Implementation
 
-- [ ] [impl] Add `showUsage()` function with command description and available fields
-- [ ] [impl] Add `handleGetMissingField()` function for missing field argument
-- [ ] [impl] Add `handleUnknownArgs()` function for unknown options/subcommands
-- [ ] [impl] Update main function pattern matching to handle all cases
+- [x] [impl] [x] [reviewed] Add `showUsage()` function with command description and available fields
+- [x] [impl] [x] [reviewed] Add `handleGetMissingField()` function for missing field argument
+- [x] [impl] [x] [reviewed] Add `handleUnknownArgs()` function for unknown options/subcommands
+- [x] [impl] [x] [reviewed] Update main function pattern matching to handle all cases
 
 ### Integration
 
-- [ ] [test] Run all E2E tests and verify they pass
-- [ ] [impl] Verify all error paths exit with code 1
+- [x] [test] [x] [reviewed] Run all E2E tests and verify they pass
+- [x] [impl] [x] [reviewed] Verify all error paths exit with code 1
+
+**Phase Status:** Complete
 
 ## Task Details
 

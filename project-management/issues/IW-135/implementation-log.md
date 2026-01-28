@@ -79,3 +79,40 @@ M  .iw/test/config.bats
 ```
 
 ---
+
+## Phase 3: Validate command usage and provide help (2026-01-28)
+
+**What was built:**
+- Command: `.iw/commands/config.scala` - Added usage help and error handling functions
+- Tests: `.iw/test/config.bats` - 5 new E2E tests for usage scenarios
+
+**Decisions made:**
+- All error paths exit with code 1 (Unix convention for error)
+- Show usage after error messages for context
+- Distinguish between unknown options (`--foo`) and unknown subcommands (`foo`)
+- Include field list with descriptions in usage output
+
+**Patterns applied:**
+- Separation of concerns: Distinct functions for each error type
+- User-friendly: Error messages followed by helpful usage information
+
+**Testing:**
+- E2E tests: 5 tests added (19 total for config command)
+- Coverage: All error paths and usage output verification
+
+**Code review:**
+- Iterations: 1
+- Major findings: None (clean implementation)
+
+**Implementation complete:**
+- All 3 phases delivered
+- Total: 19 E2E tests
+- Full feature set: `get <field>`, `--json`, usage help
+
+**Files changed:**
+```
+M  .iw/commands/config.scala
+M  .iw/test/config.bats
+```
+
+---

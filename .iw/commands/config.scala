@@ -10,10 +10,10 @@ import scala.util.{Try, Success, Failure}
 @main def config(args: String*): Unit =
   args.toList match
     case "get" :: field :: Nil => handleGet(field)
+    case "get" :: Nil => handleGetMissingField()
     case "--json" :: Nil => handleJson()
-    case _ =>
-      Output.error("Usage: iw config get <field> | iw config --json")
-      sys.exit(1)
+    case Nil => showUsage()
+    case other => handleUnknownArgs(other)
 
 def handleGet(field: String): Unit =
   val configPath = os.Path(System.getProperty(Constants.SystemProps.UserDir)) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
@@ -64,3 +64,35 @@ def handleJson(): Unit =
       val json = write(config)
       Output.info(json)
       sys.exit(0)
+
+def showUsage(): Unit =
+  Output.info("iw config - Query project configuration")
+  Output.info("")
+  Output.info("Usage:")
+  Output.info("  iw config get <field>  Get a specific configuration field")
+  Output.info("  iw config --json       Export full configuration as JSON")
+  Output.info("")
+  Output.info("Available fields:")
+  Output.info("  trackerType     Issue tracker type (GitHub, GitLab, Linear, YouTrack)")
+  Output.info("  team            Team identifier (Linear/YouTrack)")
+  Output.info("  projectName     Project name")
+  Output.info("  repository      Repository in owner/repo format (GitHub/GitLab)")
+  Output.info("  teamPrefix      Issue ID prefix (GitHub/GitLab)")
+  Output.info("  version         Tool version")
+  Output.info("  youtrackBaseUrl Base URL for YouTrack/GitLab self-hosted")
+  sys.exit(1)
+
+def handleGetMissingField(): Unit =
+  Output.error("Missing required argument: <field>")
+  Output.info("")
+  showUsage()
+
+def handleUnknownArgs(args: List[String]): Unit =
+  args.headOption match
+    case Some(arg) if arg.startsWith("--") =>
+      Output.error(s"Unknown option: $arg")
+    case Some(arg) =>
+      Output.error(s"Unknown subcommand: $arg")
+    case None => ()
+  Output.info("")
+  showUsage()
