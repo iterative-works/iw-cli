@@ -8,34 +8,34 @@
 
 ### Setup
 
-- [ ] [impl] Create `.iw/commands/config.scala` with basic structure and PURPOSE header
+- [x] [impl] [x] [reviewed] Create `.iw/commands/config.scala` with basic structure and PURPOSE header
 
 ### Tests First (TDD)
 
-- [ ] [test] Add E2E test: `iw config get trackerType` returns tracker type for GitHub config
-- [ ] [test] Add E2E test: `iw config get repository` returns repository value
-- [ ] [test] Add E2E test: `iw config get teamPrefix` returns team prefix value
-- [ ] [test] Add E2E test: `iw config get projectName` returns project name
-- [ ] [test] Add E2E test: `iw config get nonexistent` returns error with exit code 1
-- [ ] [test] Add E2E test: `iw config get youtrackBaseUrl` when unset returns error
-- [ ] [test] Add E2E test: `iw config get trackerType` without config file returns error
-- [ ] [test] Add E2E test: `iw config get trackerType` with Linear tracker config
-- [ ] [test] Add E2E test: `iw config get team` with Linear tracker returns team value
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get trackerType` returns tracker type for GitHub config
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get repository` returns repository value
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get teamPrefix` returns team prefix value
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get projectName` returns project name
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get nonexistent` returns error with exit code 1
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get youtrackBaseUrl` when unset returns error
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get trackerType` without config file returns error
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get trackerType` with Linear tracker config
+- [x] [test] [x] [reviewed] Add E2E test: `iw config get team` with Linear tracker returns team value
 
 ### Implementation
 
-- [ ] [impl] Add upickle `ReadWriter[IssueTrackerType]` derivation in Config.scala
-- [ ] [impl] Add upickle `ReadWriter[ProjectConfiguration]` derivation in Config.scala
-- [ ] [impl] Implement `handleGet(field: String)` function in config.scala
-- [ ] [impl] Handle missing config file case with appropriate error message
-- [ ] [impl] Handle unknown field case with appropriate error message
-- [ ] [impl] Handle optional fields that are None/null with appropriate error
-- [ ] [impl] Wire up `get` subcommand in main function
+- [x] [impl] [x] [reviewed] Add upickle `ReadWriter[IssueTrackerType]` derivation in Config.scala
+- [x] [impl] [x] [reviewed] Add upickle `ReadWriter[ProjectConfiguration]` derivation in Config.scala
+- [x] [impl] [x] [reviewed] Implement `handleGet(field: String)` function in config.scala
+- [x] [impl] [x] [reviewed] Handle missing config file case with appropriate error message
+- [x] [impl] [x] [reviewed] Handle unknown field case with appropriate error message
+- [x] [impl] [x] [reviewed] Handle optional fields that are None/null with appropriate error
+- [x] [impl] [x] [reviewed] Wire up `get` subcommand in main function
 
 ### Integration
 
-- [ ] [test] Run all E2E tests and verify they pass
-- [ ] [impl] Verify command works with all tracker types (GitHub, GitLab, Linear, YouTrack)
+- [x] [test] [x] [reviewed] Run all E2E tests and verify they pass
+- [x] [impl] [x] [reviewed] Verify command works with all tracker types (GitHub, GitLab, Linear, YouTrack)
 
 ## Task Details
 
@@ -120,3 +120,5 @@ EOF
 - ujson can access fields using `parsed(fieldName)` syntax
 - Optional fields serialize as `null` in JSON when `None`
 - Need to handle different value types (String, Option[String])
+
+**Phase Status:** Complete

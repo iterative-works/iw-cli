@@ -228,3 +228,13 @@ object ConfigSerializer:
       Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl, repository, teamPrefix))
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")
+
+object ProjectConfigurationJson:
+  import upickle.default.*
+
+  given ReadWriter[IssueTrackerType] = readwriter[String].bimap(
+    _.toString,
+    s => IssueTrackerType.valueOf(s)
+  )
+
+  given ReadWriter[ProjectConfiguration] = macroRW
