@@ -122,65 +122,19 @@ Auto-pruning already exists in `CaskServer.initialize()`. With stable sort from 
 
 ---
 
-### Story 4: User can choose sort order preference
+### Story 4: User can choose sort order preference (DEFERRED)
 
-```gherkin
-Feature: User-selectable sort order for worktree cards
-  As a developer with different workflows
-  I want to choose how cards are sorted
-  So that I can organize my worktrees based on my current needs
+> **Status:** Deferred to future issue. Focus on Stories 1-3 first.
 
-Scenario: User switches to "most recent activity" sorting
-  Given I have worktrees sorted alphabetically by issue ID
-  And worktree "IW-200" was accessed most recently
-  And worktree "IW-100" was accessed least recently
-  When I select "Most Recent Activity" from the sort dropdown
-  Then cards reorder with "IW-200" at the top
-  And "IW-100" at the bottom
-  And the sort preference persists across page reloads
+This story would add a sort selector UI allowing users to choose between:
+- Issue ID (A-Z / Z-A)
+- Registration date (newest/oldest first)
+- Path (A-Z)
 
-Scenario: User switches back to alphabetical sorting
-  Given I have worktrees sorted by most recent activity
-  When I select "Alphabetical (A-Z)" from the sort dropdown
-  Then cards reorder alphabetically by issue ID
-  And the sort preference persists across page reloads
-```
-
-**Estimated Effort:** 6-8h
-**Complexity:** Moderate
-
-**Technical Feasibility:**
-Moderate complexity. Requires:
-- UI component for sort selector (dropdown or toggle buttons)
-- Client-side preference storage (localStorage or cookie)
-- Server-side sort implementation for multiple keys
-- HTMX integration to re-render list when sort changes
-
-### CLARIFY: User preference storage mechanism
-
-**Questions to answer:**
-1. Should sort preference be per-project (stored in `.iw/config.yaml`) or per-user globally?
-2. Should we store preference client-side (localStorage) or server-side (config file)?
-3. Should preference be synced across multiple browser tabs/windows?
-
-**Options:**
-- **Option A**: Client-side localStorage (browser-specific, simple)
-  - Pros: No server changes, fast, works immediately
-  - Cons: Doesn't sync across browsers/devices, lost on browser clear
-- **Option B**: Server-side in `~/.local/share/iw/server/config.json` (user-global)
-  - Pros: Syncs across browsers, persists reliably
-  - Cons: Requires server state changes, more complex
-- **Option C**: Per-project in `.iw/config.yaml` (project-specific)
-  - Pros: Team-shareable default, project-appropriate sorting
-  - Cons: Doesn't respect individual user preference, requires git commits
-
-**Impact:** Affects implementation complexity and user expectations for preference persistence. Story 4 blocked until this is decided.
-
-**Acceptance:**
-- User can select from multiple sort options (alphabetical, recent activity, creation date)
-- Dashboard reorders cards immediately when sort changes
-- Sort preference persists across dashboard reloads
-- Currently selected sort option is visually indicated
+Deferred because:
+- Stories 1-3 solve the core misclick problem
+- Activity sorting removed (current `lastSeenAt` doesn't reflect actual user activity)
+- Can add sort selector later if users request it
 
 ---
 
@@ -238,122 +192,39 @@ Moderate complexity. Requires:
 
 ---
 
-### For Story 4: User can choose sort order preference
+### For Story 4: User can choose sort order preference (DEFERRED)
 
-**Domain Layer:**
-- `SortPreference` value object (selected sort key + direction)
-- Validation logic for sort preference values
-
-**Application Layer:**
-- `PreferenceService` (load/save user sort preference)
-- Update `DashboardService.renderDashboard` to accept sort preference parameter
-- Update `ServerState.listBy` to support multiple sort keys
-
-**Infrastructure Layer:**
-- `PreferenceRepository` (read/write sort preference to storage)
-- Storage adapter (localStorage via JavaScript or config file)
-
-**Presentation Layer:**
-- Sort selector UI component (dropdown or button group)
-- HTMX endpoint to change sort: `POST /api/preferences/sort`
-- JavaScript to persist preference to localStorage (if client-side)
-- Response re-renders entire worktree list with new order
+Story 4 is deferred to a future issue. No architectural work needed now.
 
 ---
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Which stable sort key should be the default?
+### RESOLVED: Default stable sort key
 
-**Questions to answer:**
-1. Which attribute provides the most intuitive default ordering?
-2. Should we default to alphabetical issue ID or chronological creation order?
-3. Do users expect oldest-first or newest-first for creation timestamp?
+**Decision:** Alphabetical by Issue ID (ascending)
 
-**Options:**
-- **Option A**: Alphabetical by issue ID (ascending: IW-100, IW-150, IW-175, IW-200)
-  - Pros: Easy to predict, easy to find specific issue, matches file system conventions
-  - Cons: Doesn't reflect work priority or recency
-- **Option B**: Chronological by registration timestamp (newest first)
-  - Pros: Most recently created worktrees at top (likely current work)
-  - Cons: Less predictable, harder to find specific issue
-- **Option C**: Alphabetical by path (ascending)
-  - Pros: Matches filesystem listing
-  - Cons: Paths might be complex, issue ID is clearer identifier
-
-**Impact:** Affects initial user experience and whether "most users" need to change sort preference. Blocking Story 1.
+Chosen because it's easy to predict and easy to find specific issues. Users can scan alphabetically to locate a card.
 
 ---
 
-### CLARIFY: Should "most recent activity" sorting be available at all?
+### RESOLVED: Activity sorting availability
 
-The current behavior (sorting by `lastSeenAt`) causes the misclick problem. If we add "most recent activity" as an optional sort mode (Story 4), should we:
+**Decision:** Remove activity-based sorting entirely (for now)
 
-**Questions to answer:**
-1. Is "most recent activity" valuable enough to keep as an option?
-2. If yes, should it animate transitions to reduce misclick frustration?
-3. Should we throttle activity updates to reduce reorder frequency?
+The current `lastSeenAt` timestamp doesn't accurately reflect user activity - it may just reflect when the dashboard polled the worktree. Removing it simplifies implementation and eliminates the root cause of misclicks.
 
-**Options:**
-- **Option A**: Remove activity-based sorting entirely
-  - Pros: Simplifies implementation, eliminates root cause of misclicks
-  - Cons: Loses potentially useful "recently worked on" signal
-- **Option B**: Keep as optional sort mode with animated transitions
-  - Pros: Preserves flexibility, animations make reorders visible
-  - Cons: Still causes layout shifts (just more visible), complex to implement
-- **Option C**: Keep as optional sort mode with throttled updates (e.g., update activity rank every 5 minutes)
-  - Pros: Reduces reorder frequency, preserves some recency signal
-  - Cons: Activity ranking becomes stale, still shifts occasionally
-
-**Impact:** Affects scope of Story 4. If we choose Option A, Story 4 becomes simpler (just choosing between stable keys). Story 4 blocked until decided.
+Can revisit in a future issue if we implement proper activity tracking.
 
 ---
 
-### CLARIFY: How should HTMX handle reordering when sort changes?
+### Low Risk: HTMX OOB behavior with stable sorting
 
-When user changes sort preference (Story 4), we need to reorder existing cards.
+With stable Issue ID sorting, the HTMX OOB (out-of-band) swap mechanism should work correctly:
+- New cards insert at the position dictated by their issue ID
+- Removed cards leave a gap that remaining cards fill
 
-**Questions to answer:**
-1. Should we swap entire list or use HTMX morphing/transitions?
-2. Do we need CSS animations to show cards moving to new positions?
-3. Should we use HTMX extensions (e.g., `hx-swap="morph"` with idiomorph)?
-
-**Options:**
-- **Option A**: Full list swap (replace entire `#worktree-list`)
-  - Pros: Simple, reliable, already supported
-  - Cons: Jarring, cards disappear and reappear, no motion indication
-- **Option B**: CSS transitions with staggered swap
-  - Pros: Smoother, shows movement, less jarring
-  - Cons: Complex timing, might still feel abrupt
-- **Option C**: HTMX morphing with idiomorph extension
-  - Pros: Intelligently morphs DOM, smooth transitions, preserves state
-  - Cons: Requires additional library, more complex to debug
-
-**Impact:** Affects UX quality of sort changes. Doesn't block Story 4 implementation (can start with Option A and upgrade later).
-
----
-
-### CLARIFY: Interaction with existing staggered loading
-
-Currently, skeleton cards use staggered delays (500ms for top 3, 2s for 4-8, 5s for 9+) based on **position**.
-
-**Questions to answer:**
-1. After reordering, do stagger delays re-calculate based on new positions?
-2. Should skeleton cards always load in stable order regardless of final sort?
-3. Does staggering still make sense with stable sorting?
-
-**Options:**
-- **Option A**: Keep staggered loading based on stable sort position
-  - Pros: Top cards (by stable sort) load first, consistent
-  - Cons: Might not match user's current priority
-- **Option B**: Remove staggered loading entirely
-  - Pros: Simpler, all cards treated equally
-  - Cons: Loses performance optimization for high-priority cards
-- **Option C**: Make stagger strategy configurable per sort mode
-  - Pros: Most flexible, can optimize per use case
-  - Cons: Very complex, probably over-engineered
-
-**Impact:** Affects loading performance and UX. Doesn't block Stories 1-3 (can keep current behavior). Story 4 might need adjustment.
+**Mitigation:** Integration tests will verify OOB behavior works as expected.
 
 ---
 
@@ -363,18 +234,17 @@ Currently, skeleton cards use staggered delays (500ms for top 3, 2s for 4-8, 5s 
 - Story 1 (Stable card positions): 4-6 hours
 - Story 2 (New worktrees predictable): 2-3 hours
 - Story 3 (Removed worktrees predictable): 1-2 hours
-- Story 4 (User-selectable sort order): 6-8 hours
+- ~~Story 4 (User-selectable sort order): DEFERRED~~
 
-**Total Range:** 13-19 hours
+**Total Range:** 7-11 hours
 
-**Confidence:** Medium
+**Confidence:** High
 
 **Reasoning:**
-- Stories 1-3 have high confidence (straightforward changes to existing sort logic)
-- Story 4 has medium confidence (depends on CLARIFY decisions around preference storage and UI complexity)
+- Stories 1-3 are straightforward changes to existing sort logic
 - No external API dependencies (all changes are internal)
 - Existing HTMX patterns are well-established in codebase
-- Risk: HTMX OOB behavior with reordering might have edge cases we haven't encountered
+- Risk: HTMX OOB behavior with reordering might have edge cases (low probability)
 
 ---
 
@@ -411,19 +281,7 @@ Currently, skeleton cards use staggered delays (500ms for top 3, 2s for 4-8, 5s 
   - Wait for auto-prune (next refresh)
   - Verify card removed and remaining cards in correct positions
 
-**Story 4: User sort preference**
-- **Unit**:
-  - `SortPreference` validation (valid enum values)
-  - `PreferenceService` load/save logic
-- **Integration**:
-  - Dashboard loads with user's saved preference
-  - Changing preference re-sorts list correctly
-- **E2E**:
-  - Select "Alphabetical" sort, verify cards alphabetical
-  - Reload page, verify still alphabetical
-  - Select "Newest First" sort, verify cards reorder
-  - Reload page, verify still newest-first
-  - Open in new tab, verify preference respected (if server-side storage)
+**Story 4: DEFERRED** - No testing needed for this issue.
 
 ### Test Data Strategy
 
@@ -457,52 +315,22 @@ Currently, skeleton cards use staggered delays (500ms for top 3, 2s for 4-8, 5s 
 ### Database Changes
 No database changes (uses existing in-memory `ServerState` and JSON file persistence).
 
-**Story 4 migrations (if server-side preference storage chosen):**
-- Add `sortPreference` field to `~/.local/share/iw/server/config.json` schema
-- Default to "issueId" if not present (backward compatible)
-
 ### Configuration Changes
-
-**Story 4 configuration (if server-side storage):**
-- Update server config schema to include `defaultSortKey` and `defaultSortDirection`
-- Example:
-  ```json
-  {
-    "host": "0.0.0.0",
-    "port": 8080,
-    "sortPreference": {
-      "key": "issueId",
-      "direction": "ascending"
-    }
-  }
-  ```
+None required for Stories 1-3.
 
 ### Rollout Strategy
 
-**Incremental deployment:**
-1. **Phase 1 (Stories 1-3)**: Deploy stable sorting as default, no user controls
-   - Users immediately benefit from stable positions
-   - Low risk (only changes internal sort key)
-   - Can deploy without feature flag
-2. **Phase 2 (Story 4)**: Add sort selector UI after gathering feedback on default
-   - Deploy behind feature flag if desired
-   - Can A/B test default sort key before exposing controls
-
-**Feature flags:**
-- Not strictly necessary for Stories 1-3 (low-risk change)
-- Consider for Story 4: `enableSortSelector` flag in server config
+Single deployment:
+- Deploy stable Issue ID sorting as default
+- Users immediately benefit from stable positions
+- Low risk (only changes internal sort key)
+- No feature flag needed
 
 ### Rollback Plan
 
 **If stable sorting causes issues:**
 1. Revert `DashboardService.scala` sort logic to use `WorktreePriority.priorityScore`
-2. Revert `ServerState.listByActivity` to original implementation
-3. No data migration needed (no persistent state changes)
-
-**If sort preference UI causes issues (Story 4):**
-1. Remove sort selector from UI (comment out in template)
-2. Server continues using default stable sort
-3. Clear any corrupt preference values from config/localStorage
+2. No data migration needed (no persistent state changes)
 
 ---
 
@@ -516,11 +344,9 @@ No database changes (uses existing in-memory `ServerState` and JSON file persist
 ### Story Dependencies
 - **Story 2 depends on Story 1**: Need stable sort before testing insertion positions
 - **Story 3 depends on Story 1**: Need stable sort before testing removal behavior
-- **Story 4 depends on Stories 1-3**: Need stable sorting implemented before adding sort selector
 
 **Parallelization:**
-- Stories 1-3 must be sequential
-- Story 4 can be developed in parallel after Story 1 merges (as long as we use Story 1's sorting infrastructure)
+- Stories 1-3 must be sequential (each builds on the previous)
 
 ### External Blockers
 - None (all changes are internal to dashboard module)
@@ -534,23 +360,16 @@ No database changes (uses existing in-memory `ServerState` and JSON file persist
 1. **Story 1: Stable card positions** - Establishes foundation, fixes core misclick issue immediately
 2. **Story 2: New worktrees predictable** - Validates stable sort works for additions
 3. **Story 3: Removed worktrees predictable** - Validates stable sort works for removals
-4. **Story 4: User sort preference** - Adds flexibility after stable default is proven
 
 **Iteration Plan:**
 
 - **Iteration 1** (Stories 1-2): Core stable sorting + new worktree insertion (6-9h)
   - Delivers immediate value: fixes misclick problem
   - Users can start benefiting right away
-  - Can gather feedback on default sort choice
 
 - **Iteration 2** (Story 3): Validate removal behavior (1-2h)
   - Low-risk validation of existing pruning logic
   - Ensures no regressions from Story 1 changes
-
-- **Iteration 3** (Story 4): Add sort selector (6-8h)
-  - Blocked on CLARIFY decisions
-  - Can be deprioritized if default stable sort satisfies users
-  - Nice-to-have after core issue resolved
 
 ---
 
@@ -558,37 +377,32 @@ No database changes (uses existing in-memory `ServerState` and JSON file persist
 
 - [x] Gherkin scenarios serve as living documentation
 - [ ] Update dashboard documentation (if exists) to mention sort behavior
-- [ ] If Story 4 implemented: Document sort preference options and storage location
-- [ ] If Story 4 implemented: Document how to set default sort in config
 - [ ] No API documentation changes (internal implementation detail)
 - [ ] No migration guide needed (backward compatible)
 
 ---
 
-**Analysis Status:** Ready for Review (pending CLARIFY resolution)
+**Analysis Status:** Ready for Implementation
+
+**CLARIFY Resolutions:**
+- **Default sort key:** Alphabetical by Issue ID (ascending) - DECIDED
+- **Activity sorting:** Remove entirely for now (current `lastSeenAt` doesn't accurately reflect user activity) - DECIDED
+- **Story 4 (sort selector UI):** Deferred to future issue - DECIDED
+
+**Simplified Scope:**
+Stories 1-3 only. Total estimate: 7-11 hours.
 
 **Next Steps:**
-1. **CLARIFY decisions needed before task generation:**
-   - Default stable sort key (Issue ID vs Registration Timestamp vs Path)
-   - Whether to keep "most recent activity" sorting as option in Story 4
-   - User preference storage mechanism (localStorage vs server config vs project config)
-
-2. **After CLARIFY resolution:**
-   - Run `/iterative-works:ag-create-tasks IW-175` to map stories to implementation phases
-
-3. **Implementation:**
-   - Run `/iterative-works:ag-implement IW-175` for iterative story-by-story implementation
-   - Start with Stories 1-2 to deliver immediate value
-   - Gather user feedback on default sort before investing in Story 4
+1. Run `/iterative-works:ag-create-tasks IW-175` to map stories to implementation phases
+2. Run `/iterative-works:ag-implement IW-175` for iterative story-by-story implementation
 
 ---
 
 **Key Decisions Summary:**
 
-| Decision Point | Recommendation | Confidence |
-|---------------|---------------|------------|
-| Default sort key | Alphabetical by Issue ID (ascending) | Medium - needs user validation |
-| Keep activity sorting | Yes, as optional mode in Story 4 | Low - needs discussion |
-| Preference storage | Client-side localStorage | Medium - simple MVP |
-| HTMX reorder strategy | Full list swap (Option A) | High - simplest, upgrade later |
-| Stagger loading | Keep current behavior | High - don't change what works |
+| Decision Point | Decision | Rationale |
+|---------------|----------|-----------|
+| Default sort key | Alphabetical by Issue ID (ascending) | Easy to predict, easy to find specific issues |
+| Activity sorting | Removed (not available as option) | Current `lastSeenAt` doesn't reflect actual work; simplifies implementation |
+| Story 4 (sort selector) | Deferred | Focus on fixing the core problem first; add flexibility later if needed |
+| Stagger loading | Keep current behavior | Works fine with stable sorting |
