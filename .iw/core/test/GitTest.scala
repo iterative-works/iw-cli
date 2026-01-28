@@ -102,6 +102,21 @@ class GitTest extends munit.FunSuite, Fixtures:
       assert(result.isRight)
       assertEquals(result, Right(true))
 
+  gitRepo.test("GitAdapter gets HEAD SHA"):
+    repo =>
+      val result = GitAdapter.getHeadSha(repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      // SHA should be a short hex string (7+ chars)
+      val sha = result.toOption.get
+      assert(sha.nonEmpty, "SHA should not be empty")
+      assert(sha.forall(c => "0123456789abcdef".contains(c)), s"SHA should be hex: $sha")
+
+  tempDir.test("GitAdapter returns error for getHeadSha on non-git directory"):
+    dir =>
+      val result = GitAdapter.getHeadSha(dir)
+      assert(result.isLeft, s"Expected Left but got: $result")
+      assert(result.left.exists(_.contains("Failed to get HEAD SHA")), s"Expected error message, got: $result")
+
   tempDir.test("hasUncommittedChanges returns error for non-git directory"):
     dir =>
       val result = GitAdapter.hasUncommittedChanges(dir)

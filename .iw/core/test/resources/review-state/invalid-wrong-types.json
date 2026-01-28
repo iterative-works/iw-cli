@@ -1,0 +1,7 @@
+{
+  "version": "not-a-number",
+  "issue_id": 123,
+  "status": false,
+  "artifacts": "should-be-array",
+  "last_updated": "2026-01-28T12:00:00Z"
+}
