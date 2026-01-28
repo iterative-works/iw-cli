@@ -43,3 +43,39 @@ A  .iw/test/config.bats
 ```
 
 ---
+
+## Phase 2: Export full configuration as JSON (2026-01-28)
+
+**What was built:**
+- Command: `.iw/commands/config.scala` - Added `--json` flag and `handleJson()` function
+- Tests: `.iw/test/config.bats` - 5 new E2E tests for JSON output
+
+**Decisions made:**
+- Reuse `ProjectConfigurationJson` derivations from Phase 1 (no new model code needed)
+- Output compact JSON (single line) - users can pipe to `jq` for pretty-printing
+- Follow same error handling pattern as `handleGet()` for consistency
+
+**Patterns applied:**
+- DRY: Reused existing JSON serialization infrastructure
+- Consistency: Same config loading pattern as Phase 1
+
+**Testing:**
+- E2E tests: 5 tests added (14 total for config command)
+- Coverage: JSON validity, field content, error handling, multiple tracker types
+
+**Code review:**
+- Iterations: 1
+- Major findings: None (minimal, focused implementation)
+
+**For next phases:**
+- Available utilities: Both `get` and `--json` functionality complete
+- Extension points: Command ready for usage help (Phase 3)
+- Notes: None
+
+**Files changed:**
+```
+M  .iw/commands/config.scala
+M  .iw/test/config.bats
+```
+
+---

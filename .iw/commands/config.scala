@@ -10,8 +10,9 @@ import scala.util.{Try, Success, Failure}
 @main def config(args: String*): Unit =
   args.toList match
     case "get" :: field :: Nil => handleGet(field)
+    case "--json" :: Nil => handleJson()
     case _ =>
-      Output.error("Usage: iw config get <field>")
+      Output.error("Usage: iw config get <field> | iw config --json")
       sys.exit(1)
 
 def handleGet(field: String): Unit =
@@ -50,3 +51,16 @@ def handleGet(field: String): Unit =
           else
             Output.error(s"Unknown configuration field: $field")
           sys.exit(1)
+
+def handleJson(): Unit =
+  val configPath = os.Path(System.getProperty(Constants.SystemProps.UserDir)) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+
+  ConfigFileRepository.read(configPath) match
+    case None =>
+      Output.error("Configuration not found. Run 'iw init' first.")
+      sys.exit(1)
+    case Some(config) =>
+      import upickle.default.*
+      val json = write(config)
+      Output.info(json)
+      sys.exit(0)
