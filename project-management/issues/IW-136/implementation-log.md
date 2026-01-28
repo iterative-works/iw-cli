@@ -207,3 +207,48 @@ A .iw/test/schema.bats
 ```
 
 ---
+
+## Phase 2: Validation command for review state (2026-01-28)
+
+**What was built:**
+- Domain: `ValidationError` and `ValidationResult` case classes in `.iw/core/model/`
+- Application: `ReviewStateValidator.validate()` in `.iw/core/model/ReviewStateValidator.scala` - pure validation logic
+- Command: `.iw/commands/validate-review-state.scala` - CLI with file and stdin support
+- Unit tests: 35 tests in `.iw/core/test/ReviewStateValidatorTest.scala`
+- E2E tests: 10 tests in `.iw/test/validate-review-state.bats`
+
+**Decisions made:**
+- Used mutable ListBuffer internally within validate() for accumulating errors/warnings (local scope only, function returns immutable result)
+- Status validation uses warning (not error) for unknown values, matching the open enum decision
+- additionalProperties: false enforced at root and all nested object levels
+- Command imports from `iw.core.model.*` and `iw.core.output.*` only (not dashboard)
+
+**Patterns applied:**
+- FCIS: Pure validation logic in model/ (no I/O), command is imperative shell
+- upickle ujson API for JSON parsing without schema library dependency
+- Error accumulation pattern (collect all errors, don't fail on first)
+
+**Testing:**
+- Unit tests: 35 tests covering valid inputs, parse errors, missing fields, wrong types, status warnings, unknown properties, nested structure validation
+- E2E tests: 10 BATS tests covering file mode, stdin mode, error formatting, exit codes
+
+**Code review:**
+- Iterations: 1
+- No critical issues found
+
+**For next phases:**
+- `ReviewStateValidator.validate()` available for Phase 3 write command (validate before writing)
+- `ValidationResult.isValid` for quick pass/fail check
+- `ValidationError(field, message)` provides structured error reporting
+
+**Files created:**
+```
+A .iw/core/model/ValidationError.scala
+A .iw/core/model/ValidationResult.scala
+A .iw/core/model/ReviewStateValidator.scala
+A .iw/commands/validate-review-state.scala
+A .iw/core/test/ReviewStateValidatorTest.scala
+A .iw/test/validate-review-state.bats
+```
+
+---
