@@ -87,3 +87,44 @@ M	.iw/core/test/WorktreeListSyncTest.scala
 ```
 
 ---
+
+## Phase 3: Removed worktrees shift remaining cards predictably (2026-01-28)
+
+**What was built:**
+- Tests: `.iw/core/test/WorktreeListSyncTest.scala` - Added 6 new tests for deletion behavior verification
+  - No implementation changes required - existing deletion logic already correct
+
+**Decisions made:**
+- This phase is verification-only: confirmed existing deletion behavior works correctly with stable Issue ID sorting from Phases 1-2
+- Deletion via `hx-swap-oob="delete"` removes cards, remaining cards shift naturally in DOM (no explicit repositioning needed)
+- Deletions do NOT trigger reorders - the `detectChanges` algorithm correctly identifies deletions without marking remaining cards as "reordered"
+
+**Patterns applied:**
+- HTMX OOB delete swap: `<div id="card-{issueId}" hx-swap-oob="delete"></div>` removes element by ID
+- Defensive testing: Verified both positive (deletion occurs) and negative (no unexpected reorders) assertions
+
+**Testing:**
+- Unit tests: 6 tests added in WorktreeListSyncTest.scala
+  - `detectChanges: delete first card does not reorder remaining`
+  - `detectChanges: delete last card does not reorder remaining`
+  - `detectChanges: multiple deletions do not cause reorders`
+  - `detectChanges: delete all cards except one`
+  - `generateChangesResponse: deletion generates correct OOB swap`
+  - `generateChangesResponse: mixed additions and deletions`
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260128-095735.md
+- Major findings: 0 critical, 1 warning (test coverage note), 7 suggestions (minor improvements)
+
+**For next phases:**
+- Available utilities: All three phases complete - stable sorting, positional insertion, and deletion all working
+- Extension points: Same patterns can be applied if reordering UI is added later
+- Notes: Manual verification recommended to confirm end-to-end behavior
+
+**Files changed:**
+```
+M	.iw/core/test/WorktreeListSyncTest.scala
+```
+
+---
