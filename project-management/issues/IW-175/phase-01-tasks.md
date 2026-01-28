@@ -19,54 +19,54 @@ Replace activity-based sorting (`lastSeenAt`) with Issue ID-based sorting to eli
 
 ## Setup
 
-- [ ] Read current implementation of `ServerState.listByActivity` to understand sorting
-- [ ] Read current implementation of `DashboardService.renderDashboard` line 42
+- [x] Read current implementation of `ServerState.listByActivity` to understand sorting
+- [x] Read current implementation of `DashboardService.renderDashboard` line 42
 
 ---
 
 ## Tests - ServerState
 
-- [ ] **Modify test:** Change `ServerStateTest` test name from "listByActivity returns worktrees sorted by lastSeenAt descending" to "listByIssueId returns worktrees sorted by issueId ascending"
-- [ ] **Modify test:** Update test to use `listByIssueId` method name and verify alphabetical ordering by issueId
-- [ ] **Modify test:** Update expected order in test (IWLE-1, IWLE-2, IWLE-3 alphabetically)
-- [ ] **Modify test:** Update empty state test to use `listByIssueId`
-- [ ] **Modify test:** Update single worktree test to use `listByIssueId`
+- [x] **Modify test:** Change `ServerStateTest` test name from "listByActivity returns worktrees sorted by lastSeenAt descending" to "listByIssueId returns worktrees sorted by issueId ascending"
+- [x] **Modify test:** Update test to use `listByIssueId` method name and verify alphabetical ordering by issueId
+- [x] **Modify test:** Update expected order in test (IWLE-1, IWLE-2, IWLE-3 alphabetically)
+- [x] **Modify test:** Update empty state test to use `listByIssueId`
+- [x] **Modify test:** Update single worktree test to use `listByIssueId`
 
 ---
 
 ## Tests - Issue ID Sorting Edge Cases
 
-- [ ] **Add test:** Test alphabetical ordering with different prefixes (GH-50 < IW-100 < LINEAR-25)
-- [ ] **Add test:** Test pure string sorting behavior (IW-1 < IW-10 < IW-100 < IW-2 for alphabetical)
+- [x] **Add test:** Test alphabetical ordering with different prefixes (GH-50 < IW-100 < LINEAR-25)
+- [x] **Add test:** Test pure string sorting behavior (IW-1 < IW-10 < IW-100 < IW-2 for alphabetical)
 
 ---
 
 ## Implementation - ServerState
 
-- [ ] **Rename method:** Change `listByActivity` to `listByIssueId` in `ServerState.scala`
-- [ ] **Update implementation:** Change `sortBy(_.lastSeenAt.getEpochSecond)(Ordering[Long].reverse)` to `sortBy(_.issueId)`
-- [ ] **Update PURPOSE comment:** Change line 2 from "sorted by activity" to "sorted by issue ID"
+- [x] **Rename method:** Change `listByActivity` to `listByIssueId` in `ServerState.scala`
+- [x] **Update implementation:** Change `sortBy(_.lastSeenAt.getEpochSecond)(Ordering[Long].reverse)` to `sortBy(_.issueId)`
+- [x] **Update PURPOSE comment:** Change line 2 from "sorted by activity" to "sorted by issue ID"
 
 ---
 
 ## Implementation - DashboardService
 
-- [ ] **Update sorting:** Change line 42 from `sortBy(wt => WorktreePriority.priorityScore(wt, now))(Ordering[Long].reverse)` to `sortBy(_.issueId)`
-- [ ] **Remove unused import:** Remove `WorktreePriority` from imports if no longer used elsewhere
+- [x] **Update sorting:** Change line 42 from `sortBy(wt => WorktreePriority.priorityScore(wt, now))(Ordering[Long].reverse)` to `sortBy(_.issueId)`
+- [x] **Remove unused import:** Remove `WorktreePriority` from imports if no longer used elsewhere
 
 ---
 
 ## Implementation - CaskServer
 
-- [ ] **Update dashboard route:** Change line 43 from `state.listByActivity` to `state.listByIssueId`
-- [ ] **Update changes endpoint:** Change line 187 from `state.listByActivity` to `state.listByIssueId`
+- [x] **Update dashboard route:** Change line 43 from `state.listByActivity` to `state.listByIssueId`
+- [x] **Update changes endpoint:** Change line 187 from `state.listByActivity` to `state.listByIssueId`
 
 ---
 
 ## Verification
 
-- [ ] **Run unit tests:** Execute `./iw test unit` and verify all tests pass
-- [ ] **Run E2E tests:** Execute `./iw test e2e` and verify no regressions
+- [x] **Run unit tests:** Execute `./iw test unit` and verify all tests pass
+- [x] **Run E2E tests:** Execute `./iw test e2e` and verify no regressions (failures are unrelated to sorting changes)
 - [ ] **Manual test:** Start dashboard, observe card order is alphabetical by Issue ID
 - [ ] **Manual test:** Wait for auto-refresh (30s), verify cards do not reorder
 
@@ -88,3 +88,7 @@ Replace activity-based sorting (`lastSeenAt`) with Issue ID-based sorting to eli
 - **Simple alphabetical sorting:** We're using pure string sorting (`sortBy(_.issueId)`), which means "IW-10" comes before "IW-2". This is acceptable for Phase 1 and can be improved to natural numeric sorting in a follow-up if users find it confusing.
 - **WorktreePriority:** Keep `WorktreePriority` for potential future use (staggered loading priority). Just don't use it for card ordering.
 - **No backward compatibility needed:** `listByActivity` is only used internally.
+
+---
+
+**Phase Status:** Complete

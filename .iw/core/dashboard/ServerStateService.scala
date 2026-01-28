@@ -169,9 +169,9 @@ object ServerStateService:
   def save(state: ServerState, repo: StateRepository): Either[String, Unit] =
     repo.write(state)
 
-  /** Legacy compatibility: list worktrees by activity.
+  /** Legacy compatibility: list worktrees by issue ID.
     *
-    * @deprecated Use state.listByActivity directly
+    * @deprecated Use state.listByIssueId directly
     */
   def listWorktrees(state: ServerState): List[WorktreeRegistration] =
-    state.listByActivity
+    state.listByIssueId

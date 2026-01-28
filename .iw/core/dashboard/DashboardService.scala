@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, WorktreePriority, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
+import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
 import iw.core.adapters.{LinearClient, YouTrackClient, GitHubClient, ConfigFileRepository, CommandRunner}
 import iw.core.dashboard.application.MainProjectService
 import iw.core.dashboard.presentation.views.MainProjectsView
@@ -38,8 +38,8 @@ object DashboardService:
   ): String =
     val now = Instant.now()
 
-    // Sort worktrees by priority (most recent activity first)
-    val sortedWorktrees = worktrees.sortBy(wt => WorktreePriority.priorityScore(wt, now))(Ordering[Long].reverse)
+    // Sort worktrees by issue ID (alphabetical ascending)
+    val sortedWorktrees = worktrees.sortBy(_.issueId)
 
     // Derive main projects from registered worktrees
     val mainProjects = MainProjectService.deriveFromWorktrees(
