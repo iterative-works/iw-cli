@@ -1,16 +1,20 @@
 {
-  "version": 1,
+  "version": 2,
   "issue_id": "IW-136",
-  "status": "analysis_ready",
-  "phase": 0,
-  "step": "analysis",
+  "status": "context_ready",
+  "phase": 1,
+  "step": "tasks",
   "branch": "IW-136",
   "pr_url": null,
-  "git_sha": "334e9f9054e58d6e42bfa9164a6b1e51a29e885f",
-  "last_updated": "2026-01-28T16:23:26Z",
-  "message": "Analysis complete - all decisions resolved, ready for task generation",
+  "git_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b",
+  "last_updated": "2026-01-28T17:00:00Z",
+  "batch_mode": true,
+  "phase_checkpoints": {
+    "1": { "context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b" }
+  },
+  "message": "Phase 1 context ready for review",
   "artifacts": [
     {"label": "Analysis", "path": "project-management/issues/IW-136/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-136/implementation-log.md"}
+    {"label": "Phase 1 Context", "path": "project-management/issues/IW-136/phase-01-context.md"}
   ]
 }
