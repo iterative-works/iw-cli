@@ -105,15 +105,47 @@ case class GitRemote(url: String):
 enum IssueTrackerType:
   case Linear, YouTrack, GitHub, GitLab
 
-case class ProjectConfiguration(
+case class TrackerConfig(
   trackerType: IssueTrackerType,
-  team: String,
-  projectName: String,
-  version: Option[String] = Some("latest"),
-  youtrackBaseUrl: Option[String] = None,
+  team: String = "",
   repository: Option[String] = None,
-  teamPrefix: Option[String] = None
+  teamPrefix: Option[String] = None,
+  baseUrl: Option[String] = None
 )
+
+case class ProjectConfig(
+  name: String
+)
+
+case class ProjectConfiguration(
+  tracker: TrackerConfig,
+  project: ProjectConfig,
+  version: Option[String] = Some("latest")
+):
+  // Backward compatibility accessors
+  def trackerType: IssueTrackerType = tracker.trackerType
+  def team: String = tracker.team
+  def projectName: String = project.name
+  def repository: Option[String] = tracker.repository
+  def teamPrefix: Option[String] = tracker.teamPrefix
+  def youtrackBaseUrl: Option[String] = tracker.baseUrl
+
+object ProjectConfiguration:
+  // Factory method for flat parameter style (used by tests and legacy code)
+  def create(
+    trackerType: IssueTrackerType,
+    team: String = "",
+    projectName: String,
+    version: Option[String] = Some("latest"),
+    youtrackBaseUrl: Option[String] = None,
+    repository: Option[String] = None,
+    teamPrefix: Option[String] = None
+  ): ProjectConfiguration =
+    ProjectConfiguration(
+      tracker = TrackerConfig(trackerType, team, repository, teamPrefix, youtrackBaseUrl),
+      project = ProjectConfig(projectName),
+      version = version
+    )
 
 object TeamPrefixValidator:
   private val ValidPattern = """^[A-Z]{2,10}$""".r
@@ -225,7 +257,11 @@ object ConfigSerializer:
       else
         None
 
-      Right(ProjectConfiguration(trackerType, team, projectName, version, youtrackBaseUrl, repository, teamPrefix))
+      Right(ProjectConfiguration(
+        tracker = TrackerConfig(trackerType, team, repository, teamPrefix, youtrackBaseUrl),
+        project = ProjectConfig(projectName),
+        version = version
+      ))
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")
 
@@ -237,4 +273,6 @@ object ProjectConfigurationJson:
     s => IssueTrackerType.valueOf(s)
   )
 
+  given ReadWriter[TrackerConfig] = macroRW
+  given ReadWriter[ProjectConfig] = macroRW
   given ReadWriter[ProjectConfiguration] = macroRW

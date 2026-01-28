@@ -12,7 +12,7 @@ class GitHubHookDoctorTest extends FunSuite:
 
   // Helper to create GitHub config
   def githubConfig(): ProjectConfiguration =
-    ProjectConfiguration(
+    ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "owner",
       projectName = "repo",
@@ -21,7 +21,7 @@ class GitHubHookDoctorTest extends FunSuite:
 
   // Helper to create Linear config
   def linearConfig(): ProjectConfiguration =
-    ProjectConfiguration(
+    ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "TEST",
       projectName = "test-project"

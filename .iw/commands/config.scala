@@ -27,10 +27,34 @@ def handleGet(field: String): Unit =
       val json = write(config)
       val parsed = ujson.read(json)
 
-      // Known optional fields in ProjectConfiguration
-      val optionalFields = Set("version", "youtrackBaseUrl", "repository", "teamPrefix")
+      // Backward compatibility aliases: flat name -> nested path
+      val fieldAliases = Map(
+        "trackerType" -> List("tracker", "trackerType"),
+        "team" -> List("tracker", "team"),
+        "repository" -> List("tracker", "repository"),
+        "teamPrefix" -> List("tracker", "teamPrefix"),
+        "youtrackBaseUrl" -> List("tracker", "baseUrl"),
+        "projectName" -> List("project", "name")
+      )
 
-      Try(parsed(field)) match
+      // Known optional fields (nested paths)
+      val optionalFields = Set(
+        List("version"),
+        List("tracker", "baseUrl"),
+        List("tracker", "repository"),
+        List("tracker", "teamPrefix")
+      )
+
+      // Resolve field path: either use alias or parse dot-notation
+      val fieldPath = fieldAliases.getOrElse(field, field.split("\\.").toList)
+
+      // Navigate to the value using the path
+      def getValue(json: ujson.Value, path: List[String]): Try[ujson.Value] =
+        path match
+          case Nil => Success(json)
+          case head :: tail => Try(json(head)).flatMap(v => getValue(v, tail))
+
+      getValue(parsed, fieldPath) match
         case Success(value) if value.isNull =>
           Output.error(s"Configuration field '$field' is not set")
           sys.exit(1)
@@ -40,13 +64,15 @@ def handleGet(field: String): Unit =
             case str if str.isInstanceOf[ujson.Str] => str.str
             case num if num.isInstanceOf[ujson.Num] => num.num.toString
             case bool if bool.isInstanceOf[ujson.Bool] => bool.bool.toString
+            case obj if obj.isInstanceOf[ujson.Obj] => ujson.write(obj)
+            case arr if arr.isInstanceOf[ujson.Arr] => ujson.write(arr)
             case _ => value.toString
 
           Output.info(outputValue)
           sys.exit(0)
         case Failure(_) =>
           // Check if it's a known optional field that's not set
-          if optionalFields.contains(field) then
+          if optionalFields.contains(fieldPath) then
             Output.error(s"Configuration field '$field' is not set")
           else
             Output.error(s"Unknown configuration field: $field")
@@ -72,14 +98,18 @@ def showUsage(): Unit =
   Output.info("  iw config get <field>  Get a specific configuration field")
   Output.info("  iw config --json       Export full configuration as JSON")
   Output.info("")
-  Output.info("Available fields:")
-  Output.info("  trackerType     Issue tracker type (GitHub, GitLab, Linear, YouTrack)")
-  Output.info("  team            Team identifier (Linear/YouTrack)")
-  Output.info("  projectName     Project name")
-  Output.info("  repository      Repository in owner/repo format (GitHub/GitLab)")
-  Output.info("  teamPrefix      Issue ID prefix (GitHub/GitLab)")
-  Output.info("  version         Tool version")
-  Output.info("  youtrackBaseUrl Base URL for YouTrack/GitLab self-hosted")
+  Output.info("Available fields (use dot-notation or aliases):")
+  Output.info("")
+  Output.info("  tracker.trackerType  Issue tracker type (GitHub, GitLab, Linear, YouTrack)")
+  Output.info("  tracker.team         Team identifier (Linear/YouTrack)")
+  Output.info("  tracker.repository   Repository in owner/repo format (GitHub/GitLab)")
+  Output.info("  tracker.teamPrefix   Issue ID prefix (GitHub/GitLab)")
+  Output.info("  tracker.baseUrl      Base URL for YouTrack/GitLab self-hosted")
+  Output.info("  project.name         Project name")
+  Output.info("  version              Tool version")
+  Output.info("")
+  Output.info("Aliases for backward compatibility:")
+  Output.info("  trackerType, team, repository, teamPrefix, youtrackBaseUrl, projectName")
   sys.exit(1)
 
 def handleGetMissingField(): Unit =

@@ -249,8 +249,8 @@ EOF
 
     # Assert
     [ "$status" -eq 0 ]
-    # Check that trackerType field exists and has correct value (extract last line)
-    trackerType=$(echo "$output" | tail -1 | jq -r '.trackerType')
+    # Check that trackerType field exists in nested structure (extract last line)
+    trackerType=$(echo "$output" | tail -1 | jq -r '.tracker.trackerType')
     [ "$trackerType" = "GitHub" ]
 }
 
@@ -273,8 +273,8 @@ EOF
 
     # Assert
     [ "$status" -eq 0 ]
-    # Check that repository field exists and has correct value (extract last line)
-    repository=$(echo "$output" | tail -1 | jq -r '.repository')
+    # Check that repository field exists in nested structure (extract last line)
+    repository=$(echo "$output" | tail -1 | jq -r '.tracker.repository')
     [ "$repository" = "iterative-works/iw-cli" ]
 }
 
@@ -310,8 +310,8 @@ EOF
     # Validate JSON using jq (extract last line)
     echo "$output" | tail -1 | jq . > /dev/null 2>&1
     [ $? -eq 0 ]
-    # Check that trackerType is Linear
-    trackerType=$(echo "$output" | tail -1 | jq -r '.trackerType')
+    # Check that trackerType is Linear in nested structure
+    trackerType=$(echo "$output" | tail -1 | jq -r '.tracker.trackerType')
     [ "$trackerType" = "Linear" ]
 }
 
@@ -428,12 +428,15 @@ EOF
 
     # Assert
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Available fields:"* ]]
-    [[ "$output" == *"trackerType"* ]]
-    [[ "$output" == *"team"* ]]
-    [[ "$output" == *"projectName"* ]]
-    [[ "$output" == *"repository"* ]]
-    [[ "$output" == *"teamPrefix"* ]]
+    [[ "$output" == *"Available fields"* ]]
+    # Check for nested field names
+    [[ "$output" == *"tracker.trackerType"* ]]
+    [[ "$output" == *"tracker.team"* ]]
+    [[ "$output" == *"project.name"* ]]
+    [[ "$output" == *"tracker.repository"* ]]
+    [[ "$output" == *"tracker.teamPrefix"* ]]
     [[ "$output" == *"version"* ]]
-    [[ "$output" == *"youtrackBaseUrl"* ]]
+    [[ "$output" == *"tracker.baseUrl"* ]]
+    # Check that aliases are mentioned
+    [[ "$output" == *"Aliases"* ]]
 }

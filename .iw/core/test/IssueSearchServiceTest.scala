@@ -11,7 +11,7 @@ import iw.core.dashboard.IssueSearchService
 class IssueSearchServiceTest extends FunSuite:
 
   test("search with valid Linear issue ID returns result"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test",
@@ -40,7 +40,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search with invalid issue ID returns empty list"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test",
@@ -61,7 +61,7 @@ class IssueSearchServiceTest extends FunSuite:
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
 
   test("search with valid ID but fetch failure returns empty list"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test",
@@ -82,7 +82,7 @@ class IssueSearchServiceTest extends FunSuite:
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
 
   test("search with GitHub issue ID returns result"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -109,7 +109,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search with YouTrack issue ID returns result"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.YouTrack,
       team = "PROJ",
       projectName = "project",
@@ -137,7 +137,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search with empty query returns empty list"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test",
@@ -156,7 +156,7 @@ class IssueSearchServiceTest extends FunSuite:
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
 
   test("search with whitespace-only query returns empty list"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test",
@@ -175,7 +175,7 @@ class IssueSearchServiceTest extends FunSuite:
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
 
   test("search handles case-insensitive issue IDs"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test",
@@ -195,7 +195,7 @@ class IssueSearchServiceTest extends FunSuite:
     assertEquals(results.map(_.length), Right(1), "Should return one result")
 
   test("search with GitLab issue ID returns result with correct URL format"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "IW",
       projectName = "my-project",
@@ -226,7 +226,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search with GitLab issue ID uses self-hosted baseUrl"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "PROJ",
       projectName = "project",
@@ -255,7 +255,7 @@ class IssueSearchServiceTest extends FunSuite:
   // ========== fetchRecent Tests ==========
 
   test("fetchRecent success case with GitHub tracker"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -286,7 +286,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("fetchRecent with worktree check integration"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -312,7 +312,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("fetchRecent handles fetch errors gracefully"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -330,7 +330,7 @@ class IssueSearchServiceTest extends FunSuite:
     assert(results.left.getOrElse("").contains("Failed to fetch recent issues"))
 
   test("fetchRecent returns empty list when no issues"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -349,7 +349,7 @@ class IssueSearchServiceTest extends FunSuite:
   // ========== search() with text search fallback Tests ==========
 
   test("search() exact ID match returns that issue (priority over text search)"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -375,7 +375,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search() invalid ID format triggers text search"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -406,7 +406,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search() valid ID but not found triggers text search"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -434,7 +434,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search() text search returns matching issues"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -462,7 +462,7 @@ class IssueSearchServiceTest extends FunSuite:
     }
 
   test("search() empty query returns empty results (skips text search)"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -482,7 +482,7 @@ class IssueSearchServiceTest extends FunSuite:
     assertEquals(results.map(_.length), Right(0), "Should return zero results")
 
   test("search() text search error handling"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",
@@ -502,7 +502,7 @@ class IssueSearchServiceTest extends FunSuite:
     assert(results.left.getOrElse("").contains("Failed to search issues"))
 
   test("search() text search sorts closed issues to end"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "IW",
       projectName = "iw-cli",

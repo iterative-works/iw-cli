@@ -63,7 +63,7 @@ class DoctorChecksTest extends FunSuite:
       Check("Second", _ => CheckResult.Success("Second done")),
       Check("Third", _ => CheckResult.Error("Third failed", "Check logs"))
     )
-    val config = ProjectConfiguration(IssueTrackerType.Linear, "TEST", "test-project")
+    val config = ProjectConfiguration.create(IssueTrackerType.Linear, "TEST", "test-project")
 
     val results = DoctorChecks.runAll(checks, config)
 
@@ -85,8 +85,8 @@ class DoctorChecksTest extends FunSuite:
       )
     )
 
-    val correctConfig = ProjectConfiguration(IssueTrackerType.Linear, "EXPECTED", "test")
-    val wrongConfig = ProjectConfiguration(IssueTrackerType.Linear, "WRONG", "test")
+    val correctConfig = ProjectConfiguration.create(IssueTrackerType.Linear, "EXPECTED", "test")
+    val wrongConfig = ProjectConfiguration.create(IssueTrackerType.Linear, "WRONG", "test")
 
     val correctResults = DoctorChecks.runAll(checks, correctConfig)
     assertEquals(correctResults.head._2, CheckResult.Success("Correct team"))
@@ -95,6 +95,6 @@ class DoctorChecksTest extends FunSuite:
     assertEquals(wrongResults.head._2, CheckResult.Error("Wrong team", "Update config with correct team"))
 
   test("DoctorChecks.runAll with empty list returns empty results"):
-    val config = ProjectConfiguration(IssueTrackerType.Linear, "TEST", "test")
+    val config = ProjectConfiguration.create(IssueTrackerType.Linear, "TEST", "test")
     val results = DoctorChecks.runAll(Nil, config)
     assertEquals(results, Nil)
