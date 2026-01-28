@@ -28,6 +28,13 @@ object GitAdapter:
     else
       Left(s"Failed to get current branch: ${result.stderr}")
 
+  def getHeadSha(dir: os.Path): Either[String, String] =
+    val result = ProcessAdapter.run(Seq("git", "-C", dir.toString, "rev-parse", "--short", "HEAD"))
+    if result.exitCode == 0 then
+      Right(result.stdout.trim)
+    else
+      Left(s"Failed to get HEAD SHA: ${result.stderr}")
+
   def hasUncommittedChanges(path: os.Path): Either[String, Boolean] =
     val result = ProcessAdapter.run(Seq("git", "-C", path.toString, "status", "--porcelain"))
     if result.exitCode == 0 then
