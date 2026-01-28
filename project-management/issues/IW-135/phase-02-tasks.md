@@ -8,22 +8,24 @@
 
 ### Tests First (TDD)
 
-- [ ] [test] Add E2E test: `iw config --json` outputs valid JSON with GitHub config
-- [ ] [test] Add E2E test: `iw config --json` includes trackerType field with correct value
-- [ ] [test] Add E2E test: `iw config --json` includes repository field
-- [ ] [test] Add E2E test: `iw config --json` without config file returns error
-- [ ] [test] Add E2E test: `iw config --json` with Linear config outputs valid JSON
+- [x] [test] [x] [reviewed] Add E2E test: `iw config --json` outputs valid JSON with GitHub config
+- [x] [test] [x] [reviewed] Add E2E test: `iw config --json` includes trackerType field with correct value
+- [x] [test] [x] [reviewed] Add E2E test: `iw config --json` includes repository field
+- [x] [test] [x] [reviewed] Add E2E test: `iw config --json` without config file returns error
+- [x] [test] [x] [reviewed] Add E2E test: `iw config --json` with Linear config outputs valid JSON
 
 ### Implementation
 
-- [ ] [impl] Add `handleJson()` function to config.scala
-- [ ] [impl] Update main function pattern matching to handle `--json` flag
-- [ ] [impl] Handle missing config file case with appropriate error message
+- [x] [impl] [x] [reviewed] Add `handleJson()` function to config.scala
+- [x] [impl] [x] [reviewed] Update main function pattern matching to handle `--json` flag
+- [x] [impl] [x] [reviewed] Handle missing config file case with appropriate error message
 
 ### Integration
 
-- [ ] [test] Run all E2E tests and verify they pass
-- [ ] [impl] Verify command works with all tracker types
+- [x] [test] [x] [reviewed] Run all E2E tests and verify they pass
+- [x] [impl] [x] [reviewed] Verify command works with all tracker types
+
+**Phase Status:** Complete
 
 ## Task Details
 

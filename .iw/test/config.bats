@@ -205,3 +205,112 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"IWLE"* ]]
 }
+
+@test "config --json outputs valid JSON with GitHub config" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command
+    run "$PROJECT_ROOT/iw" config --json
+
+    # Assert
+    [ "$status" -eq 0 ]
+    # Validate JSON using jq (extract last line which is the JSON output)
+    echo "$output" | tail -1 | jq . > /dev/null 2>&1
+    [ $? -eq 0 ]
+}
+
+@test "config --json includes trackerType field with correct value" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command
+    run "$PROJECT_ROOT/iw" config --json
+
+    # Assert
+    [ "$status" -eq 0 ]
+    # Check that trackerType field exists and has correct value (extract last line)
+    trackerType=$(echo "$output" | tail -1 | jq -r '.trackerType')
+    [ "$trackerType" = "GitHub" ]
+}
+
+@test "config --json includes repository field" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command
+    run "$PROJECT_ROOT/iw" config --json
+
+    # Assert
+    [ "$status" -eq 0 ]
+    # Check that repository field exists and has correct value (extract last line)
+    repository=$(echo "$output" | tail -1 | jq -r '.repository')
+    [ "$repository" = "iterative-works/iw-cli" ]
+}
+
+@test "config --json without config file returns error" {
+    # No config file created - directory is empty
+
+    # Run command
+    run "$PROJECT_ROOT/iw" config --json
+
+    # Assert
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Configuration not found"* ]]
+}
+
+@test "config --json with Linear config outputs valid JSON" {
+    # Setup: create Linear config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = linear
+  team = IWLE
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command
+    run "$PROJECT_ROOT/iw" config --json
+
+    # Assert
+    [ "$status" -eq 0 ]
+    # Validate JSON using jq (extract last line)
+    echo "$output" | tail -1 | jq . > /dev/null 2>&1
+    [ $? -eq 0 ]
+    # Check that trackerType is Linear
+    trackerType=$(echo "$output" | tail -1 | jq -r '.trackerType')
+    [ "$trackerType" = "Linear" ]
+}
