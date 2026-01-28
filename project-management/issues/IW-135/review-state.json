@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issue_id": "IW-135",
+  "status": "implementing",
+  "phase": 1,
+  "step": "implementation",
+  "branch": "IW-135-phase-01",
+  "pr_url": null,
+  "git_sha": "c307aa7da51aa848c84aa9c7cf36d8664756224c",
+  "last_updated": "2026-01-28T10:55:00Z",
+  "batch_mode": true,
+  "phase_checkpoints": {
+    "1": { "context_sha": "05cccca5d33f35c2e4eb204d2efc9097a476cdf1" }
+  },
+  "message": "Phase 1 implementation in progress"
+}
