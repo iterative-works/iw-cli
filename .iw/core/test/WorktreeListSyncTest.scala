@@ -411,3 +411,121 @@ class WorktreeListSyncTest extends munit.FunSuite:
 
     assert(html.contains("hx-swap-oob=\"afterbegin:#worktree-list\""), "IW-050 should insert at beginning")
     assert(html.contains("hx-swap-oob=\"afterend:#card-IW-100\""), "IW-200 should insert after IW-100")
+
+  // Phase 3: Tests for deletion behavior with stable sorting
+
+  test("detectChanges: delete first card does not reorder remaining"):
+    val oldIds = List("IW-100", "IW-150", "IW-200")
+    val newIds = List("IW-150", "IW-200")  // IW-100 deleted
+
+    val changes = WorktreeListSync.detectChanges(oldIds, newIds)
+
+    assertEquals(changes.additions, List.empty[String])
+    assertEquals(changes.deletions, List("IW-100"))
+    assertEquals(changes.reorders, List.empty[String])
+
+  test("detectChanges: delete last card does not reorder remaining"):
+    val oldIds = List("IW-100", "IW-150", "IW-200")
+    val newIds = List("IW-100", "IW-150")  // IW-200 deleted
+
+    val changes = WorktreeListSync.detectChanges(oldIds, newIds)
+
+    assertEquals(changes.additions, List.empty[String])
+    assertEquals(changes.deletions, List("IW-200"))
+    assertEquals(changes.reorders, List.empty[String])
+
+  test("detectChanges: multiple deletions do not cause reorders"):
+    val oldIds = List("IW-100", "IW-150", "IW-200", "IW-250")
+    val newIds = List("IW-100", "IW-250")  // IW-150 and IW-200 deleted
+
+    val changes = WorktreeListSync.detectChanges(oldIds, newIds)
+
+    assertEquals(changes.additions, List.empty[String])
+    assertEquals(changes.deletions.toSet, Set("IW-150", "IW-200"))
+    assertEquals(changes.reorders, List.empty[String])
+
+  test("detectChanges: delete all cards except one"):
+    val oldIds = List("IW-100", "IW-150", "IW-200", "IW-250")
+    val newIds = List("IW-200")  // Only IW-200 remains
+
+    val changes = WorktreeListSync.detectChanges(oldIds, newIds)
+
+    assertEquals(changes.additions, List.empty[String])
+    assertEquals(changes.deletions.toSet, Set("IW-100", "IW-150", "IW-250"))
+    assertEquals(changes.reorders, List.empty[String])
+
+  test("generateChangesResponse: deletion generates correct OOB swap"):
+    val now = Instant.now()
+    val registration1 = WorktreeRegistration("IW-100", "/path/1", "github", "team", now, now)
+    val registration2 = WorktreeRegistration("IW-150", "/path/2", "github", "team", now, now)
+
+    val changes = WorktreeListSync.ListChanges(
+      additions = List.empty,
+      deletions = List("IW-150"),
+      reorders = List.empty
+    )
+
+    val registrations = Map(
+      "IW-100" -> registration1,
+      "IW-150" -> registration2
+    )
+
+    val currentIds = List("IW-100")  // IW-150 was deleted
+
+    val html = WorktreeListSync.generateChangesResponse(
+      changes,
+      registrations,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      now,
+      "localhost",
+      currentIds
+    )
+
+    assert(html.contains("hx-swap-oob=\"delete\""), "should contain deletion OOB")
+    assert(html.contains("id=\"card-IW-150\""), "should target correct card")
+    assert(!html.contains("afterbegin"), "should not contain addition swap")
+    assert(!html.contains("afterend"), "should not contain addition swap")
+
+  test("generateChangesResponse: mixed additions and deletions"):
+    val now = Instant.now()
+    val registration1 = WorktreeRegistration("IW-100", "/path/1", "github", "team", now, now)
+    val registration2 = WorktreeRegistration("IW-150", "/path/2", "github", "team", now, now)
+    val registration3 = WorktreeRegistration("IW-175", "/path/3", "github", "team", now, now)
+    val issueData3 = IssueData("IW-175", "Issue 175", "Open", None, None, "https://example.com/IW-175", now)
+    val cached3 = CachedIssue(issueData3)
+
+    val changes = WorktreeListSync.ListChanges(
+      additions = List("IW-175"),
+      deletions = List("IW-150"),
+      reorders = List.empty
+    )
+
+    val registrations = Map(
+      "IW-100" -> registration1,
+      "IW-150" -> registration2,
+      "IW-175" -> registration3
+    )
+
+    val issueCache = Map("IW-175" -> cached3)
+    val currentIds = List("IW-100")  // After deletion, before addition
+
+    val html = WorktreeListSync.generateChangesResponse(
+      changes,
+      registrations,
+      issueCache,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      now,
+      "localhost",
+      currentIds
+    )
+
+    // Should contain deletion for IW-150
+    assert(html.contains("hx-swap-oob=\"delete\""), "should contain deletion OOB")
+    assert(html.contains("id=\"card-IW-150\""), "should target deleted card")
+    // Should contain addition for IW-175 (after IW-100, since IW-175 > IW-100)
+    assert(html.contains("hx-swap-oob=\"afterend:#card-IW-100\""), "should insert IW-175 after IW-100")
