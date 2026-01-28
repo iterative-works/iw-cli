@@ -204,7 +204,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       state.prCache,
       state.reviewStateCache,
       now,
-      sshHost
+      sshHost,
+      currentIds
     )
 
     cask.Response(

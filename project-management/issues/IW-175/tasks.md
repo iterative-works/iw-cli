@@ -2,17 +2,17 @@
 
 **Issue:** IW-175
 **Created:** 2026-01-28
-**Status:** 0/3 phases complete (0%)
+**Status:** 1/3 phases complete (33%)
 
 ## Phase Index
 
-- [ ] Phase 1: Stable card positions during auto-refresh (Est: 4-6h) → `phase-01-context.md`
+- [x] Phase 1: Stable card positions during auto-refresh (Est: 4-6h) → `phase-01-context.md`
 - [ ] Phase 2: New worktrees appear at predictable location (Est: 2-3h) → `phase-02-context.md`
 - [ ] Phase 3: Removed worktrees shift remaining cards predictably (Est: 1-2h) → `phase-03-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/3 phases
+**Completed:** 1/3 phases
 **Estimated Total:** 7-11 hours
 **Time Spent:** 0 hours
 

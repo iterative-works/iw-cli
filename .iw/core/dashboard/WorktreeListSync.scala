@@ -21,6 +21,15 @@ object WorktreeListSync:
     reorders: List[String]
   )
 
+  /** Find the ID that should precede the given ID in sorted order.
+    *
+    * @param newId ID being inserted
+    * @param existingIds Current list of IDs (must be sorted)
+    * @return ID that should precede newId, or None if newId should be first
+    */
+  def findPredecessor(newId: String, existingIds: List[String]): Option[String] =
+    existingIds.filter(_ < newId).lastOption
+
   /** Detect changes between two ordered lists of issue IDs.
     *
     * This is the core diff algorithm for worktree list synchronization.
@@ -57,7 +66,9 @@ object WorktreeListSync:
 
   /** Generate HTMX OOB swap HTML for adding a new worktree card.
     *
-    * Returns HTML with `hx-swap-oob="beforeend:#worktree-list"` to append card to list.
+    * Returns HTML with OOB swap attribute for positional insertion.
+    * - If predecessorId is None, inserts at beginning: `afterbegin:#worktree-list`
+    * - If predecessorId is Some(id), inserts after that card: `afterend:#card-{id}`
     *
     * @param registration Worktree registration
     * @param issueData Optional cached issue data
@@ -66,6 +77,7 @@ object WorktreeListSync:
     * @param reviewState Optional review state
     * @param now Current timestamp
     * @param sshHost SSH hostname for Zed links
+    * @param predecessorId ID of card to insert after, or None for first position
     * @return HTML string with OOB swap attribute
     */
   def generateAdditionOob(
@@ -75,7 +87,8 @@ object WorktreeListSync:
     prData: Option[CachedPR],
     reviewState: Option[CachedReviewState],
     now: Instant,
-    sshHost: String
+    sshHost: String,
+    predecessorId: Option[String]
   ): String =
     // Render card without OOB attribute (using polling config)
     val cardHtml = issueData match
@@ -102,9 +115,14 @@ object WorktreeListSync:
           HtmxCardConfig.polling
         )
 
-    // Wrap card in OOB carrier div - HTMX uses inner content for beforeend
+    // Determine OOB swap target based on predecessor
+    val oobTarget = predecessorId match
+      case Some(predId) => s"afterend:#card-$predId"
+      case None => "afterbegin:#worktree-list"
+
+    // Wrap card in OOB carrier div
     div(
-      attr("hx-swap-oob") := "beforeend:#worktree-list",
+      attr("hx-swap-oob") := oobTarget,
       cardHtml
     ).render
 
@@ -195,6 +213,7 @@ object WorktreeListSync:
     * @param reviewStateCache Review state cache
     * @param now Current timestamp
     * @param sshHost SSH hostname for Zed links
+    * @param currentIds Current list of IDs in sorted order (excluding additions)
     * @return HTML string with all OOB swaps, or empty string
     */
   def generateChangesResponse(
@@ -205,7 +224,8 @@ object WorktreeListSync:
     prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
     now: Instant,
-    sshHost: String
+    sshHost: String,
+    currentIds: List[String]
   ): String =
     if changes.additions.isEmpty && changes.deletions.isEmpty && changes.reorders.isEmpty then
       // No changes - return empty response
@@ -213,6 +233,8 @@ object WorktreeListSync:
     else
       val additionsHtml = changes.additions.flatMap { issueId =>
         registrations.get(issueId).map { reg =>
+          // Calculate predecessor: find largest existing ID less than this one
+          val predecessorId = findPredecessor(issueId, currentIds)
           generateAdditionOob(
             reg,
             issueCache.get(issueId),
@@ -220,7 +242,8 @@ object WorktreeListSync:
             prCache.get(issueId),
             reviewStateCache.get(issueId),
             now,
-            sshHost
+            sshHost,
+            predecessorId
           )
         }
       }
