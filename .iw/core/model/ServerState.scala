@@ -1,5 +1,5 @@
 // PURPOSE: Domain model representing the server's state including all registered worktrees
-// PURPOSE: Provides pure functions for listing worktrees sorted by activity
+// PURPOSE: Provides pure functions for listing worktrees sorted by issue ID
 
 package iw.core.model
 
@@ -10,8 +10,8 @@ case class ServerState(
   prCache: Map[String, CachedPR] = Map.empty,
   reviewStateCache: Map[String, CachedReviewState] = Map.empty
 ):
-  def listByActivity: List[WorktreeRegistration] =
-    worktrees.values.toList.sortBy(_.lastSeenAt.getEpochSecond)(Ordering[Long].reverse)
+  def listByIssueId: List[WorktreeRegistration] =
+    worktrees.values.toList.sortBy(_.issueId)
 
   def removeWorktree(issueId: String): ServerState =
     copy(

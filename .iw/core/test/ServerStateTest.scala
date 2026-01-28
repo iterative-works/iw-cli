@@ -1,5 +1,5 @@
 // PURPOSE: Tests for ServerState domain model
-// PURPOSE: Verifies worktree collection management and activity-based sorting
+// PURPOSE: Verifies worktree collection management and issue ID-based sorting
 
 package iw.tests
 
@@ -20,9 +20,9 @@ class ServerStateTest extends munit.FunSuite:
   test("ServerState with empty worktrees map"):
     val state = ServerState(worktrees = Map.empty)
     assertEquals(state.worktrees.size, 0)
-    assertEquals(state.listByActivity, List.empty)
+    assertEquals(state.listByIssueId, List.empty)
 
-  test("ServerState.listByActivity returns worktrees sorted by lastSeenAt descending"):
+  test("ServerState.listByIssueId returns worktrees sorted by issueId ascending"):
     val now = Instant.now()
     val oneHourAgo = now.minusSeconds(3600)
     val twoHoursAgo = now.minusSeconds(7200)
@@ -62,14 +62,12 @@ class ServerStateTest extends munit.FunSuite:
       )
     )
 
-    val sorted = state.listByActivity
+    val sorted = state.listByIssueId
     assertEquals(sorted.size, 3)
-    // Most recent (now) should be first
-    assertEquals(sorted(0).issueId, "IWLE-2")
-    // Then one hour ago
-    assertEquals(sorted(1).issueId, "IWLE-3")
-    // Then two hours ago
-    assertEquals(sorted(2).issueId, "IWLE-1")
+    // Alphabetical by issue ID
+    assertEquals(sorted(0).issueId, "IWLE-1")
+    assertEquals(sorted(1).issueId, "IWLE-2")
+    assertEquals(sorted(2).issueId, "IWLE-3")
 
   test("ServerState with single worktree"):
     val worktree = WorktreeRegistration(
@@ -82,7 +80,7 @@ class ServerStateTest extends munit.FunSuite:
     )
 
     val state = ServerState(worktrees = Map("IWLE-1" -> worktree))
-    val sorted = state.listByActivity
+    val sorted = state.listByIssueId
     assertEquals(sorted.size, 1)
     assertEquals(sorted.head.issueId, "IWLE-1")
 
@@ -195,3 +193,104 @@ class ServerStateTest extends munit.FunSuite:
     val newState = state.removeWorktree("IWLE-123")
 
     assert(!newState.reviewStateCache.contains("IWLE-123"))
+
+  test("ServerState.listByIssueId sorts alphabetically with different prefixes"):
+    val now = Instant.now()
+
+    val worktree1 = WorktreeRegistration(
+      issueId = "GH-50",
+      path = "/path1",
+      trackerType = "github",
+      team = "GH",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val worktree2 = WorktreeRegistration(
+      issueId = "IW-100",
+      path = "/path2",
+      trackerType = "linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val worktree3 = WorktreeRegistration(
+      issueId = "LINEAR-25",
+      path = "/path3",
+      trackerType = "linear",
+      team = "LINEAR",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val state = ServerState(
+      worktrees = Map(
+        "GH-50" -> worktree1,
+        "IW-100" -> worktree2,
+        "LINEAR-25" -> worktree3
+      )
+    )
+
+    val sorted = state.listByIssueId
+    assertEquals(sorted.size, 3)
+    // Alphabetical ordering: GH-50 < IW-100 < LINEAR-25
+    assertEquals(sorted(0).issueId, "GH-50")
+    assertEquals(sorted(1).issueId, "IW-100")
+    assertEquals(sorted(2).issueId, "LINEAR-25")
+
+  test("ServerState.listByIssueId uses pure alphabetical string sorting"):
+    val now = Instant.now()
+
+    val worktree1 = WorktreeRegistration(
+      issueId = "IW-1",
+      path = "/path1",
+      trackerType = "linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val worktree2 = WorktreeRegistration(
+      issueId = "IW-10",
+      path = "/path2",
+      trackerType = "linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val worktree3 = WorktreeRegistration(
+      issueId = "IW-100",
+      path = "/path3",
+      trackerType = "linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val worktree4 = WorktreeRegistration(
+      issueId = "IW-2",
+      path = "/path4",
+      trackerType = "linear",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+
+    val state = ServerState(
+      worktrees = Map(
+        "IW-1" -> worktree1,
+        "IW-10" -> worktree2,
+        "IW-100" -> worktree3,
+        "IW-2" -> worktree4
+      )
+    )
+
+    val sorted = state.listByIssueId
+    assertEquals(sorted.size, 4)
+    // Pure alphabetical: IW-1 < IW-10 < IW-100 < IW-2
+    assertEquals(sorted(0).issueId, "IW-1")
+    assertEquals(sorted(1).issueId, "IW-10")
+    assertEquals(sorted(2).issueId, "IW-100")
+    assertEquals(sorted(3).issueId, "IW-2")
