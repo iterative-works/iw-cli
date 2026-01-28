@@ -97,15 +97,66 @@ Initial analysis generated 7 user stories covering full feature scope including 
 **Before:** 39-56 hours (7 stories)
 **After:** 18-24 hours (3 stories)
 
-### Open Questions Remaining
+### Next Steps
 
-1. **Status enum values** - Need to enumerate all valid statuses from current usage
-2. **Required vs optional fields** - Proposed: version, issue_id, status, artifacts required; rest optional
+1. ~~Resolve remaining CLARIFY markers~~ (resolved below)
+2. Generate phase-based tasks
+3. Begin implementation
+
+---
+
+## 2026-01-28: Status Enum and Required Fields Resolution
+
+**Participants:** Michal, Claude
+
+### Context
+
+Searched kanon workflows repository (`~/ops/kanon`) to enumerate all status values currently in use. Also finalized required vs optional fields.
+
+### Decisions Made
+
+#### 8. Status Field: Open Enum Approach
+
+**Decision:** Use open enum - document known values but allow custom statuses without breaking validation.
+
+**Known status values discovered:**
+- `analysis_ready` - Analysis document created
+- `context_ready` - Phase context file created
+- `tasks_ready` - Phase tasks file created
+- `implementing` - Implementation in progress
+- `awaiting_review` - Phase complete, waiting for human review
+- `review_failed` - Code review failed after max iterations
+- `phase_merged` - Phase PR merged (batch mode)
+- `refactoring_complete` - Mid-phase refactoring done
+- `all_complete` - All phases finished
+
+**Rationale:**
+- Dashboard already handles unknown statuses gracefully (converts to title case, default styling)
+- New statuses can be added without schema/validator changes
+- Known statuses get special behavior, unknown ones work neutrally
+- Validation emits warning (not error) for unknown status
+
+**Source:** `~/ops/kanon/skills/ag-implementation-workflow/SKILL.md` and `~/ops/kanon/commands/ag-*.md`
+
+#### 9. Required Fields Finalized
+
+**Decision:** Required fields are: `version`, `issue_id`, `status`, `artifacts`, `last_updated`
+
+**Changes from initial proposal:**
+- Added `last_updated` as required (for auditability and cache invalidation)
+- Confirmed `artifacts` can be empty array `[]` (required but may have no items)
+
+**Rationale:**
+- `last_updated` enables dashboard cache management and audit trails
+- Empty artifacts array is explicit "no artifacts" vs missing field
+
+### All CLARIFY Markers Resolved
+
+Analysis is now **Ready for Implementation** with no remaining open questions.
 
 ### Next Steps
 
-1. Resolve remaining CLARIFY markers
-2. Generate phase-based tasks
-3. Begin implementation
+1. Generate phase-based tasks: `/iterative-works:ag-create-tasks IW-136`
+2. Begin implementation: `/iterative-works:ag-implement IW-136`
 
 ---

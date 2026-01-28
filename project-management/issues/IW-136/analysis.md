@@ -397,40 +397,63 @@ These items were previously CLARIFY markers, now resolved through discussion:
 
 ---
 
-## Remaining Open Questions
+## Additional Resolved Decisions
 
-### CLARIFY: Status enum values
+### Decision 7: Status field - open enum approach
 
-**Question:** What are all valid values for the `status` field?
+**Decision:** Use open enum - document known values but allow custom statuses
 
-**Current known values from codebase:**
-- `implementing`
-- `awaiting_review`
-- `analysis_ready`
+**Known status values** (from kanon workflows):
 
-**Need to confirm:**
-- Are there other valid statuses?
-- Should we allow custom statuses or strict enum?
-- What status values does the dashboard currently recognize?
+| Status | Meaning |
+|--------|---------|
+| `analysis_ready` | Analysis document created |
+| `context_ready` | Phase context file created |
+| `tasks_ready` | Phase tasks file created |
+| `implementing` | Implementation in progress |
+| `awaiting_review` | Phase complete, waiting for human review |
+| `review_failed` | Code review failed after max iterations |
+| `phase_merged` | Phase PR merged (batch mode) |
+| `refactoring_complete` | Mid-phase refactoring done |
+| `all_complete` | All phases finished |
 
-**Impact:** Affects schema definition and validation logic.
+**Rationale:**
+- Dashboard already handles unknown statuses gracefully (converts to title case, uses default styling)
+- Workflows may need new statuses without schema changes
+- Validation warns on unknown status but doesn't reject
+- Known statuses get special styling/behavior, unknown ones work neutrally
+
+**Implementation:**
+- Schema documents known values in description
+- Validation accepts any string for status
+- Validation emits warning (not error) for unknown status values
+- Dashboard's `formatStatusLabel()` handles any string
 
 ---
 
-### CLARIFY: Required vs optional fields
+### Decision 8: Required vs optional fields
 
-**Question:** Which fields should be required vs optional?
+**Decision:** Required: `version`, `issue_id`, `status`, `artifacts`, `last_updated`
 
-**Proposed:**
-- Required: `version`, `issue_id`, `status`, `artifacts`
-- Optional: `phase`, `step`, `branch`, `pr_url`, `git_sha`, `last_updated`, `message`, `batch_mode`, `phase_checkpoints`, `available_actions`
+**Rationale:**
+- `version` - Required for schema evolution
+- `issue_id` - Required to identify the issue
+- `status` - Required for dashboard display
+- `artifacts` - Required (can be empty array `[]`)
+- `last_updated` - Required for auditability and cache invalidation
 
-**Need to confirm:**
-- Is `artifacts` required or can it be empty array?
-- Should `last_updated` be required for auditability?
-- Any other fields that should be required?
+**Optional fields:**
+- `phase` - Not all states have a phase (e.g., analysis_ready)
+- `step` - Detailed progress indicator
+- `branch` - Git branch name
+- `pr_url` - PR link when applicable
+- `git_sha` - Commit reference
+- `message` - Human-readable description
+- `batch_mode` - Automation flag
+- `phase_checkpoints` - Recovery data
+- `available_actions` - Suggested next actions
 
-**Impact:** Affects validation strictness.
+**Note:** `artifacts` is required but may be empty array - this allows explicit "no artifacts" vs missing field.
 
 ---
 
@@ -501,11 +524,12 @@ These items are explicitly out of scope for IW-136:
 
 ---
 
-**Analysis Status:** Ready for Implementation
+**Analysis Status:** Ready for Implementation ✓
+
+All CLARIFY markers resolved (see "Resolved Decisions" and "Additional Resolved Decisions" sections).
 
 **Next Steps:**
-1. **Resolve remaining CLARIFY markers** (status enum, required fields)
-2. **Generate tasks:** `/iterative-works:ag-create-tasks IW-136`
-3. **Begin implementation:** `/iterative-works:ag-implement IW-136`
+1. **Generate tasks:** `/iterative-works:ag-create-tasks IW-136`
+2. **Begin implementation:** `/iterative-works:ag-implement IW-136`
 
 ---
