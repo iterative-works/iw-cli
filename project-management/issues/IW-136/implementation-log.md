@@ -160,3 +160,50 @@ Analysis is now **Ready for Implementation** with no remaining open questions.
 2. Begin implementation: `/iterative-works:ag-implement IW-136`
 
 ---
+
+## Phase 1: JSON Schema formally defines contract (2026-01-28)
+
+**What was built:**
+- Schema: `schemas/review-state.schema.json` - JSON Schema Draft-07 defining the review-state.json contract
+- Documentation: `schemas/README.md` - Versioning policy and field summary
+- Test fixtures: `.iw/core/test/resources/review-state/` - 4 fixture files (2 valid, 2 invalid)
+- E2E test: `.iw/test/schema.bats` - 6 BATS tests for schema existence and correctness
+
+**Decisions made:**
+- Used `additionalProperties: false` at all levels for strict validation
+- `phase` field uses `oneOf` to accept both integer and string types
+- `pr_url` uses `oneOf` for string/null support
+- Status is documented as open enum (any string accepted, known values listed in description)
+- Schema version starts at 1 (the `version` field in the schema tracks breaking changes)
+
+**Patterns applied:**
+- JSON Schema Draft-07 with `$ref` definitions for nested objects (artifact, action, phase_checkpoint)
+- Test fixtures designed to exercise both valid and invalid cases for use by Phase 2 validation
+
+**Testing:**
+- E2E tests: 6 BATS tests (schema existence, valid JSON, Draft-07, required fields, all properties, fixtures)
+- Compatibility: Verified all existing v2 review-state.json files have required fields
+
+**Code review:**
+- Iterations: 1
+- No critical issues found
+- Schema passes meta-validation and compatibility checks
+
+**For next phases:**
+- Schema at `schemas/review-state.schema.json` defines the contract Phase 2 validation must enforce
+- Test fixtures in `.iw/core/test/resources/review-state/` available for Phase 2 unit tests
+- Required fields: version, issue_id, status, artifacts, last_updated
+- Open enum for status means validation should warn (not error) on unknown values
+
+**Files created:**
+```
+A schemas/review-state.schema.json
+A schemas/README.md
+A .iw/core/test/resources/review-state/valid-minimal.json
+A .iw/core/test/resources/review-state/valid-full.json
+A .iw/core/test/resources/review-state/invalid-missing-required.json
+A .iw/core/test/resources/review-state/invalid-wrong-types.json
+A .iw/test/schema.bats
+```
+
+---

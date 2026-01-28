@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue_id": "IW-42",
+  "status": "awaiting_review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-42/analysis.md"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-42/implementation-log.md"}
+  ],
+  "last_updated": "2026-01-28T17:30:00Z",
+  "phase": 3,
+  "step": "review",
+  "branch": "IW-42",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/99",
+  "git_sha": "abc1234",
+  "message": "Phase 3 review complete",
+  "batch_mode": true,
+  "phase_checkpoints": {
+    "1": {"context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b"},
+    "2": {"context_sha": "d485a987e378d8193e6a211955e1709725178f00"},
+    "3": {"context_sha": "e2ec5f731fb1230e03783600e83325ac70072100"}
+  },
+  "available_actions": [
+    {"id": "implement", "label": "Start Implementation", "skill": "iterative-works:ag-implement"},
+    {"id": "verify", "label": "Verify Phase", "skill": "iterative-works:ag-verify"}
+  ]
+}
