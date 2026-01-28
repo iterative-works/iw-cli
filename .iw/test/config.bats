@@ -314,3 +314,126 @@ EOF
     trackerType=$(echo "$output" | tail -1 | jq -r '.trackerType')
     [ "$trackerType" = "Linear" ]
 }
+
+@test "config with no arguments shows usage" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command with no args
+    run "$PROJECT_ROOT/iw" config
+
+    # Assert
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Usage:"* ]]
+    [[ "$output" == *"iw config get <field>"* ]]
+    [[ "$output" == *"iw config --json"* ]]
+}
+
+@test "config get without field shows missing argument error" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command with get but no field
+    run "$PROJECT_ROOT/iw" config get
+
+    # Assert
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Missing required argument: <field>"* ]]
+    [[ "$output" == *"Usage:"* ]]
+}
+
+@test "config --invalid shows unknown option error" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command with invalid option
+    run "$PROJECT_ROOT/iw" config --invalid
+
+    # Assert
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unknown option: --invalid"* ]]
+    [[ "$output" == *"Usage:"* ]]
+}
+
+@test "config usage includes command descriptions" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command with no args to trigger usage
+    run "$PROJECT_ROOT/iw" config
+
+    # Assert
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"iw config - Query project configuration"* ]]
+    [[ "$output" == *"Get a specific configuration field"* ]]
+    [[ "$output" == *"Export full configuration as JSON"* ]]
+}
+
+@test "config usage includes available fields list" {
+    # Setup: create GitHub config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+tracker {
+  type = github
+  repository = "iterative-works/iw-cli"
+  teamPrefix = "IW"
+}
+project {
+  name = test-project
+}
+EOF
+
+    # Run command with no args to trigger usage
+    run "$PROJECT_ROOT/iw" config
+
+    # Assert
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Available fields:"* ]]
+    [[ "$output" == *"trackerType"* ]]
+    [[ "$output" == *"team"* ]]
+    [[ "$output" == *"projectName"* ]]
+    [[ "$output" == *"repository"* ]]
+    [[ "$output" == *"teamPrefix"* ]]
+    [[ "$output" == *"version"* ]]
+    [[ "$output" == *"youtrackBaseUrl"* ]]
+}
