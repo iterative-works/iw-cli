@@ -40,7 +40,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       wt => os.exists(os.Path(wt.path, os.pwd))
     )
 
-    val worktrees = state.listByActivity
+    val worktrees = state.listByIssueId
 
     // Load project configuration
     val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
@@ -183,8 +183,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
     val state = stateService.getState
     val now = Instant.now()
 
-    // Get current worktree IDs ordered by activity
-    val currentWorktrees = state.listByActivity
+    // Get current worktree IDs ordered by issue ID
+    val currentWorktrees = state.listByIssueId
     val currentIds = currentWorktrees.map(_.issueId)
 
     // Parse client's known IDs from `have` param (comma-separated)
