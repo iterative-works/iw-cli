@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "issue_id": "IW-136",
+  "status": "analysis_ready",
+  "phase": 0,
+  "step": "analysis",
+  "branch": "IW-136",
+  "pr_url": null,
+  "git_sha": "e19819ed50da46f4c27e3ee0107feaffe4de2cf4",
+  "last_updated": "2026-01-28T14:45:50Z",
+  "message": "Analysis complete - ready for review",
+  "artifacts": [
+    {"label": "Analysis", "path": "project-management/issues/IW-136/analysis.md"}
+  ]
+}
