@@ -26,7 +26,7 @@ class MainProjectServiceTest extends FunSuite:
       lastSeenAt = Instant.now()
     )
 
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "iterative-works/iw-cli",
       projectName = "iw-cli",
@@ -64,7 +64,7 @@ class MainProjectServiceTest extends FunSuite:
       lastSeenAt = Instant.now()
     )
 
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "iterative-works/iw-cli",
       projectName = "iw-cli",
@@ -100,7 +100,7 @@ class MainProjectServiceTest extends FunSuite:
       lastSeenAt = Instant.now()
     )
 
-    val configGitHub = ProjectConfiguration(
+    val configGitHub = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "iterative-works/iw-cli",
       projectName = "iw-cli",
@@ -108,7 +108,7 @@ class MainProjectServiceTest extends FunSuite:
       teamPrefix = Some("IW")
     )
 
-    val configLinear = ProjectConfiguration(
+    val configLinear = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "kanon"
@@ -148,7 +148,7 @@ class MainProjectServiceTest extends FunSuite:
       lastSeenAt = Instant.now()
     )
 
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "iterative-works/iw-cli",
       projectName = "iw-cli",
@@ -184,7 +184,7 @@ class MainProjectServiceTest extends FunSuite:
     assertEquals(result, List.empty)
 
   // Helper
-  private def defaultConfig = ProjectConfiguration(
+  private def defaultConfig = ProjectConfiguration.create(
     trackerType = IssueTrackerType.GitHub,
     team = "test",
     projectName = "test",

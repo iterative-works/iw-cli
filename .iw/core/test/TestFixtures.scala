@@ -128,14 +128,14 @@ object SampleData:
   )
 
   /** Sample Linear project configuration. */
-  val linearConfig: ProjectConfiguration = ProjectConfiguration(
+  val linearConfig: ProjectConfiguration = ProjectConfiguration.create(
     trackerType = IssueTrackerType.Linear,
     team = "IWLE",
     projectName = "kanon"
   )
 
   /** Sample YouTrack project configuration. */
-  val youtrackConfig: ProjectConfiguration = ProjectConfiguration(
+  val youtrackConfig: ProjectConfiguration = ProjectConfiguration.create(
     trackerType = IssueTrackerType.YouTrack,
     team = "TEST",
     projectName = "myproject",

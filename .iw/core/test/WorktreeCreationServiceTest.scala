@@ -13,7 +13,7 @@ import java.time.Instant
 
 class WorktreeCreationServiceTest extends FunSuite:
 
-  val testConfig = ProjectConfiguration(
+  val testConfig = ProjectConfiguration.create(
     trackerType = IssueTrackerType.GitHub,
     team = "IW",
     projectName = "iw-cli",

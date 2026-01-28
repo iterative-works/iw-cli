@@ -255,7 +255,7 @@ execute_command() {
         # Project commands: Execute with core library, NO hook discovery
         cd "$PROJECT_DIR"
         # shellcheck disable=SC2086
-        exec scala-cli run "$cmd_file" $core_files -- "$@"
+        exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $core_files -- "$@"
 
     else
         # Shared command
@@ -314,7 +314,7 @@ execute_command() {
         # Execute with scala-cli, including core library and any discovered hook files
         # IW_HOOK_CLASSES tells the command which hook objects to initialize
         # shellcheck disable=SC2086
-        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run "$cmd_file" $hook_files $core_files -- "$@"
+        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $hook_files $core_files -- "$@"
     fi
 }
 

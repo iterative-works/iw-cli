@@ -9,7 +9,7 @@ class ConfigRepositoryTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ConfigFileRepository writes config to file"):
     dir =>
-      val config = ProjectConfiguration(
+      val config = ProjectConfiguration.create(
         trackerType = IssueTrackerType.Linear,
         team = "IWLE",
         projectName = "kanon"
@@ -48,7 +48,7 @@ class ConfigRepositoryTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ConfigFileRepository roundtrip preserves data"):
     dir =>
-      val original = ProjectConfiguration(
+      val original = ProjectConfiguration.create(
         trackerType = IssueTrackerType.Linear,
         team = "IWLE",
         projectName = "kanon"
@@ -70,7 +70,7 @@ class ConfigRepositoryTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ConfigFileRepository creates parent directories when writing"):
     dir =>
-      val config = ProjectConfiguration(
+      val config = ProjectConfiguration.create(
         trackerType = IssueTrackerType.Linear,
         team = "IWLE",
         projectName = "kanon"
@@ -85,7 +85,7 @@ class ConfigRepositoryTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ConfigFileRepository writes config with version field"):
     dir =>
-      val config = ProjectConfiguration(
+      val config = ProjectConfiguration.create(
         trackerType = IssueTrackerType.Linear,
         team = "IWLE",
         projectName = "kanon",

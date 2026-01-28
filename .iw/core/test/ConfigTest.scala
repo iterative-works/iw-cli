@@ -94,7 +94,7 @@ class ConfigTest extends munit.FunSuite:
 
   // GitHub config serialization tests
   test("ConfigSerializer serializes GitHub config to HOCON"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "",
       repository = Some("iterative-works/iw-cli"),
@@ -124,7 +124,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(config.teamPrefix, Some("IWCLI"))
 
   test("ConfigSerializer round-trip for GitHub config"):
-    val original = ProjectConfiguration(
+    val original = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "",
       repository = Some("iterative-works/iw-cli"),
@@ -240,7 +240,7 @@ class ConfigTest extends munit.FunSuite:
   // ========== Team Prefix Tests ==========
 
   test("ConfigSerializer serializes GitHub config with team prefix"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "",
       repository = Some("iterative-works/iw-cli"),
@@ -361,7 +361,7 @@ class ConfigTest extends munit.FunSuite:
     assert(result.left.getOrElse("").contains("uppercase letters only"))
 
   test("ConfigSerializer round-trip for GitHub config with team prefix"):
-    val original = ProjectConfiguration(
+    val original = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitHub,
       team = "",
       repository = Some("iterative-works/iw-cli"),
@@ -378,7 +378,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.projectName, original.projectName)
 
   test("ConfigSerializer omits team prefix for Linear config"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.Linear,
       team = "IWLE",
       projectName = "test-project"
@@ -389,7 +389,7 @@ class ConfigTest extends munit.FunSuite:
     assert(!hocon.contains("teamPrefix"))
 
   test("ConfigSerializer omits team prefix for YouTrack config"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.YouTrack,
       team = "TEST",
       projectName = "test-project"
@@ -548,7 +548,7 @@ class ConfigTest extends munit.FunSuite:
   // ========== ConfigSerializer GitLab Serialization Tests ==========
 
   test("ConfigSerializer serializes GitLab config without baseUrl"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "",
       repository = Some("owner/project"),
@@ -562,7 +562,7 @@ class ConfigTest extends munit.FunSuite:
     assert(!hocon.contains("baseUrl"))
 
   test("ConfigSerializer serializes GitLab config with baseUrl"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "",
       repository = Some("owner/project"),
@@ -577,7 +577,7 @@ class ConfigTest extends munit.FunSuite:
     assert(hocon.contains("baseUrl = \"https://gitlab.company.com\""))
 
   test("ConfigSerializer serializes GitLab config with nested group"):
-    val config = ProjectConfiguration(
+    val config = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "",
       repository = Some("group/subgroup/project"),
@@ -684,7 +684,7 @@ class ConfigTest extends munit.FunSuite:
     assert(result.left.getOrElse("").contains("repository must be in owner/repo format"))
 
   test("ConfigSerializer round-trip for GitLab config without baseUrl"):
-    val original = ProjectConfiguration(
+    val original = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "",
       repository = Some("owner/project"),
@@ -701,7 +701,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.projectName, original.projectName)
 
   test("ConfigSerializer round-trip for GitLab config with baseUrl"):
-    val original = ProjectConfiguration(
+    val original = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "",
       repository = Some("owner/project"),
@@ -719,7 +719,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.youtrackBaseUrl, original.youtrackBaseUrl)
 
   test("ConfigSerializer round-trip for GitLab config with nested groups"):
-    val original = ProjectConfiguration(
+    val original = ProjectConfiguration.create(
       trackerType = IssueTrackerType.GitLab,
       team = "",
       repository = Some("group/subgroup/project"),

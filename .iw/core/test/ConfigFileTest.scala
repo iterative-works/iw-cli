@@ -9,7 +9,7 @@ class ConfigFileTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ProjectConfiguration serializes to HOCON"):
     tempDir =>
-      val config = ProjectConfiguration(
+      val config = ProjectConfiguration.create(
         trackerType = IssueTrackerType.Linear,
         team = "IWLE",
         projectName = "kanon"
@@ -46,7 +46,7 @@ class ConfigFileTest extends munit.FunSuite, Fixtures:
 
   tempDir.test("ProjectConfiguration roundtrip preserves data"):
     tempDir =>
-      val original = ProjectConfiguration(
+      val original = ProjectConfiguration.create(
         trackerType = IssueTrackerType.YouTrack,
         team = "TEST",
         projectName = "myproject",
