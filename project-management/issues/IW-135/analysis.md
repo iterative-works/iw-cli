@@ -21,32 +21,39 @@ The `iw config` command provides a stable CLI interface for querying configurati
 ```gherkin
 Feature: Configuration value retrieval
   As a workflow script author
-  I want to query a specific config value by path
+  I want to query a specific config value by field name
   So that I can make decisions based on project configuration
 
 Scenario: Retrieve tracker type successfully
   Given a valid .iw/config.conf exists
-  And the config contains tracker.type = github
-  When I run "iw config get tracker.type"
-  Then the output is "github"
+  And the config specifies GitHub as the tracker
+  When I run "iw config get trackerType"
+  Then the output is "GitHub"
   And the exit code is 0
 
-Scenario: Retrieve nested configuration value
+Scenario: Retrieve repository value
   Given a valid .iw/config.conf exists
-  And the config contains tracker.repository = "iterative-works/iw-cli"
-  When I run "iw config get tracker.repository"
+  And the config specifies repository = "iterative-works/iw-cli"
+  When I run "iw config get repository"
   Then the output is "iterative-works/iw-cli"
   And the exit code is 0
 
-Scenario: Request non-existent configuration path
+Scenario: Request non-existent field
   Given a valid .iw/config.conf exists
-  When I run "iw config get tracker.nonexistent"
-  Then the output contains "Configuration key not found: tracker.nonexistent"
+  When I run "iw config get nonexistent"
+  Then the output contains "Unknown configuration field: nonexistent"
+  And the exit code is 1
+
+Scenario: Request optional field that is not set
+  Given a valid .iw/config.conf exists
+  And the config does not specify youtrackBaseUrl
+  When I run "iw config get youtrackBaseUrl"
+  Then the output is empty or indicates not set
   And the exit code is 1
 
 Scenario: No configuration file exists
   Given .iw/config.conf does not exist
-  When I run "iw config get tracker.type"
+  When I run "iw config get trackerType"
   Then the output contains "Configuration not found"
   And the exit code is 1
 ```
@@ -57,14 +64,14 @@ Scenario: No configuration file exists
 **Technical Feasibility:**
 This is straightforward because:
 - Configuration parsing already exists (`ConfigFileRepository.read()`)
-- Path lookup can use Typesafe Config's `hasPath()` and `getString()` methods
+- JSON serialization via upickle, path lookup via ujson
 - Error handling patterns established in existing commands
 
 **Acceptance:**
-- Can retrieve any configuration value by dot-notation path
+- Can retrieve any configuration field by camelCase field name
 - Outputs plain text (just the value, no formatting)
-- Returns exit code 0 for success, 1 for not found
-- Clear error messages for missing config file or invalid paths
+- Returns exit code 0 for success, 1 for not found/not set
+- Clear error messages for missing config file or unknown fields
 
 ---
 
@@ -78,23 +85,13 @@ Feature: Full configuration export
 
 Scenario: Export configuration as JSON
   Given a valid .iw/config.conf exists
-  And the config contains:
-    """
-    tracker {
-      type = github
-      repository = "iterative-works/iw-cli"
-      teamPrefix = "IW"
-    }
-    project {
-      name = iw-cli
-    }
-    """
+  And the config specifies GitHub tracker with repository "iterative-works/iw-cli"
   When I run "iw config --json"
   Then the output is valid JSON
-  And the JSON contains tracker.type = "github"
-  And the JSON contains tracker.repository = "iterative-works/iw-cli"
-  And the JSON contains tracker.teamPrefix = "IW"
-  And the JSON contains project.name = "iw-cli"
+  And the JSON contains "trackerType":"GitHub"
+  And the JSON contains "repository":"iterative-works/iw-cli"
+  And the JSON contains "teamPrefix":"IW"
+  And the JSON contains "projectName":"iw-cli"
   And the exit code is 0
 
 Scenario: Export when no configuration exists
@@ -109,9 +106,8 @@ Scenario: Export when no configuration exists
 
 **Technical Feasibility:**
 This is straightforward because:
-- Typesafe Config library provides `config.root().render()` for JSON serialization
+- upickle provides JSON serialization via `write(config)`
 - Config already loaded via `ConfigFileRepository.read()`
-- JSON output formatting is a simple library call
 - Error handling matches Story 1 patterns
 
 **Acceptance:**
@@ -168,41 +164,41 @@ This is straightforward because:
 
 **Purpose:** List WHAT components each story needs, not HOW they're implemented.
 
-### For Story 1: Query specific configuration value by path
+### For Story 1: Query specific configuration value by field name
 
 **Domain Layer:**
 - No new domain types needed (reuse existing `ProjectConfiguration`, `IssueTrackerType`)
+- Add `ReadWriter[ProjectConfiguration]` derivation for upickle serialization
 
 **Application Layer:**
-- `ConfigQueryService` or logic within command to query config by path
-- Method to convert `ProjectConfiguration` case class to path-accessible structure
+- Logic within command to serialize config to JSON, then query by field name via ujson
 
 **Infrastructure Layer:**
 - `ConfigFileRepository.read(path)` (already exists)
-- Typesafe Config library for path-based queries
+- upickle/ujson for JSON serialization and field lookup
 
 **Presentation Layer:**
 - `.iw/commands/config.scala` - new command script
 - Plain text output formatter (value only, no decoration)
-- Error message formatter for missing paths
+- Error message formatter for unknown fields
 
 ---
 
 ### For Story 2: Export full configuration as JSON
 
 **Domain Layer:**
-- No new domain types needed
+- Same `ReadWriter[ProjectConfiguration]` as Story 1
 
 **Application Layer:**
-- Logic to serialize full config to JSON
+- Serialize config to JSON using upickle `write()`
 
 **Infrastructure Layer:**
 - `ConfigFileRepository.read(path)` (already exists)
-- Typesafe Config's JSON rendering capabilities
+- upickle for JSON serialization
 
 **Presentation Layer:**
 - Same `.iw/commands/config.scala` command
-- JSON formatter (pretty-printed or compact)
+- Compact JSON output (single line)
 
 ---
 
@@ -225,77 +221,77 @@ This is straightforward because:
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Path notation for nested values
+### RESOLVED: Path notation and JSON serialization
 
-The issue description mentions dot notation (e.g., `tracker.type`), but we need to clarify how this maps to the existing `ProjectConfiguration` case class.
+**Decision:** Serialize `ProjectConfiguration` to JSON using upickle, then use ujson to query paths for `get`.
 
-**Questions to answer:**
-1. Should paths query the raw HOCON structure or the parsed `ProjectConfiguration` object?
-2. How do we handle optional fields (e.g., `tracker.baseUrl` which may not exist)?
-3. Should we support array indexing (e.g., `hooks[0].name`) even though current config has no arrays?
+**Rationale:**
+- upickle is already a project dependency
+- Single source of truth: JSON structure derives from case class
+- No manual mapping to maintain
+- Paths naturally match field names
 
-**Options:**
-- **Option A - Query raw HOCON**: Use Typesafe Config's path API directly on the parsed HOCON
-  - Pros: Supports any config structure, forwards-compatible with config schema changes
-  - Cons: Bypasses domain model validation, may return values that don't match `ProjectConfiguration`
-- **Option B - Query via ProjectConfiguration**: Convert case class to Map/JSON-like structure
-  - Pros: Type-safe, matches validated domain model
-  - Cons: Requires maintaining mapping logic, less flexible for config evolution
-- **Option C - Hybrid**: Load HOCON for path queries, but validate against `ProjectConfiguration` schema
-  - Pros: Flexible queries, maintains validation
-  - Cons: More complex implementation
+**Implementation approach:**
+```scala
+import upickle.default.*
 
-**Impact:** Affects Story 1 and Story 2 implementation. Story 1 needs this decision to implement path lookup logic.
+// Derive JSON codec
+given ReadWriter[ProjectConfiguration] = macroRW
 
-**Recommendation:** Option A (query raw HOCON) for simplicity and forward compatibility. The `iw config` command is a read-only query interface, so bypassing domain validation is acceptable here.
+// For --json: serialize the model
+val json = write(config)
 
----
+// For get <path>: query using ujson
+val value = ujson.read(json)(fieldName)
+```
 
-### CLARIFY: JSON output structure for Story 2
+**Supported paths** (flat camelCase, matching case class fields):
+- `trackerType` - Issue tracker type (GitHub, GitLab, Linear, YouTrack)
+- `repository` - Repository in owner/repo format
+- `teamPrefix` - Issue ID prefix (e.g., "IW")
+- `youtrackBaseUrl` - Base URL for YouTrack/GitLab
+- `projectName` - Project name
+- `team` - Team identifier (for Linear/YouTrack)
+- `version` - Tool version
 
-The issue shows example JSON output, but we need to clarify the exact structure.
-
-**Questions to answer:**
-1. Should JSON output match HOCON structure exactly (lowercase, nested objects)?
-2. Should it include computed/derived fields from `ProjectConfiguration` (e.g., defaults)?
-3. Should it be compact or pretty-printed by default?
-
-**Options:**
-- **Option A - Mirror HOCON exactly**: JSON structure identical to `.iw/config.conf` structure
-  - Pros: Predictable, no transformation logic needed
-  - Cons: May include HOCON-specific artifacts
-- **Option B - Match ProjectConfiguration shape**: Serialize the case class to JSON
-  - Pros: Clean, validated structure matching domain model
-  - Cons: Field names differ from HOCON (e.g., `trackerType` vs `tracker.type`)
-- **Option C - Pretty-printed by default**: Multi-line formatted JSON
-  - Pros: Human-readable for debugging
-  - Cons: Harder to parse in scripts (need `jq` piping)
-
-**Impact:** Affects Story 2 JSON serialization. Determines which library/method to use for JSON conversion.
-
-**Recommendation:** Option A (mirror HOCON) for consistency with `iw config get` paths, with compact output (workflows can pipe to `jq` for pretty-printing).
+Optional fields return empty/null when not configured (exit code 1).
 
 ---
 
-### CLARIFY: Scope exclusion for write operations
+### RESOLVED: JSON output structure for Story 2
 
-The issue description marks `iw config set` as "optional, lower priority" and should be excluded from initial scope.
+**Decision:** Serialize `ProjectConfiguration` case class to JSON using upickle. Compact output by default.
 
-**Questions to answer:**
-1. Should we design the command structure to accommodate future `set` subcommand?
-2. Should usage output mention that `set` is not yet implemented?
+**Rationale:**
+- Ensures JSON reflects actual domain model values (including defaults, validated data)
+- Field names match `get` paths (both use case class field names)
+- upickle already in project dependencies
+- Compact output is easier for scripts; users can pipe to `jq` for pretty-printing
 
-**Options:**
-- **Option A - Design for future extension**: Use subcommand structure (`iw config get`, `iw config list`) anticipating `set`
-  - Pros: Cleaner future extension, consistent subcommand pattern
-  - Cons: More complex argument parsing for this simple feature
-- **Option B - Flat command structure**: Use flags (`iw config --json`, `iw config <path>`) without subcommands
-  - Pros: Simpler for read-only operations
-  - Cons: May require refactoring when adding `set` later
+**Example output:**
+```json
+{"trackerType":"GitHub","team":"","projectName":"iw-cli","repository":"iterative-works/iw-cli","teamPrefix":"IW","version":"latest"}
+```
 
-**Impact:** Affects all stories - determines command line interface design.
+---
 
-**Recommendation:** Option B (flat structure) for simplicity. We can add `iw config set` as a separate subcommand later without breaking the read-only interface.
+### RESOLVED: Command structure
+
+**Decision:** Use subcommand structure with explicit `get` to anticipate future `set`.
+
+**Command interface:**
+```bash
+iw config get <field>    # Get a specific field value
+iw config --json         # Export full config as JSON
+iw config                # Show usage
+```
+
+**Rationale:**
+- Matches original issue examples (`iw config get tracker.type`)
+- Clean extension path for `iw config set <field> <value>` later
+- Consistent subcommand pattern
+
+**Scope:** `set` subcommand excluded from initial implementation.
 
 ## Total Estimates
 
