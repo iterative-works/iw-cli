@@ -252,3 +252,48 @@ A .iw/test/validate-review-state.bats
 ```
 
 ---
+
+## Phase 3: Write command for review state (2026-01-28)
+
+**What was built:**
+- Domain: `ReviewStateBuilder` with `BuildInput` case class in `.iw/core/model/ReviewStateBuilder.scala` - pure JSON construction
+- Adapter: `GitAdapter.getHeadSha()` added to `.iw/core/adapters/Git.scala`
+- Command: `.iw/commands/write-review-state.scala` - CLI with flags and stdin modes
+- Unit tests: 9 tests in `.iw/core/test/ReviewStateBuilderTest.scala` + 2 in `GitTest.scala`
+- E2E tests: 9 tests in `.iw/test/write-review-state.bats`
+
+**Decisions made:**
+- `BuildInput` case class captures all typed inputs, builder converts to ujson
+- Phase uses `Either[Int, String]` to preserve integer vs string distinction in JSON output
+- Auto-population: issue_id from branch, git_sha from HEAD, last_updated from `Instant.now()`
+- Repeatable flags (`--artifact`, `--action`) use colon-separated format for simplicity
+- Validation runs on built JSON before writing, ensuring output is always schema-compliant
+
+**Patterns applied:**
+- FCIS: Pure builder in model/ (no I/O), adapter for git, command is shell
+- Validate-before-write: Built JSON passes through ReviewStateValidator before file I/O
+- Flag parsing: Custom extractFlag/extractRepeatedFlag helpers for CLI argument processing
+
+**Testing:**
+- Unit tests: 9 builder tests + 2 git adapter tests
+- E2E tests: 9 BATS tests covering both modes, error cases, auto-inference
+
+**Code review:**
+- Iterations: 1
+- No critical issues found
+
+**For future work:**
+- `ReviewStateBuilder.build()` and `ReviewStateBuilder.BuildInput` available for programmatic state construction
+- Integration test confirms write → validate roundtrip works
+
+**Files created/modified:**
+```
+A .iw/core/model/ReviewStateBuilder.scala
+M .iw/core/adapters/Git.scala (added getHeadSha)
+A .iw/commands/write-review-state.scala
+A .iw/core/test/ReviewStateBuilderTest.scala
+M .iw/core/test/GitTest.scala (added getHeadSha tests)
+A .iw/test/write-review-state.bats
+```
+
+---
