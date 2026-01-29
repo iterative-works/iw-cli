@@ -41,3 +41,7 @@
   - Invalid status in stdin → exit 1, no file
   - --output flag → writes to specified path
   - Missing --status → exit 1
+
+## Refactoring
+
+- [ ] [impl] [ ] [reviewed] Refactoring R1: Separate display structure from workflow semantics

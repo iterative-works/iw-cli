@@ -148,3 +148,43 @@ If `--output` not provided:
 - [ ] Always replaces file (no merge semantics)
 - [ ] Unit tests cover builder logic
 - [ ] E2E tests verify command behavior
+
+## Refactoring Decisions
+
+### R1: Separate display structure from workflow semantics (2026-01-29)
+
+**Trigger:** During discussion about documenting the schema for the kanon (workflow) repository, we identified a boundary violation. The dashboard's `statusBadgeClass()` and `formatStatusLabel()` functions in `WorktreeListView.scala` interpret workflow-specific status values like "awaiting_review", "in_progress", "completed". This means iw-cli has semantic knowledge that belongs to the workflow layer.
+
+**Decision:** Separate structural display concerns from semantic workflow concerns:
+- **iw-cli (dashboard)** owns structure: "display a badge with this text and this color category"
+- **kanon (workflow)** owns semantics: "what text to show, what color to use, when"
+
+The workflow should control both the display text AND the color category, while iw-cli just renders what it's given.
+
+**Scope:**
+- Files affected:
+  - `schemas/review-state.schema.json`
+  - `.iw/core/model/ReviewStateValidator.scala`
+  - `.iw/core/model/ReviewStateBuilder.scala`
+  - `.iw/core/dashboard/WorktreeListView.scala`
+  - `.iw/core/dashboard/presentation/views/WorktreeCardRenderer.scala`
+  - `.iw/commands/write-review-state.scala`
+- Components: Schema, Validator, Builder, Dashboard rendering
+- Boundaries: Do not change dashboard layout/HTML structure, only how status is rendered
+
+**Approach:**
+1. Bump schema to v2 with clear separation of concerns
+2. Remove fields: `branch`, `batch_mode`, `step`, `phase` (redundant or semantic)
+3. Make `status` optional (machine identifier for workflow, not dashboard display)
+4. Add `display` object: `{text, subtext?, type}` for status badge
+5. Add `badges` array for workflow-controlled contextual indicators
+6. Add `task_lists` array for explicit progress file references
+7. Add `needs_attention` boolean for attention indicator
+8. Remove `knownStatuses` and all semantic interpretation from iw-cli
+9. Document intent of all fields for future development alignment
+
+**Key design principles:**
+- Dashboard renders what it's given, no interpretation
+- Workflow controls all presentation text and colors
+- Progress computed from explicitly referenced files, not discovered
+- `message` is prominent notification, `display` is status metadata
