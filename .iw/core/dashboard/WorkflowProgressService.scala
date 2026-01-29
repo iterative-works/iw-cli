@@ -15,6 +15,7 @@ object WorkflowProgressService:
 
   /** Fetch workflow progress with cache support, returning CachedProgress.
     *
+    * Uses explicit task list paths when provided, otherwise discovers phase files.
     * Checks cache validity using file modification times.
     * Re-parses task files if cache is invalid or missing.
     * Returns CachedProgress so caller can update server cache.
@@ -24,6 +25,7 @@ object WorkflowProgressService:
     * @param issueId Issue identifier (e.g., "IWLE-123")
     * @param worktreePath Path to worktree root
     * @param cache Existing progress cache
+    * @param taskListPaths Optional explicit list of task file paths (from review-state.json)
     * @param readFile Function to read file lines (injected I/O)
     * @param getMtime Function to get file modification time (injected I/O)
     * @return Either error message or CachedProgress
@@ -32,13 +34,15 @@ object WorkflowProgressService:
     issueId: String,
     worktreePath: String,
     cache: Map[String, CachedProgress],
+    taskListPaths: Option[List[String]] = None,
     readFile: String => Either[String, Seq[String]],
     getMtime: String => Either[String, Long]
   ): Either[String, CachedProgress] =
-    fetchProgressInternal(issueId, worktreePath, cache, readFile, getMtime)
+    fetchProgressInternal(issueId, worktreePath, cache, taskListPaths, readFile, getMtime)
 
   /** Fetch workflow progress with cache support.
     *
+    * Uses explicit task list paths when provided, otherwise discovers phase files.
     * Checks cache validity using file modification times.
     * Re-parses task files if cache is invalid or missing.
     *
@@ -47,6 +51,7 @@ object WorkflowProgressService:
     * @param issueId Issue identifier (e.g., "IWLE-123")
     * @param worktreePath Path to worktree root
     * @param cache Existing progress cache
+    * @param taskListPaths Optional explicit list of task file paths (from review-state.json)
     * @param readFile Function to read file lines (injected I/O)
     * @param getMtime Function to get file modification time (injected I/O)
     * @return Either error message or WorkflowProgress
@@ -55,34 +60,47 @@ object WorkflowProgressService:
     issueId: String,
     worktreePath: String,
     cache: Map[String, CachedProgress],
+    taskListPaths: Option[List[String]] = None,
     readFile: String => Either[String, Seq[String]],
     getMtime: String => Either[String, Long]
   ): Either[String, WorkflowProgress] =
-    fetchProgressInternal(issueId, worktreePath, cache, readFile, getMtime).map(_.progress)
+    fetchProgressInternal(issueId, worktreePath, cache, taskListPaths, readFile, getMtime).map(_.progress)
 
   /** Internal implementation that returns CachedProgress. */
   private def fetchProgressInternal(
     issueId: String,
     worktreePath: String,
     cache: Map[String, CachedProgress],
+    taskListPaths: Option[List[String]],
     readFile: String => Either[String, Seq[String]],
     getMtime: String => Either[String, Long]
   ): Either[String, CachedProgress] =
     val taskDir = s"$worktreePath/project-management/issues/$issueId"
     val tasksFilePath = s"$taskDir/tasks.md"
 
-    // Discover phase files using injected getMtime (check if files exist by trying to get mtime)
-    val phaseFilePaths = (1 to 20).map { n =>
-      val phaseNum = f"$n%02d"
-      s"$taskDir/phase-$phaseNum-tasks.md"
-    }.toList
+    // Use explicit task list paths if provided, otherwise discover phase files
+    val existingFiles = taskListPaths match
+      case Some(paths) =>
+        // Use explicit paths from review-state.json
+        paths.zipWithIndex.flatMap { case (path, idx) =>
+          val absolutePath = if path.startsWith("/") then path else s"$worktreePath/$path"
+          getMtime(absolutePath).toOption.map { mtime =>
+            DiscoveredPhaseFile(idx + 1, absolutePath)
+          }
+        }
+      case None =>
+        // Fallback: discover phase files using conventional naming
+        val phaseFilePaths = (1 to 20).map { n =>
+          val phaseNum = f"$n%02d"
+          s"$taskDir/phase-$phaseNum-tasks.md"
+        }.toList
 
-    // Filter to files that exist (getMtime succeeds)
-    val existingFiles = phaseFilePaths.zipWithIndex.flatMap { case (path, idx) =>
-      getMtime(path).toOption.map { mtime =>
-        DiscoveredPhaseFile(idx + 1, path)
-      }
-    }
+        // Filter to files that exist (getMtime succeeds)
+        phaseFilePaths.zipWithIndex.flatMap { case (path, idx) =>
+          getMtime(path).toOption.map { mtime =>
+            DiscoveredPhaseFile(idx + 1, path)
+          }
+        }
 
     if existingFiles.isEmpty then
       Left(s"No phase files found in $taskDir")

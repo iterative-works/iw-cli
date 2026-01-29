@@ -198,8 +198,6 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       // Verify fetchedReviewState is populated (the working pattern)
       assert(result.fetchedReviewState.isDefined, "fetchedReviewState should be Some when review-state.json exists")
       val cached = result.fetchedReviewState.get
-      assertEquals(cached.state.status, Some("awaiting_review"))
-      assertEquals(cached.state.phase, Some(1))
       assertEquals(cached.state.artifacts.size, 1)
       assertEquals(cached.state.artifacts.head.label, "Analysis")
     finally
@@ -279,8 +277,10 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       // Pre-populate cache with existing review state (same mtime as file)
       val fileMtime = Files.getLastModifiedTime(reviewStateFile).toMillis
       val cachedState = ReviewState(
-        status = Some("cached_status"),
-        phase = Some(99),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
         message = Some("Cached message"),
         artifacts = List(ReviewArtifact("Cached", "cached.md"))
       )
@@ -305,8 +305,6 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       // Verify cached state is returned (cache hit)
       assert(result.fetchedReviewState.isDefined, "fetchedReviewState should be Some")
       val returned = result.fetchedReviewState.get
-      assertEquals(returned.state.status, Some("cached_status"), "Should return cached state when mtime unchanged")
-      assertEquals(returned.state.phase, Some(99))
     finally
       // Cleanup
       Files.deleteIfExists(reviewStateFile)

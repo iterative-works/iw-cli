@@ -90,7 +90,7 @@ class WorkflowProgressServiceTest extends FunSuite:
       else Left("File not found")
 
     val result = WorkflowProgressService.fetchProgress(
-      "ISSUE-123", "/worktree", cache, readFile, getMtime
+      "ISSUE-123", "/worktree", cache, None, readFile, getMtime
     )
 
     assert(result.isRight)
@@ -119,7 +119,7 @@ class WorkflowProgressServiceTest extends FunSuite:
       else Left("File not found")
 
     val result = WorkflowProgressService.fetchProgress(
-      "ISSUE-123", "/worktree", cache, readFile, getMtime
+      "ISSUE-123", "/worktree", cache, None, readFile, getMtime
     )
 
     assert(result.isRight)
@@ -132,7 +132,7 @@ class WorkflowProgressServiceTest extends FunSuite:
     val getMtime = (path: String) => Left("Directory not found")
 
     val result = WorkflowProgressService.fetchProgress(
-      "ISSUE-123", "/nonexistent", Map.empty, readFile, getMtime
+      "ISSUE-123", "/nonexistent", Map.empty, None, readFile, getMtime
     )
 
     assert(result.isLeft)
@@ -142,7 +142,7 @@ class WorkflowProgressServiceTest extends FunSuite:
     val getMtime = (path: String) => Right(1000L)
 
     val result = WorkflowProgressService.fetchProgress(
-      "ISSUE-123", "/worktree", Map.empty, readFile, getMtime
+      "ISSUE-123", "/worktree", Map.empty, None, readFile, getMtime
     )
 
     assert(result.isLeft)
@@ -170,7 +170,7 @@ class WorkflowProgressServiceTest extends FunSuite:
       else Left("File not found")
 
     val result = WorkflowProgressService.fetchProgress(
-      "ISSUE-123", "/worktree", Map.empty, readFile, getMtime
+      "ISSUE-123", "/worktree", Map.empty, None, readFile, getMtime
     )
 
     assert(result.isRight)

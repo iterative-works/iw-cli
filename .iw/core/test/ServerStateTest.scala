@@ -181,7 +181,7 @@ class ServerStateTest extends munit.FunSuite:
       lastSeenAt = now
     )
     val reviewStateCache = Map("IWLE-123" -> iw.core.model.CachedReviewState(
-      iw.core.model.ReviewState(None, None, None, List.empty),
+      iw.core.model.ReviewState(None, None, None, None, None, List.empty),
       Map.empty
     ))
 

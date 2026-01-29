@@ -279,18 +279,34 @@ object WorktreeCardRenderer:
         // Valid review state with artifacts - show them
         div(
           cls := "review-artifacts",
-          // Header with phase number (if available)
-          h4(
-            "Review Artifacts",
-            state.phase.map { phaseNum =>
-              span(cls := "review-phase", s" (Phase $phaseNum)")
-            }
-          ),
-          // Status badge (if available)
-          state.status.map { statusValue =>
+          h4("Review Artifacts"),
+          // Display badge (if available)
+          state.display.map { display =>
             div(
-              cls := s"review-status ${WorktreeListView.statusBadgeClass(statusValue)}",
-              span(cls := "review-status-label", WorktreeListView.formatStatusLabel(statusValue))
+              cls := s"review-status ${WorktreeListView.displayTypeClass(display.displayType)}",
+              span(cls := "review-status-label", display.text),
+              display.subtext.map { subtext =>
+                span(cls := "review-status-subtext", s" · $subtext")
+              }
+            )
+          },
+          // Additional badges (if available)
+          state.badges.map { badgeList =>
+            div(
+              cls := "review-badges",
+              badgeList.map { badge =>
+                span(
+                  cls := s"review-badge ${WorktreeListView.displayTypeClass(badge.badgeType)}",
+                  badge.label
+                )
+              }
+            )
+          },
+          // Needs attention indicator (if set)
+          state.needsAttention.filter(_ == true).map { _ =>
+            div(
+              cls := "needs-attention-indicator",
+              "⚠ Needs Attention"
             )
           },
           // Message (if available)

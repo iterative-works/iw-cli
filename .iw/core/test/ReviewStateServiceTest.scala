@@ -24,8 +24,6 @@ class ReviewStateServiceTest extends munit.FunSuite:
     assert(result.isRight)
 
     val state = result.toOption.get
-    assertEquals(state.status, Some("awaiting_review"))
-    assertEquals(state.phase, Some(8))
     assertEquals(state.message, Some("Ready for review"))
     assertEquals(state.artifacts.size, 1)
     assertEquals(state.artifacts.head.label, "Analysis")
@@ -42,8 +40,6 @@ class ReviewStateServiceTest extends munit.FunSuite:
     assert(result.isRight)
 
     val state = result.toOption.get
-    assertEquals(state.status, None)
-    assertEquals(state.phase, None)
     assertEquals(state.message, None)
     assertEquals(state.artifacts.size, 1)
     assertEquals(state.artifacts.head.label, "Doc")
@@ -75,8 +71,6 @@ class ReviewStateServiceTest extends munit.FunSuite:
     assert(result.isRight)
 
     val state = result.toOption.get
-    assertEquals(state.status, None)
-    assertEquals(state.phase, None)
     assertEquals(state.message, None)
 
   test("parseReviewStateJson handles multiple artifacts"):
@@ -114,8 +108,10 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val reviewStatePath = s"$worktreePath/project-management/issues/$issueId/review-state.json"
 
     val cachedState = ReviewState(
-      status = Some("cached"),
-      phase = Some(1),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
       message = None,
       artifacts = List(ReviewArtifact("Cached", "cached.md"))
     )
@@ -136,7 +132,13 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val worktreePath = "/path/to/worktree"
     val reviewStatePath = s"$worktreePath/project-management/issues/$issueId/review-state.json"
 
-    val oldState = ReviewState(None, None, None, List(ReviewArtifact("Old", "old.md")))
+    val oldState = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Old", "old.md")))
     val cache = Map(
       issueId -> CachedReviewState(oldState, Map(reviewStatePath -> 1000L))
     )
@@ -164,7 +166,8 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val getMtime = (path: String) => Left("File not found")
     val readFile = (path: String) => Left("File not found")
 
-    val result = ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)
+    val result = ReviewStateService.fetchReviewState(
+      issueId, worktreePath, cache, readFile, getMtime)
     assert(result.isLeft)
 
   test("fetchReviewState returns error for invalid JSON"):
@@ -178,7 +181,8 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val getMtime = (path: String) => Right(1000L)
     val readFile = (path: String) => Right(invalidJson)
 
-    val result = ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)
+    val result = ReviewStateService.fetchReviewState(
+      issueId, worktreePath, cache, readFile, getMtime)
     assert(result.isLeft)
 
   test("fetchReviewState handles cache miss (reads and parses file)"):
@@ -194,7 +198,8 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val getMtime = (path: String) => Right(1000L)
     val readFile = (path: String) => Right(validJson)
 
-    val result = ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)
+    val result = ReviewStateService.fetchReviewState(
+      issueId, worktreePath, cache, readFile, getMtime)
     assert(result.isRight)
 
     val cached = result.toOption.get
@@ -209,8 +214,10 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val reviewStatePath = s"$worktreePath/project-management/issues/$issueId/review-state.json"
 
     val cachedState = ReviewState(
-      status = Some("awaiting_review"),
-      phase = Some(8),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
       message = Some("Ready"),
       artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
     )
@@ -225,7 +232,8 @@ class ReviewStateServiceTest extends munit.FunSuite:
       fail("File should not be read when cache is valid")
     }
 
-    val result = ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)
+    val result = ReviewStateService.fetchReviewState(
+      issueId, worktreePath, cache, readFile, getMtime)
 
     // Should return CachedReviewState
     assert(result.isRight)
@@ -239,7 +247,13 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val worktreePath = "/path/to/worktree"
     val reviewStatePath = s"$worktreePath/project-management/issues/$issueId/review-state.json"
 
-    val oldState = ReviewState(None, None, None, List(ReviewArtifact("Old", "old.md")))
+    val oldState = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Old", "old.md")))
     val oldCached = CachedReviewState(oldState, Map(reviewStatePath -> 1000L))
     val cache = Map(issueId -> oldCached)
 
@@ -257,7 +271,8 @@ class ReviewStateServiceTest extends munit.FunSuite:
       Right(newJson)
     }
 
-    val result = ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)
+    val result = ReviewStateService.fetchReviewState(
+      issueId, worktreePath, cache, readFile, getMtime)
 
     // Should return new CachedReviewState
     assert(result.isRight)
@@ -265,8 +280,6 @@ class ReviewStateServiceTest extends munit.FunSuite:
     assert(returned.isInstanceOf[CachedReviewState])
 
     // Verify state was re-parsed
-    assertEquals(returned.state.status, Some("in_progress"))
-    assertEquals(returned.state.phase, Some(2))
     assertEquals(returned.state.artifacts.head.label, "New")
 
     // Verify mtime was updated
@@ -295,7 +308,8 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val getMtime = (path: String) => Right(1500L)
     val readFile = (path: String) => Right(validJson)
 
-    val result = ReviewStateService.fetchReviewState(issueId, worktreePath, cache, readFile, getMtime)
+    val result = ReviewStateService.fetchReviewState(
+      issueId, worktreePath, cache, readFile, getMtime)
 
     // Should return CachedReviewState
     assert(result.isRight)
@@ -303,8 +317,6 @@ class ReviewStateServiceTest extends munit.FunSuite:
     assert(returned.isInstanceOf[CachedReviewState])
 
     // Verify state was parsed correctly
-    assertEquals(returned.state.status, Some("awaiting_review"))
-    assertEquals(returned.state.phase, Some(5))
     assertEquals(returned.state.message, Some("Please review"))
     assertEquals(returned.state.artifacts.size, 2)
 

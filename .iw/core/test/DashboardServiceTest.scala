@@ -45,8 +45,10 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard includes review state when present in cache"):
     val worktree = createWorktree("IWLE-123")
     val reviewState = ReviewState(
-      status = Some("awaiting_review"),
-      phase = Some(3),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
       message = Some("Ready for code review"),
       artifacts = List(
         ReviewArtifact("Analysis", "project-management/issues/IWLE-123/analysis.md"),
@@ -113,8 +115,10 @@ class DashboardServiceTest extends FunSuite:
     val worktree3 = createWorktree("IWLE-300", "/path3")
 
     val reviewState = ReviewState(
-      status = Some("in_progress"),
-      phase = Some(2),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
       message = None,
       artifacts = List(ReviewArtifact("Context", "context.md"))
     )
@@ -147,8 +151,10 @@ class DashboardServiceTest extends FunSuite:
 
     // Cache entry with different issue ID should not match
     val reviewState = ReviewState(
-      status = Some("completed"),
-      phase = Some(5),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
       message = Some("All done"),
       artifacts = List.empty
     )

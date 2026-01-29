@@ -230,17 +230,18 @@ object WorktreeCardService:
       wt.issueId,
       wt.path,
       cache,
+      None, // No explicit task list paths, use discovery
       readFile,
       getMtime
     ) match {
-      case Left(err) if err.contains("No phase files found") =>
+      case Left(error) if error.contains("No phase files found") =>
         // Normal case - no phase files
         None
-      case Left(err) =>
+      case Left(error) =>
         // Other error - log warning and return None
-        System.err.println(s"[WARN] Failed to load progress for ${wt.issueId}: $err")
+        System.err.println(s"[WARN] Failed to load progress for ${wt.issueId}: $error")
         None
-      case Right(cached) =>
+      case Right(cachedProgress) =>
         // Valid progress
-        Some(cached)
+        Some(cachedProgress)
     }

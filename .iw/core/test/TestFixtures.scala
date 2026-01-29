@@ -490,42 +490,50 @@ object SampleData:
       )
     )
 
-  /** Sample review states with various statuses and artifact collections.
-    * Covers awaiting_review, in_review, and ready_to_merge statuses.
+  /** Sample review states with various display states and artifact collections.
+    * Covers different display types (progress, success, warning).
     * Some have artifacts, some have none.
     */
   lazy val sampleReviewStates: List[ReviewState] =
     List(
-      // IWLE-123: in_review with artifacts
+      // IWLE-123: in review with artifacts
       ReviewState(
-        status = Some("in_review"),
-        phase = Some(2),
+        display = Some(Display("In Review", Some("Phase 2 of 3"), "progress")),
+        badges = None,
+        taskLists = Some(List(TaskList("Phase 2", "project-management/issues/IWLE-123/phase-02-tasks.md"))),
+        needsAttention = None,
         message = Some("Code review in progress"),
         artifacts = List(
           ReviewArtifact("Analysis", "project-management/issues/IWLE-123/analysis.md"),
           ReviewArtifact("Phase 2 Context", "project-management/issues/IWLE-123/phase-02-context.md")
         )
       ),
-      // IWLE-456: ready_to_merge with minimal artifacts
+      // IWLE-456: ready to merge with minimal artifacts
       ReviewState(
-        status = Some("ready_to_merge"),
-        phase = Some(5),
+        display = Some(Display("Ready to Merge", Some("Phase 5 of 5"), "success")),
+        badges = None,
+        taskLists = None,
+        needsAttention = None,
         message = Some("All reviews complete, ready to merge"),
         artifacts = List(
           ReviewArtifact("Implementation Log", "project-management/issues/IWLE-456/implementation-log.md")
         )
       ),
-      // GH-100: awaiting_review with no artifacts yet
+      // GH-100: awaiting review with no artifacts yet
       ReviewState(
-        status = Some("awaiting_review"),
-        phase = Some(1),
+        display = Some(Display("Awaiting Review", Some("Phase 1 of 3"), "warning")),
+        badges = None,
+        taskLists = None,
+        needsAttention = Some(true),
         message = Some("Awaiting initial review"),
         artifacts = List.empty
       ),
-      // YT-222: in_review with multiple artifacts
+      // YT-222: in review with multiple artifacts
       ReviewState(
-        status = Some("in_review"),
-        phase = Some(3),
+        display = Some(Display("In Review", Some("Phase 3 of 4"), "progress")),
+        badges = Some(List(Badge("TDD", "success"))),
+        taskLists = Some(List(TaskList("Phase 3", "project-management/issues/YT-222/phase-03-tasks.md"))),
+        needsAttention = None,
         message = Some("Review artifacts ready"),
         artifacts = List(
           ReviewArtifact("Tasks", "project-management/issues/YT-222/tasks.md"),

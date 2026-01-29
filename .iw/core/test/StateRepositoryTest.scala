@@ -141,7 +141,7 @@ class StateRepositoryTest extends munit.FunSuite:
       val issueData = IssueData(
         id = "IWLE-456",
         title = "Another Issue",
-        status = "Done",
+        status = "Todo",
         assignee = None,
         description = None,
         url = "https://linear.app/issue/IWLE-456",
@@ -174,7 +174,7 @@ class StateRepositoryTest extends munit.FunSuite:
         val loadedCached = loadedState.issueCache("IWLE-456")
         assertEquals(loadedCached.data.id, "IWLE-456")
         assertEquals(loadedCached.data.title, "Another Issue")
-        assertEquals(loadedCached.data.status, "Done")
+        assertEquals(loadedCached.data.status, "Todo")
         assertEquals(loadedCached.data.assignee, None)
         assertEquals(loadedCached.data.url, "https://linear.app/issue/IWLE-456")
         assertEquals(loadedCached.ttlMinutes, 10)
@@ -208,7 +208,7 @@ class StateRepositoryTest extends munit.FunSuite:
       val issueData = IssueData(
         id = "TEST-1",
         title = "Test",
-        status = "Open",
+        status = "In Progress",
         assignee = None,
         description = None,
         url = "https://example.com/TEST-1",
@@ -539,8 +539,10 @@ class StateRepositoryTest extends munit.FunSuite:
 
       import iw.core.model.{ReviewState, ReviewArtifact}
       val reviewState = ReviewState(
-        status = Some("awaiting_review"),
-        phase = Some(8),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
         message = Some("Ready for review"),
         artifacts = List(
           ReviewArtifact("Analysis", "project-management/issues/46/analysis.md"),
@@ -569,8 +571,10 @@ class StateRepositoryTest extends munit.FunSuite:
 
       import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
       val reviewState = ReviewState(
-        status = Some("awaiting_review"),
-        phase = Some(8),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
         message = None,
         artifacts = List(ReviewArtifact("Test", "test.md"))
       )
@@ -596,8 +600,10 @@ class StateRepositoryTest extends munit.FunSuite:
 
       import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
       val reviewState = ReviewState(
-        status = Some("in_review"),
-        phase = Some(3),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
         message = Some("Phase 3 review"),
         artifacts = List(
           ReviewArtifact("Analysis", "analysis.md"),
@@ -623,8 +629,6 @@ class StateRepositoryTest extends munit.FunSuite:
         assert(loadedState.reviewStateCache.contains("ISSUE-456"))
 
         val loadedCached = loadedState.reviewStateCache("ISSUE-456")
-        assertEquals(loadedCached.state.status, Some("in_review"))
-        assertEquals(loadedCached.state.phase, Some(3))
         assertEquals(loadedCached.state.message, Some("Phase 3 review"))
         assertEquals(loadedCached.state.artifacts.size, 2)
         assertEquals(loadedCached.state.artifacts.head.label, "Analysis")
