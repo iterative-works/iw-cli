@@ -11,6 +11,8 @@ import iw.core.model.CachedProgress
 import iw.core.model.CachedReviewState
 import iw.core.model.ReviewState
 import iw.core.model.ReviewArtifact
+import iw.core.model.Display
+import iw.core.model.Badge
 import iw.core.model.ServerState
 import iw.core.model.IssueData
 import iw.core.model.WorkflowProgress
@@ -287,8 +289,10 @@ object SampleDataGenerator:
     val reviewStateCacheMap = Map(
       "IWLE-123" -> CachedReviewState(
         state = ReviewState(
-          status = Some("in_review"),
-          phase = Some(2),
+          display = Some(Display("In Review", Some("Phase 2 of 5"), "progress")),
+          badges = None,
+          taskLists = None,
+          needsAttention = None,
           message = Some("Code review in progress"),
           artifacts = List(
             ReviewArtifact("Analysis", "project-management/issues/IWLE-123/analysis.md"),
@@ -302,8 +306,10 @@ object SampleDataGenerator:
       ),
       "IWLE-456" -> CachedReviewState(
         state = ReviewState(
-          status = Some("ready_to_merge"),
-          phase = Some(5),
+          display = Some(Display("Ready to Merge", Some("Phase 5 of 5"), "success")),
+          badges = None,
+          taskLists = None,
+          needsAttention = None,
           message = Some("All reviews complete, ready to merge"),
           artifacts = List(
             ReviewArtifact("Implementation Log", "project-management/issues/IWLE-456/implementation-log.md")
@@ -315,8 +321,10 @@ object SampleDataGenerator:
       ),
       "GH-100" -> CachedReviewState(
         state = ReviewState(
-          status = Some("awaiting_review"),
-          phase = Some(1),
+          display = Some(Display("Awaiting Review", Some("Phase 1 of 3"), "warning")),
+          badges = None,
+          taskLists = None,
+          needsAttention = Some(true),
           message = Some("Awaiting initial review"),
           artifacts = List.empty
         ),
@@ -326,8 +334,10 @@ object SampleDataGenerator:
       ),
       "YT-222" -> CachedReviewState(
         state = ReviewState(
-          status = Some("in_review"),
-          phase = Some(3),
+          display = Some(Display("In Review", Some("Phase 3 of 4"), "progress")),
+          badges = Some(List(Badge("TDD", "info"))),
+          taskLists = None,
+          needsAttention = None,
           message = Some("Review artifacts ready"),
           artifacts = List(
             ReviewArtifact("Tasks", "project-management/issues/YT-222/tasks.md"),

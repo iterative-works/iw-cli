@@ -297,3 +297,74 @@ A .iw/test/write-review-state.bats
 ```
 
 ---
+
+### Refactoring R1: Separate display from workflow semantics (2026-01-29)
+
+**Trigger:** Schema originally mixed workflow state (status, phase, step) with display instructions, making dashboard coupled to workflow semantics. Dashboard had to interpret status values to determine rendering.
+
+**What changed:**
+
+**Schema changes (v1):**
+- Removed fields: `phase`, `step`, `branch`, `batch_mode` (workflow-specific, redundant)
+- Made `status` optional (machine identifier for workflow logic, not display)
+- Added `display` object: `{text, subtext, type}` for primary badge rendering
+- Added `badges` array: contextual indicators with `{label, type}`
+- Added `task_lists` array: file paths for phase progress tracking
+- Added `needs_attention` boolean: attention-grabbing visual indicator
+- Display types: `info`, `success`, `warning`, `error`, `progress`
+
+**Domain model:**
+- `ReviewState` now has: `display`, `badges`, `taskLists`, `needsAttention`, `message`, `artifacts`
+- New case classes: `Display(text, subtext, displayType)`, `Badge(label, badgeType)`, `TaskList(label, path)`
+
+**Dashboard rendering:**
+- Changed from interpreting `status` values to rendering `display` object directly
+- Uses `displayTypeClass(displayType)` helper for CSS class generation
+- Renders badges array with badge-type styling
+- Removed `statusBadgeClass` and `formatStatusLabel` (workflow-specific logic)
+
+**Command updates:**
+- `write-review-state` flags changed: `--display-text`, `--display-subtext`, `--display-type`, `--badge`, `--task-list`
+- Removed: `--status`, `--phase`, `--step`, `--branch`, `--batch-mode`
+
+**Before → After:**
+- Before: Dashboard interpreted `status: "implementing"` → green badge with "Implementing" text
+- After: Workflow writes `display: {text: "Implementing", type: "progress"}` → Dashboard renders as-is
+
+**Patterns applied:**
+- Separation of concerns: Workflow owns semantics, dashboard owns structure
+- FCIS maintained: pure model, I/O at edges
+- Open-closed: Adding new display types doesn't require dashboard changes
+
+**Testing:**
+- Tests updated: 16 test files modified
+- All tests passing: Yes
+- Rewrote `ReviewStateValidatorTest` for v1 schema
+- Rewrote `WorktreeListViewTest` for display-based rendering
+
+**Code review:**
+- Iterations: 1
+- Review file: review-refactor-03-R1-20260129-172720.md
+- Critical issues: 0
+- Warnings: 9 (code organization, test coverage improvements)
+- Suggestions: 17 (future improvements)
+
+**Files changed:**
+```
+M .iw/commands/write-review-state.scala
+M .iw/core/dashboard/DashboardService.scala
+M .iw/core/dashboard/ReviewStateService.scala
+M .iw/core/dashboard/StateRepository.scala
+M .iw/core/dashboard/WorkflowProgressService.scala
+M .iw/core/dashboard/WorktreeCardService.scala
+M .iw/core/dashboard/WorktreeListView.scala
+M .iw/core/dashboard/domain/SampleDataGenerator.scala
+M .iw/core/dashboard/presentation/views/WorktreeCardRenderer.scala
+M .iw/core/model/ReviewState.scala
+M .iw/core/model/ReviewStateBuilder.scala
+M .iw/core/model/ReviewStateValidator.scala
+M .iw/core/test/*.scala (16 test files)
+M schemas/review-state.schema.json
+```
+
+---

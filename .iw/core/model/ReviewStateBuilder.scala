@@ -6,44 +6,63 @@ package iw.core.model
 object ReviewStateBuilder:
 
   case class BuildInput(
-    version: Int = 1,
+    version: Int = 2,
     issueId: String,
-    status: String,
     lastUpdated: String,
     artifacts: List[(String, String)] = Nil,
-    phase: Option[Either[Int, String]] = None,
-    step: Option[String] = None,
-    branch: Option[String] = None,
+    status: Option[String] = None,
+    display: Option[(String, Option[String], String)] = None,
+    badges: List[(String, String)] = Nil,
+    taskLists: List[(String, String)] = Nil,
+    needsAttention: Option[Boolean] = None,
+    message: Option[String] = None,
+    actions: List[(String, String, String)] = Nil,
     prUrl: Option[String] = None,
     gitSha: Option[String] = None,
-    message: Option[String] = None,
-    batchMode: Option[Boolean] = None,
-    phaseCheckpoints: Map[String, String] = Map.empty,
-    actions: List[(String, String, String)] = Nil
+    phaseCheckpoints: Map[String, String] = Map.empty
   )
 
   def build(input: BuildInput): String =
     val obj = ujson.Obj(
       "version" -> ujson.Num(input.version),
       "issue_id" -> ujson.Str(input.issueId),
-      "status" -> ujson.Str(input.status),
       "artifacts" -> ujson.Arr(input.artifacts.map { case (label, path) =>
         ujson.Obj("label" -> ujson.Str(label), "path" -> ujson.Str(path))
       }*),
       "last_updated" -> ujson.Str(input.lastUpdated)
     )
 
-    input.phase.foreach {
-      case Left(n)  => obj("phase") = ujson.Num(n)
-      case Right(s) => obj("phase") = ujson.Str(s)
+    input.status.foreach(v => obj("status") = ujson.Str(v))
+
+    input.display.foreach { case (text, subtext, displayType) =>
+      val displayObj = ujson.Obj(
+        "text" -> ujson.Str(text),
+        "type" -> ujson.Str(displayType)
+      )
+      subtext.foreach(st => displayObj("subtext") = ujson.Str(st))
+      obj("display") = displayObj
     }
 
-    input.step.foreach(v => obj("step") = ujson.Str(v))
-    input.branch.foreach(v => obj("branch") = ujson.Str(v))
+    if input.badges.nonEmpty then
+      obj("badges") = ujson.Arr(input.badges.map { case (label, badgeType) =>
+        ujson.Obj("label" -> ujson.Str(label), "type" -> ujson.Str(badgeType))
+      }*)
+
+    if input.taskLists.nonEmpty then
+      obj("task_lists") = ujson.Arr(input.taskLists.map { case (label, path) =>
+        ujson.Obj("label" -> ujson.Str(label), "path" -> ujson.Str(path))
+      }*)
+
+    input.needsAttention.foreach(v => obj("needs_attention") = ujson.Bool(v))
+    input.message.foreach(v => obj("message") = ujson.Str(v))
+
+    if input.actions.nonEmpty then
+      obj("available_actions") = ujson.Arr(input.actions.map { case (id, label, skill) =>
+        ujson.Obj("id" -> ujson.Str(id), "label" -> ujson.Str(label), "skill" -> ujson.Str(skill))
+      }*)
+
     input.prUrl.foreach(v => obj("pr_url") = ujson.Str(v))
     input.gitSha.foreach(v => obj("git_sha") = ujson.Str(v))
-    input.message.foreach(v => obj("message") = ujson.Str(v))
-    input.batchMode.foreach(v => obj("batch_mode") = ujson.Bool(v))
 
     if input.phaseCheckpoints.nonEmpty then
       val checkpoints = ujson.Obj()
@@ -51,10 +70,5 @@ object ReviewStateBuilder:
         checkpoints(key) = ujson.Obj("context_sha" -> ujson.Str(sha))
       }
       obj("phase_checkpoints") = checkpoints
-
-    if input.actions.nonEmpty then
-      obj("available_actions") = ujson.Arr(input.actions.map { case (id, label, skill) =>
-        ujson.Obj("id" -> ujson.Str(id), "label" -> ujson.Str(label), "skill" -> ujson.Str(skill))
-      }*)
 
     ujson.write(obj, indent = 2)

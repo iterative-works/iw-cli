@@ -2,7 +2,7 @@
 
 **Phase:** 3
 **Created:** 2026-01-29
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -227,74 +227,74 @@ Examples: `implementing`, `awaiting_review`, `phase_merged`, `all_complete`
 ## Tasks
 
 ### Schema Update
-- [ ] [impl] Bump version to 2
-- [ ] [impl] Make `status` field optional
-- [ ] [impl] Remove `branch`, `batch_mode`, `step`, `phase` fields
-- [ ] [impl] Add `display` object definition with `text`, `subtext`, `type`
-- [ ] [impl] Add `badges` array definition
-- [ ] [impl] Add `task_lists` array definition
-- [ ] [impl] Add `needs_attention` boolean definition
-- [ ] [impl] Define `type` enum: info, success, warning, error, progress
-- [ ] [impl] Add comprehensive field descriptions documenting intent
+- [x] [impl] Bump version to 2
+- [x] [impl] Make `status` field optional
+- [x] [impl] Remove `branch`, `batch_mode`, `step`, `phase` fields
+- [x] [impl] Add `display` object definition with `text`, `subtext`, `type`
+- [x] [impl] Add `badges` array definition
+- [x] [impl] Add `task_lists` array definition
+- [x] [impl] Add `needs_attention` boolean definition
+- [x] [impl] Define `type` enum: info, success, warning, error, progress
+- [x] [impl] Add comprehensive field descriptions documenting intent
 - [ ] [impl] Update/add test fixtures for v2 schema
 
 ### Validator Update
-- [ ] [impl] Remove `knownStatuses` list entirely
-- [ ] [impl] Remove status value interpretation/warnings
-- [ ] [impl] Make `status` optional
-- [ ] [impl] Remove validation for `branch`, `batch_mode`, `step`, `phase`
-- [ ] [impl] Add `display` object validation
-- [ ] [impl] Add `display.type` enum validation
-- [ ] [impl] Add `badges` array validation
-- [ ] [impl] Add `task_lists` array validation
-- [ ] [impl] Add `needs_attention` boolean validation
+- [x] [impl] Remove `knownStatuses` list entirely
+- [x] [impl] Remove status value interpretation/warnings
+- [x] [impl] Make `status` optional
+- [x] [impl] Remove validation for `branch`, `batch_mode`, `step`, `phase`
+- [x] [impl] Add `display` object validation
+- [x] [impl] Add `display.type` enum validation
+- [x] [impl] Add `badges` array validation
+- [x] [impl] Add `task_lists` array validation
+- [x] [impl] Add `needs_attention` boolean validation
 - [ ] [impl] Add unit tests for new field validation
 - [ ] [impl] Update existing tests for v2 schema
 
 ### Builder Update
-- [ ] [impl] Remove `branch`, `batchMode`, `step`, `phase` from BuildInput
-- [ ] [impl] Add `display: Option[Display]` where Display(text, subtext?, type)
-- [ ] [impl] Add `badges: List[Badge]` where Badge(label, type)
-- [ ] [impl] Add `taskLists: List[TaskList]` where TaskList(label, path)
-- [ ] [impl] Add `needsAttention: Option[Boolean]`
-- [ ] [impl] Update JSON construction for new fields
+- [x] [impl] Remove `branch`, `batchMode`, `step`, `phase` from BuildInput
+- [x] [impl] Add `display: Option[Display]` where Display(text, subtext?, type)
+- [x] [impl] Add `badges: List[Badge]` where Badge(label, type)
+- [x] [impl] Add `taskLists: List[TaskList]` where TaskList(label, path)
+- [x] [impl] Add `needsAttention: Option[Boolean]`
+- [x] [impl] Update JSON construction for new fields
 - [ ] [impl] Add unit tests for building with new fields
 - [ ] [impl] Update existing builder tests
 
 ### Command Update
-- [ ] [impl] Remove `--branch`, `--batch-mode`, `--step`, `--phase` flags
-- [ ] [impl] Add `--display-text`, `--display-subtext`, `--display-type` flags
-- [ ] [impl] Add `--badge <label:type>` repeatable flag
-- [ ] [impl] Add `--task-list <label:path>` repeatable flag
-- [ ] [impl] Add `--needs-attention` boolean flag
-- [ ] [impl] Update usage comments with intent documentation
+- [x] [impl] Remove `--branch`, `--batch-mode`, `--step`, `--phase` flags
+- [x] [impl] Add `--display-text`, `--display-subtext`, `--display-type` flags
+- [x] [impl] Add `--badge <label:type>` repeatable flag
+- [x] [impl] Add `--task-list <label:path>` repeatable flag
+- [x] [impl] Add `--needs-attention` boolean flag
+- [x] [impl] Update usage comments with intent documentation
 - [ ] [impl] Add E2E tests for new flags
 
 ### Dashboard Update
-- [ ] [impl] Remove `statusBadgeClass()` from WorktreeListView
-- [ ] [impl] Remove `formatStatusLabel()` from WorktreeListView
-- [ ] [impl] Add `displayTypeClass(type: String): String` for type → CSS mapping
-- [ ] [impl] Update WorktreeCardRenderer to render `display` object
-- [ ] [impl] Add rendering for `display.subtext`
-- [ ] [impl] Add rendering for `badges` array
-- [ ] [impl] Add rendering for `needs_attention` indicator
+- [x] [impl] Remove `statusBadgeClass()` from WorktreeListView
+- [x] [impl] Remove `formatStatusLabel()` from WorktreeListView
+- [x] [impl] Add `displayTypeClass(type: String): String` for type → CSS mapping
+- [x] [impl] Update WorktreeCardRenderer to render `display` object
+- [x] [impl] Add rendering for `display.subtext`
+- [x] [impl] Add rendering for `badges` array
+- [x] [impl] Add rendering for `needs_attention` indicator
 - [ ] [impl] Implement `task_lists` → progress computation
 - [ ] [impl] Remove hardcoded phase file discovery patterns
-- [ ] [impl] Add fallback for v1 files (no display = no badge)
-- [ ] [impl] Ensure `message` renders prominently
+- [x] [impl] Add fallback for v1 files (no display = no badge)
+- [x] [impl] Ensure `message` renders prominently
 
 ### ReviewState Model Update
-- [ ] [impl] Add `Display` case class: `Display(text: String, subtext: Option[String], displayType: String)`
-- [ ] [impl] Add `Badge` case class: `Badge(label: String, badgeType: String)`
-- [ ] [impl] Add `TaskList` case class: `TaskList(label: String, path: String)`
-- [ ] [impl] Update `ReviewState` case class with new fields
-- [ ] [impl] Remove `status`, `phase` from ReviewState (dashboard doesn't need them)
-- [ ] [impl] Update ReviewStateService to parse new structure
+- [x] [impl] Add `Display` case class: `Display(text: String, subtext: Option[String], displayType: String)`
+- [x] [impl] Add `Badge` case class: `Badge(label: String, badgeType: String)`
+- [x] [impl] Add `TaskList` case class: `TaskList(label: String, path: String)`
+- [x] [impl] Update `ReviewState` case class with new fields
+- [x] [impl] Remove `status`, `phase` from ReviewState (dashboard doesn't need them)
+- [x] [impl] Update ReviewStateService to parse new structure
 
 ### Progress Service Update
-- [ ] [impl] Add method to compute progress from `task_lists`
-- [ ] [impl] Refactor to accept file paths instead of discovering them
-- [ ] [impl] Keep existing discovery as fallback for v1/legacy
+- [x] [impl] Add method to compute progress from `task_lists`
+- [x] [impl] Refactor to accept file paths instead of discovering them
+- [x] [impl] Keep existing discovery as fallback for v1/legacy
 - [ ] [impl] Add tests for task_lists-based progress
 
 ## Verification

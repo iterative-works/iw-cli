@@ -8,8 +8,10 @@ import iw.core.model.{CachedReviewState, ReviewState, ReviewArtifact}
 class CachedReviewStateTest extends munit.FunSuite:
 
   val sampleState = ReviewState(
-    status = Some("awaiting_review"),
-    phase = Some(1),
+    display = None,
+    badges = None,
+    taskLists = None,
+    needsAttention = None,
     message = Some("Ready"),
     artifacts = List(ReviewArtifact("Doc", "path/to/doc.md"))
   )

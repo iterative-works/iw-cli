@@ -300,8 +300,10 @@ class ServerStateServiceTest extends munit.FunSuite:
       service.initialize()
 
       val reviewState = ReviewState(
-        status = Some("awaiting_review"),
-        phase = Some(1),
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
         message = Some("Ready for review"),
         artifacts = List(ReviewArtifact("Analysis", "analysis.md"))
       )

@@ -167,9 +167,9 @@ class SampleDataTest extends FunSuite:
     val reviewStates = SampleData.sampleReviewStates
     assert(reviewStates.size >= 3, "Should have at least 3 review states")
 
-    val statuses = reviewStates.flatMap(_.status).toSet
-    // Check for variety in review statuses
-    assert(statuses.nonEmpty, "Should have review states with status field")
+    // Check for variety in review displays
+    val displays = reviewStates.flatMap(_.display).toSet
+    assert(displays.nonEmpty, "Should have review states with display field")
 
   test("sampleReviewStates include both with and without artifacts"):
     val reviewStates = SampleData.sampleReviewStates

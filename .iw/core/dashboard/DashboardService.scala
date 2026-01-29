@@ -323,6 +323,7 @@ object DashboardService:
       wt.issueId,
       wt.path,
       cache,
+      None, // No explicit task list paths, use discovery
       readFile,
       getMtime
     ).toOption

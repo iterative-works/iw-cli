@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
+import iw.core.model.{ReviewState, ReviewArtifact, Display, Badge, TaskList, CachedReviewState}
 import iw.core.model.Issue
 
 /** Application service for review state tracking.
@@ -15,10 +15,20 @@ object ReviewStateService:
 
   /** Parse review state from JSON string.
     *
-    * Expects JSON format:
+    * Expects JSON format (v2):
     * {
-    *   "status": "awaiting_review",  // optional
-    *   "phase": 8,                    // optional
+    *   "display": {                   // optional
+    *     "text": "Implementing",
+    *     "subtext": "Phase 2 of 3",
+    *     "type": "progress"
+    *   },
+    *   "badges": [                    // optional
+    *     {"label": "Batch", "type": "info"}
+    *   ],
+    *   "task_lists": [                // optional
+    *     {"label": "Phase 2", "path": "project-management/issues/IW-136/phase-02-tasks.md"}
+    *   ],
+    *   "needs_attention": false,      // optional
     *   "message": "Ready",            // optional
     *   "artifacts": [                 // required
     *     {"label": "Analysis", "path": "project-management/issues/46/analysis.md"}
@@ -34,24 +44,39 @@ object ReviewStateService:
 
       // Define JSON readers for domain models
       given ReadWriter[ReviewArtifact] = macroRW[ReviewArtifact]
+      given ReadWriter[Badge] = macroRW[Badge]
+      given ReadWriter[TaskList] = macroRW[TaskList]
+
+      // Custom reader for Display
+      given ReadWriter[Display] = readwriter[ujson.Value].bimap[Display](
+        display => {
+          val obj = ujson.Obj(
+            "text" -> ujson.Str(display.text),
+            "type" -> ujson.Str(display.displayType)
+          )
+          display.subtext.foreach(st => obj("subtext") = ujson.Str(st))
+          obj
+        },
+        jsValue => {
+          val obj = jsValue.obj
+          val text = obj("text").str
+          val displayType = obj("type").str
+          val subtext = obj.get("subtext").map(_.str)
+          Display(text, subtext, displayType)
+        }
+      )
 
       // Custom reader for ReviewState that handles optional fields
       given ReadWriter[ReviewState] = readwriter[ujson.Value].bimap[ReviewState](
-        state => ujson.Obj(
-          "status" -> (state.status match {
-            case Some(s) => ujson.Str(s)
-            case None => ujson.Null
-          }),
-          "phase" -> (state.phase match {
-            case Some(p) => ujson.Num(p)
-            case None => ujson.Null
-          }),
-          "message" -> (state.message match {
-            case Some(m) => ujson.Str(m)
-            case None => ujson.Null
-          }),
-          "artifacts" -> writeJs(state.artifacts)
-        ),
+        state => {
+          val obj = ujson.Obj("artifacts" -> writeJs(state.artifacts))
+          state.display.foreach(d => obj("display") = writeJs(d))
+          state.badges.foreach(b => obj("badges") = writeJs(b))
+          state.taskLists.foreach(tl => obj("task_lists") = writeJs(tl))
+          state.needsAttention.foreach(na => obj("needs_attention") = ujson.Bool(na))
+          state.message.foreach(m => obj("message") = ujson.Str(m))
+          obj
+        },
         jsValue => {
           val obj = jsValue.obj
 
@@ -62,25 +87,19 @@ object ReviewStateService:
           }
 
           // Optional fields
-          val status = obj.get("status").flatMap {
-            case ujson.Null => None
-            case ujson.Str(s) => Some(s)
+          val display = obj.get("display").map(read[Display](_))
+          val badges = obj.get("badges").map(read[List[Badge]](_))
+          val taskLists = obj.get("task_lists").map(read[List[TaskList]](_))
+          val needsAttention = obj.get("needs_attention").flatMap {
+            case ujson.Bool(b) => Some(b)
             case _ => None
           }
-
-          val phase = obj.get("phase").flatMap {
-            case ujson.Null => None
-            case ujson.Num(n) => Some(n.toInt)
-            case _ => None
-          }
-
           val message = obj.get("message").flatMap {
-            case ujson.Null => None
             case ujson.Str(s) => Some(s)
             case _ => None
           }
 
-          ReviewState(status, phase, message, artifacts)
+          ReviewState(display, badges, taskLists, needsAttention, message, artifacts)
         }
       )
 

@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR, ReviewState, ReviewArtifact, CachedReviewState}
+import iw.core.model.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR, ReviewState, ReviewArtifact, Display, Badge, TaskList, CachedReviewState}
 import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.time.Instant
 import scala.util.{Try, Success, Failure}
@@ -40,6 +40,9 @@ case class StateRepository(statePath: String):
 
   // Review state serialization
   given ReadWriter[ReviewArtifact] = macroRW[ReviewArtifact]
+  given ReadWriter[Display] = macroRW[Display]
+  given ReadWriter[Badge] = macroRW[Badge]
+  given ReadWriter[TaskList] = macroRW[TaskList]
   given ReadWriter[ReviewState] = macroRW[ReviewState]
   given ReadWriter[CachedReviewState] = macroRW[CachedReviewState]
 

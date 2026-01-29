@@ -141,22 +141,10 @@ object WorktreeListView:
     else
       "just now"
 
-  /** Map status value to CSS class for badge styling.
+  /** Map display type to CSS class for badge styling.
     *
-    * @param status Status string from review-state.json
-    * @return CSS class name (e.g., "review-status-awaiting-review")
+    * @param displayType Display type from review-state.json (info, success, warning, error, progress)
+    * @return CSS class name (e.g., "display-type-progress")
     */
-  def statusBadgeClass(status: String): String =
-    status.toLowerCase.replace(" ", "-") match
-      case "awaiting_review" | "awaiting-review" => "review-status-awaiting-review"
-      case "in_progress" | "in-progress" => "review-status-in-progress"
-      case "completed" | "complete" => "review-status-completed"
-      case _ => "review-status-default"
-
-  /** Format status value as human-readable label.
-    *
-    * @param status Status string from review-state.json
-    * @return Formatted label (e.g., "Awaiting Review")
-    */
-  def formatStatusLabel(status: String): String =
-    status.toLowerCase.replace("_", " ").split(" ").map(_.capitalize).mkString(" ")
+  def displayTypeClass(displayType: String): String =
+    s"display-type-${displayType.toLowerCase}"

@@ -16,20 +16,18 @@ import upickle.core.LinkedHashMap
   */
 object ReviewStateValidator:
 
-  private val KnownStatuses: Set[String] = Set(
-    "analysis_ready", "context_ready", "tasks_ready", "implementing",
-    "awaiting_review", "review_failed", "phase_merged",
-    "refactoring_complete", "all_complete", "complete"
-  )
-
   private val AllowedRootProperties: Set[String] = Set(
-    "version", "issue_id", "status", "artifacts", "last_updated",
-    "phase", "step", "branch", "pr_url", "git_sha", "message",
-    "batch_mode", "phase_checkpoints", "available_actions"
+    "version", "issue_id", "status", "display", "badges", "task_lists",
+    "needs_attention", "message", "artifacts", "available_actions",
+    "last_updated", "pr_url", "git_sha", "phase_checkpoints"
   )
 
   private val RequiredFields: List[String] = List(
-    "version", "issue_id", "status", "artifacts", "last_updated"
+    "version", "issue_id", "artifacts", "last_updated"
+  )
+
+  private val ValidDisplayTypes: Set[String] = Set(
+    "info", "success", "warning", "error", "progress"
   )
 
   def validate(json: String): ValidationResult =
@@ -86,14 +84,10 @@ object ReviewStateValidator:
         errors += ValidationError("issue_id", "Field 'issue_id' must be a string")
     }
 
-    // status: string, warn if not known
+    // status: optional string (machine identifier, no validation of values)
     obj.get("status").foreach { v =>
       if !v.strOpt.isDefined then
         errors += ValidationError("status", "Field 'status' must be a string")
-      else
-        val statusValue = v.str
-        if !KnownStatuses.contains(statusValue) then
-          warnings += s"Unknown status value '$statusValue'. Known values: ${KnownStatuses.toList.sorted.mkString(", ")}"
     }
 
     // artifacts: array of objects
@@ -144,24 +138,40 @@ object ReviewStateValidator:
     obj: LinkedHashMap[String, Value],
     errors: ListBuffer[ValidationError]
   ): Unit =
-    // phase: integer or string
-    obj.get("phase").foreach { v =>
-      val isInt = v.numOpt.isDefined && v.numOpt.exists(n => n == n.toInt)
-      val isStr = v.strOpt.isDefined
-      if !isInt && !isStr then
-        errors += ValidationError("phase", "Field 'phase' must be an integer or string")
+    // display: object with text, optional subtext, type enum
+    obj.get("display").foreach { v =>
+      if !v.objOpt.isDefined then
+        errors += ValidationError("display", "Field 'display' must be an object")
+      else
+        validateDisplay(v.obj, errors)
     }
 
-    // step: string
-    obj.get("step").foreach { v =>
-      if !v.strOpt.isDefined then
-        errors += ValidationError("step", "Field 'step' must be a string")
+    // badges: array of objects
+    obj.get("badges").foreach { v =>
+      if !v.arrOpt.isDefined then
+        errors += ValidationError("badges", "Field 'badges' must be an array")
+      else
+        val arr = v.arr
+        arr.zipWithIndex.foreach { case (item, idx) =>
+          validateBadge(item, idx, errors)
+        }
     }
 
-    // branch: string
-    obj.get("branch").foreach { v =>
-      if !v.strOpt.isDefined then
-        errors += ValidationError("branch", "Field 'branch' must be a string")
+    // task_lists: array of objects
+    obj.get("task_lists").foreach { v =>
+      if !v.arrOpt.isDefined then
+        errors += ValidationError("task_lists", "Field 'task_lists' must be an array")
+      else
+        val arr = v.arr
+        arr.zipWithIndex.foreach { case (item, idx) =>
+          validateTaskList(item, idx, errors)
+        }
+    }
+
+    // needs_attention: boolean
+    obj.get("needs_attention").foreach { v =>
+      if !v.boolOpt.isDefined then
+        errors += ValidationError("needs_attention", "Field 'needs_attention' must be a boolean")
     }
 
     // pr_url: string or null
@@ -182,12 +192,6 @@ object ReviewStateValidator:
     obj.get("message").foreach { v =>
       if !v.strOpt.isDefined then
         errors += ValidationError("message", "Field 'message' must be a string")
-    }
-
-    // batch_mode: boolean
-    obj.get("batch_mode").foreach { v =>
-      if !v.boolOpt.isDefined then
-        errors += ValidationError("batch_mode", "Field 'batch_mode' must be a boolean")
     }
 
     // phase_checkpoints: object with values containing context_sha
@@ -255,6 +259,96 @@ object ReviewStateValidator:
       actionObj.keys.foreach { key =>
         if !allowedActionProps.contains(key) then
           errors += ValidationError(s"available_actions[$index]", s"Unknown property '$key' in action")
+      }
+
+  private def validateDisplay(
+    obj: LinkedHashMap[String, Value],
+    errors: ListBuffer[ValidationError]
+  ): Unit =
+    // Required: text, type
+    if !obj.contains("text") then
+      errors += ValidationError("display.text", "Required field 'text' is missing in display")
+    else if !obj("text").strOpt.isDefined then
+      errors += ValidationError("display.text", "Field 'text' must be a string in display")
+
+    if !obj.contains("type") then
+      errors += ValidationError("display.type", "Required field 'type' is missing in display")
+    else if !obj("type").strOpt.isDefined then
+      errors += ValidationError("display.type", "Field 'type' must be a string in display")
+    else
+      val typeValue = obj("type").str
+      if !ValidDisplayTypes.contains(typeValue) then
+        errors += ValidationError("display.type", s"Field 'type' must be one of: ${ValidDisplayTypes.mkString(", ")}")
+
+    // Optional: subtext
+    obj.get("subtext").foreach { v =>
+      if !v.strOpt.isDefined then
+        errors += ValidationError("display.subtext", "Field 'subtext' must be a string in display")
+    }
+
+    // additionalProperties: false
+    val allowedDisplayProps = Set("text", "subtext", "type")
+    obj.keys.foreach { key =>
+      if !allowedDisplayProps.contains(key) then
+        errors += ValidationError("display", s"Unknown property '$key' in display")
+    }
+
+  private def validateBadge(
+    item: Value,
+    index: Int,
+    errors: ListBuffer[ValidationError]
+  ): Unit =
+    if !item.objOpt.isDefined then
+      errors += ValidationError(s"badges[$index]", "Each badge must be a JSON object")
+    else
+      val badgeObj = item.obj
+      // Required: label, type
+      if !badgeObj.contains("label") then
+        errors += ValidationError(s"badges[$index].label", "Required field 'label' is missing in badge")
+      else if !badgeObj("label").strOpt.isDefined then
+        errors += ValidationError(s"badges[$index].label", "Field 'label' must be a string in badge")
+
+      if !badgeObj.contains("type") then
+        errors += ValidationError(s"badges[$index].type", "Required field 'type' is missing in badge")
+      else if !badgeObj("type").strOpt.isDefined then
+        errors += ValidationError(s"badges[$index].type", "Field 'type' must be a string in badge")
+      else
+        val typeValue = badgeObj("type").str
+        if !ValidDisplayTypes.contains(typeValue) then
+          errors += ValidationError(s"badges[$index].type", s"Field 'type' must be one of: ${ValidDisplayTypes.mkString(", ")}")
+
+      // additionalProperties: false
+      val allowedBadgeProps = Set("label", "type")
+      badgeObj.keys.foreach { key =>
+        if !allowedBadgeProps.contains(key) then
+          errors += ValidationError(s"badges[$index]", s"Unknown property '$key' in badge")
+      }
+
+  private def validateTaskList(
+    item: Value,
+    index: Int,
+    errors: ListBuffer[ValidationError]
+  ): Unit =
+    if !item.objOpt.isDefined then
+      errors += ValidationError(s"task_lists[$index]", "Each task list must be a JSON object")
+    else
+      val taskListObj = item.obj
+      // Required: label, path
+      if !taskListObj.contains("label") then
+        errors += ValidationError(s"task_lists[$index].label", "Required field 'label' is missing in task list")
+      else if !taskListObj("label").strOpt.isDefined then
+        errors += ValidationError(s"task_lists[$index].label", "Field 'label' must be a string in task list")
+
+      if !taskListObj.contains("path") then
+        errors += ValidationError(s"task_lists[$index].path", "Required field 'path' is missing in task list")
+      else if !taskListObj("path").strOpt.isDefined then
+        errors += ValidationError(s"task_lists[$index].path", "Field 'path' must be a string in task list")
+
+      // additionalProperties: false
+      val allowedTaskListProps = Set("label", "path")
+      taskListObj.keys.foreach { key =>
+        if !allowedTaskListProps.contains(key) then
+          errors += ValidationError(s"task_lists[$index]", s"Unknown property '$key' in task list")
       }
 
   private def validateAdditionalProperties(

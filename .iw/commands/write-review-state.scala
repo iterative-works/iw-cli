@@ -1,22 +1,25 @@
 // PURPOSE: Write a validated review-state.json file from CLI flags or stdin
 // PURPOSE: Auto-populates issue_id, git_sha, and last_updated from git context
-// USAGE: iw write-review-state --status <value> [options]
+// USAGE: iw write-review-state [options]
 // USAGE: iw write-review-state --from-stdin --output <path>
 // ARGS:
-//   --status <value>        Status string (required unless --from-stdin)
-//   --phase <value>         Phase (integer or string)
-//   --step <value>          Step string
-//   --message <value>       Message string
-//   --artifact <label:path> Repeatable, colon-separated label:path
-//   --action <id:label:skill> Repeatable, colon-separated
-//   --branch <value>        Branch override (auto-detected from git)
-//   --batch-mode            Boolean flag (presence = true)
-//   --pr-url <value>        PR URL string
-//   --output <path>         Output file path
-//   --from-stdin            Read full JSON from stdin
-//   --issue-id <value>      Issue ID override (auto-inferred from branch)
-//   --version <value>       Version number (default: 1)
-// EXAMPLE: iw write-review-state --status implementing --phase 2 --output review-state.json
+//   --status <value>           Optional machine-readable status identifier
+//   --display-text <value>     Primary display text for status badge
+//   --display-subtext <value>  Optional secondary display text
+//   --display-type <value>     Display type: info, success, warning, error, progress
+//   --badge <label:type>       Repeatable contextual badge (label:type)
+//   --task-list <label:path>   Repeatable task list reference (label:path)
+//   --needs-attention          Flag indicating workflow needs human input
+//   --message <value>          Prominent notification message
+//   --artifact <label:path>    Repeatable artifact (label:path)
+//   --action <id:label:skill>  Repeatable action (id:label:skill)
+//   --pr-url <value>           PR URL string
+//   --checkpoint <phase:sha>   Repeatable phase checkpoint (phase:sha)
+//   --output <path>            Output file path
+//   --from-stdin               Read full JSON from stdin
+//   --issue-id <value>         Issue ID override (auto-inferred from branch)
+//   --version <value>          Version number (default: 2)
+// EXAMPLE: iw write-review-state --display-text "Implementing" --display-type progress --output review-state.json
 
 import iw.core.model.*
 import iw.core.adapters.*
@@ -54,13 +57,7 @@ private def handleStdin(argList: List[String]): Unit =
   Output.success(s"Review state written to $outputPath")
 
 private def handleFlags(argList: List[String]): Unit =
-  val status = extractFlag(argList, "--status") match
-    case Some(s) => s
-    case None =>
-      Output.error("--status is required")
-      sys.exit(1)
-
-  val version = extractFlag(argList, "--version").flatMap(_.toIntOption).getOrElse(1)
+  val version = extractFlag(argList, "--version").flatMap(_.toIntOption).getOrElse(2)
 
   val issueId = extractFlag(argList, "--issue-id") match
     case Some(id) => id
@@ -72,24 +69,40 @@ private def handleFlags(argList: List[String]): Unit =
           Output.info("Use --issue-id to specify explicitly")
           sys.exit(1)
 
-  val branch = extractFlag(argList, "--branch").orElse(
-    GitAdapter.getCurrentBranch(os.pwd).toOption
-  )
-
   val gitSha = GitAdapter.getHeadSha(os.pwd).toOption
-
   val lastUpdated = java.time.Instant.now().toString
 
-  val phase = extractFlag(argList, "--phase").map { v =>
-    v.toIntOption match
-      case Some(n) => Left(n)
-      case None    => Right(v)
+  val status = extractFlag(argList, "--status")
+
+  val display = extractFlag(argList, "--display-text").map { text =>
+    val subtext = extractFlag(argList, "--display-subtext")
+    val displayType = extractFlag(argList, "--display-type") match
+      case Some(t) => t
+      case None =>
+        Output.error("--display-type is required when --display-text is provided")
+        sys.exit(1)
+    (text, subtext, displayType)
   }
 
-  val step = extractFlag(argList, "--step")
+  val badges = extractRepeatedFlag(argList, "--badge").map { raw =>
+    val parts = raw.split(":", 2)
+    if parts.length < 2 then
+      Output.error(s"Invalid badge format '$raw', expected label:type")
+      sys.exit(1)
+    (parts(0), parts(1))
+  }
+
+  val taskLists = extractRepeatedFlag(argList, "--task-list").map { raw =>
+    val parts = raw.split(":", 2)
+    if parts.length < 2 then
+      Output.error(s"Invalid task-list format '$raw', expected label:path")
+      sys.exit(1)
+    (parts(0), parts(1))
+  }
+
+  val needsAttention = if argList.contains("--needs-attention") then Some(true) else None
   val message = extractFlag(argList, "--message")
   val prUrl = extractFlag(argList, "--pr-url")
-  val batchMode = if argList.contains("--batch-mode") then Some(true) else None
 
   val artifacts = extractRepeatedFlag(argList, "--artifact").map { raw =>
     val colonIdx = raw.indexOf(':')
@@ -118,18 +131,18 @@ private def handleFlags(argList: List[String]): Unit =
   val input = ReviewStateBuilder.BuildInput(
     version = version,
     issueId = issueId,
-    status = status,
     lastUpdated = lastUpdated,
     artifacts = artifacts,
-    phase = phase,
-    step = step,
-    branch = branch,
+    status = status,
+    display = display,
+    badges = badges,
+    taskLists = taskLists,
+    needsAttention = needsAttention,
+    message = message,
+    actions = actions,
     prUrl = prUrl,
     gitSha = gitSha,
-    message = message,
-    batchMode = batchMode,
-    phaseCheckpoints = phaseCheckpoints,
-    actions = actions
+    phaseCheckpoints = phaseCheckpoints
   )
 
   val json = ReviewStateBuilder.build(input)
