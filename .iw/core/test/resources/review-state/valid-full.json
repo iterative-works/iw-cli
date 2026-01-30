@@ -2,18 +2,27 @@
   "version": 1,
   "issue_id": "IW-42",
   "status": "awaiting_review",
+  "display": {
+    "text": "Awaiting Review",
+    "subtext": "Phase 3 of 4",
+    "type": "warning"
+  },
+  "badges": [
+    {"label": "TDD", "type": "success"},
+    {"label": "Batch", "type": "info"}
+  ],
+  "task_lists": [
+    {"label": "Phase 3", "path": "project-management/issues/IW-42/phase-03-tasks.md"}
+  ],
+  "needs_attention": true,
   "artifacts": [
-    {"label": "Analysis", "path": "project-management/issues/IW-42/analysis.md"},
-    {"label": "Implementation Log", "path": "project-management/issues/IW-42/implementation-log.md"}
+    {"label": "Analysis", "path": "project-management/issues/IW-42/analysis.md", "category": "input"},
+    {"label": "Implementation Log", "path": "project-management/issues/IW-42/implementation-log.md", "category": "output"}
   ],
   "last_updated": "2026-01-28T17:30:00Z",
-  "phase": 3,
-  "step": "review",
-  "branch": "IW-42",
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/99",
   "git_sha": "abc1234",
   "message": "Phase 3 review complete",
-  "batch_mode": true,
   "phase_checkpoints": {
     "1": {"context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b"},
     "2": {"context_sha": "d485a987e378d8193e6a211955e1709725178f00"},

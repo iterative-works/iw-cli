@@ -27,7 +27,7 @@ class ReviewStateBuilderTest extends munit.FunSuite:
     val input = ReviewStateBuilder.BuildInput(
       issueId = "IW-42",
       lastUpdated = "2026-01-28T17:30:00Z",
-      artifacts = List(("Analysis", "project-management/issues/IW-42/analysis.md")),
+      artifacts = List(("Analysis", "project-management/issues/IW-42/analysis.md", None)),
       status = Some("awaiting_review"),
       display = Some(("Awaiting Review", Some("Phase 3 of 5"), "warning")),
       badges = List(("TDD", "info")),
@@ -69,9 +69,9 @@ class ReviewStateBuilderTest extends munit.FunSuite:
       issueId = "IW-1",
       lastUpdated = "2026-01-28T12:00:00Z",
       artifacts = List(
-        ("Analysis", "analysis.md"),
-        ("Context", "phase-01-context.md"),
-        ("Tasks", "phase-01-tasks.md")
+        ("Analysis", "analysis.md", None),
+        ("Context", "phase-01-context.md", None),
+        ("Tasks", "phase-01-tasks.md", None)
       )
     )
     val json = ReviewStateBuilder.build(input)
@@ -82,6 +82,26 @@ class ReviewStateBuilderTest extends munit.FunSuite:
     assertEquals(arts(0)("path").str, "analysis.md")
     assertEquals(arts(1)("label").str, "Context")
     assertEquals(arts(2)("label").str, "Tasks")
+
+  // --- Artifacts with category ---
+
+  test("build with artifact categories includes category field"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      artifacts = List(
+        ("Analysis", "analysis.md", Some("input")),
+        ("Log", "implementation-log.md", Some("output")),
+        ("Tasks", "phase-01-tasks.md", None)
+      )
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    val arts = parsed("artifacts").arr
+    assertEquals(arts.length, 3)
+    assertEquals(arts(0)("category").str, "input")
+    assertEquals(arts(1)("category").str, "output")
+    assert(!arts(2).obj.contains("category"), "artifact without category should not have category field")
 
   // --- Multiple actions ---
 
@@ -107,7 +127,7 @@ class ReviewStateBuilderTest extends munit.FunSuite:
     val input = ReviewStateBuilder.BuildInput(
       issueId = "IW-42",
       lastUpdated = "2026-01-28T12:00:00Z",
-      artifacts = List(("Analysis", "analysis.md")),
+      artifacts = List(("Analysis", "analysis.md", None)),
       status = Some("implementing"),
       display = Some(("Implementing", Some("Phase 2"), "progress")),
       gitSha = Some("abc1234"),

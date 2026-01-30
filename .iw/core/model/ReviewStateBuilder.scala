@@ -9,7 +9,7 @@ object ReviewStateBuilder:
     version: Int = 2,
     issueId: String,
     lastUpdated: String,
-    artifacts: List[(String, String)] = Nil,
+    artifacts: List[(String, String, Option[String])] = Nil,  // (label, path, category)
     status: Option[String] = None,
     display: Option[(String, Option[String], String)] = None,
     badges: List[(String, String)] = Nil,
@@ -26,8 +26,10 @@ object ReviewStateBuilder:
     val obj = ujson.Obj(
       "version" -> ujson.Num(input.version),
       "issue_id" -> ujson.Str(input.issueId),
-      "artifacts" -> ujson.Arr(input.artifacts.map { case (label, path) =>
-        ujson.Obj("label" -> ujson.Str(label), "path" -> ujson.Str(path))
+      "artifacts" -> ujson.Arr(input.artifacts.map { case (label, path, category) =>
+        val artifactObj = ujson.Obj("label" -> ujson.Str(label), "path" -> ujson.Str(path))
+        category.foreach(c => artifactObj("category") = ujson.Str(c))
+        artifactObj
       }*),
       "last_updated" -> ujson.Str(input.lastUpdated)
     )
