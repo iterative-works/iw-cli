@@ -54,8 +54,8 @@
       },
       "examples": [
         [
-          {"label": "Analysis", "path": "project-management/issues/IW-136/analysis.md"},
-          {"label": "Implementation Log", "path": "project-management/issues/IW-136/implementation-log.md"}
+          {"label": "Analysis", "path": "project-management/issues/IW-136/analysis.md", "category": "input"},
+          {"label": "Implementation Log", "path": "project-management/issues/IW-136/implementation-log.md", "category": "output"}
         ]
       ]
     },
@@ -170,6 +170,10 @@
         "path": {
           "type": "string",
           "description": "Path to the artifact file, relative to the project root."
+        },
+        "category": {
+          "type": "string",
+          "description": "Optional categorization for grouping artifacts in the dashboard. Workflows decide the categories; common values include 'input' (planning documents) and 'output' (execution results)."
         }
       }
     },

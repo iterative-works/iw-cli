@@ -21,7 +21,6 @@ PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
     run "$PROJECT_ROOT/iw" validate-review-state "$PROJECT_ROOT/.iw/core/test/resources/review-state/invalid-missing-required.json"
     [ "$status" -eq 1 ]
     [[ "$output" == *"issue_id"* ]]
-    [[ "$output" == *"status"* ]]
 }
 
 @test "invalid file with wrong types - exit 1" {
@@ -47,7 +46,7 @@ PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
     [[ "$output" == *"not found"* ]] || [[ "$output" == *"File not found"* ]]
 }
 
-@test "unknown status produces warning but exit 0" {
+@test "any status value is accepted without warning in v2 schema" {
     local tmpfile
     tmpfile="$(mktemp)"
     cat > "$tmpfile" << 'EOF'
@@ -62,8 +61,7 @@ EOF
     run "$PROJECT_ROOT/iw" validate-review-state "$tmpfile"
     rm -f "$tmpfile"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"Warning"* ]]
-    [[ "$output" == *"exotic_unknown_status"* ]]
+    [[ "$output" == *"valid"* ]]
 }
 
 @test "no arguments shows usage error - exit 1" {

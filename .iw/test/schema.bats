@@ -19,20 +19,20 @@ PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
     [ "$schema_ref" = "http://json-schema.org/draft-07/schema#" ]
 }
 
-@test "review-state schema requires version, issue_id, status, artifacts, last_updated" {
+@test "review-state schema requires version, issue_id, artifacts, last_updated" {
     required=$(jq -c '.required | sort' "$PROJECT_ROOT/schemas/review-state.schema.json")
-    [ "$required" = '["artifacts","issue_id","last_updated","status","version"]' ]
+    [ "$required" = '["artifacts","issue_id","last_updated","version"]' ]
 }
 
 @test "review-state schema defines all expected properties" {
     # Check required properties exist
-    run jq '[.properties | has("version", "issue_id", "status", "artifacts", "last_updated")] | all' \
+    run jq '[.properties | has("version", "issue_id", "artifacts", "last_updated")] | all' \
         "$PROJECT_ROOT/schemas/review-state.schema.json"
     [ "$status" -eq 0 ]
     [ "$output" = "true" ]
 
-    # Check optional properties exist
-    run jq '[.properties | has("phase", "step", "branch", "pr_url", "git_sha", "message", "batch_mode", "phase_checkpoints", "available_actions")] | all' \
+    # Check optional properties exist (v2 schema)
+    run jq '[.properties | has("status", "display", "badges", "task_lists", "needs_attention", "message", "pr_url", "git_sha", "phase_checkpoints", "available_actions")] | all' \
         "$PROJECT_ROOT/schemas/review-state.schema.json"
     [ "$status" -eq 0 ]
     [ "$output" = "true" ]

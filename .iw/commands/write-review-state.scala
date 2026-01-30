@@ -11,7 +11,7 @@
 //   --task-list <label:path>   Repeatable task list reference (label:path)
 //   --needs-attention          Flag indicating workflow needs human input
 //   --message <value>          Prominent notification message
-//   --artifact <label:path>    Repeatable artifact (label:path)
+//   --artifact <label:path[=category]>  Repeatable artifact with optional category
 //   --action <id:label:skill>  Repeatable action (id:label:skill)
 //   --pr-url <value>           PR URL string
 //   --checkpoint <phase:sha>   Repeatable phase checkpoint (phase:sha)
@@ -105,11 +105,20 @@ private def handleFlags(argList: List[String]): Unit =
   val prUrl = extractFlag(argList, "--pr-url")
 
   val artifacts = extractRepeatedFlag(argList, "--artifact").map { raw =>
+    // Format: label:path or label:path=category
     val colonIdx = raw.indexOf(':')
     if colonIdx < 0 then
-      Output.error(s"Invalid artifact format '$raw', expected label:path")
+      Output.error(s"Invalid artifact format '$raw', expected label:path or label:path=category")
       sys.exit(1)
-    (raw.substring(0, colonIdx), raw.substring(colonIdx + 1))
+    val label = raw.substring(0, colonIdx)
+    val pathAndCategory = raw.substring(colonIdx + 1)
+    val eqIdx = pathAndCategory.lastIndexOf('=')
+    if eqIdx > 0 then
+      val path = pathAndCategory.substring(0, eqIdx)
+      val category = pathAndCategory.substring(eqIdx + 1)
+      (label, path, Some(category))
+    else
+      (label, pathAndCategory, None)
   }
 
   val actions = extractRepeatedFlag(argList, "--action").map { raw =>

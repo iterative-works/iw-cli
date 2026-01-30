@@ -127,8 +127,14 @@ object ReviewStateValidator:
       else if !artifactObj("path").strOpt.isDefined then
         errors += ValidationError(s"artifacts[$index].path", "Field 'path' must be a string in artifact")
 
+      // Optional: category (string)
+      artifactObj.get("category").foreach { v =>
+        if !v.strOpt.isDefined then
+          errors += ValidationError(s"artifacts[$index].category", "Field 'category' must be a string in artifact")
+      }
+
       // additionalProperties: false
-      val allowedArtifactProps = Set("label", "path")
+      val allowedArtifactProps = Set("label", "path", "category")
       artifactObj.keys.foreach { key =>
         if !allowedArtifactProps.contains(key) then
           errors += ValidationError(s"artifacts[$index]", s"Unknown property '$key' in artifact")

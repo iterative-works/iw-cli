@@ -313,6 +313,32 @@ class ReviewStateValidatorTest extends munit.FunSuite:
     val errors = result.errors.filter(_.field.startsWith("artifacts"))
     assert(errors.nonEmpty, s"Expected error for unknown artifact property")
 
+  test("validates nested artifact structure - valid with category"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [
+        {"label": "Analysis", "path": "analysis.md", "category": "input"},
+        {"label": "Log", "path": "log.md", "category": "output"},
+        {"label": "Tasks", "path": "tasks.md"}
+      ],
+      "last_updated": "2026-01-28T12:00:00Z"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(result.isValid, s"Artifact with category should be valid: ${result.errors}")
+
+  test("validates nested artifact structure - wrong type for category"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [{"label": "Analysis", "path": "x.md", "category": 123}],
+      "last_updated": "2026-01-28T12:00:00Z"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(!result.isValid)
+    val errors = result.errors.filter(_.field.contains("category"))
+    assert(errors.nonEmpty, s"Expected error for category type: ${result.errors}")
+
   // --- Nested available_actions structure ---
 
   test("validates nested available_actions structure - valid"):
