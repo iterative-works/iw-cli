@@ -1,15 +1,16 @@
 // PURPOSE: Initialize iw-cli configuration for the project
-// USAGE: iw init [--force] [--tracker=linear|youtrack|github|gitlab] [--team=TEAM] [--team-prefix=PREFIX] [--base-url=URL]
+// USAGE: iw init [--force] [--tracker=linear|youtrack|github|gitlab] [--team=TEAM] [--repository=OWNER/REPO] [--team-prefix=PREFIX] [--base-url=URL]
 // ARGS:
 //   --force: Overwrite existing configuration
 //   --tracker=linear|youtrack|github|gitlab: Set tracker type (skips prompt)
 //   --team=TEAM: Set team identifier for Linear/YouTrack (skips prompt)
+//   --repository=OWNER/REPO: Set GitHub/GitLab repository (skips prompt)
 //   --team-prefix=PREFIX: Set team prefix for GitHub/GitLab (skips prompt)
 //   --base-url=URL: Set YouTrack/GitLab base URL (skips prompt)
 // EXAMPLE: iw init
 // EXAMPLE: iw init --tracker=linear --team=IWLE
-// EXAMPLE: iw init --tracker=github --team-prefix=IWCLI
-// EXAMPLE: iw init --tracker=gitlab --team-prefix=PROJ --base-url=https://gitlab.company.com
+// EXAMPLE: iw init --tracker=github --repository=owner/repo --team-prefix=IWCLI
+// EXAMPLE: iw init --tracker=gitlab --repository=owner/repo --team-prefix=PROJ --base-url=https://gitlab.company.com
 // EXAMPLE: iw init --tracker=youtrack --team=MEDH --base-url=https://youtrack.example.com
 
 import iw.core.model.*
@@ -41,6 +42,7 @@ def askForTrackerType(): IssueTrackerType =
   val force = args.contains("--force")
   val trackerArg = parseArg(args, "--tracker=")
   val teamArg = parseArg(args, "--team=")
+  val repositoryArg = parseArg(args, "--repository=")
   val teamPrefixArg = parseArg(args, "--team-prefix=")
   val baseUrlArg = parseArg(args, "--base-url=")
   val currentDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
@@ -91,22 +93,26 @@ def askForTrackerType(): IssueTrackerType =
   // For GitHub, extract repository from git remote and get team prefix; for others, get team
   val (team, repository, teamPrefix, youtrackBaseUrl) = trackerType match
     case IssueTrackerType.GitHub =>
-      // Extract repository from git remote
-      val remote = GitAdapter.getRemoteUrl(currentDir)
-      val repo = remote.flatMap { r =>
-        r.repositoryOwnerAndName match
-          case Right(ownerRepo) => Some(ownerRepo)
-          case Left(err) =>
-            Output.warning(s"Could not auto-detect repository: $err")
-            None
-      }
-
-      val ownerRepo = repo match
-        case Some(ownerRepo) =>
-          Output.info(s"Auto-detected repository: $ownerRepo")
-          ownerRepo
+      // Use provided repository or auto-detect from git remote
+      val ownerRepo = repositoryArg match
+        case Some(repo) =>
+          repo
         case None =>
-          Prompt.ask("Enter GitHub repository (owner/repo format)")
+          val remote = GitAdapter.getRemoteUrl(currentDir)
+          val repo = remote.flatMap { r =>
+            r.repositoryOwnerAndName match
+              case Right(ownerRepo) => Some(ownerRepo)
+              case Left(err) =>
+                Output.warning(s"Could not auto-detect repository: $err")
+                None
+          }
+
+          repo match
+            case Some(ownerRepo) =>
+              Output.info(s"Auto-detected repository: $ownerRepo")
+              ownerRepo
+            case None =>
+              Prompt.ask("Enter GitHub repository (owner/repo format)")
 
       // Get team prefix for GitHub
       val prefix = teamPrefixArg match
@@ -135,22 +141,28 @@ def askForTrackerType(): IssueTrackerType =
       ("", Some(ownerRepo), Some(prefix), None)
 
     case IssueTrackerType.GitLab =>
-      // Extract repository from git remote
+      // Get remote URL for detection (needed for both repository and baseUrl)
       val remote = GitAdapter.getRemoteUrl(currentDir)
-      val repo = remote.flatMap { r =>
-        r.extractGitLabRepository match
-          case Right(ownerRepo) => Some(ownerRepo)
-          case Left(err) =>
-            Output.warning(s"Could not auto-detect repository: $err")
-            None
-      }
 
-      val ownerRepo = repo match
-        case Some(ownerRepo) =>
-          Output.info(s"Auto-detected repository: $ownerRepo")
-          ownerRepo
+      // Use provided repository or auto-detect from git remote
+      val ownerRepo = repositoryArg match
+        case Some(repo) =>
+          repo
         case None =>
-          Prompt.ask("Enter GitLab repository (owner/repo or group/subgroup/project format)")
+          val repo = remote.flatMap { r =>
+            r.extractGitLabRepository match
+              case Right(ownerRepo) => Some(ownerRepo)
+              case Left(err) =>
+                Output.warning(s"Could not auto-detect repository: $err")
+                None
+          }
+
+          repo match
+            case Some(ownerRepo) =>
+              Output.info(s"Auto-detected repository: $ownerRepo")
+              ownerRepo
+            case None =>
+              Prompt.ask("Enter GitLab repository (owner/repo or group/subgroup/project format)")
 
       // Get team prefix for GitLab
       val prefix = teamPrefixArg match
@@ -212,7 +224,7 @@ def askForTrackerType(): IssueTrackerType =
   val projectName = currentDir.last
 
   // Create configuration
-  val config = ProjectConfiguration(
+  val config = ProjectConfiguration.create(
     trackerType = trackerType,
     team = team,
     projectName = projectName,

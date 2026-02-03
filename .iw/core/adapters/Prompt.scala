@@ -14,7 +14,11 @@ object Prompt:
     print(prompt)
     val input = StdIn.readLine()
 
-    if input.trim.isEmpty && default.isDefined then default.get
+    if input == null then
+      default.getOrElse {
+        throw IllegalStateException("Cannot read input in non-interactive mode without a default value")
+      }
+    else if input.trim.isEmpty && default.isDefined then default.get
     else input.trim
 
   def confirm(question: String, default: Boolean = false): Boolean =
