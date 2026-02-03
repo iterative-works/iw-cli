@@ -45,3 +45,4 @@
 ## Refactoring
 
 - [x] [impl] [x] [reviewed] Refactoring R1: Separate display structure from workflow semantics
+- [x] [impl] [x] [reviewed] Refactoring R2: Add update command for partial state modification

@@ -1,22 +1,22 @@
 // PURPOSE: Validate a review-state.json file against the formal schema
 // PURPOSE: Reports errors and warnings, exits 0 if valid, 1 if invalid
-// USAGE: iw validate-review-state <file-path>
-// USAGE: iw validate-review-state --stdin
+// USAGE: iw review-state validate <file-path>
+// USAGE: iw review-state validate --stdin
 // ARGS:
 //   file-path: Path to the review-state.json file to validate
 //   --stdin: Read JSON from standard input instead of a file
-// EXAMPLE: iw validate-review-state project-management/issues/IW-42/review-state.json
-// EXAMPLE: cat review-state.json | iw validate-review-state --stdin
+// EXAMPLE: iw review-state validate project-management/issues/IW-42/review-state.json
+// EXAMPLE: cat review-state.json | iw review-state validate --stdin
 
 import iw.core.model.*
 import iw.core.output.*
 
-@main def `validate-review-state`(args: String*): Unit =
+@main def validate(args: String*): Unit =
   val useStdin = args.contains("--stdin")
   val filePaths = args.filterNot(_.startsWith("--"))
 
   if !useStdin && filePaths.isEmpty then
-    Output.error("No file path provided. Usage: iw validate-review-state <file-path> or --stdin")
+    Output.error("No file path provided. Usage: iw review-state validate <file-path> or --stdin")
     sys.exit(1)
 
   val json =
