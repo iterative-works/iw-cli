@@ -12,23 +12,36 @@ object TmuxAdapter:
 
   /** Create a new tmux session in the given directory */
   def createSession(name: String, workDir: os.Path): Either[String, Unit] =
-    val result = ProcessAdapter.run(
-      Seq("tmux", "new-session", "-d", "-s", name, "-c", workDir.toString)
-    )
+    // Unset IW_* environment variables (except IW_HOME) to prevent leakage
+    // These are internal plumbing for running iw commands, not session state
+    val cleanEnv = sys.env.filter { case (key, _) =>
+      key == "IW_HOME" || !key.startsWith("IW_")
+    }
+
+    val result = os.proc("tmux", "new-session", "-d", "-s", name, "-c", workDir.toString)
+      .call(
+        check = false,
+        stdout = os.Pipe,
+        stderr = os.Pipe,
+        env = cleanEnv
+      )
+
     if result.exitCode == 0 then Right(())
-    else Left(s"Failed to create tmux session: ${result.stderr}")
+    else Left(s"Failed to create tmux session: ${result.err.text().trim}")
 
   /** Attach to an existing tmux session */
   def attachSession(name: String): Either[String, Unit] =
-    val result = ProcessAdapter.run(Seq("tmux", "attach-session", "-t", name))
-    if result.exitCode == 0 then Right(())
-    else Left(s"Failed to attach to session: ${result.stderr}")
+    // Use runStreaming to pass terminal through (attach needs real terminal)
+    val exitCode = ProcessAdapter.runStreaming(Seq("tmux", "attach-session", "-t", name))
+    if exitCode == 0 then Right(())
+    else Left(s"Failed to attach to session '$name'")
 
   /** Switch to an existing tmux session (when already inside tmux) */
   def switchSession(name: String): Either[String, Unit] =
-    val result = ProcessAdapter.run(Seq("tmux", "switch-client", "-t", name))
-    if result.exitCode == 0 then Right(())
-    else Left(s"Failed to switch to session: ${result.stderr}")
+    // Use runStreaming to pass terminal through (switch needs real terminal)
+    val exitCode = ProcessAdapter.runStreaming(Seq("tmux", "switch-client", "-t", name))
+    if exitCode == 0 then Right(())
+    else Left(s"Failed to switch to session '$name'")
 
   /** Kill an existing tmux session */
   def killSession(name: String): Either[String, Unit] =
