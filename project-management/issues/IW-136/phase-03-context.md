@@ -188,3 +188,38 @@ The workflow should control both the display text AND the color category, while 
 - Workflow controls all presentation text and colors
 - Progress computed from explicitly referenced files, not discovered
 - `message` is prominent notification, `display` is status metadata
+
+---
+
+### R2: Add update command and restructure as subcommands (2026-02-03)
+
+**Trigger:** After merging and workflows trying to use the commands in production, three issues emerged:
+1. `write-review-state` requires all fields, forcing complex if-else branches or jq scripting
+2. Top-level commands (`validate-review-state`, `write-review-state`) should be subcommands under `review-state`
+3. No public API documentation for workflow authors to depend on
+
+**Decision:**
+1. Add `update` subcommand for partial state modification
+2. Restructure commands as subcommands: `./iw review-state {validate|write|update}`
+3. Document public API contract in `docs/commands/review-state.md`
+
+**Scope:**
+- Command restructuring:
+  - Create `.iw/commands/review-state.scala` dispatcher
+  - Refactor to subcommands: `validate`, `write`, `update`
+  - Update all E2E tests for new structure
+- Update command:
+  - `.iw/core/model/ReviewStateUpdater.scala` - Pure merge logic
+  - Array merge modes: replace (default), append, clear
+  - Auto-update last_updated, preserve git_sha/version/issue_id
+- Public API documentation:
+  - `docs/commands/review-state.md` - Complete command reference
+  - Backward compatibility policy
+  - Usage examples for workflows
+
+**Approach:**
+1. Check if any workflows use old command names (validate-review-state, write-review-state)
+2. Design subcommand dispatcher structure
+3. Implement update merge logic with TDD
+4. Create comprehensive public API documentation
+5. Consider deprecation path for old names if needed

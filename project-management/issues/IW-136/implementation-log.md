@@ -368,3 +368,51 @@ M schemas/review-state.schema.json
 ```
 
 ---
+
+## Refactoring R2: Add update command and restructure as subcommands (2026-02-03)
+
+**Context:** After merging Phase 3 and workflows starting to use the commands in production.
+
+**Problems discovered:**
+1. **Missing update functionality:** `write-review-state` requires all fields, forcing workflows to build complex if-else branches or use jq scripting to modify parts - exactly what we wanted to avoid
+2. **Command structure:** Top-level commands (`validate-review-state`, `write-review-state`) should be subcommands under unified `review-state` command
+3. **Public API:** No documentation of command interface for workflow authors to depend on - need backward compatibility guarantees
+
+**Decision:**
+1. Add `update` subcommand for partial state modification
+2. Restructure as subcommands: `./iw review-state {validate|write|update}`
+3. Document public API contract in `docs/commands/review-state.md`
+
+**Command structure:**
+- `./iw review-state validate <path>` - Validate state file against schema
+- `./iw review-state write [flags]` - Create complete state from scratch
+- `./iw review-state update [flags]` - Merge updates into existing state
+
+**Update merge semantics:**
+- Scalar fields: provided value replaces existing
+- Object fields: merge individual properties
+- Array fields: support replace (default), append, and clear modes
+- Special handling: last_updated always updated, git_sha/version/issue_id preserved
+
+**Public API documentation:**
+- Complete command reference with all flags, exit codes, examples
+- Backward compatibility policy
+- Versioning strategy for future changes
+
+**Impact:**
+- Workflows can make simple incremental updates without complex logic
+- Better command organization under `review-state` namespace
+- Clear contract for workflow authors to depend on
+
+**Files to create:**
+- `.iw/commands/review-state.scala` - Main dispatcher
+- `.iw/commands/review-state/` - Subcommand implementations (or dispatcher pattern)
+- `.iw/core/model/ReviewStateUpdater.scala` - Pure merge logic
+- `docs/commands/review-state.md` - Public API documentation
+- Updated E2E tests
+
+**Clean restructure:** No workflows published yet, so clean restructure without backward compatibility concerns. Will update workflows before publishing.
+
+**This establishes v1.0 of the public command API.**
+
+---
