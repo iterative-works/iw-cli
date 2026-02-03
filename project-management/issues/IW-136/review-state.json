@@ -1,27 +1,23 @@
 {
-  "version": 1,
+  "version": 2,
   "issue_id": "IW-136",
-  "status": "refactoring_complete",
+  "status": "implementing",
   "display": {
-    "text": "Refactoring Complete",
-    "subtext": "R1: Separate display from workflow semantics",
-    "type": "success"
+    "text": "Refactoring In Progress",
+    "subtext": "R2: Add update command and restructure",
+    "type": "progress"
   },
   "badges": [
-    {"label": "R1", "type": "success"}
+    {"label": "R2", "type": "progress"}
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/187",
-  "git_sha": "cc8a455d7c2d1d8cd9f3a2f2ef995785eb2ef943",
-  "last_updated": "2026-01-29T16:33:02Z",
   "phase_checkpoints": {
     "1": { "context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b" },
     "2": { "context_sha": "da52a4390f7326ededd63dee6a7f5249b7fce508" },
     "3": { "context_sha": "d618a1805e03a83be0cd9034113dc99ee31a96c2" }
   },
-  "message": "Refactoring R1 complete - schema now separates display from workflow semantics",
-  "artifacts": [
-    {"label": "Implementation Log", "path": "project-management/issues/IW-136/implementation-log.md"},
-    {"label": "Refactoring Plan", "path": "project-management/issues/IW-136/refactor-phase-03-R1.md"},
-    {"label": "Code Review", "path": "project-management/issues/IW-136/review-refactor-03-R1-20260129-172720.md"}
-  ]
+  "pr_url": null,
+  "git_sha": "db175ba3e925306b8ab1af00289464893413ea13",
+  "last_updated": "2026-02-03T10:08:17Z",
+  "batch_mode": false,
+  "message": "Refactoring R2 implementation in progress"
 }

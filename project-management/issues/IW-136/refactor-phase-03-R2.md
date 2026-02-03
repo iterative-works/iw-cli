@@ -2,7 +2,7 @@
 
 **Phase:** 3
 **Created:** 2026-02-03
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -157,110 +157,110 @@ Following FCIS (Functional Core, Imperative Shell):
 
 ### Analysis & Design
 
-- [ ] [impl] Review existing `write-review-state.scala` flag parsing patterns
-- [ ] [impl] Review existing `ReviewStateBuilder.BuildInput` structure
-- [ ] [impl] Design `UpdateInput` structure (what can be updated vs preserved)
-- [ ] [impl] Design merge semantics for each field type (scalar, object, array)
-- [ ] [impl] Design subcommand structure (dispatcher pattern vs separate entry points)
+- [x] [impl] Review existing `write-review-state.scala` flag parsing patterns
+- [x] [impl] Review existing `ReviewStateBuilder.BuildInput` structure
+- [x] [impl] Design `UpdateInput` structure (what can be updated vs preserved)
+- [x] [impl] Design merge semantics for each field type (scalar, object, array)
+- [x] [impl] Design subcommand structure (dispatcher pattern vs separate entry points)
 
 ### Command Restructuring (Clean - No Backward Compatibility Needed)
 
-- [ ] [impl] Delete old commands: `.iw/commands/validate-review-state.scala` and `.iw/commands/write-review-state.scala`
-- [ ] [impl] Create `.iw/commands/review-state.scala` main dispatcher
-- [ ] [impl] Create `.iw/commands/review-state/validate.scala` subcommand
-- [ ] [impl] Create `.iw/commands/review-state/write.scala` subcommand
-- [ ] [impl] Test: `./iw review-state validate <path>` works
-- [ ] [impl] Test: `./iw review-state write [flags]` works
+- [x] [impl] Delete old commands: `.iw/commands/validate-review-state.scala` and `.iw/commands/write-review-state.scala`
+- [x] [impl] Create `.iw/commands/review-state.scala` main dispatcher
+- [x] [impl] Create `.iw/commands/review-state/validate.scala` subcommand
+- [x] [impl] Create `.iw/commands/review-state/write.scala` subcommand
+- [x] [impl] Test: `./iw review-state validate <path>` works
+- [x] [impl] Test: `./iw review-state write [flags]` works
 - [ ] [impl] Update all E2E tests to use new command structure (validate-review-state.bats, write-review-state.bats)
 
 ### Domain Logic (TDD)
 
-- [ ] [impl] Create `ReviewStateUpdater.scala` in `.iw/core/model/`
-- [ ] [impl] Create `UpdateInput` case class with all optional fields
-- [ ] [impl] Test: merge with no updates → returns existing JSON unchanged
-- [ ] [impl] Test: merge scalar field (display.text) → replaces value
-- [ ] [impl] Test: merge partial object (display.text only) → keeps display.type
-- [ ] [impl] Test: replace array (artifacts) → replaces entire array
-- [ ] [impl] Test: append to array (artifacts) → adds to existing
-- [ ] [impl] Test: clear array (artifacts) → removes all items
-- [ ] [impl] Test: last_updated always updated to current time
-- [ ] [impl] Test: git_sha preserved when not provided
-- [ ] [impl] Test: version and issue_id always preserved
-- [ ] [impl] Test: merged result passes ReviewStateValidator
-- [ ] [impl] Implement `ReviewStateUpdater.merge()` method
+- [x] [impl] Create `ReviewStateUpdater.scala` in `.iw/core/model/`
+- [x] [impl] Create `UpdateInput` case class with all optional fields
+- [x] [impl] Test: merge with no updates → returns existing JSON unchanged
+- [x] [impl] Test: merge scalar field (display.text) → replaces value
+- [x] [impl] Test: merge partial object (display.text only) → keeps display.type
+- [x] [impl] Test: replace array (artifacts) → replaces entire array
+- [x] [impl] Test: append to array (artifacts) → adds to existing
+- [x] [impl] Test: clear array (artifacts) → removes all items
+- [x] [impl] Test: last_updated always updated to current time
+- [x] [impl] Test: git_sha preserved when not provided
+- [x] [impl] Test: version and issue_id always preserved
+- [x] [impl] Test: merged result passes ReviewStateValidator
+- [x] [impl] Implement `ReviewStateUpdater.merge()` method
 
 ### Update Subcommand Implementation
 
-- [ ] [impl] Create `.iw/commands/review-state/update.scala` (or integrate into dispatcher)
-- [ ] [impl] Add input path detection (from issue_id or --input flag)
-- [ ] [impl] Add flag parsing matching write patterns
-- [ ] [impl] Add append/clear modes for array fields (--append-artifact, --clear-artifacts)
-- [ ] [impl] Add clear flags for optional fields (--clear-message, --clear-pr-url)
-- [ ] [impl] Read existing file, error if doesn't exist
-- [ ] [impl] Call ReviewStateUpdater.merge()
-- [ ] [impl] Validate merged result
-- [ ] [impl] Write back to same location
-- [ ] [impl] Error handling: file not found, validation failed, invalid flags
+- [x] [impl] Create `.iw/commands/review-state/update.scala` (or integrate into dispatcher)
+- [x] [impl] Add input path detection (from issue_id or --input flag)
+- [x] [impl] Add flag parsing matching write patterns
+- [x] [impl] Add append/clear modes for array fields (--append-artifact, --clear-artifacts)
+- [x] [impl] Add clear flags for optional fields (--clear-message, --clear-pr-url)
+- [x] [impl] Read existing file, error if doesn't exist
+- [x] [impl] Call ReviewStateUpdater.merge()
+- [x] [impl] Validate merged result
+- [x] [impl] Write back to same location
+- [x] [impl] Error handling: file not found, validation failed, invalid flags
 
 ### E2E Tests
 
-- [ ] [impl] Delete old test files: `.iw/test/validate-review-state.bats` and `.iw/test/write-review-state.bats`
-- [ ] [impl] Create `.iw/test/review-state.bats` for all subcommands
-- [ ] [impl] Test: `./iw review-state validate <path>` → exit 0 for valid
-- [ ] [impl] Test: `./iw review-state validate <path>` → exit 1 for invalid with clear errors
-- [ ] [impl] Test: `./iw review-state validate --stdin` → validates from stdin
-- [ ] [impl] Test: `./iw review-state write [flags]` → creates file correctly
-- [ ] [impl] Test: `./iw review-state write --from-stdin` → reads and validates
-- [ ] [impl] Test: `./iw review-state update --display-text "X"` → updates scalar field
-- [ ] [impl] Test: update partial object (display.text) → display.type preserved
-- [ ] [impl] Test: replace array (--artifact) → all artifacts replaced
-- [ ] [impl] Test: append to array (--append-artifact) → added to existing
-- [ ] [impl] Test: clear array (--clear-artifacts) → array empty
-- [ ] [impl] Test: clear optional field (--clear-message) → field removed
-- [ ] [impl] Test: last_updated changed after update
-- [ ] [impl] Test: git_sha preserved when not provided
-- [ ] [impl] Test: version and issue_id preserved
-- [ ] [impl] Test: file not found for update → exit 1 with error
-- [ ] [impl] Test: validation failed → exit 1, file not modified
-- [ ] [impl] Test: auto-infer issue_id from branch → correct file path
+- [x] [impl] Delete old test files: `.iw/test/validate-review-state.bats` and `.iw/test/write-review-state.bats`
+- [x] [impl] Create `.iw/test/review-state.bats` for all subcommands
+- [x] [impl] Test: `./iw review-state validate <path>` → exit 0 for valid
+- [x] [impl] Test: `./iw review-state validate <path>` → exit 1 for invalid with clear errors
+- [x] [impl] Test: `./iw review-state validate --stdin` → validates from stdin
+- [x] [impl] Test: `./iw review-state write [flags]` → creates file correctly
+- [x] [impl] Test: `./iw review-state write --from-stdin` → reads and validates
+- [x] [impl] Test: `./iw review-state update --display-text "X"` → updates scalar field
+- [x] [impl] Test: update partial object (display.text) → display.type preserved
+- [x] [impl] Test: replace array (--artifact) → all artifacts replaced
+- [x] [impl] Test: append to array (--append-artifact) → added to existing
+- [x] [impl] Test: clear array (--clear-artifacts) → array empty
+- [x] [impl] Test: clear optional field (--clear-message) → field removed
+- [x] [impl] Test: last_updated changed after update
+- [x] [impl] Test: git_sha preserved when not provided
+- [x] [impl] Test: version and issue_id preserved
+- [x] [impl] Test: file not found for update → exit 1 with error
+- [x] [impl] Test: validation failed → exit 1, file not modified
+- [x] [impl] Test: auto-infer issue_id from branch → correct file path
 
 ### Public API Documentation
 
-- [ ] [impl] Create `docs/commands/review-state.md` with comprehensive documentation:
+- [x] [impl] Create `docs/commands/review-state.md` with comprehensive documentation:
   - Overview and purpose (this is v1 of the public API)
   - All subcommands (validate, write, update)
   - All flags with types and descriptions
   - Exit codes and error handling
   - Usage examples for common workflows
   - JSON schema reference (link to schemas/review-state.schema.json)
-- [ ] [impl] Document backward compatibility policy (establishing for first public version):
+- [x] [impl] Document backward compatibility policy (establishing for first public version):
   - What changes require major version bump
   - What changes are backward compatible
   - Deprecation policy for future breaking changes
   - Note: This refactoring IS v1.0, previous commands were internal/unpublished
-- [ ] [impl] Add examples showing the three command lifecycle:
+- [x] [impl] Add examples showing the three command lifecycle:
   1. Create initial state: `review-state write`
   2. Update incrementally: `review-state update`
   3. Validate before commit: `review-state validate`
-- [ ] [impl] Document command header comments in all three subcommand files
-- [ ] [impl] Add note in main README about `./iw review-state` commands
-- [ ] [impl] Add note that this is the first public release of these commands
+- [x] [impl] Document command header comments in all three subcommand files
+- [x] [impl] Add note in main README about `./iw review-state` commands
+- [x] [impl] Add note that this is the first public release of these commands
 
 ## Verification
 
 After implementation:
 
-- [ ] Old command files deleted (validate-review-state.scala, write-review-state.scala)
-- [ ] Old test files deleted (validate-review-state.bats, write-review-state.bats)
-- [ ] All existing dashboard/domain tests pass (no regressions in core logic)
-- [ ] All three subcommands work: validate, write, update
-- [ ] New command structure: `./iw review-state <subcommand>` works correctly
-- [ ] Update command works for all field types and merge modes
-- [ ] Workflows can replace their if-else/jq logic with simple update commands
-- [ ] Merged state always passes validation
-- [ ] Error messages are clear and actionable
-- [ ] Public API documentation is complete and accurate
-- [ ] This is documented as v1.0 of the public command API
+- [x] Old command files deleted (validate-review-state.scala, write-review-state.scala)
+- [x] Old test files deleted (validate-review-state.bats, write-review-state.bats)
+- [x] All existing dashboard/domain tests pass (no regressions in core logic)
+- [x] All three subcommands work: validate, write, update
+- [x] New command structure: `./iw review-state <subcommand>` works correctly
+- [x] Update command works for all field types and merge modes
+- [x] Workflows can replace their if-else/jq logic with simple update commands
+- [x] Merged state always passes validation
+- [x] Error messages are clear and actionable
+- [x] Public API documentation is complete and accurate
+- [x] This is documented as v1.0 of the public command API
 
 ## Notes
 

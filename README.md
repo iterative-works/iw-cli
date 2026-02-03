@@ -61,6 +61,9 @@ If not specified, defaults to "latest".
 | `iw open [issue-id]` | Open tmux session (defaults to current branch) |
 | `iw rm <issue-id>` | Kill session, remove worktree, delete branch |
 | `iw issue` | Fetch issue details from configured tracker |
+| `iw review-state` | Manage review-state.json files (validate, write, update) |
+
+For detailed documentation on `review-state` commands, see [docs/commands/review-state.md](docs/commands/review-state.md).
 
 ## GitHub Integration
 

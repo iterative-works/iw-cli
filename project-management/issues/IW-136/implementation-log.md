@@ -415,4 +415,57 @@ M schemas/review-state.schema.json
 
 **This establishes v1.0 of the public command API.**
 
+**What was built:**
+- Main dispatcher: `.iw/commands/review-state.scala` - Routes to subcommands via scala-cli subprocess
+- Validation subcommand: `.iw/commands/review-state/validate.scala` - Validates review-state.json files
+- Write subcommand: `.iw/commands/review-state/write.scala` - Creates new review-state.json from scratch
+- Update subcommand: `.iw/commands/review-state/update.scala` - Merges partial updates into existing state (NEW)
+- Pure domain logic: `.iw/core/model/ReviewStateUpdater.scala` - Functional core for merge operations
+- Unit tests: `.iw/core/test/ReviewStateUpdaterTest.scala` - 10 tests for merge logic
+- E2E tests: `.iw/test/review-state.bats` - 27 comprehensive tests (26 passing, 1 skipped)
+- Public API docs: `docs/commands/review-state.md` - Complete reference with examples and compatibility policy
+
+**Patterns applied:**
+- **FCIS (Functional Core, Imperative Shell):** Pure merge logic in `ReviewStateUpdater`, I/O in commands
+- **Scala 3 enum:** `ArrayMergeMode` enum for Replace/Append/Clear semantics
+- **Dispatcher pattern:** Main command routes to subcommands via subprocess spawning
+- **Array merge modes:** Configurable behavior for array fields (replace/append/clear)
+
+**Testing:**
+- Unit tests: 10 tests added for `ReviewStateUpdater.merge()` logic
+- E2E tests: 27 tests covering all three subcommands (validate, write, update)
+- All existing tests: Passing (no regressions)
+- Test coverage: Scalar updates, object merges, array operations, field preservation, validation
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-R2-20260203-113310.md
+- Critical issues: 0 (PASSED)
+- Warnings: 9 (code duplication in flag parsing, path traversal risks, skipped test)
+- Suggestions: 19 (function composition, input validation, test coverage improvements)
+- Notable strengths: Excellent use of Scala 3 enum, good FCIS separation, comprehensive tests
+
+**For next phases:**
+- Update command available: Workflows can now use `./iw review-state update` for incremental changes
+- Public API documented: v1.0 contract established with backward compatibility guarantees
+- Array merge modes: Workflows can choose replace/append/clear behavior as needed
+- Command namespace: All review-state operations under `./iw review-state` subcommand
+
+**Files changed:**
+```
+D .iw/commands/validate-review-state.scala
+D .iw/commands/write-review-state.scala
+D .iw/test/validate-review-state.bats
+D .iw/test/write-review-state.bats
+A .iw/commands/review-state.scala
+A .iw/commands/review-state/validate.scala
+A .iw/commands/review-state/write.scala
+A .iw/commands/review-state/update.scala
+A .iw/core/model/ReviewStateUpdater.scala
+A .iw/core/test/ReviewStateUpdaterTest.scala
+A .iw/test/review-state.bats
+A docs/commands/review-state.md
+M README.md
+```
+
 ---

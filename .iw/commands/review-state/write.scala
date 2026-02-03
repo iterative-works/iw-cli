@@ -1,7 +1,7 @@
 // PURPOSE: Write a validated review-state.json file from CLI flags or stdin
 // PURPOSE: Auto-populates issue_id, git_sha, and last_updated from git context
-// USAGE: iw write-review-state [options]
-// USAGE: iw write-review-state --from-stdin --output <path>
+// USAGE: iw review-state write [options]
+// USAGE: iw review-state write --from-stdin --output <path>
 // ARGS:
 //   --status <value>           Optional machine-readable status identifier
 //   --display-text <value>     Primary display text for status badge
@@ -19,13 +19,13 @@
 //   --from-stdin               Read full JSON from stdin
 //   --issue-id <value>         Issue ID override (auto-inferred from branch)
 //   --version <value>          Version number (default: 2)
-// EXAMPLE: iw write-review-state --display-text "Implementing" --display-type progress --output review-state.json
+// EXAMPLE: iw review-state write --display-text "Implementing" --display-type progress --output review-state.json
 
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
 
-@main def `write-review-state`(args: String*): Unit =
+@main def write(args: String*): Unit =
   val argList = args.toList
 
   if argList.contains("--from-stdin") then
