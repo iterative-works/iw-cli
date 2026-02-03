@@ -54,7 +54,7 @@ private def collectHookChecks(): List[Check] =
 @main def doctor(args: String*): Unit =
   // Load configuration (use default if not available for hook checks)
   val config = ConfigFileRepository.read(ConfigPath).getOrElse(
-    ProjectConfiguration(IssueTrackerType.Linear, "UNKNOWN", "unknown")
+    ProjectConfiguration.create(IssueTrackerType.Linear, "UNKNOWN", "unknown")
   )
 
   System.out.println("Environment Check")
