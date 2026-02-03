@@ -1,29 +1,28 @@
 {
   "version": 2,
   "issue_id": "IW-136",
-  "status": "refactoring_complete",
+  "status": "all_complete",
   "display": {
-    "text": "Refactoring Complete",
-    "subtext": "R2: Add update command and restructure",
+    "text": "All Complete",
+    "subtext": "Ready for final review",
     "type": "success"
   },
   "badges": [
-    {"label": "R2", "type": "success"}
+    {"label": "3/3 Phases", "type": "success"}
   ],
   "phase_checkpoints": {
     "1": { "context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b" },
     "2": { "context_sha": "da52a4390f7326ededd63dee6a7f5249b7fce508" },
     "3": { "context_sha": "d618a1805e03a83be0cd9034113dc99ee31a96c2" }
   },
-  "pr_url": null,
-  "git_sha": "db39bec6b51c532fb9f33ed25e9e88ebe3c5f2e8",
-  "last_updated": "2026-02-03T14:11:51Z",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/192",
+  "git_sha": "892458cc78ad4524e11b8e631182dab1c3d839c0",
+  "last_updated": "2026-02-03T15:01:32Z",
   "batch_mode": false,
-  "refactoring_id": "R2",
-  "message": "Refactoring R2 complete",
+  "message": "All phases complete - final PR created",
   "artifacts": [
     {"label": "Implementation Log", "path": "project-management/issues/IW-136/implementation-log.md"},
-    {"label": "Refactoring Plan", "path": "project-management/issues/IW-136/refactor-phase-03-R2.md"},
-    {"label": "Code Review", "path": "project-management/issues/IW-136/review-phase-03-R2-20260203-113310.md"}
+    {"label": "Release Notes", "path": "project-management/issues/IW-136/release-notes.md"},
+    {"label": "Public API Docs", "path": "docs/commands/review-state.md"}
   ]
 }
