@@ -17,15 +17,24 @@ import iw.core.output.*
     sys.exit(1)
 
   // Resolve paths from IW_COMMANDS_DIR (installation dir) or fall back to os.pwd
-  // IW_COMMANDS_DIR points to .iw/commands, so we go up one level to .iw, then to scripts/
-  val iwDir = sys.env.get(Constants.EnvVars.IwCommandsDir)
-    .map(p => os.Path(p) / os.up)  // Go from .iw/commands to .iw
+  // IW_COMMANDS_DIR points to commands/ (dev: .iw/commands, release: <version>/commands)
+  // We go up one level to get the installation root (dev: .iw, release: <version>)
+  val iwInstallRoot = sys.env.get(Constants.EnvVars.IwCommandsDir)
+    .map(p => os.Path(p) / os.up)  // Go from commands/ to installation root
     .getOrElse(os.pwd / ".iw")
-  val iwInstallRoot = iwDir / os.up  // Root of iw-cli installation
-  val promptFile = iwDir / "scripts" / "claude-skill-prompt.md"
+  val promptFile = iwInstallRoot / "scripts" / "claude-skill-prompt.md"
 
   // Source for the command-creation skill (bundled with iw-cli)
-  val commandCreationSkillSource = iwInstallRoot / ".claude" / "skills" / "iw-command-creation"
+  // In release mode: .claude/ is sibling of commands/ (flat structure)
+  // In dev mode: .claude/ is at project root (one level up from .iw/)
+  val commandCreationSkillSource = {
+    val releaseLocation = iwInstallRoot / ".claude" / "skills" / "iw-command-creation"
+    if os.exists(releaseLocation) then
+      releaseLocation
+    else
+      // Dev mode: go up one more level to project root
+      iwInstallRoot / os.up / ".claude" / "skills" / "iw-command-creation"
+  }
 
   if !os.exists(promptFile) then
     Output.error(s"Template file not found: $promptFile")
@@ -42,8 +51,8 @@ import iw.core.output.*
   // so Claude reads iw-cli source from the installation directory, not the target project.
   // Note: .iw/config.conf stays relative - it should be the target project's config.
   val prompt = os.read(promptFile)
-    .replace(".iw/core/", s"$iwDir/core/")
-    .replace(".iw/commands/", s"$iwDir/commands/")
+    .replace(".iw/core/", s"$iwInstallRoot/core/")
+    .replace(".iw/commands/", s"$iwInstallRoot/commands/")
 
   // Check if skills already exist (unless --force)
   // Note: iw-command-creation is a static skill copied from installation, not regenerated
