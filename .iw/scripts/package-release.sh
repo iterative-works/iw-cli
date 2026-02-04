@@ -16,13 +16,22 @@ echo "Packaging iw-cli version $VERSION..."
 # Create release directory structure
 RELEASE_PACKAGE_DIR="$RELEASE_DIR/iw-cli-$VERSION"
 rm -rf "$RELEASE_PACKAGE_DIR"
-mkdir -p "$RELEASE_PACKAGE_DIR"/{commands,core}
+mkdir -p "$RELEASE_PACKAGE_DIR"/{commands,core,scripts}
 
 # Copy iw-run launcher
 cp "$PROJECT_ROOT/iw-run" "$RELEASE_PACKAGE_DIR/"
 
 # Copy all command files
 cp "$PROJECT_ROOT/.iw/commands"/*.scala "$RELEASE_PACKAGE_DIR/commands/"
+
+# Copy claude-skill-prompt.md template (needed by claude-sync command)
+cp "$PROJECT_ROOT/.iw/scripts/claude-skill-prompt.md" "$RELEASE_PACKAGE_DIR/scripts/"
+
+# Copy iw-command-creation skill (needed by claude-sync command)
+if [ -d "$PROJECT_ROOT/.claude/skills/iw-command-creation" ]; then
+    mkdir -p "$RELEASE_PACKAGE_DIR/.claude/skills"
+    cp -r "$PROJECT_ROOT/.claude/skills/iw-command-creation" "$RELEASE_PACKAGE_DIR/.claude/skills/"
+fi
 
 # Copy all core files (recursively, preserving directory structure)
 # Exclude test/ and .scala-build/ directories
