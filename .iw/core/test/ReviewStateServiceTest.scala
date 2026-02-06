@@ -4,7 +4,7 @@
 package iw.core.test
 
 import iw.core.dashboard.ReviewStateService
-import iw.core.model.{ReviewState, ReviewArtifact, CachedReviewState}
+import iw.core.model.{ReviewState, ReviewArtifact, Display, Badge, CachedReviewState}
 
 class ReviewStateServiceTest extends munit.FunSuite:
 
@@ -99,6 +99,79 @@ class ReviewStateServiceTest extends munit.FunSuite:
 
     val state = result.toOption.get
     assertEquals(state.artifacts.size, 0)
+
+  test("parseReviewStateJson parses badges with schema 'type' field"):
+    val json = """{
+      "badges": [
+        {"label": "Simple", "type": "info"},
+        {"label": "Urgent", "type": "warning"}
+      ],
+      "artifacts": [
+        {"label": "Analysis", "path": "analysis.md"}
+      ]
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.badges, Some(List(Badge("Simple", "info"), Badge("Urgent", "warning"))))
+
+  test("parseReviewStateJson parses display with schema 'type' field"):
+    val json = """{
+      "display": {
+        "text": "Phase 01",
+        "type": "info",
+        "subtext": "Implementing core logic"
+      },
+      "artifacts": [
+        {"label": "Context", "path": "context.md"}
+      ]
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.display, Some(Display("Phase 01", Some("Implementing core logic"), "info")))
+
+  test("parseReviewStateJson ignores unknown fields on artifacts"):
+    val json = """{
+      "artifacts": [
+        {"label": "Input Spec", "path": "input.md", "category": "input"}
+      ]
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.artifacts.size, 1)
+    assertEquals(state.artifacts.head.label, "Input Spec")
+    assertEquals(state.artifacts.head.path, "input.md")
+
+  test("parseReviewStateJson parses full schema-valid review state"):
+    val json = """{
+      "display": {"text": "Implementing", "type": "progress", "subtext": "Phase 2 of 3"},
+      "badges": [{"label": "Batch", "type": "info"}],
+      "task_lists": [{"label": "Phase 2", "path": "tasks/phase-02.md"}],
+      "needs_attention": false,
+      "message": "All good",
+      "artifacts": [
+        {"label": "Analysis", "path": "analysis.md"},
+        {"label": "Input", "path": "input.md", "category": "input"}
+      ]
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.display, Some(Display("Implementing", Some("Phase 2 of 3"), "progress")))
+    assertEquals(state.badges, Some(List(Badge("Batch", "info"))))
+    assertEquals(state.needsAttention, Some(false))
+    assertEquals(state.message, Some("All good"))
+    assertEquals(state.artifacts.size, 2)
 
   // fetchReviewState Tests
 

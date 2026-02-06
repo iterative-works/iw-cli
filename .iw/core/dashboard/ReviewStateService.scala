@@ -44,7 +44,13 @@ object ReviewStateService:
 
       // Define JSON readers for domain models
       given ReadWriter[ReviewArtifact] = macroRW[ReviewArtifact]
-      given ReadWriter[Badge] = macroRW[Badge]
+      given ReadWriter[Badge] = readwriter[ujson.Value].bimap[Badge](
+        badge => ujson.Obj("label" -> ujson.Str(badge.label), "type" -> ujson.Str(badge.badgeType)),
+        jsValue => {
+          val obj = jsValue.obj
+          Badge(obj("label").str, obj("type").str)
+        }
+      )
       given ReadWriter[TaskList] = macroRW[TaskList]
 
       // Custom reader for Display
