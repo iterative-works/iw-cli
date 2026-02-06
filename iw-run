@@ -27,7 +27,7 @@ bootstrap() {
 
     # Find core files excluding test directory
     local core_files
-    core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
+    core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
 
     # Compile a simple command to trigger dependency download and compilation
     # This ensures subsequent runs work offline
@@ -250,7 +250,7 @@ execute_command() {
 
         # Find core files excluding test directory
         local core_files
-        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
+        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
 
         # Project commands: Execute with core library, NO hook discovery
         cd "$PROJECT_DIR"
@@ -306,7 +306,7 @@ execute_command() {
 
         # Find core files excluding test directory
         local core_files
-        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" | tr '\n' ' ')
+        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
 
         # Change to project directory for command execution
         cd "$PROJECT_DIR"
