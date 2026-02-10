@@ -2,22 +2,22 @@
 
 ## Tests First (TDD)
 
-- [ ] [test] Create `CIChecksTest.scala` with tests for CI workflow detection
-- [ ] [test] Run tests to confirm they fail
+- [x] [test] Create `CIChecksTest.scala` with tests for CI workflow detection
+- [x] [test] Run tests to confirm they fail
 
 ## Implementation
 
-- [ ] [impl] Create `CIChecks.scala` in `core/model/`
-- [ ] [impl] Implement `checkWorkflowExistsWith` with tracker-type-based platform detection
-- [ ] [impl] Add wrapper function
-- [ ] [impl] Run unit tests to confirm they pass
+- [x] [impl] Create `CIChecks.scala` in `core/model/`
+- [x] [impl] Implement `checkWorkflowExistsWith` with tracker-type-based platform detection
+- [x] [impl] Add wrapper function
+- [x] [impl] Run unit tests to confirm they pass
 
 ## Integration
 
-- [ ] [impl] Create `ci.hook-doctor.scala` in `.iw/commands/`
-- [ ] [test] Add E2E tests to `doctor.bats`
+- [x] [impl] Create `ci.hook-doctor.scala` in `.iw/commands/`
+- [x] [test] Add E2E tests to `doctor.bats`
 
 ## Verification
 
-- [ ] [verify] Run full test suite: `./iw test unit`
-- [ ] [verify] Run E2E tests: `bats .iw/test/doctor.bats`
+- [x] [verify] Run full test suite: `./iw test unit`
+- [x] [verify] Run E2E tests: `bats .iw/test/doctor.bats`

@@ -800,3 +800,164 @@ EOF
     [[ "$output" == *"Missing: CI"* ]]
     [[ "$output" == *"Add sections covering: CI"* ]]
 }
+
+@test "doctor shows CI workflow check for GitHub when ci.yml exists" {
+    # Setup: create config with GitHub tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = github
+  repository = "owner/repo"
+  teamPrefix = "REPO"
+}
+
+project {
+  name = repo
+}
+EOF
+
+    # Create .github/workflows/ci.yml
+    mkdir -p .github/workflows
+    touch .github/workflows/ci.yml
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CI workflow check
+    [[ "$output" == *"CI workflow"* ]]
+    [[ "$output" == *"Found (.github/workflows/ci.yml)"* ]]
+}
+
+@test "doctor shows CI workflow error for GitHub when ci.yml missing" {
+    # Setup: create config with GitHub tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = github
+  repository = "owner/repo"
+  teamPrefix = "REPO"
+}
+
+project {
+  name = repo
+}
+EOF
+
+    # Do NOT create .github/workflows/ci.yml
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CI workflow check as error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"CI workflow"* ]]
+    [[ "$output" == *"Missing"* ]]
+    [[ "$output" == *"Create .github/workflows/ci.yml"* ]]
+}
+
+@test "doctor shows CI workflow check for GitLab when .gitlab-ci.yml exists" {
+    # Setup: create config with GitLab tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = gitlab
+  repository = "owner/repo"
+  teamPrefix = "REPO"
+}
+
+project {
+  name = repo
+}
+EOF
+
+    # Create .gitlab-ci.yml
+    touch .gitlab-ci.yml
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CI workflow check
+    [[ "$output" == *"CI workflow"* ]]
+    [[ "$output" == *"Found (.gitlab-ci.yml)"* ]]
+}
+
+@test "doctor shows CI workflow error for GitLab when .gitlab-ci.yml missing" {
+    # Setup: create config with GitLab tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = gitlab
+  repository = "owner/repo"
+  teamPrefix = "REPO"
+}
+
+project {
+  name = repo
+}
+EOF
+
+    # Do NOT create .gitlab-ci.yml
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CI workflow check as error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"CI workflow"* ]]
+    [[ "$output" == *"Missing"* ]]
+    [[ "$output" == *"Create .gitlab-ci.yml"* ]]
+}
+
+@test "doctor shows CI workflow warning for Linear when no CI file found" {
+    # Setup: create config with Linear tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Do NOT create any CI file
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CI workflow check as warning (not error)
+    [[ "$output" == *"CI workflow"* ]]
+    [[ "$output" == *"No CI workflow found"* ]]
+}
+
+@test "doctor shows CI workflow success for Linear when GitHub Actions exists" {
+    # Setup: create config with Linear tracker
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .github/workflows/ci.yml
+    mkdir -p .github/workflows
+    touch .github/workflows/ci.yml
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CI workflow check as success
+    [[ "$output" == *"CI workflow"* ]]
+    [[ "$output" == *"Found (.github/workflows/ci.yml)"* ]]
+}
