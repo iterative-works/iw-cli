@@ -56,9 +56,10 @@ private def collectHookChecks(): List[Check] =
     ProjectConfiguration.create(IssueTrackerType.Linear, "UNKNOWN", "unknown")
   )
 
-  // Parse filter flags
+  // Parse flags
+  val fixMode = args.contains("--fix")
   val filterCategory =
-    if args.contains("--quality") then Some("Quality")
+    if args.contains("--quality") || fixMode then Some("Quality")
     else if args.contains("--env") then Some("Environment")
     else None
 
@@ -121,6 +122,35 @@ private def collectHookChecks(): List[Check] =
   }
 
   System.out.println()
+
+  // Fix mode: launch Claude Code with remediation prompt
+  if fixMode then
+    if errorCount == 0 then
+      System.out.println("All quality gate checks pass. Nothing to fix.")
+      sys.exit(0)
+    else
+      // Collect failed check names
+      val failedChecks = results.collect {
+        case (name, CheckResult.Error(_, _), _) => name
+      }
+
+      // Detect build system
+      val buildSystem = BuildSystem.detect()
+
+      // Detect CI platform from tracker type
+      val ciPlatform = config.tracker.trackerType match
+        case IssueTrackerType.GitHub => "GitHub Actions"
+        case IssueTrackerType.GitLab => "GitLab CI"
+        case _ => "Unknown"
+
+      // Generate remediation prompt
+      val prompt = FixPrompt.generate(failedChecks, buildSystem, ciPlatform)
+
+      // Launch Claude Code
+      val exitCode = ProcessAdapter.runStreaming(
+        Seq("claude", "-p", prompt)
+      )
+      sys.exit(exitCode)
 
   // Summary
   if errorCount == 0 && warningCount == 0 then

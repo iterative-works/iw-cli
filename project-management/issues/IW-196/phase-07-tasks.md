@@ -2,29 +2,29 @@
 
 ## Tests First (TDD)
 
-- [ ] [test] Create `BuildSystemTest.scala` with tests for detection logic
-- [ ] [test] Create `FixPromptTest.scala` with tests for prompt generation
-- [ ] [test] Run tests to confirm they fail
+- [x] [test] Create `BuildSystemTest.scala` with tests for detection logic
+- [x] [test] Create `FixPromptTest.scala` with tests for prompt generation
+- [x] [test] Run tests to confirm they fail
 
 ## Implementation - Model
 
-- [ ] [impl] Create `BuildSystem.scala` in `core/model/`
-- [ ] [impl] Create `FixPrompt.scala` in `core/model/`
-- [ ] [impl] Run unit tests
+- [x] [impl] Create `BuildSystem.scala` in `core/model/`
+- [x] [impl] Create `FixPrompt.scala` in `core/model/`
+- [x] [impl] Run unit tests
 
 ## Implementation - Doctor Command
 
-- [ ] [impl] Add `--fix` flag parsing to `doctor.scala`
-- [ ] [impl] Run quality checks, collect failures
-- [ ] [impl] Detect build system and CI platform
-- [ ] [impl] Generate and launch Claude Code session
-- [ ] [impl] Handle no-fix-needed case
+- [x] [impl] Add `--fix` flag parsing to `doctor.scala`
+- [x] [impl] Run quality checks, collect failures
+- [x] [impl] Detect build system and CI platform
+- [x] [impl] Generate and launch Claude Code session
+- [x] [impl] Handle no-fix-needed case
 
 ## E2E Tests
 
-- [ ] [test] Add E2E test: `--fix` with all checks passing
+- [x] [test] Add E2E test: `--fix` with all checks passing
 
 ## Verification
 
-- [ ] [verify] Run full test suite
-- [ ] [verify] Manual test: run `iw doctor --fix` in project root
+- [x] [verify] Run full test suite
+- [x] [verify] Manual test: run `iw doctor --fix` in project root
