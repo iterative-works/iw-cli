@@ -2,11 +2,11 @@
 
 **Issue:** IW-196
 **Created:** 2026-02-09
-**Status:** 0/8 phases complete (0%)
+**Status:** 1/8 phases complete (12%)
 
 ## Phase Index
 
-- [ ] Phase 0: Move Check types from dashboard/ to model/ (Est: 2-3h) → `phase-00-context.md`
+- [x] Phase 0: Move Check types from dashboard/ to model/ (Est: 2-3h) → `phase-00-context.md`
 - [ ] Phase 1: Scalafmt configuration check (Est: 4-6h) → `phase-01-context.md`
 - [ ] Phase 2: Scalafix configuration check (Est: 4-6h) → `phase-02-context.md`
 - [ ] Phase 3: Git hooks check (Est: 6-8h) → `phase-03-context.md`
@@ -17,7 +17,7 @@
 
 ## Progress Tracker
 
-**Completed:** 0/8 phases
+**Completed:** 1/8 phases
 **Estimated Total:** 37-53 hours
 **Time Spent:** 0 hours
 

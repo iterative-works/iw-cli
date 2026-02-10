@@ -11,14 +11,22 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-196/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Phase 0 Context",
+      "path": "project-management/issues/IW-196/phase-00-context.md"
+    },
+    {
+      "label": "Phase 0 Tasks",
+      "path": "project-management/issues/IW-196/phase-00-tasks.md"
     }
   ],
-  "last_updated": "2026-02-10T14:39:47.265819747Z",
+  "last_updated": "2026-02-10T17:39:31.491495656Z",
   "status": "tasks_ready",
   "display": {
-    "text": "Tasks Ready",
+    "text": "Phase 0: Tasks Ready",
     "type": "success",
-    "subtext": "8 phases identified"
+    "subtext": "Move Check types from dashboard/ to model/"
   },
   "badges": [
     {
@@ -26,7 +34,7 @@
       "type": "info"
     }
   ],
-  "message": "Task breakdown complete. Ready to begin implementation.",
+  "message": "Phase 0 tasks ready, starting implementation",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -42,8 +50,18 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "d5f0d51",
-  "needs_attention": true
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "0": {
+      "context_sha": "context_sha=16ea57890f2c1d1035ac11e8eede756d40c0737c"
+    }
+  }
 }
