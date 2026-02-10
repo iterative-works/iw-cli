@@ -1,9 +1,8 @@
 // PURPOSE: GitHub doctor check functions - validates gh CLI prerequisites
 // PURPOSE: Provides checkGhInstalled and checkGhAuthenticated for doctor hooks
-package iw.core.dashboard
+package iw.core.model
 
 import iw.core.adapters.{GitHubClient, CommandRunner}
-import iw.core.model.{IssueTrackerType, ProjectConfiguration}
 
 object GitHubHookDoctor:
 

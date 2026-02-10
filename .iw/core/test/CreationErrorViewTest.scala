@@ -5,7 +5,7 @@ package iw.core.presentation.views
 
 import munit.FunSuite
 import iw.core.dashboard.domain.UserFriendlyError
-import iw.core.dashboard.Check
+import iw.core.model.Check
 import iw.core.dashboard.presentation.views.CreationErrorView
 import iw.core.model.Issue
 

@@ -2,10 +2,7 @@
 // PURPOSE: Tests checkGhInstalled and checkGhAuthenticated functions
 package iw.tests
 
-import iw.core.dashboard.CheckResult
-import iw.core.dashboard.GitHubHookDoctor
-import iw.core.model.{IssueTrackerType, ProjectConfiguration}
-import iw.core.dashboard.GitHubHookDoctor
+import iw.core.model.{CheckResult, GitHubHookDoctor, IssueTrackerType, ProjectConfiguration}
 import munit.FunSuite
 
 class GitHubHookDoctorTest extends FunSuite:

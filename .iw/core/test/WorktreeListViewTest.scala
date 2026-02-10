@@ -6,7 +6,7 @@ package iw.core.test
 import iw.core.model.{WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, ReviewArtifact, Display, Badge, TaskList}
 import iw.core.dashboard.WorktreeListView
 import java.time.Instant
-import iw.core.dashboard.Check
+import iw.core.model.Check
 import iw.core.model.Issue
 
 class WorktreeListViewTest extends munit.FunSuite:

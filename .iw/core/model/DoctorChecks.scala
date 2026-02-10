@@ -1,9 +1,7 @@
 // PURPOSE: Types for extensible environment validation checks
 // PURPOSE: Provides CheckResult enum and Check case class for doctor checks
 
-package iw.core.dashboard
-
-import iw.core.model.ProjectConfiguration
+package iw.core.model
 
 enum CheckResult:
   case Success(message: String)
