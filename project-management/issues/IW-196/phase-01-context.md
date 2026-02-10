@@ -63,9 +63,9 @@ Follow the existing two-function pattern from `GitHubHookDoctor`:
 
 ## Acceptance Criteria
 
-- [ ] `iw doctor` reports Scalafmt config presence and version status
-- [ ] Checks are pure functions with injected file-reading for testability
-- [ ] Unit tests cover all three scenarios
-- [ ] E2E test validates output format
-- [ ] Check functions follow the `*With` dependency injection pattern
-- [ ] Hook-doctor file follows existing naming convention (`scalafmt.hook-doctor.scala`)
+- [x] `iw doctor` reports Scalafmt config presence and version status
+- [x] Checks are pure functions with injected file-reading for testability
+- [x] Unit tests cover all three scenarios
+- [x] E2E test validates output format
+- [x] Check functions follow the `*With` dependency injection pattern
+- [x] Hook-doctor file follows existing naming convention (`scalafmt.hook-doctor.scala`)

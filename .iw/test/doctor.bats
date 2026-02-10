@@ -148,6 +148,12 @@ project {
 }
 EOF
 
+    # Create .scalafmt.conf to satisfy Scalafmt checks
+    cat > .scalafmt.conf << EOF
+version = "3.8.1"
+maxColumn = 120
+EOF
+
     # Run doctor (YouTrack skips token check, tmux should be available)
     run "$PROJECT_ROOT/iw" doctor
 
@@ -266,4 +272,97 @@ EOF
         # If gh not installed, auth check should be skipped
         [[ "$output" == *"gh auth"*"Skipped"* ]]
     fi
+}
+
+@test "doctor shows Scalafmt config check when .scalafmt.conf exists" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .scalafmt.conf with version
+    cat > .scalafmt.conf << EOF
+version = "3.8.1"
+maxColumn = 120
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show Scalafmt check
+    [[ "$output" == *".scalafmt.conf"* ]]
+    [[ "$output" == *"Found"* ]]
+    [[ "$output" == *".scalafmt.conf version"* ]]
+    [[ "$output" == *"Configured"* ]]
+}
+
+@test "doctor shows Scalafmt error when .scalafmt.conf missing" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Do NOT create .scalafmt.conf
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show Scalafmt check as error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *".scalafmt.conf"* ]]
+    [[ "$output" == *"Missing"* ]]
+    [[ "$output" == *"Create .scalafmt.conf in project root"* ]]
+}
+
+@test "doctor shows Scalafmt warning when .scalafmt.conf exists without version" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .scalafmt.conf WITHOUT version
+    cat > .scalafmt.conf << EOF
+maxColumn = 120
+align.preset = more
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show config check as success and version check as warning
+    [[ "$output" == *".scalafmt.conf"* ]]
+    [[ "$output" == *"Found"* ]]
+    [[ "$output" == *".scalafmt.conf version"* ]]
+    [[ "$output" == *"Version not specified"* ]]
+    [[ "$output" == *"Add 'version = \"3.x.x\"' to .scalafmt.conf"* ]]
 }
