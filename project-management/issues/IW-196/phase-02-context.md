@@ -62,7 +62,7 @@ Follow the same pattern as Phase 1 (ScalafmtChecks):
 
 ## Acceptance Criteria
 
-- [ ] `iw doctor` reports Scalafix config presence and DisableSyntax rule status
-- [ ] Checks are pure functions with injected file-reading for testability
-- [ ] Unit tests cover all scenarios
-- [ ] E2E test validates output format
+- [x] `iw doctor` reports Scalafix config presence and DisableSyntax rule status
+- [x] Checks are pure functions with injected file-reading for testability
+- [x] Unit tests cover all scenarios
+- [x] E2E test validates output format

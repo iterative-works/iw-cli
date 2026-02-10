@@ -154,6 +154,17 @@ version = "3.8.1"
 maxColumn = 120
 EOF
 
+    # Create .scalafix.conf to satisfy Scalafix checks
+    cat > .scalafix.conf << EOF
+rules = [
+  DisableSyntax
+]
+DisableSyntax.noNulls = true
+DisableSyntax.noVars = true
+DisableSyntax.noThrows = true
+DisableSyntax.noReturns = true
+EOF
+
     # Run doctor (YouTrack skips token check, tmux should be available)
     run "$PROJECT_ROOT/iw" doctor
 
@@ -365,4 +376,141 @@ EOF
     [[ "$output" == *".scalafmt.conf version"* ]]
     [[ "$output" == *"Version not specified"* ]]
     [[ "$output" == *"Add 'version = \"3.x.x\"' to .scalafmt.conf"* ]]
+}
+
+@test "doctor shows Scalafix config check when .scalafix.conf exists" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .scalafix.conf with DisableSyntax rule and all required sub-rules
+    cat > .scalafix.conf << EOF
+rules = [
+  DisableSyntax
+]
+DisableSyntax.noNulls = true
+DisableSyntax.noVars = true
+DisableSyntax.noThrows = true
+DisableSyntax.noReturns = true
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show Scalafix checks
+    [[ "$output" == *".scalafix.conf"* ]]
+    [[ "$output" == *"Found"* ]]
+    [[ "$output" == *".scalafix.conf rules"* ]]
+    [[ "$output" == *"Configured"* ]]
+}
+
+@test "doctor shows Scalafix error when .scalafix.conf missing" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Do NOT create .scalafix.conf
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show Scalafix check as error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *".scalafix.conf"* ]]
+    [[ "$output" == *"Missing"* ]]
+    [[ "$output" == *"Create .scalafix.conf in project root"* ]]
+}
+
+@test "doctor shows Scalafix warning when .scalafix.conf exists without DisableSyntax" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .scalafix.conf WITHOUT DisableSyntax
+    cat > .scalafix.conf << EOF
+rules = [
+  OrganizeImports
+]
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show config check as success and rules check as warning
+    [[ "$output" == *".scalafix.conf"* ]]
+    [[ "$output" == *"Found"* ]]
+    [[ "$output" == *".scalafix.conf rules"* ]]
+    [[ "$output" == *"DisableSyntax not configured"* ]]
+    [[ "$output" == *"Add DisableSyntax rule to .scalafix.conf"* ]]
+}
+
+@test "doctor shows Scalafix warning when DisableSyntax missing some rules" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .scalafix.conf with DisableSyntax but missing noVars and noThrows
+    cat > .scalafix.conf << EOF
+rules = [
+  DisableSyntax
+]
+DisableSyntax.noNulls = true
+DisableSyntax.noReturns = true
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show config check as success and rules check as warning with missing rules
+    [[ "$output" == *".scalafix.conf"* ]]
+    [[ "$output" == *"Found"* ]]
+    [[ "$output" == *".scalafix.conf rules"* ]]
+    [[ "$output" == *"Missing rules:"* ]]
+    [[ "$output" == *"noThrows"* ]]
+    [[ "$output" == *"noVars"* ]]
+    [[ "$output" == *"Add missing rules to DisableSyntax in .scalafix.conf"* ]]
 }
