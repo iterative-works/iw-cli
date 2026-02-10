@@ -145,17 +145,18 @@ File existence checks are straightforward. Checking executable permissions requi
 ```gherkin
 Funkce: Kontrola CI workflow
   Jako vývojář
-  Chci vidět zda projekt má správně nakonfigurovaný CI workflow
-  Aby jsem si byl jistý že CI kontroluje kvalitu kódu automaticky
+  Chci vidět zda projekt má CI workflow
+  Aby jsem si byl jistý že CI je nastaveno
 
-Scénář: Projekt má kompletní GitHub Actions CI workflow
+Scénář: Projekt má GitHub Actions CI workflow
   Pokud soubor .github/workflows/ci.yml existuje
-  A workflow obsahuje compile krok
-  A workflow obsahuje test krok
-  A workflow obsahuje format check krok
-  A workflow obsahuje lint check krok
   Když spustím iw doctor
-  Pak vidím úspěšné kontroly pro všechny CI kontroly
+  Pak vidím úspěšnou kontrolu "CI workflow"
+
+Scénář: Projekt má GitLab CI workflow
+  Pokud soubor .gitlab-ci.yml existuje
+  Když spustím iw doctor
+  Pak vidím úspěšnou kontrolu "CI workflow"
 
 Scénář: CI workflow soubor neexistuje
   Pokud soubor .github/workflows/ci.yml neexistuje
@@ -163,31 +164,24 @@ Scénář: CI workflow soubor neexistuje
   Když spustím iw doctor
   Pak vidím chybu "CI workflow" s nápovědou pro vytvoření workflow
 
-Scénář: CI workflow chybí některé kroky
-  Pokud soubor .github/workflows/ci.yml existuje
-  Ale neobsahuje lint check krok
-  Když spustím iw doctor
-  Pak vidím úspěšné kontroly pro existující kroky
-  A vidím varování pro chybějící lint krok
-
 Scénář: Detekce CI platformy podle konfigurace
   Pokud konfigurace používá GitHub tracker
   Když spustím iw doctor
   Pak kontrola hledá .github/workflows/ci.yml
 ```
 
-**Estimated Effort:** 8-12h
-**Complexity:** Moderate
+**Estimated Effort:** 3-4h
+**Complexity:** Straightforward
 
 **Technical Feasibility:**
-File existence is simple. Content checking requires YAML parsing -- the project does not currently have a YAML dependency. However, we can use simple string/regex matching on the YAML content rather than adding a YAML parser, since we are checking for the presence of keywords like `compile`, `test`, `scalafmtCheckAll`/`checkFormat`, and `scalafixAll`/`fix --check`. CI platform detection can use the existing `IssueTrackerType` from config (GitHub -> GitHub Actions, GitLab -> GitLab CI). The main risk is brittle string matching vs. YAML structure.
+Primarily a file-existence check. CI platform detection uses the existing `IssueTrackerType` from config (GitHub -> GitHub Actions, GitLab -> GitLab CI). Optionally scan for a few key keywords (compile, test) as informational warnings, but the core check is just "does a CI config file exist". We are not qualified to deeply validate CI file contents -- that's what `--fix` is for.
 
 **Acceptance:**
-- `iw doctor` reports CI workflow presence and step completeness
+- `iw doctor` reports CI workflow file presence
 - Detects CI platform from tracker type in config
-- Checks for compile, test, format, and lint steps
-- Unit tests with fixture YAML content
-- E2E test validates CI checks
+- Missing CI file is an error; present file is success
+- Unit tests cover presence/absence scenarios
+- E2E test validates CI check output
 
 ---
 
@@ -391,11 +385,11 @@ Quality gate check functions go in `core/model/` (pure logic with injected depen
 
 ---
 
-### RESOLVED: CI workflow content analysis approach
+### RESOLVED: CI workflow check scope
 
-**Decision: Option C — Line-by-line heuristics.**
+**Decision: File existence is the primary check.**
 
-CI config files (`.github/workflows/ci.yml`, `.gitlab-ci.yml`) are YAML. We need to check whether they contain specific CI steps (compile, test, format check, lint check). Rather than adding a YAML parser dependency, we scan file content line-by-line for patterns like `run:.*compile`, `run:.*checkFormat`, `run:.*scalafixAll`. This is a pragmatic middle ground — more precise than naive `contains()`, no new dependency. Sufficient for detecting presence of well-known CI commands.
+CI config files (`.github/workflows/ci.yml`, `.gitlab-ci.yml`) are YAML. We are not in a good position to validate their content — different projects have different CI needs and the structure varies widely. The important thing is that CI exists at all. The `--fix` path (Story 7) handles setting up proper CI content via Claude Code. Optional keyword scanning for a few basics (compile, test) can be added as informational warnings if time allows, but is not required.
 
 ---
 
@@ -421,19 +415,19 @@ Detect build system by checking for `build.mill` (Mill), `build.sbt` (SBT), or `
 - Story 1 (Scalafmt check): 4-6 hours
 - Story 2 (Scalafix check): 4-6 hours
 - Story 3 (Git hooks check): 6-8 hours
-- Story 4 (CI workflow check): 8-12 hours
+- Story 4 (CI workflow check): 3-4 hours
 - Story 5 (Contributor docs check): 4-6 hours
 - Story 6 (Check grouping/filtering): 6-8 hours
 - Story 7 (Fix via Claude Code): 8-12 hours
 
-**Total Range:** 40 - 58 hours
+**Total Range:** 35 - 50 hours
 
-**Confidence:** Medium
+**Confidence:** Medium-High
 
 **Reasoning:**
 - Stories 1-2 are straightforward file checks following an established pattern -- high confidence
 - Story 3 adds moderate complexity with symlink/permissions checks and worktree handling
-- Story 4 has risk around YAML parsing approach -- depends on CLARIFY resolution
+- Story 4 is now primarily file existence -- straightforward
 - Story 5 is straightforward but fuzzy (keyword matching for doc sections)
 - Story 6 requires argument parsing changes and display refactoring
 - Story 7 has the most uncertainty -- Claude Code integration is novel and prompt quality determines value
