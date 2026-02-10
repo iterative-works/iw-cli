@@ -695,3 +695,108 @@ EOF
     [[ "$output" == *"Not installed"* ]]
     [[ "$output" == *"Run: git config core.hooksPath .git-hooks"* ]]
 }
+
+@test "doctor shows CONTRIBUTING.md check when file exists with all sections" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create CONTRIBUTING.md with all required sections
+    cat > CONTRIBUTING.md << EOF
+# Contributing Guide
+
+## CI Pipeline
+Our continuous integration runs checks on every PR.
+
+## Git Hooks
+Install pre-commit hooks to run checks locally.
+
+## Running Checks Locally
+You can run all checks locally before pushing.
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CONTRIBUTING.md checks
+    [[ "$output" == *"CONTRIBUTING.md"* ]]
+    [[ "$output" == *"Found"* ]]
+    [[ "$output" == *"CONTRIBUTING.md sections"* ]]
+    [[ "$output" == *"Complete"* ]]
+}
+
+@test "doctor shows CONTRIBUTING.md warning when file missing" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Do NOT create CONTRIBUTING.md
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CONTRIBUTING.md check as warning (not error)
+    [[ "$output" == *"CONTRIBUTING.md"* ]]
+    [[ "$output" == *"Missing"* ]]
+}
+
+@test "doctor shows CONTRIBUTING.md sections warning when sections missing" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create CONTRIBUTING.md WITHOUT all required sections (missing CI)
+    cat > CONTRIBUTING.md << EOF
+# Contributing Guide
+
+## Git Hooks
+Install pre-commit hooks.
+
+## Running Checks Locally
+You can run checks locally.
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show CONTRIBUTING.md file check as success
+    [[ "$output" == *"CONTRIBUTING.md"* ]]
+    [[ "$output" == *"Found"* ]]
+    # Should show sections check as warning with missing topics
+    [[ "$output" == *"CONTRIBUTING.md sections"* ]]
+    [[ "$output" == *"Missing: CI"* ]]
+    [[ "$output" == *"Add sections covering: CI"* ]]
+}

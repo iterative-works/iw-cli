@@ -58,8 +58,8 @@ Missing documentation is a warning (not error) since the project can function wi
 
 ## Acceptance Criteria
 
-- [ ] `iw doctor` reports CONTRIBUTING.md presence and section coverage
-- [ ] Missing doc is a warning (not error)
-- [ ] Section checks are keyword-based
-- [ ] Unit tests cover all scenarios
-- [ ] E2E test validates output
+- [x] `iw doctor` reports CONTRIBUTING.md presence and section coverage
+- [x] Missing doc is a warning (not error)
+- [x] Section checks are keyword-based
+- [x] Unit tests cover all scenarios
+- [x] E2E test validates output
