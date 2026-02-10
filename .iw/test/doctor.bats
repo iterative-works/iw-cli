@@ -514,3 +514,184 @@ EOF
     [[ "$output" == *"noVars"* ]]
     [[ "$output" == *"Add missing rules to DisableSyntax in .scalafix.conf"* ]]
 }
+
+@test "doctor shows git hooks dir check when .git-hooks/ exists" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .git-hooks/ directory
+    mkdir -p .git-hooks
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show git hooks dir check
+    [[ "$output" == *"Git hooks dir"* ]]
+    [[ "$output" == *"Found"* ]]
+}
+
+@test "doctor shows git hooks dir error when .git-hooks/ missing" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Do NOT create .git-hooks/ directory
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show git hooks dir check as error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Git hooks dir"* ]]
+    [[ "$output" == *"Missing"* ]]
+    [[ "$output" == *"Create .git-hooks/ directory in project root"* ]]
+}
+
+@test "doctor shows git hook files check when hooks exist" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .git-hooks/ with hook files
+    mkdir -p .git-hooks
+    touch .git-hooks/pre-commit .git-hooks/pre-push
+    chmod +x .git-hooks/pre-commit .git-hooks/pre-push
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show git hook files check
+    [[ "$output" == *"Git hook files"* ]]
+    [[ "$output" == *"Found"* ]]
+}
+
+@test "doctor shows git hook files error when hooks missing" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .git-hooks/ but no hook files
+    mkdir -p .git-hooks
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show git hook files check as error
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Git hook files"* ]]
+    [[ "$output" == *"Missing: pre-commit, pre-push"* ]]
+    [[ "$output" == *"Create missing hook files in .git-hooks/"* ]]
+}
+
+@test "doctor shows git hooks installed when core.hooksPath configured" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .git-hooks/ with hook files
+    mkdir -p .git-hooks
+    touch .git-hooks/pre-commit .git-hooks/pre-push
+    chmod +x .git-hooks/pre-commit .git-hooks/pre-push
+
+    # Configure core.hooksPath
+    git config core.hooksPath .git-hooks
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show hooks installed
+    [[ "$output" == *"Git hooks installed"* ]]
+    [[ "$output" == *"Installed"* ]]
+
+    # Clean up
+    git config --unset core.hooksPath
+}
+
+@test "doctor shows git hooks not installed warning when hooks not configured" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create .git-hooks/ with hook files
+    mkdir -p .git-hooks
+    touch .git-hooks/pre-commit .git-hooks/pre-push
+    chmod +x .git-hooks/pre-commit .git-hooks/pre-push
+
+    # Ensure core.hooksPath is NOT configured
+    git config --unset core.hooksPath || true
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show hooks not installed warning
+    [[ "$output" == *"Git hooks installed"* ]]
+    [[ "$output" == *"Not installed"* ]]
+    [[ "$output" == *"Run: git config core.hooksPath .git-hooks"* ]]
+}
