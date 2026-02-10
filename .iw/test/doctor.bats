@@ -961,3 +961,182 @@ EOF
     [[ "$output" == *"CI workflow"* ]]
     [[ "$output" == *"Found (.github/workflows/ci.yml)"* ]]
 }
+
+@test "doctor shows grouped output with section headers" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor
+    run "$PROJECT_ROOT/iw" doctor
+
+    # Should show section headers
+    [[ "$output" == *"=== Environment ==="* ]]
+    [[ "$output" == *"=== Project Quality Gates ==="* ]]
+
+    # Environment checks should come before quality checks
+    # Extract line numbers to verify order
+    env_line=$(echo "$output" | grep -n "=== Environment ===" | cut -d: -f1 | head -1)
+    quality_line=$(echo "$output" | grep -n "=== Project Quality Gates ===" | cut -d: -f1 | head -1)
+
+    # Environment section should come first
+    [ "$env_line" -lt "$quality_line" ]
+}
+
+@test "doctor --quality shows only quality gate checks" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor with --quality flag
+    run "$PROJECT_ROOT/iw" doctor --quality
+
+    # Should NOT show environment checks (Git repository, Configuration)
+    [[ ! "$output" == *"Git repository"* ]]
+    [[ ! "$output" == *"Configuration"* ]]
+
+    # Should show quality gate checks
+    [[ "$output" == *".scalafmt.conf"* ]]
+    [[ "$output" == *".scalafix.conf"* ]]
+    [[ "$output" == *"Git hooks"* ]]
+}
+
+@test "doctor --env shows only environment checks" {
+    # Setup: create valid config
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor with --env flag
+    run "$PROJECT_ROOT/iw" doctor --env
+
+    # Should show environment checks
+    [[ "$output" == *"Git repository"* ]]
+    [[ "$output" == *"Configuration"* ]]
+
+    # Should NOT show quality gate checks
+    [[ ! "$output" == *".scalafmt.conf"* ]]
+    [[ ! "$output" == *".scalafix.conf"* ]]
+    [[ ! "$output" == *"Git hooks dir"* ]]
+}
+
+@test "doctor --quality exit code reflects only quality gate checks" {
+    # Setup: create valid config with all quality gates passing
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = linear
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Create all quality gate files to make checks pass
+    cat > .scalafmt.conf << EOF
+version = "3.8.1"
+maxColumn = 120
+EOF
+
+    cat > .scalafix.conf << EOF
+rules = [
+  DisableSyntax
+]
+DisableSyntax.noNulls = true
+DisableSyntax.noVars = true
+DisableSyntax.noThrows = true
+DisableSyntax.noReturns = true
+EOF
+
+    mkdir -p .git-hooks
+    touch .git-hooks/pre-commit .git-hooks/pre-push
+    chmod +x .git-hooks/pre-commit .git-hooks/pre-push
+    git config core.hooksPath .git-hooks
+
+    cat > CONTRIBUTING.md << EOF
+# Contributing Guide
+
+## CI Pipeline
+Our continuous integration runs checks on every PR.
+
+## Git Hooks
+Install pre-commit hooks to run checks locally.
+
+## Running Checks Locally
+You can run all checks locally before pushing.
+EOF
+
+    mkdir -p .github/workflows
+    touch .github/workflows/ci.yml
+
+    unset LINEAR_API_TOKEN
+
+    # Run doctor with --quality flag (should pass despite missing LINEAR_API_TOKEN)
+    run "$PROJECT_ROOT/iw" doctor --quality
+
+    # Should succeed because quality checks pass (environment checks are not run)
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"All checks passed"* ]]
+
+    # Clean up
+    git config --unset core.hooksPath
+}
+
+@test "doctor --env exit code reflects only environment checks" {
+    # Setup: create valid config with environment passing but quality failing
+    mkdir -p .iw
+    cat > .iw/config.conf << EOF
+tracker {
+  type = youtrack
+  team = TEST
+}
+
+project {
+  name = test-project
+}
+EOF
+
+    # Do NOT create quality gate files (will fail if run)
+    # But run with --env flag, so only environment checks matter
+
+    # Run doctor with --env flag
+    run "$PROJECT_ROOT/iw" doctor --env
+
+    # Should succeed because environment checks pass (quality checks are not run)
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"All checks passed"* ]]
+}

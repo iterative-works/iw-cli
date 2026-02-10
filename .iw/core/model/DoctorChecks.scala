@@ -17,9 +17,15 @@ enum CheckResult:
     case Error(_, h) => Some(h)
     case Skip(_) => None
 
-case class Check(name: String, run: ProjectConfiguration => CheckResult)
+case class Check(name: String, run: ProjectConfiguration => CheckResult, category: String = "Environment")
 
 object DoctorChecks:
   /** Run all provided checks against the configuration */
-  def runAll(checks: List[Check], config: ProjectConfiguration): List[(String, CheckResult)] =
-    checks.map(c => (c.name, c.run(config)))
+  def runAll(checks: List[Check], config: ProjectConfiguration): List[(String, CheckResult, String)] =
+    checks.map(c => (c.name, c.run(config), c.category))
+
+  /** Filter checks by category */
+  def filterByCategory(checks: List[Check], category: Option[String]): List[Check] =
+    category match
+      case None => checks
+      case Some(cat) => checks.filter(_.category == cat)

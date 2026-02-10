@@ -5,4 +5,4 @@ import iw.core.model.*
 
 object CIHookDoctor:
   // Check if CI workflow file exists (platform-specific based on tracker type)
-  val workflowExists: Check = Check("CI workflow", CIChecks.checkWorkflowExists)
+  val workflowExists: Check = Check("CI workflow", CIChecks.checkWorkflowExists, "Quality")

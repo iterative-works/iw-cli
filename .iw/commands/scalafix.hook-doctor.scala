@@ -5,7 +5,7 @@ import iw.core.model.*
 
 object ScalafixHookDoctor:
   // Check if .scalafix.conf exists
-  val configExists: Check = Check(".scalafix.conf", ScalafixChecks.checkConfigExists)
+  val configExists: Check = Check(".scalafix.conf", ScalafixChecks.checkConfigExists, "Quality")
 
   // Check if .scalafix.conf has DisableSyntax rule with required sub-rules
-  val disableSyntaxRules: Check = Check(".scalafix.conf rules", ScalafixChecks.checkDisableSyntaxRules)
+  val disableSyntaxRules: Check = Check(".scalafix.conf rules", ScalafixChecks.checkDisableSyntaxRules, "Quality")

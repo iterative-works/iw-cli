@@ -56,40 +56,68 @@ private def collectHookChecks(): List[Check] =
     ProjectConfiguration.create(IssueTrackerType.Linear, "UNKNOWN", "unknown")
   )
 
+  // Parse filter flags
+  val filterCategory =
+    if args.contains("--quality") then Some("Quality")
+    else if args.contains("--env") then Some("Environment")
+    else None
+
   System.out.println("Environment Check")
   System.out.println()
 
   // Collect all checks: base + hooks (immutable composition)
   val allChecks = baseChecks ++ collectHookChecks()
 
+  // Filter checks by category if requested
+  val checksToRun = DoctorChecks.filterByCategory(allChecks, filterCategory)
+
   // Run all checks
-  val results = DoctorChecks.runAll(allChecks, config)
+  val results = DoctorChecks.runAll(checksToRun, config)
+
+  // Group results by category
+  val groupedResults = results.groupBy(_._3)
 
   var errorCount = 0
   var warningCount = 0
 
-  // Display results
-  results.foreach { case (name, result) =>
-    result match
-      case CheckResult.Success(message) =>
-        System.out.println(f"  ✓ $name%-20s $message")
+  // Display results grouped by category
+  val categoryOrder = List("Environment", "Quality")
+  val categoryHeaders = Map(
+    "Environment" -> "  === Environment ===",
+    "Quality" -> "  === Project Quality Gates ==="
+  )
 
-      case CheckResult.Warning(message) =>
-        warningCount += 1
-        System.out.println(f"  ⚠ $name%-20s $message")
+  categoryOrder.foreach { category =>
+    groupedResults.get(category).foreach { categoryResults =>
+      if categoryResults.nonEmpty then
+        if filterCategory.isEmpty then
+          System.out.println()
+          System.out.println(categoryHeaders(category))
+          System.out.println()
 
-      case CheckResult.WarningWithHint(message, hintText) =>
-        warningCount += 1
-        System.out.println(f"  ⚠ $name%-20s $message")
-        System.out.println(s"    → $hintText")
+        categoryResults.foreach { case (name, result, _) =>
+          result match
+            case CheckResult.Success(message) =>
+              System.out.println(f"  ✓ $name%-20s $message")
 
-      case CheckResult.Error(message, hintText) =>
-        errorCount += 1
-        System.out.println(f"  ✗ $name%-20s $message")
-        System.out.println(s"    → $hintText")
+            case CheckResult.Warning(message) =>
+              warningCount += 1
+              System.out.println(f"  ⚠ $name%-20s $message")
 
-      case CheckResult.Skip(reason) =>
-        System.out.println(f"  - $name%-20s Skipped ($reason)")
+            case CheckResult.WarningWithHint(message, hintText) =>
+              warningCount += 1
+              System.out.println(f"  ⚠ $name%-20s $message")
+              System.out.println(s"    → $hintText")
+
+            case CheckResult.Error(message, hintText) =>
+              errorCount += 1
+              System.out.println(f"  ✗ $name%-20s $message")
+              System.out.println(s"    → $hintText")
+
+            case CheckResult.Skip(reason) =>
+              System.out.println(f"  - $name%-20s Skipped ($reason)")
+        }
+    }
   }
 
   System.out.println()

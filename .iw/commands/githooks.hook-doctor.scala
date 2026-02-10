@@ -5,10 +5,10 @@ import iw.core.model.*
 
 object GitHooksHookDoctor:
   // Check if .git-hooks/ directory exists
-  val hooksDir: Check = Check("Git hooks dir", GitHooksChecks.checkHooksDirExists)
+  val hooksDir: Check = Check("Git hooks dir", GitHooksChecks.checkHooksDirExists, "Quality")
 
   // Check if pre-commit and pre-push hook files exist
-  val hookFiles: Check = Check("Git hook files", GitHooksChecks.checkHookFilesExist)
+  val hookFiles: Check = Check("Git hook files", GitHooksChecks.checkHookFilesExist, "Quality")
 
   // Check if hooks are installed in git hooks directory
-  val hooksInstalled: Check = Check("Git hooks installed", GitHooksChecks.checkHooksInstalled)
+  val hooksInstalled: Check = Check("Git hooks installed", GitHooksChecks.checkHooksInstalled, "Quality")

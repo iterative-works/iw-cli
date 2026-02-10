@@ -5,7 +5,7 @@ import iw.core.model.*
 
 object ContributingHookDoctor:
   // Check if CONTRIBUTING.md exists
-  val fileExists: Check = Check("CONTRIBUTING.md", ContributingChecks.checkFileExists)
+  val fileExists: Check = Check("CONTRIBUTING.md", ContributingChecks.checkFileExists, "Quality")
 
   // Check if CONTRIBUTING.md has sections covering CI, hooks, and local checks
-  val sectionsCovered: Check = Check("CONTRIBUTING.md sections", ContributingChecks.checkSectionsCovered)
+  val sectionsCovered: Check = Check("CONTRIBUTING.md sections", ContributingChecks.checkSectionsCovered, "Quality")
