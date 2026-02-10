@@ -327,23 +327,22 @@ Risk: The quality of the fix depends entirely on the Claude Code prompt. We cann
 
 **Purpose:** List WHAT components each story needs, not HOW they're implemented.
 
+### Pre-requisite: Move Check types to model/
+
+Move `Check`, `CheckResult`, `DoctorChecks` from `core/dashboard/` to `core/model/`. Update all imports across commands and dashboard code. This fixes the existing architectural violation before adding new checks.
+
 ### For Stories 1-5: Quality gate checks (Scalafmt, Scalafix, Git hooks, CI, Docs)
 
 **Domain Layer (`model/`):**
-- `CheckCategory` enum (or similar) -- groups checks into Environment vs QualityGate
-- Possibly extend `Check` with an optional `category` field, or keep check lists separate
+- `Check`, `CheckResult`, `DoctorChecks` (moved from `dashboard/`)
+- Quality gate check functions as pure functions with injected file-system operations (same testability pattern as `checkGhInstalledWith`)
+- `BuildSystem` enum (`Mill`, `SBT`, `ScalaCli`) -- used to skip checks on non-Scala projects and for Story 7
 
-**Application Layer (not applicable -- checks are composed in `doctor.scala`):**
-- N/A -- the existing `DoctorChecks.runAll()` pattern handles this
-
-**Infrastructure Layer:**
-- Pure check functions in a quality-gate-specific file (analogous to `GitHubHookDoctor.scala`)
-- File reading via `os.read` / `os.exists` / `os.perms` for checking project files
-- These check functions should accept injected file-system operations for testability (same pattern as `checkGhInstalledWith`)
+**Infrastructure Layer (`adapters/`):**
+- Build system detection (check for `build.mill`, `build.sbt`, `project.scala`)
 
 **Presentation Layer (`commands/`):**
-- New `*.hook-doctor.scala` file exposing quality gate checks for hook discovery
-- Or: quality gate checks defined directly in core and composed in `doctor.scala`
+- Quality gate hook-doctor wrapper exposing `Check` values for discovery
 
 ---
 
@@ -363,13 +362,12 @@ Risk: The quality of the fix depends entirely on the Claude Code prompt. We cann
 ### For Story 7: Fix remediation
 
 **Domain Layer (`model/`):**
-- `BuildSystem` enum (`Mill`, `SBT`, `Unknown`)
-- `CIPlatform` enum (`GitHubActions`, `GitLabCI`, `Unknown`)
-- Pure function to detect build system from file presence
+- `BuildSystem` enum (`Mill`, `SBT`, `ScalaCli`) -- already introduced in Stories 1-5
+- `CIPlatform` enum (`GitHubActions`, `GitLabCI`)
 - Pure function to map tracker type to CI platform
 
 **Infrastructure Layer (`adapters/`):**
-- Build system detection (check `build.mill` vs `build.sbt` file existence)
+- Build system detection already available from Stories 1-5
 - Claude Code process launcher
 
 **Presentation Layer (`commands/doctor.scala`):**
@@ -381,73 +379,39 @@ Risk: The quality of the fix depends entirely on the Claude Code prompt. We cann
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Where should quality gate check functions live?
+### RESOLVED: Where should quality gate check functions live?
 
-The existing pattern has two locations for check logic:
-1. **`core/dashboard/`** (e.g., `GitHubHookDoctor.scala`) -- pure check functions with injected dependencies
-2. **`commands/*.hook-doctor.scala`** (e.g., `github.hook-doctor.scala`) -- thin wrappers exposing `Check` values
+**Decision: Option B — Move `Check`/`CheckResult`/`DoctorChecks` to `core/model/`.**
 
-The `CLAUDE.md` in `core/` says "Scripts in `.iw/commands/` should NOT import from `dashboard/`" but `doctor.scala` already imports `iw.core.dashboard.{Check, CheckResult, DoctorChecks}`.
+The existing placement in `core/dashboard/` is an architectural violation — `doctor.scala` (a command) imports from `dashboard/`, which the `core/CLAUDE.md` explicitly forbids. These are pure domain types with no dashboard dependencies. Moving them to `model/` fixes this and gives quality gate check functions a clean home.
 
-**Questions to answer:**
-1. Should quality gate checks follow the same `core/dashboard/` + `commands/hook-doctor.scala` split?
-2. Or should `Check` and `CheckResult` be moved out of `dashboard/` into `model/` since they are clearly shared domain types?
-3. Should quality gate checks be discoverable via the hook mechanism, or hardcoded in `doctor.scala`?
+Quality gate check functions go in `core/model/` (pure logic with injected dependencies for testability). Hook-doctor discovery wrappers in `commands/` stay as-is.
 
-**Options:**
-- **Option A: Follow existing pattern** -- Quality gate pure logic in `core/dashboard/QualityGateChecks.scala`, hook wrappers in `commands/quality.hook-doctor.scala`. Pros: consistent. Cons: `Check`/`CheckResult` in `dashboard/` is architecturally questionable.
-- **Option B: Move Check types to model/, checks to new location** -- Move `Check`/`CheckResult`/`DoctorChecks` to `core/model/`, put quality gate checks alongside. Pros: cleaner architecture. Cons: refactoring existing code, more scope.
-- **Option C: Quality gate checks directly in doctor.scala** -- Define quality gate check functions inline or in a companion file. Pros: simple, no architectural changes. Cons: bloats command file, harder to test.
-
-**Impact:** Affects code organization and testability for all quality gate stories.
+**Pre-requisite refactoring:** Move `DoctorChecks.scala` contents to `core/model/`, update all imports.
 
 ---
 
-### CLARIFY: YAML parsing approach for CI workflow checks
+### RESOLVED: CI workflow content analysis approach
 
-**Questions to answer:**
-1. Should we add a YAML parser dependency for proper CI file analysis?
-2. Or is regex/string matching sufficient for checking step presence?
+**Decision: Option C — Line-by-line heuristics.**
 
-**Options:**
-- **Option A: String/regex matching** -- Scan YAML content for keywords like `compile`, `test`, `scalafmtCheck`, `scalafixAll`. Pros: no new dependency, simple. Cons: brittle, could match comments or unrelated strings.
-- **Option B: Add YAML parser dependency** -- Use `snakeyaml` or `circe-yaml` to parse CI files properly. Pros: accurate, can check structure. Cons: new dependency, more code.
-- **Option C: Line-by-line heuristic** -- Scan for lines matching patterns like `run:.*compile`, `run:.*test`. Pros: middle ground, more accurate than naive string search, no dependency. Cons: still somewhat brittle.
-
-**Impact:** Affects accuracy and maintenance burden of CI checks.
+CI config files (`.github/workflows/ci.yml`, `.gitlab-ci.yml`) are YAML. We need to check whether they contain specific CI steps (compile, test, format check, lint check). Rather than adding a YAML parser dependency, we scan file content line-by-line for patterns like `run:.*compile`, `run:.*checkFormat`, `run:.*scalafixAll`. This is a pragmatic middle ground — more precise than naive `contains()`, no new dependency. Sufficient for detecting presence of well-known CI commands.
 
 ---
 
-### CLARIFY: How should `--fix` interact with Claude Code?
+### RESOLVED: How should `--fix` interact with Claude Code?
 
-**Questions to answer:**
-1. What exact Claude Code CLI invocation should be used? (`claude --prompt "..."` or `claude -p "..."` or something else?)
-2. Should the fix prompt be stored as a skill file or generated dynamically?
-3. Should `--fix` run all fixes at once or ask for confirmation per category?
+**Decision: Option A — Single `claude` invocation with a dynamically generated prompt.**
 
-**Options:**
-- **Option A: Single claude invocation with dynamic prompt** -- Generate prompt from failed checks, launch `claude -p "..."`. Pros: simple, self-contained. Cons: prompt could be very long.
-- **Option B: Skill-based approach** -- Store fix instructions as a `.claude/skills/` file, reference it from prompt. Pros: reusable, editable. Cons: coupling to skill file format.
-- **Option C: Per-category fix** -- `iw doctor --fix --ci` fixes only CI, etc. Pros: incremental, less overwhelming. Cons: more complex argument handling.
-
-**Impact:** Affects UX and maintainability of the fix workflow.
+Keep it simple for v1. The prompt includes the list of failed checks, detected build system, CI platform, and references the expected artifact structure. No skill files, no per-category granularity. If the prompt gets unwieldy with experience, we can split later.
 
 ---
 
-### CLARIFY: Should quality gate checks run on the project being worked on or on iw-cli itself?
+### RESOLVED: Scope of quality gate checks
 
-The `doctor` command runs in the context of `os.pwd` (the project directory). When running `iw doctor` from an iw-cli worktree, it checks iw-cli itself. When running from another project's worktree, it checks that project.
+**Decision: Option B — Skip Scala-specific checks if no Scala build detected.**
 
-**Questions to answer:**
-1. Is this the intended behavior -- quality gate checks run on whatever project `os.pwd` points to?
-2. Should there be a way to skip quality gate checks for non-Scala projects?
-
-**Options:**
-- **Option A: Always check os.pwd** -- Quality gates are universal. Pros: simple. Cons: may report irrelevant failures for non-Scala projects.
-- **Option B: Skip if no Scala build detected** -- Only run Scala-specific checks if `build.mill` or `build.sbt` exists. Pros: avoids false positives. Cons: requires build system detection before checks.
-- **Option C: Configurable in .iw/config.conf** -- Add `qualityGates.enabled = true/false` or `project.type = scala`. Pros: explicit. Cons: config changes needed.
-
-**Impact:** Affects whether quality gate checks produce noise on non-Scala projects.
+Detect build system by checking for `build.mill` (Mill), `build.sbt` (SBT), or `project.scala` (scala-cli). If none are found, skip Scala-specific quality gate checks (Scalafmt, Scalafix, Scala CI steps) to avoid false positives on non-Scala projects. Build system detection is needed for Story 7 anyway, so this reuses that logic early.
 
 ---
 
@@ -586,9 +550,8 @@ None -- iw-cli uses file-based configuration only.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved (all CLARIFY markers resolved)
 
 **Next Steps:**
-1. Resolve CLARIFY markers with stakeholders (especially: where to put check functions, YAML parsing approach, `--fix` UX)
-2. Run **ag-create-tasks** with the issue ID
-3. Run **ag-implement** for iterative story implementation
+1. Run **ag-create-tasks** to generate implementation tasks
+2. Run **ag-implement** for iterative story implementation
