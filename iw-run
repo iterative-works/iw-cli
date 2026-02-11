@@ -285,8 +285,12 @@ execute_command() {
         shared_hooks=$(find "$COMMANDS_DIR" -maxdepth 1 -name "*.hook-${actual_name}.scala" 2>/dev/null || true)
         hook_files="$shared_hooks"
 
-        # Find project hooks (if project commands directory exists)
-        if [ -d "$PROJECT_DIR/.iw/commands" ]; then
+        # Find project hooks (if project commands directory exists and differs from shared)
+        local project_cmds_dir
+        project_cmds_dir=$(cd "$PROJECT_DIR/.iw/commands" 2>/dev/null && pwd || true)
+        local shared_cmds_dir
+        shared_cmds_dir=$(cd "$COMMANDS_DIR" 2>/dev/null && pwd || true)
+        if [ -d "$PROJECT_DIR/.iw/commands" ] && [ "$project_cmds_dir" != "$shared_cmds_dir" ]; then
             local project_hooks
             project_hooks=$(find "$PROJECT_DIR/.iw/commands" -maxdepth 1 -name "*.hook-${actual_name}.scala" 2>/dev/null || true)
             if [ -n "$project_hooks" ]; then
