@@ -146,9 +146,9 @@ private def collectHookChecks(): List[Check] =
       // Generate remediation prompt
       val prompt = FixPrompt.generate(failedChecks, buildSystem, ciPlatform)
 
-      // Launch Claude Code
-      val exitCode = ProcessAdapter.runStreaming(
-        Seq("claude", "-p", prompt)
+      // Launch interactive Claude Code session
+      val exitCode = ProcessAdapter.runInteractive(
+        Seq("claude", prompt)
       )
       sys.exit(exitCode)
 

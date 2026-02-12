@@ -114,3 +114,11 @@ class ProcessTest extends FunSuite:
     assertEquals(result.timedOut, false)
     assertEquals(result.exitCode, 0)
     assertEquals(result.stdout, "fast")
+
+  test("runInteractive returns exit code from command"):
+    val exitCode = ProcessAdapter.runInteractive(Seq("true"))
+    assertEquals(exitCode, 0)
+
+  test("runInteractive returns non-zero exit code on failure"):
+    val exitCode = ProcessAdapter.runInteractive(Seq("false"))
+    assertEquals(exitCode, 1)

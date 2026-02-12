@@ -60,6 +60,19 @@ object ProcessAdapter:
       timedOut = timedOut
     )
 
+  def runInteractive(command: Seq[String], timeoutMs: Int = DefaultTimeoutMs): Int =
+    try
+      val result = os.proc(command).call(
+        check = false,
+        stdin = os.Inherit,
+        stdout = os.Inherit,
+        stderr = os.Inherit,
+        timeout = timeoutMs
+      )
+      result.exitCode
+    catch
+      case _: os.SubprocessException => -1
+
   def runStreaming(command: Seq[String], timeoutMs: Int = DefaultTimeoutMs): Int =
     try
       val result = os.proc(command).call(
