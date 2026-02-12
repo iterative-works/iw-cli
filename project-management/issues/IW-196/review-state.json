@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "issue_id": "IW-196",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-196/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-196/tasks.md",
+      "category": "output"
+    },
+    {
+      "label": "Phase 0 Context",
+      "path": "project-management/issues/IW-196/phase-00-context.md"
+    },
+    {
+      "label": "Phase 0 Tasks",
+      "path": "project-management/issues/IW-196/phase-00-tasks.md"
+    }
+  ],
+  "last_updated": "2026-02-10T17:39:31.491495656Z",
+  "status": "tasks_ready",
+  "display": {
+    "text": "Phase 0: Tasks Ready",
+    "type": "success",
+    "subtext": "Move Check types from dashboard/ to model/"
+  },
+  "badges": [
+    {
+      "label": "Feature",
+      "type": "info"
+    }
+  ],
+  "message": "Phase 0 tasks ready, starting implementation",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "ag-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    }
+  ],
+  "git_sha": "d5f0d51",
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "0": {
+      "context_sha": "context_sha=16ea57890f2c1d1035ac11e8eede756d40c0737c"
+    }
+  }
+}

@@ -10,7 +10,7 @@ import iw.core.model.CachedIssue
 import iw.core.model.CachedPR
 import iw.core.model.Issue
 import iw.core.model.IssueData
-import iw.core.dashboard.Check
+import iw.core.model.Check
 import iw.core.model.PRState
 
 class SampleDataTest extends FunSuite:
