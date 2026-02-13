@@ -139,7 +139,10 @@ def runE2ETests(): Boolean =
 
   Output.section("Running E2E Tests")
 
-  // Use streaming to show output in real-time
-  val command = Seq("bats", testDir.toString)
-  val exitCode = ProcessAdapter.runStreaming(command)
-  exitCode == 0
+  // Run each BATS file individually to avoid temp directory race conditions
+  val sortedFiles = testFiles.sortBy(_.last)
+  var allPassed = true
+  for testFile <- sortedFiles do
+    val exitCode = ProcessAdapter.runStreaming(Seq("bats", testFile.toString), timeoutMs = 10 * 60 * 1000)
+    if exitCode != 0 then allPassed = false
+  allPassed
