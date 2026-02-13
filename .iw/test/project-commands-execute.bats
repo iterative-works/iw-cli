@@ -91,7 +91,8 @@ EOF
 // PURPOSE: Test command that uses core library
 // USAGE: ./use-core
 
-import iw.core.{ConfigFileRepository, ProjectConfiguration}
+import iw.core.adapters.ConfigFileRepository
+import iw.core.model.ProjectConfiguration
 
 @main def useCore(args: String*): Unit = {
   val configPath = os.pwd / ".iw" / "config.conf"
@@ -184,7 +185,7 @@ EOF
     mkdir -p .iw/commands
     cat > .iw/commands/project.hook-doctor.scala << 'EOF'
 // PURPOSE: Project-specific hook for doctor command
-import iw.core.*
+import iw.core.model.*
 
 object ProjectHookDoctor:
   def checkProjectHealth(config: ProjectConfiguration): CheckResult =
@@ -193,8 +194,8 @@ object ProjectHookDoctor:
   val check: Check = Check("Project Health", checkProjectHealth)
 EOF
 
-    # Run the doctor command (shared command)
-    run ./iw-run doctor
+    # Run the doctor command (shared command) with --env to test hook discovery
+    run ./iw-run doctor --env
     [ "$status" -eq 0 ]
     [[ "$output" == *"Project Health"* ]]
     [[ "$output" == *"Project hook executed"* ]]
