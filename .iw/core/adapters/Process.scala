@@ -60,14 +60,13 @@ object ProcessAdapter:
       timedOut = timedOut
     )
 
-  def runInteractive(command: Seq[String], timeoutMs: Int = DefaultTimeoutMs): Int =
+  def runInteractive(command: Seq[String]): Int =
     try
       val result = os.proc(command).call(
         check = false,
         stdin = os.Inherit,
         stdout = os.Inherit,
-        stderr = os.Inherit,
-        timeout = timeoutMs
+        stderr = os.Inherit
       )
       result.exitCode
     catch

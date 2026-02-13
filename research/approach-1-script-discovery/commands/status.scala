@@ -14,8 +14,12 @@ object StatusCommand extends CommandTrait {
   def run(args: List[String]): Int = {
     val config = Config.load()
     CommandTrait.println("Project status:")
-    CommandTrait.println(s"  Tracker: ${config.tracker.getOrElse("not configured")}")
-    CommandTrait.println(s"  Project: ${config.projectName.getOrElse("not configured")}")
+    CommandTrait.println(
+      s"  Tracker: ${config.tracker.getOrElse("not configured")}"
+    )
+    CommandTrait.println(
+      s"  Project: ${config.projectName.getOrElse("not configured")}"
+    )
     0
   }
 }

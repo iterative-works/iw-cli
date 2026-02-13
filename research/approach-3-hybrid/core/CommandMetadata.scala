@@ -4,17 +4,17 @@
 package iw.core
 
 case class ArgSpec(
-  name: String,
-  description: String,
-  required: Boolean = false
+    name: String,
+    description: String,
+    required: Boolean = false
 )
 
 case class CommandMetadata(
-  name: String,
-  purpose: String,
-  usage: String,
-  args: List[ArgSpec] = List.empty,
-  examples: List[String] = List.empty
+    name: String,
+    purpose: String,
+    usage: String,
+    args: List[ArgSpec] = List.empty,
+    examples: List[String] = List.empty
 )
 
 object CommandMetadata:
@@ -32,7 +32,9 @@ object CommandMetadata:
     val argsSection = lines
       .dropWhile(!_.trim.startsWith("// ARGS:"))
       .drop(1)
-      .takeWhile(line => line.trim.startsWith("//") && !line.trim.startsWith("// EXAMPLE"))
+      .takeWhile(line =>
+        line.trim.startsWith("//") && !line.trim.startsWith("// EXAMPLE")
+      )
       .map(_.replaceFirst(".*//", "").trim)
       .filter(_.nonEmpty)
 
@@ -43,8 +45,7 @@ object CommandMetadata:
         val argDesc = parts(1).trim
         val required = !argName.startsWith("[") && !argName.startsWith("--")
         ArgSpec(argName, argDesc, required)
-      else
-        ArgSpec(line, "", false)
+      else ArgSpec(line, "", false)
     }
 
     val examples = lines

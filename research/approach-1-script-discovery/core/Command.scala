@@ -10,6 +10,7 @@ trait Command {
 }
 
 object Command {
+
   /** Helper to print to stdout */
   def println(msg: String): Unit = scala.Console.println(msg)
 
