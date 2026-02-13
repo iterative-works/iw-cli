@@ -41,8 +41,8 @@ teardown() {
     git config user.email "test@example.com"
     git config user.name "Test User"
 
-    # Run init with youtrack tracker
-    run "$PROJECT_ROOT/iw" init --tracker=youtrack --team=TEST
+    # Run init with youtrack tracker (--base-url required to avoid interactive prompt)
+    run "$PROJECT_ROOT/iw" init --tracker=youtrack --team=TEST --base-url=https://youtrack.example.com
 
     # Assert success
     [ "$status" -eq 0 ]
@@ -50,6 +50,7 @@ teardown() {
     # Assert config has youtrack
     grep -q "type = youtrack" .iw/config.conf
     grep -q "team = TEST" .iw/config.conf
+    grep -q "youtrack.example.com" .iw/config.conf
 }
 
 @test "init fails outside git repository" {
@@ -146,8 +147,8 @@ teardown() {
     git config user.email "test@example.com"
     git config user.name "Test User"
 
-    # Run init with youtrack tracker
-    run "$PROJECT_ROOT/iw" init --tracker=youtrack --team=TEST
+    # Run init with youtrack tracker (--base-url required to avoid interactive prompt)
+    run "$PROJECT_ROOT/iw" init --tracker=youtrack --team=TEST --base-url=https://youtrack.example.com
 
     # Assert output contains YouTrack token hint
     [ "$status" -eq 0 ]
@@ -267,8 +268,8 @@ teardown() {
     git config user.email "test@example.com"
     git config user.name "Test User"
 
-    # Run init with youtrack tracker
-    run "$PROJECT_ROOT/iw" init --tracker=youtrack --team=TEST
+    # Run init with youtrack tracker (--base-url required to avoid interactive prompt)
+    run "$PROJECT_ROOT/iw" init --tracker=youtrack --team=TEST --base-url=https://youtrack.example.com
 
     # Assert success
     [ "$status" -eq 0 ]

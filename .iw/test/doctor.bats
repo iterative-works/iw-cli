@@ -165,6 +165,22 @@ DisableSyntax.noThrows = true
 DisableSyntax.noReturns = true
 EOF
 
+    # Create .git-hooks/ with hook files to satisfy Git hooks checks
+    mkdir -p .git-hooks
+    touch .git-hooks/pre-commit .git-hooks/pre-push
+    git config core.hooksPath .git-hooks
+
+    # Create CONTRIBUTING.md with required sections
+    cat > CONTRIBUTING.md << EOF
+# Contributing
+## CI
+Continuous integration pipeline runs on pull requests.
+## Hooks
+Install pre-commit and pre-push hooks via git-hooks.
+## Local Development
+Run checks locally before pushing.
+EOF
+
     # Run doctor (YouTrack skips token check, tmux should be available)
     run "$PROJECT_ROOT/iw" doctor
 

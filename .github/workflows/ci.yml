@@ -21,8 +21,8 @@ jobs:
         with:
           jvm: temurin:21
       - uses: coursier/cache-action@v6
-      - name: Compile core
-        run: scala-cli compile .iw/core/
+      - name: Compile core (warnings as errors)
+        run: scala-cli compile --scalac-option -Werror .iw/core/
 
   format:
     runs-on: ubuntu-latest

@@ -4,7 +4,7 @@
 
 Pull requests to `main` trigger a GitHub Actions CI pipeline that validates:
 
-1. **Compile** — core modules compile without errors
+1. **Compile** — core modules compile without errors or warnings (`-Werror`)
 2. **Format** — code conforms to scalafmt rules
 3. **Lint** — scalafix rules pass (DisableSyntax: no nulls, vars, throws, returns)
 4. **Test** — unit tests, command compilation, and E2E tests all pass
@@ -21,7 +21,12 @@ git config core.hooksPath .git-hooks
 
 ### pre-commit
 
-Runs a format check (`scala-cli fmt --check .`). Blocks the commit if formatting issues are found. Fix with:
+Runs two checks:
+
+1. **Format check** (`scala-cli fmt --check .`) — blocks if formatting issues found
+2. **Compile core** (`scala-cli compile --scalac-option -Werror .iw/core/`) — blocks on errors or warnings
+
+Fix formatting with:
 
 ```bash
 scala-cli fmt .
@@ -33,7 +38,7 @@ Then re-stage your changes and commit again.
 
 Runs two checks before allowing a push:
 
-1. **Clean compile** — compiles the core module and blocks on any `[warn]` output
+1. **Compile core** — compiles with `-Werror` (warnings treated as errors)
 2. **Full test suite** — runs `./iw test` (unit tests, command compilation, E2E tests)
 
 ## Local Development
@@ -44,6 +49,7 @@ Run checks locally before pushing:
 |-------|---------|
 | Format check | `scala-cli fmt --check .` |
 | Auto-format | `scala-cli fmt .` |
+| Compile (strict) | `scala-cli compile --scalac-option -Werror .iw/core/` |
 | Lint | `scalafix --check` |
 | All tests | `./iw test` |
 | Unit tests only | `./iw test unit` |

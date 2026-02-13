@@ -9,39 +9,25 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}Running pre-push checks...${NC}"
 
-# Step 1: Clean compile and check for warnings
-echo -e "${YELLOW}Compiling (checking for warnings)...${NC}"
-scala-cli clean .iw/core/ 2>/dev/null || true
-COMPILE_OUTPUT=$(scala-cli compile .iw/core/ 2>&1) || {
+# Step 1: Compile core with warnings-as-errors
+echo -e "${YELLOW}Compiling core (warnings as errors)...${NC}"
+if scala-cli compile --scalac-option -Werror .iw/core/ 2>&1; then
+    echo -e "${GREEN}Core compilation passed (no warnings).${NC}"
+else
     echo ""
     echo -e "${RED}┌──────────────────────────────────────────────┐${NC}"
-    echo -e "${RED}│  PUSH BLOCKED: Compilation failed            │${NC}"
+    echo -e "${RED}│  PUSH BLOCKED: Core compilation failed       │${NC}"
     echo -e "${RED}├──────────────────────────────────────────────┤${NC}"
-    echo -e "${RED}│  Fix compilation errors before pushing.      │${NC}"
+    echo -e "${RED}│  Fix compilation errors and warnings in      │${NC}"
+    echo -e "${RED}│  .iw/core/ before pushing.                   │${NC}"
     echo -e "${RED}│                                              │${NC}"
     echo -e "${RED}│  Bypass: git push --no-verify                │${NC}"
     echo -e "${RED}│          (not recommended)                   │${NC}"
     echo -e "${RED}└──────────────────────────────────────────────┘${NC}"
-    echo "$COMPILE_OUTPUT"
-    exit 1
-}
-
-if echo "$COMPILE_OUTPUT" | grep -q '\[warn\]'; then
-    echo ""
-    echo -e "${RED}┌──────────────────────────────────────────────┐${NC}"
-    echo -e "${RED}│  PUSH BLOCKED: Compilation warnings found    │${NC}"
-    echo -e "${RED}├──────────────────────────────────────────────┤${NC}"
-    echo -e "${RED}│  Fix all warnings before pushing.            │${NC}"
-    echo -e "${RED}│                                              │${NC}"
-    echo -e "${RED}│  Bypass: git push --no-verify                │${NC}"
-    echo -e "${RED}│          (not recommended)                   │${NC}"
-    echo -e "${RED}└──────────────────────────────────────────────┘${NC}"
-    echo "$COMPILE_OUTPUT" | grep '\[warn\]'
     exit 1
 fi
-echo -e "${GREEN}Compilation passed (no warnings).${NC}"
 
-# Step 2: Run full test suite
+# Step 2: Run full test suite (includes per-command compilation + unit + E2E)
 echo -e "${YELLOW}Running tests...${NC}"
 if ./iw test; then
     echo -e "${GREEN}All tests passed.${NC}"

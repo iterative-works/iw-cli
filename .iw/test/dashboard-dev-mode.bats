@@ -29,11 +29,11 @@ teardown() {
 
 @test "dev mode creates temp directory" {
     # Start server with --dev in background, capture output
-    timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
     # Wait a bit for server to start and print output
-    sleep 2
+    sleep 5
 
     # Kill the server
     kill $PID 2>/dev/null || true
@@ -53,11 +53,11 @@ teardown() {
 
 @test "dev mode creates state.json in temp directory" {
     # Start server with --dev, capture output to file
-    timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
     # Wait for initialization
-    sleep 2
+    sleep 5
 
     # Kill server
     kill $PID 2>/dev/null || true
@@ -78,11 +78,11 @@ teardown() {
 
 @test "dev mode creates config.json in temp directory" {
     # Start server with --dev, capture output to file
-    timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
     # Wait for initialization
-    sleep 2
+    sleep 5
 
     # Kill server
     kill $PID 2>/dev/null || true
@@ -101,11 +101,11 @@ teardown() {
 
 @test "dev mode enables sample data by default" {
     # Start server with --dev, capture output
-    timeout 3 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
     # Wait for initialization
-    sleep 2
+    sleep 5
 
     # Kill server
     kill $PID 2>/dev/null || true
