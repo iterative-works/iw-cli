@@ -6,6 +6,11 @@
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
 setup() {
+    # Skip if release package not built
+    if [ ! -f "$PROJECT_ROOT/release/iw-cli-0.1.0-dev.tar.gz" ]; then
+        skip "Release package not found (run package-release.sh first)"
+    fi
+
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"
