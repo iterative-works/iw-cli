@@ -181,6 +181,10 @@ Install pre-commit and pre-push hooks via git-hooks.
 Run checks locally before pushing.
 EOF
 
+    # Create CI workflow to satisfy CI check (YouTrack gives warning without it)
+    mkdir -p .github/workflows
+    touch .github/workflows/ci.yml
+
     # Run doctor (YouTrack skips token check, tmux should be available)
     run "$PROJECT_ROOT/iw" doctor
 
