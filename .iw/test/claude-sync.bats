@@ -3,6 +3,9 @@
 # PURPOSE: Verifies IW_COMMANDS_DIR and fallback to os.pwd work correctly
 
 setup() {
+    # Disable dashboard server communication during tests
+    export IW_SERVER_DISABLED=1
+
     # Create a temp directory for test
     export TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"

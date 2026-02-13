@@ -12,6 +12,7 @@ object Constants:
     val IwHookClasses = "IW_HOOK_CLASSES"
     val IwCommandsDir = "IW_COMMANDS_DIR"
     val Tmux = "TMUX"
+    val TmuxSocket = "IW_TMUX_SOCKET"
 
   /** Configuration file keys in HOCON format */
   object ConfigKeys:

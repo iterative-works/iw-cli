@@ -3,6 +3,9 @@
 # PURPOSE: Verifies test runner orchestration for unit and E2E tests
 
 setup() {
+    # Disable dashboard server communication during tests
+    export IW_SERVER_DISABLED=1
+
     # Create a temp directory for test
     export TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"

@@ -3,6 +3,9 @@
 # PURPOSE: Verifies routing between shared and project namespaces
 
 setup() {
+    # Disable dashboard server communication during tests
+    export IW_SERVER_DISABLED=1
+
     # Create a temp directory for test
     export TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"

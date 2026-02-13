@@ -11,6 +11,8 @@ TMUX_SOCKET="iw-test-$$"
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
+    # Tell iw commands to use isolated tmux socket
+    export IW_TMUX_SOCKET="$TMUX_SOCKET"
 
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
@@ -39,13 +41,8 @@ EOF
 }
 
 teardown() {
-    # Kill any tmux sessions we created (using our test socket)
+    # Kill all sessions on the isolated test socket
     tmux -L "$TMUX_SOCKET" kill-server 2>/dev/null || true
-
-    # Kill any tmux sessions with testproject prefix (from actual command)
-    tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^testproject-' | while read session; do
-        tmux kill-session -t "$session" 2>/dev/null || true
-    done
 
     # Clean up worktrees in parent directory (sibling to test dir)
     if [ -n "$TEST_DIR" ]; then
@@ -60,12 +57,12 @@ teardown() {
 }
 
 @test "rm successfully removes worktree with session" {
-    # Create worktree and session
+    # Create worktree and session on the test socket
     git worktree add -b IWLE-123 "../testproject-IWLE-123"
-    tmux new-session -d -s "testproject-IWLE-123" -c "../testproject-IWLE-123"
+    tmux -L "$TMUX_SOCKET" new-session -d -s "testproject-IWLE-123" -c "../testproject-IWLE-123"
 
     # Verify both exist
-    tmux has-session -t "testproject-IWLE-123"
+    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-123"
     [ -d "../testproject-IWLE-123" ]
 
     # Remove worktree
@@ -75,7 +72,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     # Both should be removed
-    ! tmux has-session -t "testproject-IWLE-123" 2>/dev/null
+    ! tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-123" 2>/dev/null
     [ ! -d "../testproject-IWLE-123" ]
 }
 
@@ -156,9 +153,9 @@ teardown() {
 }
 
 @test "rm shows appropriate messages" {
-    # Create worktree with session
+    # Create worktree with session on the test socket
     git worktree add -b IWLE-333 "../testproject-IWLE-333"
-    tmux new-session -d -s "testproject-IWLE-333" -c "../testproject-IWLE-333"
+    tmux -L "$TMUX_SOCKET" new-session -d -s "testproject-IWLE-333" -c "../testproject-IWLE-333"
 
     run "$PROJECT_ROOT/iw" rm IWLE-333
 

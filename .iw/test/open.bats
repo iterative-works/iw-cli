@@ -11,6 +11,8 @@ TMUX_SOCKET="iw-test-$$"
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
+    # Tell iw commands to use isolated tmux socket
+    export IW_TMUX_SOCKET="$TMUX_SOCKET"
 
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
@@ -39,13 +41,8 @@ EOF
 }
 
 teardown() {
-    # Kill any tmux sessions we created (using our test socket)
+    # Kill all sessions on the isolated test socket
     tmux -L "$TMUX_SOCKET" kill-server 2>/dev/null || true
-
-    # Kill any tmux sessions with testproject prefix (from actual command)
-    tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^testproject-' | while read session; do
-        tmux kill-session -t "$session" 2>/dev/null || true
-    done
 
     # Clean up worktrees in parent directory (sibling to test dir)
     if [ -n "$TEST_DIR" ]; then
@@ -64,25 +61,25 @@ teardown() {
     git worktree add -b IWLE-123 "../testproject-IWLE-123"
 
     # Verify session doesn't exist yet
-    ! tmux has-session -t "testproject-IWLE-123" 2>/dev/null
+    ! tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-123" 2>/dev/null
 
     # Open should create session (unset TMUX to avoid nested session detection)
     run env -u TMUX "$PROJECT_ROOT/iw" open IWLE-123
 
     # Session should be created (command will fail on attach in non-interactive mode, that's ok)
-    tmux has-session -t "testproject-IWLE-123" 2>/dev/null
+    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-123" 2>/dev/null
 }
 
 @test "open attaches to existing session" {
-    # Create worktree and session
+    # Create worktree and session on the test socket
     git worktree add -b IWLE-456 "../testproject-IWLE-456"
-    tmux new-session -d -s "testproject-IWLE-456" -c "../testproject-IWLE-456"
+    tmux -L "$TMUX_SOCKET" new-session -d -s "testproject-IWLE-456" -c "../testproject-IWLE-456"
 
     # Open should attach (will fail in non-interactive mode but that's expected)
     run "$PROJECT_ROOT/iw" open IWLE-456
 
     # Session should still exist
-    tmux has-session -t "testproject-IWLE-456" 2>/dev/null
+    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-456" 2>/dev/null
 }
 
 @test "open infers issue from current branch" {
@@ -98,7 +95,7 @@ teardown() {
     run env -u TMUX "$PROJECT_ROOT/iw" open
 
     # Session should be created with correct name
-    tmux has-session -t "testproject-IWLE-789" 2>/dev/null
+    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-789" 2>/dev/null
 }
 
 @test "open fails when worktree does not exist" {
@@ -145,7 +142,7 @@ teardown() {
     run env -u TMUX "$PROJECT_ROOT/iw" open iwle-222
 
     # Should create session with uppercase name
-    tmux has-session -t "testproject-IWLE-222" 2>/dev/null
+    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-222" 2>/dev/null
 }
 
 @test "open shows appropriate messages" {

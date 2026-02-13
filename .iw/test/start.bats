@@ -11,6 +11,8 @@ TMUX_SOCKET="iw-test-$$"
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
+    # Tell iw commands to use isolated tmux socket
+    export IW_TMUX_SOCKET="$TMUX_SOCKET"
 
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
@@ -39,13 +41,8 @@ EOF
 }
 
 teardown() {
-    # Kill any tmux sessions we created (using our test socket)
+    # Kill all sessions on the isolated test socket
     tmux -L "$TMUX_SOCKET" kill-server 2>/dev/null || true
-
-    # Kill any tmux sessions with testproject prefix (from actual start command)
-    tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^testproject-' | while read session; do
-        tmux kill-session -t "$session" 2>/dev/null || true
-    done
 
     # Clean up worktrees in parent directory (sibling to test dir)
     if [ -n "$TEST_DIR" ]; then
@@ -147,14 +144,10 @@ session_exists() {
 }
 
 @test "start fails when tmux session already exists and suggests using open" {
-    # Create a tmux session with the expected name
-    # Note: This test uses the default tmux socket since start.scala does
-    tmux new-session -d -s "testproject-IWLE-999"
+    # Create a tmux session with the expected name on the test socket
+    tmux -L "$TMUX_SOCKET" new-session -d -s "testproject-IWLE-999"
 
     run "$PROJECT_ROOT/iw" start IWLE-999
-
-    # Clean up the session we created
-    tmux kill-session -t "testproject-IWLE-999" 2>/dev/null || true
 
     [ "$status" -eq 1 ]
     [[ "$output" == *"already exists"* ]]

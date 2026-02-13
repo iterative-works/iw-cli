@@ -6,6 +6,9 @@
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
 setup() {
+    # Disable dashboard server communication during tests
+    export IW_SERVER_DISABLED=1
+
     TEST_TMPDIR="$(mktemp -d)"
 }
 
