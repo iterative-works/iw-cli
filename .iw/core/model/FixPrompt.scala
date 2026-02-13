@@ -69,7 +69,7 @@ IMPORTANT:
         test = "scala-cli test .",
         fix = "scalafix",
         fixCheck = "scalafix --check",
-        cleanCompile = "scala-cli compile --force ."
+        cleanCompile = "scala-cli clean . && scala-cli compile ."
       )
       case BuildSystem.Unknown => Commands(
         name = "Unknown",
