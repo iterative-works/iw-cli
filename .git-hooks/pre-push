@@ -27,17 +27,17 @@ else
     exit 1
 fi
 
-# Step 2: Run full test suite (includes per-command compilation + unit + E2E)
-echo -e "${YELLOW}Running tests...${NC}"
-if ./iw test; then
-    echo -e "${GREEN}All tests passed.${NC}"
+# Step 2: Run unit tests and command compilation (E2E deferred to CI)
+echo -e "${YELLOW}Running unit tests and command compilation...${NC}"
+if ./iw test unit && ./iw test compile; then
+    echo -e "${GREEN}Unit tests and compilation passed.${NC}"
 else
     echo ""
     echo -e "${RED}┌──────────────────────────────────────────────┐${NC}"
     echo -e "${RED}│  PUSH BLOCKED: Tests failed                  │${NC}"
     echo -e "${RED}├──────────────────────────────────────────────┤${NC}"
     echo -e "${RED}│  Fix failing tests before pushing.           │${NC}"
-    echo -e "${RED}│  Run: ./iw test                              │${NC}"
+    echo -e "${RED}│  Run: ./iw test unit && ./iw test compile    │${NC}"
     echo -e "${RED}│                                              │${NC}"
     echo -e "${RED}│  Bypass: git push --no-verify                │${NC}"
     echo -e "${RED}│          (not recommended)                   │${NC}"
