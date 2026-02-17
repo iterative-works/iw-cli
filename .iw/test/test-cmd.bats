@@ -41,6 +41,16 @@ teardown() {
     rm -rf "$TEST_DIR"
 }
 
+# Helper: run command with BATS_ test-state vars cleared to prevent nested bats interference.
+# Keeps BATS_ROOT/BATS_LIBEXEC/BATS_LIB_PATH which bats needs to find its own scripts.
+run_without_bats_env() {
+    run env -u BATS_TEST_NAME -u BATS_TEST_NUMBER -u BATS_SUITE_TEST_NUMBER \
+        -u BATS_TEST_DESCRIPTION -u BATS_TEST_FILENAME -u BATS_TEST_SOURCE \
+        -u BATS_ROOT_PID -u BATS_RUN_TMPDIR -u BATS_FILE_TMPDIR \
+        -u BATS_SUITE_TMPDIR -u BATS_TEST_TMPDIR -u BATS_OUT \
+        -u BATS_RUNLOG_FILE -u BATS_WARNING_FILE "$@"
+}
+
 @test "test command shows usage when invoked with --help" {
     run ./iw test --help
     [ "$status" -eq 0 ]
@@ -86,7 +96,7 @@ EOF
 }
 EOF
 
-    run ./iw test e2e
+    run_without_bats_env ./iw test e2e
     [ "$status" -eq 0 ]
     [[ "$output" == *"simple e2e test passes"* ]]
 }
@@ -100,7 +110,7 @@ EOF
 }
 EOF
 
-    run ./iw test e2e
+    run_without_bats_env ./iw test e2e
     [ "$status" -ne 0 ]
 }
 
@@ -121,7 +131,7 @@ EOF
 }
 EOF
 
-    run ./iw test
+    run_without_bats_env ./iw test
     [ "$status" -eq 0 ]
     [[ "$output" == *"unit test passes"* ]] || [[ "$output" == *"UnitTest"* ]]
     [[ "$output" == *"e2e test passes"* ]]
