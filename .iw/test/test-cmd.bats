@@ -41,14 +41,11 @@ teardown() {
     rm -rf "$TEST_DIR"
 }
 
-# Helper: run command with BATS_ test-state vars cleared to prevent nested bats interference.
-# Keeps BATS_ROOT/BATS_LIBEXEC/BATS_LIB_PATH which bats needs to find its own scripts.
-run_without_bats_env() {
-    run env -u BATS_TEST_NAME -u BATS_TEST_NUMBER -u BATS_SUITE_TEST_NUMBER \
-        -u BATS_TEST_DESCRIPTION -u BATS_TEST_FILENAME -u BATS_TEST_SOURCE \
-        -u BATS_ROOT_PID -u BATS_RUN_TMPDIR -u BATS_FILE_TMPDIR \
-        -u BATS_SUITE_TMPDIR -u BATS_TEST_TMPDIR -u BATS_OUT \
-        -u BATS_RUNLOG_FILE -u BATS_WARNING_FILE "$@"
+# Helper: run command with clean PATH for nested bats invocations.
+# BATS prepends its libexec dir to PATH, which causes nested bats to find
+# the inner bats-core/bats (missing bats_readlinkf) instead of the launcher.
+run_with_clean_path() {
+    run env PATH="${BATS_SAVED_PATH:-$PATH}" "$@"
 }
 
 @test "test command shows usage when invoked with --help" {
@@ -96,25 +93,9 @@ EOF
 }
 EOF
 
-    # Debug: check prerequisites
-    echo "# cwd=$(pwd)" >&3
-    echo "# iw executable: $(test -x ./iw && echo yes || echo no)" >&3
-    echo "# iw-run executable: $(test -x ./iw-run && echo yes || echo no)" >&3
-    echo "# scala-cli: $(command -v scala-cli 2>&1)" >&3
-    echo "# test dir: $(ls .iw/test/ 2>&1)" >&3
-    echo "# commands/test.scala: $(test -f .iw/commands/test.scala && echo exists || echo missing)" >&3
-    echo "# core files count: $(find .iw/core -name '*.scala' -not -path '*/test/*' 2>/dev/null | wc -l)" >&3
-
-    # Capture stdout and stderr separately for debugging
-    local out_file="$TEST_DIR/e2e-stdout.txt"
-    local err_file="$TEST_DIR/e2e-stderr.txt"
-    local exit_code=0
-    ./iw test e2e >"$out_file" 2>"$err_file" || exit_code=$?
-    echo "# e2e exit_code=$exit_code" >&3
-    echo "# e2e stdout=$(cat "$out_file" | head -20)" >&3
-    echo "# e2e stderr=$(cat "$err_file" | head -20)" >&3
-    [ "$exit_code" -eq 0 ]
-    [[ "$(cat "$out_file")" == *"simple e2e test passes"* ]]
+    run_with_clean_path ./iw test e2e
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"simple e2e test passes"* ]]
 }
 
 @test "test command returns non-zero on e2e test failure" {
@@ -126,7 +107,7 @@ EOF
 }
 EOF
 
-    run ./iw test e2e
+    run_with_clean_path ./iw test e2e
     [ "$status" -ne 0 ]
 }
 
@@ -147,9 +128,7 @@ EOF
 }
 EOF
 
-    run ./iw test
-    echo "# both status=$status" >&3
-    echo "# both output=${output:0:500}" >&3
+    run_with_clean_path ./iw test
     [ "$status" -eq 0 ]
     [[ "$output" == *"unit test passes"* ]] || [[ "$output" == *"UnitTest"* ]]
     [[ "$output" == *"e2e test passes"* ]]
