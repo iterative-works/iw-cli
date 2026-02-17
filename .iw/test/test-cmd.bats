@@ -105,11 +105,16 @@ EOF
     echo "# commands/test.scala: $(test -f .iw/commands/test.scala && echo exists || echo missing)" >&3
     echo "# core files count: $(find .iw/core -name '*.scala' -not -path '*/test/*' 2>/dev/null | wc -l)" >&3
 
-    run ./iw test e2e
-    echo "# e2e status=$status" >&3
-    echo "# e2e output(first 1000)=${output:0:1000}" >&3
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"simple e2e test passes"* ]]
+    # Capture stdout and stderr separately for debugging
+    local out_file="$TEST_DIR/e2e-stdout.txt"
+    local err_file="$TEST_DIR/e2e-stderr.txt"
+    local exit_code=0
+    ./iw test e2e >"$out_file" 2>"$err_file" || exit_code=$?
+    echo "# e2e exit_code=$exit_code" >&3
+    echo "# e2e stdout=$(cat "$out_file" | head -20)" >&3
+    echo "# e2e stderr=$(cat "$err_file" | head -20)" >&3
+    [ "$exit_code" -eq 0 ]
+    [[ "$(cat "$out_file")" == *"simple e2e test passes"* ]]
 }
 
 @test "test command returns non-zero on e2e test failure" {
