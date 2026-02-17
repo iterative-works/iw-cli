@@ -21,26 +21,25 @@ object PathValidator:
   ): Either[String, Path] =
     // Reject empty or whitespace-only paths
     if artifactPath.trim.isEmpty then
-      return Left("Invalid artifact path")
-
+      Left("Invalid artifact path")
     // Reject absolute paths
-    if isAbsolute(artifactPath) then
-      return Left("Artifact path must be relative")
+    else if isAbsolute(artifactPath) then
+      Left("Artifact path must be relative")
+    else
+      // Resolve the path against the worktree
+      val resolvedPath = worktreePath.resolve(artifactPath).normalize()
 
-    // Resolve the path against the worktree
-    val resolvedPath = worktreePath.resolve(artifactPath).normalize()
-
-    // Check if path is within boundary (before symlink resolution)
-    if !isWithinBoundary(worktreePath, resolvedPath) then
-      return Left("Artifact not found")
-
-    // Resolve symlinks and check final target is within boundary
-    resolveSymlinks(resolvedPath).flatMap { realPath =>
-      if !isWithinBoundary(worktreePath, realPath) then
+      // Check if path is within boundary (before symlink resolution)
+      if !isWithinBoundary(worktreePath, resolvedPath) then
         Left("Artifact not found")
       else
-        Right(realPath)
-    }
+        // Resolve symlinks and check final target is within boundary
+        resolveSymlinks(resolvedPath).flatMap { realPath =>
+          if !isWithinBoundary(worktreePath, realPath) then
+            Left("Artifact not found")
+          else
+            Right(realPath)
+        }
 
   /**
    * Check if a path is absolute.

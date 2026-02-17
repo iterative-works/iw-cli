@@ -35,7 +35,7 @@ private def collectHookChecks(): List[Check] =
   else hookClasses.split(",").toList.flatMap { className =>
     try
       val clazz = Class.forName(s"$className$$") // Scala object class names end with $
-      val instance = clazz.getField(Constants.ScalaReflection.ModuleField).get(null)
+      val instance = clazz.getField(Constants.ScalaReflection.ModuleField).get(Option.empty[AnyRef].orNull)
 
       // Collect all fields of type Check from the hook
       clazz.getDeclaredMethods
@@ -78,9 +78,6 @@ private def collectHookChecks(): List[Check] =
   // Group results by category
   val groupedResults = results.groupBy(_._3)
 
-  var errorCount = 0
-  var warningCount = 0
-
   // Display results grouped by category
   val categoryOrder = List("Environment", "Quality")
   val categoryHeaders = Map(
@@ -102,16 +99,13 @@ private def collectHookChecks(): List[Check] =
               System.out.println(f"  ✓ $name%-20s $message")
 
             case CheckResult.Warning(message) =>
-              warningCount += 1
               System.out.println(f"  ⚠ $name%-20s $message")
 
             case CheckResult.WarningWithHint(message, hintText) =>
-              warningCount += 1
               System.out.println(f"  ⚠ $name%-20s $message")
               System.out.println(s"    → $hintText")
 
             case CheckResult.Error(message, hintText) =>
-              errorCount += 1
               System.out.println(f"  ✗ $name%-20s $message")
               System.out.println(s"    → $hintText")
 
@@ -122,6 +116,11 @@ private def collectHookChecks(): List[Check] =
   }
 
   System.out.println()
+
+  val errorCount = results.count { case (_, result, _) => result.isInstanceOf[CheckResult.Error] }
+  val warningCount = results.count { case (_, result, _) =>
+    result.isInstanceOf[CheckResult.Warning] || result.isInstanceOf[CheckResult.WarningWithHint]
+  }
 
   // Fix mode: launch Claude Code with remediation prompt
   if fixMode then

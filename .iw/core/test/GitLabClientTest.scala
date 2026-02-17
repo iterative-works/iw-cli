@@ -222,7 +222,7 @@ class GitLabClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(result.left.getOrElse(null), GitLabClient.GlabPrerequisiteError.GlabNotInstalled)
+    assertEquals(result.left.getOrElse(fail("Expected Left")), GitLabClient.GlabPrerequisiteError.GlabNotInstalled)
 
   test("validateGlabPrerequisites returns GlabNotAuthenticated when auth status fails"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -239,7 +239,7 @@ class GitLabClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(result.left.getOrElse(null), GitLabClient.GlabPrerequisiteError.GlabNotAuthenticated)
+    assertEquals(result.left.getOrElse(fail("Expected Left")), GitLabClient.GlabPrerequisiteError.GlabNotAuthenticated)
 
   test("validateGlabPrerequisites returns Right(()) when glab is authenticated"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -295,15 +295,15 @@ class GitLabClientTest extends munit.FunSuite:
     assert(error.contains("glab is not authenticated"), s"Error should mention glab not authenticated: $error")
 
   test("fetchIssue executes command with correct arguments"):
-    var capturedCommand = ""
-    var capturedArgs = Array.empty[String]
+    val capturedCommand = new java.util.concurrent.atomic.AtomicReference[String]("")
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty[String])
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
         Right("Logged in")
       else
-        capturedCommand = cmd
-        capturedArgs = args
+        capturedCommand.set(cmd)
+        capturedArgs.set(args)
         Right("""{
           "iid": 123,
           "state": "opened",
@@ -323,12 +323,12 @@ class GitLabClientTest extends munit.FunSuite:
     )
 
     assert(result.isRight)
-    assertEquals(capturedCommand, "glab")
-    assert(capturedArgs.contains("issue"))
-    assert(capturedArgs.contains("view"))
-    assert(capturedArgs.contains("123")) // API uses extracted numeric ID
-    assert(capturedArgs.contains("--repo"))
-    assert(capturedArgs.contains("owner/project"))
+    assertEquals(capturedCommand.get, "glab")
+    assert(capturedArgs.get.contains("issue"))
+    assert(capturedArgs.get.contains("view"))
+    assert(capturedArgs.get.contains("123")) // API uses extracted numeric ID
+    assert(capturedArgs.get.contains("--repo"))
+    assert(capturedArgs.get.contains("owner/project"))
 
   test("fetchIssue parses successful response into Issue"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -670,13 +670,13 @@ class GitLabClientTest extends munit.FunSuite:
     assert(error.contains("glab is not authenticated"))
 
   test("createIssue success path with label"):
-    var commandCalls = 0
+    val commandCalls = new java.util.concurrent.atomic.AtomicInteger(0)
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
         Right("Logged in to gitlab.com")
       else if args.contains("issue") && args.contains("create") then
-        commandCalls += 1
+        commandCalls.incrementAndGet()
         Right("https://gitlab.com/owner/project/-/issues/123\n")
       else
         Left(s"Unexpected command: $cmd ${args.mkString(" ")}")
@@ -694,18 +694,18 @@ class GitLabClientTest extends munit.FunSuite:
     val issue = result.getOrElse(fail("Expected Right"))
     assertEquals(issue.id, "123")
     assertEquals(issue.url, "https://gitlab.com/owner/project/-/issues/123")
-    assertEquals(commandCalls, 1) // Only one attempt
+    assertEquals(commandCalls.get, 1) // Only one attempt
 
   test("createIssue retries without label on label error"):
-    var commandCalls = 0
-    var lastArgs: Array[String] = Array()
+    val commandCalls = new java.util.concurrent.atomic.AtomicInteger(0)
+    val lastArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array())
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
         Right("Logged in")
       else if args.contains("issue") && args.contains("create") then
-        commandCalls += 1
-        lastArgs = args
+        commandCalls.incrementAndGet()
+        lastArgs.set(args)
         if args.contains("--label") then
           // First attempt with label fails
           Left("Error: label 'bug' not found in project")
@@ -727,17 +727,17 @@ class GitLabClientTest extends munit.FunSuite:
     assert(result.isRight)
     val issue = result.getOrElse(fail("Expected Right"))
     assertEquals(issue.id, "456")
-    assertEquals(commandCalls, 2) // Two attempts: with label, then without
-    assert(!lastArgs.contains("--label")) // Final attempt had no label
+    assertEquals(commandCalls.get, 2) // Two attempts: with label, then without
+    assert(!lastArgs.get.contains("--label")) // Final attempt had no label
 
   test("createIssue does not retry on non-label error"):
-    var commandCalls = 0
+    val commandCalls = new java.util.concurrent.atomic.AtomicInteger(0)
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
         Right("Logged in")
       else if args.contains("issue") && args.contains("create") then
-        commandCalls += 1
+        commandCalls.incrementAndGet()
         Left("Network timeout")
       else
         Left(s"Unexpected command: $cmd ${args.mkString(" ")}")
@@ -752,5 +752,5 @@ class GitLabClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(commandCalls, 1) // Only one attempt, no retry
+    assertEquals(commandCalls.get, 1) // Only one attempt, no retry
     assert(result.left.getOrElse("").contains("Network timeout"))

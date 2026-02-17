@@ -83,17 +83,17 @@ class GitStatusServiceTest extends FunSuite:
     assert(!GitStatusService.isWorkingTreeClean(" M file1.txt\n M file2.txt\n?? file3.txt"))
 
   test("getGitStatus uses git -C flag with worktree path"):
-    var capturedArgs: Option[Array[String]] = None
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Option[Array[String]]](None)
     val execCommand = (cmd: String, args: Array[String]) =>
-      capturedArgs = Some(args)
+      capturedArgs.set(Some(args))
       if args.contains("rev-parse") then Right("main")
       else Right("")
 
     GitStatusService.getGitStatus("/custom/path", execCommand)
 
-    assert(capturedArgs.isDefined)
-    assert(capturedArgs.get.contains("-C"))
-    assert(capturedArgs.get.contains("/custom/path"))
+    assert(capturedArgs.get.isDefined)
+    assert(capturedArgs.get.get.contains("-C"))
+    assert(capturedArgs.get.get.contains("/custom/path"))
 
   test("getGitStatus handles branch name with slashes"):
     val execCommand = (cmd: String, args: Array[String]) =>

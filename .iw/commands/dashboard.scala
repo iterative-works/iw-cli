@@ -11,31 +11,36 @@ import sttp.client4.quick.*
 import java.nio.file.Paths
 import java.net.ServerSocket
 
+case class DashboardArgs(
+  statePath: Option[String] = None,
+  sampleData: Boolean = false,
+  devMode: Boolean = false
+)
+
+@annotation.tailrec
+def parseArgs(remaining: List[String], acc: DashboardArgs = DashboardArgs()): DashboardArgs =
+  remaining match
+    case Nil => acc
+    case "--state-path" :: value :: rest =>
+      parseArgs(rest, acc.copy(statePath = Some(value)))
+    case "--sample-data" :: rest =>
+      parseArgs(rest, acc.copy(sampleData = true))
+    case "--dev" :: rest =>
+      parseArgs(rest, acc.copy(devMode = true))
+    case ("--help" | "-h") :: _ =>
+      printHelp()
+      sys.exit(0)
+    case other :: _ =>
+      Output.error(s"Unknown argument: $other")
+      Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data] [--dev] [--help]")
+      sys.exit(1)
+
 @main def dashboard(args: String*): Unit =
   // Parse command line arguments
-  var statePath: Option[String] = None
-  var sampleData: Boolean = false
-  var devMode: Boolean = false
-
-  var i = 0
-  while i < args.length do
-    args(i) match
-      case "--state-path" if i + 1 < args.length =>
-        statePath = Some(args(i + 1))
-        i += 2
-      case "--sample-data" =>
-        sampleData = true
-        i += 1
-      case "--dev" =>
-        devMode = true
-        i += 1
-      case "--help" | "-h" =>
-        printHelp()
-        sys.exit(0)
-      case other =>
-        Output.error(s"Unknown argument: $other")
-        Output.info("Usage: ./iw dashboard [--state-path <path>] [--sample-data] [--dev] [--help]")
-        sys.exit(1)
+  val parsedArgs = parseArgs(args.toList)
+  val statePath = parsedArgs.statePath
+  val sampleData = parsedArgs.sampleData
+  val devMode = parsedArgs.devMode
 
   val homeDir = sys.env.get("HOME") match
     case Some(home) => home
@@ -48,7 +53,7 @@ import java.net.ServerSocket
   val defaultConfigPath = s"$serverDir/config.json"
 
   // Handle dev mode: create timestamped temp directory and auto-enable sample data
-  val (effectiveStatePath, effectiveConfigPath, effectiveDevMode) = if devMode then
+  val (effectiveStatePath, effectiveConfigPath, effectiveDevMode, effectiveSampleData) = if devMode then
     val timestamp = System.currentTimeMillis()
     val tempDir = s"/tmp/iw-dev-$timestamp"
     val tempStatePath = s"$tempDir/state.json"
@@ -56,9 +61,6 @@ import java.net.ServerSocket
 
     // Create temp directory
     os.makeDir.all(os.Path(tempDir))
-
-    // Auto-enable sample data in dev mode
-    sampleData = true
 
     // Find available port dynamically (enables parallel test runs)
     val devPort = findAvailablePort()
@@ -79,14 +81,14 @@ import java.net.ServerSocket
 
     // Explicit state-path takes precedence
     val finalStatePath = statePath.getOrElse(tempStatePath)
-    (finalStatePath, tempConfigPath, true)
+    (finalStatePath, tempConfigPath, true, true)
   else
     // Normal mode: use custom state path if provided, otherwise use default path
     val finalStatePath = statePath.getOrElse(defaultStatePath)
-    (finalStatePath, defaultConfigPath, false)
+    (finalStatePath, defaultConfigPath, false, sampleData)
 
   // If sample data flag is set, generate and persist sample data
-  if sampleData then
+  if effectiveSampleData then
     Output.info("Generating sample data...")
     val sampleState = SampleDataGenerator.generateSampleState()
     Output.info(s"Generated state with ${sampleState.worktrees.size} worktrees")
@@ -117,7 +119,7 @@ import java.net.ServerSocket
   // Check if server is already running
   if !isServerRunning(s"$url/health") then
     Output.info("Starting dashboard server...")
-    if statePath.isDefined || sampleData then
+    if statePath.isDefined || effectiveSampleData then
       Output.info(s"Using state file: $effectiveStatePath")
     // Start server in current process (foreground for Phase 1)
     startServerAndOpenBrowser(effectiveStatePath, port, url, effectiveDevMode)
@@ -154,35 +156,41 @@ def waitForServer(healthUrl: String, timeoutSeconds: Int): Boolean =
   val start = System.currentTimeMillis()
   val timeoutMillis = timeoutSeconds * 1000
 
-  while System.currentTimeMillis() - start < timeoutMillis do
-    if isServerRunning(healthUrl) then
-      return true
-    Thread.sleep(200)
+  @annotation.tailrec
+  def poll(): Boolean =
+    if System.currentTimeMillis() - start >= timeoutMillis then false
+    else if isServerRunning(healthUrl) then true
+    else
+      Thread.sleep(200)
+      poll()
 
-  false
+  poll()
 
 def openBrowser(url: String): Unit =
   val os = System.getProperty("os.name").toLowerCase
 
   val command = if os.contains("mac") then
-    Seq("open", url)
+    Some(Seq("open", url))
   else if os.contains("nix") || os.contains("nux") || os.contains("aix") then
-    Seq("xdg-open", url)
+    Some(Seq("xdg-open", url))
   else if os.contains("win") then
-    Seq("cmd", "/c", "start", url)
+    Some(Seq("cmd", "/c", "start", url))
   else
-    Output.warning(s"Unable to detect platform. Please open $url manually")
-    return
+    None
 
-  Try {
-    val pb = new ProcessBuilder(command: _*)
-    pb.start()
-  } match
-    case Success(_) =>
-      Output.info(s"Opening browser to $url")
-    case Failure(ex) =>
-      Output.warning(s"Failed to open browser: ${ex.getMessage}")
-      Output.info(s"Please open $url manually")
+  command match
+    case None =>
+      Output.warning(s"Unable to detect platform. Please open $url manually")
+    case Some(cmd) =>
+      Try {
+        val pb = new ProcessBuilder(cmd: _*)
+        pb.start()
+      } match
+        case Success(_) =>
+          Output.info(s"Opening browser to $url")
+        case Failure(ex) =>
+          Output.warning(s"Failed to open browser: ${ex.getMessage}")
+          Output.info(s"Please open $url manually")
 
 def printHelp(): Unit =
   println("""Usage: ./iw dashboard [OPTIONS]

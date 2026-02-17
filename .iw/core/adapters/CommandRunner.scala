@@ -44,7 +44,7 @@ object CommandRunner:
         val stderrMsg = stderr.toString.trim
         Left(s"$stderrMsg")
     catch
-      case e: RuntimeException if e.getMessage != null && e.getMessage.contains("Cannot run program") =>
+      case e: RuntimeException if Option(e.getMessage).exists(_.contains("Cannot run program")) =>
         Left(s"Command not found: $command")
       case e: Exception =>
         Left(s"Command error: ${e.getMessage}")

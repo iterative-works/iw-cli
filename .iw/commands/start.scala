@@ -21,7 +21,6 @@ import iw.core.dashboard.ServerClient
       Output.error("Cannot read configuration")
       Output.info("Run './iw init' to initialize the project")
       sys.exit(1)
-      throw RuntimeException("unreachable") // for type checker
     case Some(c) => c
 
   // Parse issue ID, applying team prefix for GitHub/GitLab if needed

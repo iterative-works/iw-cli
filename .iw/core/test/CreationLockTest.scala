@@ -24,7 +24,7 @@ class CreationLockTest extends FunSuite:
     val lock = CreationLock("IWLE-123", now)
 
     assert(lock.issueId.nonEmpty)
-    assert(lock.startedAt != null)
+    assert(Option(lock.startedAt).isDefined)
 
   test("CreationLock with different issue IDs are distinct"):
     val now = Instant.now()

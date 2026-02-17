@@ -234,104 +234,107 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.put("/api/v1/worktrees/:issueId")
   def registerWorktree(issueId: String, request: cask.Request): cask.Response[ujson.Value] =
-    val requestJson = try
+    val parsedBody: Either[cask.Response[ujson.Value], ujson.Value] = try
       // Parse request body
       val bodyBytes = request.readAllBytes()
       val bodyStr = new String(bodyBytes, "UTF-8")
-      ujson.read(bodyStr)
+      Right(ujson.read(bodyStr))
     catch
       case e: Throwable if e.getClass.getName.contains("ParseException") ||
                            e.getClass.getName.contains("Abort") ||
                            e.getClass.getName.contains("TraceException") =>
-        return cask.Response(
+        Left(cask.Response(
           data = ujson.Obj(
             "code" -> "MALFORMED_JSON",
             "message" -> s"Malformed JSON: ${e.getMessage}"
           ),
           statusCode = 400
-        )
+        ))
       case e: Exception =>
         System.err.println(s"Error reading request body: ${e.getClass.getName}: ${e.getMessage}")
-        return cask.Response(
+        Left(cask.Response(
           data = ujson.Obj(
             "code" -> "INTERNAL_ERROR",
             "message" -> "Internal server error"
           ),
           statusCode = 500
-        )
+        ))
 
-    try
-      // Extract fields from request
-      val path = requestJson("path").str
-      val trackerType = requestJson("trackerType").str
-      val team = requestJson("team").str
+    parsedBody match
+      case Left(errorResponse) => errorResponse
+      case Right(requestJson) =>
+        try
+          // Extract fields from request
+          val path = requestJson("path").str
+          val trackerType = requestJson("trackerType").str
+          val team = requestJson("team").str
 
-      // Get current state
-      val currentState = stateService.getState
+          // Get current state
+          val currentState = stateService.getState
 
-      // Register or update worktree with current timestamp
-      val now = Instant.now()
-      val registrationResult = WorktreeRegistrationService.register(
-        issueId,
-        path,
-        trackerType,
-        team,
-        now,
-        currentState
-      )
-
-      registrationResult match
-        case Right((newState, wasCreated)) =>
-          // Update worktree via service
-          val registration = newState.worktrees(issueId)
-          stateService.updateWorktree(issueId)(_ => Some(registration))
-
-          cask.Response(
-            data = ujson.Obj(
-              "status" -> "registered",
-              "issueId" -> issueId,
-              "lastSeenAt" -> registration.lastSeenAt.toString
-            ),
-            statusCode = if wasCreated then 201 else 200
+          // Register or update worktree with current timestamp
+          val now = Instant.now()
+          val registrationResult = WorktreeRegistrationService.register(
+            issueId,
+            path,
+            trackerType,
+            team,
+            now,
+            currentState
           )
 
-        case Left(error) =>
-          cask.Response(
-            data = ujson.Obj(
-              "code" -> "VALIDATION_ERROR",
-              "message" -> error
-            ),
-            statusCode = 400
-          )
+          registrationResult match
+            case Right((newState, wasCreated)) =>
+              // Update worktree via service
+              val registration = newState.worktrees(issueId)
+              stateService.updateWorktree(issueId)(_ => Some(registration))
 
-    catch
-      case e: Throwable if e.getClass.getName.contains("ParseException") ||
-                           e.getClass.getName.contains("Abort") ||
-                           e.getClass.getName.contains("TraceException") =>
-        cask.Response(
-          data = ujson.Obj(
-            "code" -> "MALFORMED_JSON",
-            "message" -> s"Malformed JSON: ${e.getMessage}"
-          ),
-          statusCode = 400
-        )
-      case e: NoSuchElementException =>
-        cask.Response(
-          data = ujson.Obj(
-            "code" -> "MISSING_FIELD",
-            "message" -> s"Missing required field: ${e.getMessage}"
-          ),
-          statusCode = 400
-        )
-      case e: Exception =>
-        System.err.println(s"Internal error: ${e.getMessage}")
-        cask.Response(
-          data = ujson.Obj(
-            "code" -> "INTERNAL_ERROR",
-            "message" -> "Internal server error"
-          ),
-          statusCode = 500
-        )
+              cask.Response(
+                data = ujson.Obj(
+                  "status" -> "registered",
+                  "issueId" -> issueId,
+                  "lastSeenAt" -> registration.lastSeenAt.toString
+                ),
+                statusCode = if wasCreated then 201 else 200
+              )
+
+            case Left(error) =>
+              cask.Response(
+                data = ujson.Obj(
+                  "code" -> "VALIDATION_ERROR",
+                  "message" -> error
+                ),
+                statusCode = 400
+              )
+
+        catch
+          case e: Throwable if e.getClass.getName.contains("ParseException") ||
+                               e.getClass.getName.contains("Abort") ||
+                               e.getClass.getName.contains("TraceException") =>
+            cask.Response(
+              data = ujson.Obj(
+                "code" -> "MALFORMED_JSON",
+                "message" -> s"Malformed JSON: ${e.getMessage}"
+              ),
+              statusCode = 400
+            )
+          case e: NoSuchElementException =>
+            cask.Response(
+              data = ujson.Obj(
+                "code" -> "MISSING_FIELD",
+                "message" -> s"Missing required field: ${e.getMessage}"
+              ),
+              statusCode = 400
+            )
+          case e: Exception =>
+            System.err.println(s"Internal error: ${e.getMessage}")
+            cask.Response(
+              data = ujson.Obj(
+                "code" -> "INTERNAL_ERROR",
+                "message" -> "Internal server error"
+              ),
+              statusCode = 500
+            )
 
   @cask.delete("/api/v1/worktrees/:issueId")
   def unregisterWorktree(issueId: String): cask.Response[ujson.Value] =

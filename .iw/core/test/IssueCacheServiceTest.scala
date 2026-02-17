@@ -50,16 +50,16 @@ class IssueCacheServiceTest extends FunSuite:
     val cachedData = createTestIssueData("TEST-1", now.minusSeconds(60))
     val cache = Map("TEST-1" -> CachedIssue(cachedData))
 
-    var wasCalled = false
+    val wasCalled = new java.util.concurrent.atomic.AtomicBoolean(false)
     val fetchFn = (id: String) => {
-      wasCalled = true
+      wasCalled.set(true)
       Right(createTestIssue(id))
     }
     val urlBuilder = (id: String) => s"https://example.com/$id"
 
     IssueCacheService.fetchWithCache("TEST-1", cache, now, fetchFn, urlBuilder)
 
-    assert(!wasCalled, "fetchFn must not be called when using valid cache")
+    assert(!wasCalled.get, "fetchFn must not be called when using valid cache")
 
   test("fetchWithCache refreshes expired cache (6 min ago, API called)"):
     val now = Instant.now()
@@ -73,7 +73,7 @@ class IssueCacheServiceTest extends FunSuite:
     val result = IssueCacheService.fetchWithCache("IWLE-123", cache, now, fetchFn, urlBuilder)
 
     assert(result.isRight, "Should succeed with fresh data")
-    val (issueData, fromCache) = result.getOrElse((null, true))
+    val (issueData, fromCache) = result.getOrElse(fail("Expected Right"))
     assertEquals(fromCache, false, "fromCache should be false for fresh fetch")
     assertEquals(issueData.title, "Fresh title", "Should have fresh data")
     assertEquals(issueData.fetchedAt, now, "Timestamp should be current")
@@ -90,7 +90,7 @@ class IssueCacheServiceTest extends FunSuite:
     val result = IssueCacheService.fetchWithCache("PROJ-1", cache, now, fetchFn, urlBuilder)
 
     assert(result.isRight)
-    val (issueData, fromCache) = result.getOrElse((null, true))
+    val (issueData, fromCache) = result.getOrElse(fail("Expected Right"))
     assert(!fromCache, "Should use fresh data, not cache")
     assertEquals(issueData.title, "Updated Issue")
     assertEquals(issueData.status, "Done")
@@ -107,7 +107,7 @@ class IssueCacheServiceTest extends FunSuite:
     val result = IssueCacheService.fetchWithCache("IWLE-456", cache, now, fetchFn, urlBuilder)
 
     assert(result.isRight, "Should still return data (stale cache fallback)")
-    val (issueData, fromCache) = result.getOrElse((null, false))
+    val (issueData, fromCache) = result.getOrElse(fail("Expected Right"))
     assertEquals(fromCache, true, "fromCache should be true when using stale fallback")
     assertEquals(issueData.id, "IWLE-456", "Should return stale cached data")
 
@@ -168,7 +168,7 @@ class IssueCacheServiceTest extends FunSuite:
     val result = IssueCacheService.fetchWithCache("IWLE-2", cache, now, fetchFn, urlBuilder)
 
     assert(result.isRight)
-    val (issueData, fromCache) = result.getOrElse((null, true))
+    val (issueData, fromCache) = result.getOrElse(fail("Expected Right"))
     assert(!fromCache, "Should fetch fresh data when not in cache")
     assertEquals(issueData.id, "IWLE-2")
 

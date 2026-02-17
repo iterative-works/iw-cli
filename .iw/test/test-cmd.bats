@@ -41,6 +41,13 @@ teardown() {
     rm -rf "$TEST_DIR"
 }
 
+# Helper: run command with clean PATH for nested bats invocations.
+# BATS prepends its libexec dir to PATH, which causes nested bats to find
+# the inner bats-core/bats (missing bats_readlinkf) instead of the launcher.
+run_with_clean_path() {
+    run env PATH="${BATS_SAVED_PATH:-$PATH}" "$@"
+}
+
 @test "test command shows usage when invoked with --help" {
     run ./iw test --help
     [ "$status" -eq 0 ]
@@ -86,7 +93,7 @@ EOF
 }
 EOF
 
-    run ./iw test e2e
+    run_with_clean_path ./iw test e2e
     [ "$status" -eq 0 ]
     [[ "$output" == *"simple e2e test passes"* ]]
 }
@@ -100,7 +107,7 @@ EOF
 }
 EOF
 
-    run ./iw test e2e
+    run_with_clean_path ./iw test e2e
     [ "$status" -ne 0 ]
 }
 
@@ -121,7 +128,7 @@ EOF
 }
 EOF
 
-    run ./iw test
+    run_with_clean_path ./iw test
     [ "$status" -eq 0 ]
     [[ "$output" == *"unit test passes"* ]] || [[ "$output" == *"UnitTest"* ]]
     [[ "$output" == *"e2e test passes"* ]]

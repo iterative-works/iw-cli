@@ -19,9 +19,13 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/iw-run"
     chmod +x "$TEST_DIR/iw-run"
 
-    # Copy shared commands and core (including subdirectories, excluding test/)
+    # Copy shared commands (excluding hooks - hooks depend on env-specific config)
     mkdir -p .iw-install/commands
-    cp -r "$BATS_TEST_DIRNAME/../commands"/*.scala .iw-install/commands/
+    for f in "$BATS_TEST_DIRNAME/../commands"/*.scala; do
+        if [[ ! "$(basename "$f")" =~ \.hook- ]]; then
+            cp "$f" .iw-install/commands/
+        fi
+    done
     cp -r "$BATS_TEST_DIRNAME/../core" .iw-install/
     rm -rf .iw-install/core/test
 

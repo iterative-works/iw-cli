@@ -25,19 +25,17 @@ object ProcessManager:
     Try {
       val osPath = os.Path(path)
       if !os.exists(osPath) then
-        None
+        Right(None)
       else
         val content = os.read(osPath).trim
         if content.isEmpty then
-          throw new IllegalArgumentException("PID file is empty")
-
-        val pid = content.toLong
-        Some(pid)
+          Left("PID file is empty")
+        else
+          Right(Some(content.toLong))
     } match
-      case Success(maybePid) => Right(maybePid)
+      case Success(result) => result
       case Failure(e: NoSuchFileException) => Right(None)
       case Failure(e: NumberFormatException) => Left(s"Invalid PID in file: ${e.getMessage}")
-      case Failure(e: IllegalArgumentException) => Left(e.getMessage)
       case Failure(e) => Left(s"Failed to read PID file: ${e.getMessage}")
 
   /** Check if a process with given PID is alive */
@@ -75,15 +73,12 @@ object ProcessManager:
           process.destroy()
 
           // Wait for process to exit
-          var waited = 0
-          while process.isAlive() && waited < timeoutSeconds do
-            Thread.sleep(1000)
-            waited += 1
-
-          if process.isAlive() then
-            Left(s"Process $pid did not exit after $timeoutSeconds seconds")
-          else
-            Right(())
+          @scala.annotation.tailrec
+          def waitForExit(remaining: Int): Either[String, Unit] =
+            if !process.isAlive() then Right(())
+            else if remaining <= 0 then Left(s"Process $pid did not exit after $timeoutSeconds seconds")
+            else { Thread.sleep(1000); waitForExit(remaining - 1) }
+          waitForExit(timeoutSeconds)
     } match
       case Success(result) => result
       case Failure(e) => Left(s"Failed to stop process: ${e.getMessage}")

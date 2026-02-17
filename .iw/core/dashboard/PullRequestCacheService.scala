@@ -122,13 +122,11 @@ object PullRequestCacheService:
       val number = json("number").num.toInt
       val title = json("title").str
 
-      val state = stateStr match
-        case "OPEN" => PRState.Open
-        case "MERGED" => PRState.Merged
-        case "CLOSED" => PRState.Closed
-        case other => return Left(s"Unknown GitHub PR state: $other")
-
-      Right(PullRequestData(url, state, number, title))
+      stateStr match
+        case "OPEN" => Right(PullRequestData(url, PRState.Open, number, title))
+        case "MERGED" => Right(PullRequestData(url, PRState.Merged, number, title))
+        case "CLOSED" => Right(PullRequestData(url, PRState.Closed, number, title))
+        case other => Left(s"Unknown GitHub PR state: $other")
     catch
       case e: Exception =>
         Left(s"Failed to parse GitHub PR JSON: ${e.getMessage}")
@@ -148,13 +146,11 @@ object PullRequestCacheService:
       val number = json("iid").num.toInt // GitLab uses 'iid' for number
       val title = json("title").str
 
-      val state = stateStr match
-        case "opened" => PRState.Open
-        case "merged" => PRState.Merged
-        case "closed" => PRState.Closed
-        case other => return Left(s"Unknown GitLab MR state: $other")
-
-      Right(PullRequestData(url, state, number, title))
+      stateStr match
+        case "opened" => Right(PullRequestData(url, PRState.Open, number, title))
+        case "merged" => Right(PullRequestData(url, PRState.Merged, number, title))
+        case "closed" => Right(PullRequestData(url, PRState.Closed, number, title))
+        case other => Left(s"Unknown GitLab MR state: $other")
     catch
       case e: Exception =>
         Left(s"Failed to parse GitLab MR JSON: ${e.getMessage}")

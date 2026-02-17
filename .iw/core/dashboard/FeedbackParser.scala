@@ -65,28 +65,28 @@ object FeedbackParser:
     // Parse title - all args before first flag
     val titleParts = args.takeWhile(!_.startsWith("--"))
     if titleParts.isEmpty then
-      return Left("Title is required")
+      Left("Title is required")
+    else
+      val title = titleParts.mkString(" ")
 
-    val title = titleParts.mkString(" ")
+      // Validate title length
+      if title.length > MaxTitleLength then
+        Left(s"Title must be $MaxTitleLength characters or less (got ${title.length})")
+      else
+        // Parse flags
+        val flagArgs = args.dropWhile(!_.startsWith("--"))
+        val description = extractFlagValue(flagArgs, "--description").getOrElse("")
 
-    // Validate title length
-    if title.length > MaxTitleLength then
-      return Left(s"Title must be $MaxTitleLength characters or less (got ${title.length})")
+        // Validate description length
+        if description.length > MaxDescriptionLength then
+          Left(s"Description must be $MaxDescriptionLength characters or less (got ${description.length})")
+        else
+          val issueTypeStr = extractFlagValue(flagArgs, "--type").getOrElse("feature")
 
-    // Parse flags
-    val flagArgs = args.dropWhile(!_.startsWith("--"))
-    val description = extractFlagValue(flagArgs, "--description").getOrElse("")
-
-    // Validate description length
-    if description.length > MaxDescriptionLength then
-      return Left(s"Description must be $MaxDescriptionLength characters or less (got ${description.length})")
-
-    val issueTypeStr = extractFlagValue(flagArgs, "--type").getOrElse("feature")
-
-    // Validate issue type
-    IssueType.fromString(issueTypeStr) match
-      case Left(error) => Left(error)
-      case Right(issueType) => Right(FeedbackRequest(title, description, issueType))
+          // Validate issue type
+          IssueType.fromString(issueTypeStr) match
+            case Left(error) => Left(error)
+            case Right(issueType) => Right(FeedbackRequest(title, description, issueType))
 
   private def extractFlagValue(args: Seq[String], flag: String): Option[String] =
     val flagIndex = args.indexOf(flag)

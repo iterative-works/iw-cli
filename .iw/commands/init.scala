@@ -67,8 +67,7 @@ def askForTrackerType(): IssueTrackerType =
     case Some(Constants.TrackerTypeValues.GitLab) => IssueTrackerType.GitLab
     case Some(invalid) =>
       Output.error(s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}', '${Constants.TrackerTypeValues.YouTrack}', '${Constants.TrackerTypeValues.GitHub}', or '${Constants.TrackerTypeValues.GitLab}'.")
-      System.exit(1)
-      throw RuntimeException("unreachable") // for type checker
+      sys.exit(1)
     case None =>
       // Interactive mode: detect from git remote or ask user
       val remote = GitAdapter.getRemoteUrl(currentDir)
@@ -121,8 +120,7 @@ def askForTrackerType(): IssueTrackerType =
           TeamPrefixValidator.validate(p) match
             case Left(err) =>
               Output.error(s"Invalid team prefix: $err")
-              System.exit(1)
-              throw RuntimeException("unreachable") // for type checker
+              sys.exit(1)
             case Right(validated) => validated
         case None =>
           // Suggest prefix from repository name
@@ -134,8 +132,7 @@ def askForTrackerType(): IssueTrackerType =
           TeamPrefixValidator.validate(chosen) match
             case Left(err) =>
               Output.error(s"Invalid team prefix: $err")
-              System.exit(1)
-              throw RuntimeException("unreachable") // for type checker
+              sys.exit(1)
             case Right(validated) => validated
 
       ("", Some(ownerRepo), Some(prefix), None)
@@ -171,8 +168,7 @@ def askForTrackerType(): IssueTrackerType =
           TeamPrefixValidator.validate(p) match
             case Left(err) =>
               Output.error(s"Invalid team prefix: $err")
-              System.exit(1)
-              throw RuntimeException("unreachable") // for type checker
+              sys.exit(1)
             case Right(validated) => validated
         case None =>
           // Suggest prefix from repository name (use last component for nested groups)
@@ -184,8 +180,7 @@ def askForTrackerType(): IssueTrackerType =
           TeamPrefixValidator.validate(chosen) match
             case Left(err) =>
               Output.error(s"Invalid team prefix: $err")
-              System.exit(1)
-              throw RuntimeException("unreachable") // for type checker
+              sys.exit(1)
             case Right(validated) => validated
 
       // Check if self-hosted GitLab

@@ -27,12 +27,12 @@ object IssueCreateParser:
     // Extract --title value
     val title = extractFlagValue(args, "--title")
     if title.isEmpty then
-      return Left("--title flag is required")
+      Left("--title flag is required")
+    else
+      // Extract optional --description value
+      val description = extractFlagValue(args, "--description")
 
-    // Extract optional --description value
-    val description = extractFlagValue(args, "--description")
-
-    Right(IssueCreateRequest(title.get, description))
+      Right(IssueCreateRequest(title.get, description))
 
   /** Extracts the value of a command line flag.
     *

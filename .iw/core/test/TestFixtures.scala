@@ -143,8 +143,9 @@ object SampleData:
   )
 
   /** Sample issue ID (parsed and valid). */
-  val issueId: IssueId = IssueId.parse("IWLE-123").getOrElse(
-    throw new IllegalStateException("Sample issue ID should always parse")
+  val issueId: IssueId = IssueId.parse("IWLE-123").fold(
+    _ => sys.error("Sample issue ID should always parse"),
+    identity
   )
 
   /** Sample Git remote for GitHub. */

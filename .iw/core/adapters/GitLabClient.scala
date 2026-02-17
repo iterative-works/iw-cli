@@ -33,10 +33,10 @@ object GitLabClient:
   ): Either[GlabPrerequisiteError, Unit] =
     // Check glab CLI is installed
     if !isCommandAvailable("glab") then
-      return Left(GlabPrerequisiteError.GlabNotInstalled)
-
-    // Check glab authentication
-    execCommand("glab", Array("auth", "status")) match
+      Left(GlabPrerequisiteError.GlabNotInstalled)
+    else
+      // Check glab authentication
+      execCommand("glab", Array("auth", "status")) match
       case Left(error) =>
         Left(GlabPrerequisiteError.GlabNotAuthenticated)
       case Right(_) =>
@@ -206,24 +206,22 @@ Check your network connection and try again.""".stripMargin
     // Validate prerequisites before attempting fetch
     validateGlabPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GlabPrerequisiteError.GlabNotInstalled) =>
-        return Left(formatGlabNotInstalledError())
+        Left(formatGlabNotInstalledError())
       case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
-        return Left(formatGlabNotAuthenticatedError())
+        Left(formatGlabNotAuthenticatedError())
       case Left(GlabPrerequisiteError.GlabError(msg)) =>
-        return Left(s"glab CLI error: $msg")
+        Left(s"glab CLI error: $msg")
       case Right(_) =>
-        // Proceed with issue fetch
+        // Build command arguments (uses numeric ID for API)
+        val args = buildFetchIssueCommand(issueNumber, repository)
 
-    // Build command arguments (uses numeric ID for API)
-    val args = buildFetchIssueCommand(issueNumber, repository)
-
-    // Execute glab issue view
-    execCommand("glab", args) match
-      case Left(error) =>
-        Left(s"Failed to fetch issue: $error")
-      case Right(jsonOutput) =>
-        // Parse JSON response (uses full ID for Issue object)
-        parseFetchIssueResponse(jsonOutput, issueIdValue)
+        // Execute glab issue view
+        execCommand("glab", args) match
+          case Left(error) =>
+            Left(s"Failed to fetch issue: $error")
+          case Right(jsonOutput) =>
+            // Parse JSON response (uses full ID for Issue object)
+            parseFetchIssueResponse(jsonOutput, issueIdValue)
 
   /** Build glab CLI command arguments for creating an issue.
     *
@@ -285,11 +283,11 @@ Check your network connection and try again.""".stripMargin
   def parseCreateIssueResponse(output: String): Either[String, CreatedIssue] =
     val url = output.trim
     if url.isEmpty then
-      return Left("Empty response from glab CLI")
-
-    // Extract issue number from GitLab URL pattern: .*/-/issues/(\d+)$
-    val issuePattern = """.*/-/issues/(\d+)$""".r
-    url match
+      Left("Empty response from glab CLI")
+    else
+      // Extract issue number from GitLab URL pattern: .*/-/issues/(\d+)$
+      val issuePattern = """.*/-/issues/(\d+)$""".r
+      url match
       case issuePattern(number) =>
         Right(CreatedIssue(number, url))
       case _ =>
@@ -332,26 +330,24 @@ Check your network connection and try again.""".stripMargin
     // Validate prerequisites before attempting creation
     validateGlabPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GlabPrerequisiteError.GlabNotInstalled) =>
-        return Left(formatGlabNotInstalledError())
+        Left(formatGlabNotInstalledError())
       case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
-        return Left(formatGlabNotAuthenticatedError())
+        Left(formatGlabNotAuthenticatedError())
       case Left(GlabPrerequisiteError.GlabError(msg)) =>
-        return Left(s"glab CLI error: $msg")
+        Left(s"glab CLI error: $msg")
       case Right(_) =>
-        // Proceed with issue creation
+        val args = buildCreateIssueCommand(repository, title, description, issueType)
 
-    val args = buildCreateIssueCommand(repository, title, description, issueType)
-
-    // Execute glab command
-    execCommand("glab", args) match
-      case Left(error) if isLabelError(error) =>
-        // Retry without labels if label-related error
-        val argsWithoutLabel = buildCreateIssueCommandWithoutLabel(repository, title, description)
-        execCommand("glab", argsWithoutLabel) match
-          case Left(retryError) => Left(retryError)
+        // Execute glab command
+        execCommand("glab", args) match
+          case Left(error) if isLabelError(error) =>
+            // Retry without labels if label-related error
+            val argsWithoutLabel = buildCreateIssueCommandWithoutLabel(repository, title, description)
+            execCommand("glab", argsWithoutLabel) match
+              case Left(retryError) => Left(retryError)
+              case Right(output) => parseCreateIssueResponse(output)
+          case Left(error) => Left(error)
           case Right(output) => parseCreateIssueResponse(output)
-      case Left(error) => Left(error)
-      case Right(output) => parseCreateIssueResponse(output)
 
   /** Create a new GitLab issue via glab CLI without labels.
     *
@@ -370,16 +366,14 @@ Check your network connection and try again.""".stripMargin
     // Validate prerequisites before attempting creation
     validateGlabPrerequisites(repository) match
       case Left(GlabPrerequisiteError.GlabNotInstalled) =>
-        return Left(formatGlabNotInstalledError())
+        Left(formatGlabNotInstalledError())
       case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
-        return Left(formatGlabNotAuthenticatedError())
+        Left(formatGlabNotAuthenticatedError())
       case Left(GlabPrerequisiteError.GlabError(msg)) =>
-        return Left(s"glab CLI error: $msg")
+        Left(s"glab CLI error: $msg")
       case Right(_) =>
-        // Proceed with issue creation
+        val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
 
-    val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
-
-    CommandRunner.execute("glab", args) match
-      case Left(error) => Left(error)
-      case Right(output) => parseCreateIssueResponse(output)
+        CommandRunner.execute("glab", args) match
+          case Left(error) => Left(error)
+          case Right(output) => parseCreateIssueResponse(output)

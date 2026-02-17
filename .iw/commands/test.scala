@@ -61,20 +61,20 @@ def runUnitTests(): Boolean =
 
   if !os.exists(testDir) then
     Output.info("No unit tests found (missing .iw/core/test/)")
-    return true
+    true
+  else
+    val testFiles = os.list(testDir).filter(_.ext == "scala")
+    if testFiles.isEmpty then
+      Output.info("No unit test files found")
+      true
+    else
+      Output.section("Running Unit Tests")
 
-  val testFiles = os.list(testDir).filter(_.ext == "scala")
-  if testFiles.isEmpty then
-    Output.info("No unit test files found")
-    return true
-
-  Output.section("Running Unit Tests")
-
-  // Pass entire core directory to scala-cli to include subdirectories like presentation/views
-  // Use streaming to show output in real-time
-  val command = Seq("scala-cli", "test", coreDir.toString)
-  val exitCode = ProcessAdapter.runStreaming(command)
-  exitCode == 0
+      // Pass entire core directory to scala-cli to include subdirectories like presentation/views
+      // Use streaming to show output in real-time
+      val command = Seq("scala-cli", "test", coreDir.toString)
+      val exitCode = ProcessAdapter.runStreaming(command)
+      exitCode == 0
 
 def runCommandCompileCheck(): Boolean =
   val projectDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
@@ -84,45 +84,45 @@ def runCommandCompileCheck(): Boolean =
 
   if !os.exists(commandsDir) then
     Output.info("No commands directory found (missing .iw/commands/)")
-    return true
-
-  val commandFiles = os.list(commandsDir).filter(_.ext == "scala")
-  if commandFiles.isEmpty then
-    Output.info("No command files found")
-    return true
-
-  Output.section("Checking Command Compilation")
-  Output.info(s"Compiling ${commandFiles.length} commands...")
-
-  var allSuccess = true
-  var successCount = 0
-  var failCount = 0
-
-  for commandFile <- commandFiles.sorted do
-    val commandName = commandFile.last
-    // Compile each command with the core module (suppress output unless there's an error)
-    val result = ProcessAdapter.run(
-      Seq("scala-cli", "compile", coreDir.toString, commandFile.toString, "--quiet")
-    )
-
-    if result.exitCode == 0 then
-      successCount += 1
-      Output.info(s"  ✓ $commandName")
-    else
-      failCount += 1
-      allSuccess = false
-      Output.error(s"  ✗ $commandName - compilation failed")
-      // Show the error output
-      if result.stderr.nonEmpty then
-        System.err.println(result.stderr)
-
-  Output.info("")
-  if allSuccess then
-    Output.success(s"All $successCount commands compiled successfully")
+    true
   else
-    Output.error(s"$failCount of ${commandFiles.length} commands failed to compile")
+    val commandFiles = os.list(commandsDir).filter(_.ext == "scala")
+    if commandFiles.isEmpty then
+      Output.info("No command files found")
+      true
+    else
+      Output.section("Checking Command Compilation")
+      Output.info(s"Compiling ${commandFiles.length} commands...")
 
-  allSuccess
+      val results = commandFiles.sorted.map { commandFile =>
+        val commandName = commandFile.last
+        // Compile each command with the core module (suppress output unless there's an error)
+        val result = ProcessAdapter.run(
+          Seq("scala-cli", "compile", coreDir.toString, commandFile.toString, "--quiet")
+        )
+
+        if result.exitCode == 0 then
+          Output.info(s"  ✓ $commandName")
+          true
+        else
+          Output.error(s"  ✗ $commandName - compilation failed")
+          // Show the error output
+          if result.stderr.nonEmpty then
+            System.err.println(result.stderr)
+          false
+      }
+
+      val successCount = results.count(identity)
+      val failCount = results.count(!_)
+      val allSuccess = failCount == 0
+
+      Output.info("")
+      if allSuccess then
+        Output.success(s"All $successCount commands compiled successfully")
+      else
+        Output.error(s"$failCount of ${commandFiles.length} commands failed to compile")
+
+      allSuccess
 
 def runE2ETests(): Boolean =
   val projectDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
@@ -130,19 +130,18 @@ def runE2ETests(): Boolean =
 
   if !os.exists(testDir) then
     Output.info("No E2E tests found (missing .iw/test/)")
-    return true
+    true
+  else
+    val testFiles = os.list(testDir).filter(_.ext == "bats")
+    if testFiles.isEmpty then
+      Output.info("No BATS test files found")
+      true
+    else
+      Output.section("Running E2E Tests")
 
-  val testFiles = os.list(testDir).filter(_.ext == "bats")
-  if testFiles.isEmpty then
-    Output.info("No BATS test files found")
-    return true
-
-  Output.section("Running E2E Tests")
-
-  // Run each BATS file individually to avoid temp directory race conditions
-  val sortedFiles = testFiles.sortBy(_.last)
-  var allPassed = true
-  for testFile <- sortedFiles do
-    val exitCode = ProcessAdapter.runStreaming(Seq("bats", testFile.toString), timeoutMs = 10 * 60 * 1000)
-    if exitCode != 0 then allPassed = false
-  allPassed
+      // Run each BATS file individually to avoid temp directory race conditions
+      val sortedFiles = testFiles.sortBy(_.last)
+      val results = sortedFiles.map { testFile =>
+        ProcessAdapter.runStreaming(Seq("bats", testFile.toString), timeoutMs = 10 * 60 * 1000) == 0
+      }
+      results.forall(identity)

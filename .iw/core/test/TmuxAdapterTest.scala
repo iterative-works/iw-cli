@@ -8,11 +8,11 @@ import munit.FunSuite
 class TmuxAdapterTest extends FunSuite:
 
   val testSessionPrefix = "iw-test-session"
-  var sessionCounter = 0
+  val sessionCounter = new java.util.concurrent.atomic.AtomicInteger(0)
 
   def uniqueSessionName(): String =
-    sessionCounter += 1
-    s"$testSessionPrefix-$sessionCounter"
+    val count = sessionCounter.incrementAndGet()
+    s"$testSessionPrefix-$count"
 
   override def afterEach(context: AfterEach): Unit =
     // Cleanup: kill any test sessions that might be left over
