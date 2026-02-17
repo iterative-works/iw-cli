@@ -96,9 +96,18 @@ EOF
 }
 EOF
 
+    # Debug: check prerequisites
+    echo "# cwd=$(pwd)" >&3
+    echo "# iw executable: $(test -x ./iw && echo yes || echo no)" >&3
+    echo "# iw-run executable: $(test -x ./iw-run && echo yes || echo no)" >&3
+    echo "# scala-cli: $(command -v scala-cli 2>&1)" >&3
+    echo "# test dir: $(ls .iw/test/ 2>&1)" >&3
+    echo "# commands/test.scala: $(test -f .iw/commands/test.scala && echo exists || echo missing)" >&3
+    echo "# core files count: $(find .iw/core -name '*.scala' -not -path '*/test/*' 2>/dev/null | wc -l)" >&3
+
     run ./iw test e2e
     echo "# e2e status=$status" >&3
-    echo "# e2e output=${output:0:500}" >&3
+    echo "# e2e output(first 1000)=${output:0:1000}" >&3
     [ "$status" -eq 0 ]
     [[ "$output" == *"simple e2e test passes"* ]]
 }
