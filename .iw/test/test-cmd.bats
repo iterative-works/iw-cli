@@ -96,7 +96,9 @@ EOF
 }
 EOF
 
-    run_without_bats_env ./iw test e2e
+    run ./iw test e2e
+    echo "# e2e status=$status" >&3
+    echo "# e2e output=${output:0:500}" >&3
     [ "$status" -eq 0 ]
     [[ "$output" == *"simple e2e test passes"* ]]
 }
@@ -110,7 +112,7 @@ EOF
 }
 EOF
 
-    run_without_bats_env ./iw test e2e
+    run ./iw test e2e
     [ "$status" -ne 0 ]
 }
 
@@ -131,7 +133,9 @@ EOF
 }
 EOF
 
-    run_without_bats_env ./iw test
+    run ./iw test
+    echo "# both status=$status" >&3
+    echo "# both output=${output:0:500}" >&3
     [ "$status" -eq 0 ]
     [[ "$output" == *"unit test passes"* ]] || [[ "$output" == *"UnitTest"* ]]
     [[ "$output" == *"e2e test passes"* ]]
