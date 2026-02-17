@@ -42,9 +42,10 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:21
+          apps: scalafix
       - uses: coursier/cache-action@v6
       - name: Check scalafix rules
-        run: scalafix --check
+        run: scalafix --check --scala-version 3.3.7 --files .iw/core/ --files .iw/commands/
 
   test:
     needs: compile
