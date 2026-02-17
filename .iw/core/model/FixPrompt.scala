@@ -9,12 +9,12 @@ object FixPrompt:
     buildSystem: BuildSystem,
     ciPlatform: String
   ): String =
-    if failedChecks.isEmpty then return ""
+    if failedChecks.isEmpty then ""
+    else
+      val commands = buildCommands(buildSystem)
+      val checkSections = failedChecks.flatMap(checkGuidance(_, commands, ciPlatform))
 
-    val commands = buildCommands(buildSystem)
-    val checkSections = failedChecks.flatMap(checkGuidance(_, commands, ciPlatform))
-
-    s"""You are helping set up quality gates for a Scala project.
+      s"""You are helping set up quality gates for a Scala project.
 The following quality gate checks are currently failing:
 ${failedChecks.map(c => s"- $c").mkString("\n")}
 

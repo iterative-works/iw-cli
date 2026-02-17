@@ -28,11 +28,7 @@ case class StateRepository(statePath: String):
   // PRState enum serialization (as string)
   given ReadWriter[PRState] = readwriter[String].bimap[PRState](
     state => state.toString,
-    str => str match
-      case "Open" => PRState.Open
-      case "Merged" => PRState.Merged
-      case "Closed" => PRState.Closed
-      case other => throw new RuntimeException(s"Unknown PRState: $other")
+    str => PRState.valueOf(str)
   )
 
   given ReadWriter[PullRequestData] = macroRW[PullRequestData]
@@ -97,6 +93,8 @@ case class StateRepository(statePath: String):
 
   private def ensureDirectoryExists(): Unit =
     val path = Paths.get(statePath)
-    val parent = path.getParent
-    if parent != null && !Files.exists(parent) then
-      Files.createDirectories(parent)
+    val parent = Option(path.getParent)
+    parent.foreach { p =>
+      if !Files.exists(p) then
+        Files.createDirectories(p)
+    }

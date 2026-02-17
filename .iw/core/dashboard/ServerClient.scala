@@ -94,11 +94,12 @@ object ServerClient:
    */
   private def waitForServer(port: Int, timeoutSeconds: Int): Boolean =
     val endTime = System.currentTimeMillis() + (timeoutSeconds * 1000)
-    while System.currentTimeMillis() < endTime do
-      if isHealthy(port) then
-        return true
-      Thread.sleep(200)
-    false
+    @scala.annotation.tailrec
+    def poll(): Boolean =
+      if isHealthy(port) then true
+      else if System.currentTimeMillis() >= endTime then false
+      else { Thread.sleep(200); poll() }
+    poll()
 
   /**
    * Registers or updates a worktree with the server.
@@ -117,36 +118,35 @@ object ServerClient:
     team: String,
     statePath: String = s"${System.getProperty("user.home")}/.local/share/iw/server/state.json"
   ): Either[String, Unit] =
-    if isServerDisabled then return Right(())
+    if isServerDisabled then Right(())
+    else
+      val port = getServerPort()
+      // Ensure server is running
+      ensureServerRunning(statePath) match
+        case Left(error) => Left(s"Failed to start server: $error")
+        case Right(_) =>
+          // Send registration request
+          try
+            val requestBody = ujson.Obj(
+              "path" -> path,
+              "trackerType" -> trackerType,
+              "team" -> team
+            )
 
-    val port = getServerPort()
-    // Ensure server is running
-    ensureServerRunning(statePath) match
-      case Left(error) => return Left(s"Failed to start server: $error")
-      case Right(_) => ()
+            val response = quickRequest
+              .put(uri"http://localhost:$port/api/v1/worktrees/$issueId")
+              .body(ujson.write(requestBody))
+              .header("Content-Type", "application/json")
+              .send()
 
-    // Send registration request
-    try
-      val requestBody = ujson.Obj(
-        "path" -> path,
-        "trackerType" -> trackerType,
-        "team" -> team
-      )
+            response.code match
+              case StatusCode.Ok | StatusCode.Created => Right(())
+              case _ =>
+                val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
+                Left(s"Server returned ${response.code.code}: $errorMsg")
 
-      val response = quickRequest
-        .put(uri"http://localhost:$port/api/v1/worktrees/$issueId")
-        .body(ujson.write(requestBody))
-        .header("Content-Type", "application/json")
-        .send()
-
-      response.code match
-        case StatusCode.Ok | StatusCode.Created => Right(())
-        case _ =>
-          val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
-          Left(s"Server returned ${response.code.code}: $errorMsg")
-
-    catch
-      case e: Exception => Left(s"Failed to register worktree: ${e.getMessage}")
+          catch
+            case e: Exception => Left(s"Failed to register worktree: ${e.getMessage}")
 
   /**
    * Updates the lastSeenAt timestamp for an existing worktree.
@@ -178,20 +178,20 @@ object ServerClient:
    * @return Right(()) on success, Left(error message) on failure
    */
   def unregisterWorktree(issueId: String): Either[String, Unit] =
-    if isServerDisabled then return Right(())
+    if isServerDisabled then Right(())
+    else
+      val port = getServerPort()
+      try
+        val response = quickRequest
+          .delete(uri"http://localhost:$port/api/v1/worktrees/$issueId")
+          .send()
 
-    val port = getServerPort()
-    try
-      val response = quickRequest
-        .delete(uri"http://localhost:$port/api/v1/worktrees/$issueId")
-        .send()
+        response.code match
+          case StatusCode.Ok => Right(())
+          case StatusCode.NotFound => Right(()) // Already removed - treat as success
+          case _ =>
+            val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
+            Left(s"Server returned ${response.code.code}: $errorMsg")
 
-      response.code match
-        case StatusCode.Ok => Right(())
-        case StatusCode.NotFound => Right(()) // Already removed - treat as success
-        case _ =>
-          val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
-          Left(s"Server returned ${response.code.code}: $errorMsg")
-
-    catch
-      case e: Exception => Left(s"Failed to unregister worktree: ${e.getMessage}")
+      catch
+        case e: Exception => Left(s"Failed to unregister worktree: ${e.getMessage}")

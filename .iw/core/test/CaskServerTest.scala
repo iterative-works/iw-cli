@@ -29,18 +29,17 @@ class CaskServerTest extends FunSuite:
     serverThread.start()
 
     // Wait for server to be ready
-    var retries = 0
-    while retries < 50 do
-      try
+    val ready = (0 until 50).exists { _ =>
+      val isReady = try
         val response = quickRequest.get(uri"http://localhost:$port/health").send()
-        if response.code.code == 200 then
-          return serverThread
+        response.code.code == 200
       catch
-        case _: Exception => ()
-      Thread.sleep(100)
-      retries += 1
+        case _: Exception => false
+      if !isReady then Thread.sleep(100)
+      isReady
+    }
 
-    fail(s"Server failed to start on port $port")
+    if !ready then fail(s"Server failed to start on port $port")
     serverThread
 
   // Helper to find available port
@@ -96,7 +95,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("PUT /api/worktrees/{issueId} updates existing worktree"):
     val statePath = createTempStatePath()
@@ -147,7 +146,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("PUT /api/worktrees/{issueId} returns 400 for malformed JSON"):
     val statePath = createTempStatePath()
@@ -173,7 +172,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("PUT /api/worktrees/{issueId} returns 400 for missing fields"):
     val statePath = createTempStatePath()
@@ -205,7 +204,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("PUT /api/worktrees/{issueId} returns 400 for invalid issueId"):
     val statePath = createTempStatePath()
@@ -235,7 +234,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("GET /api/status returns 200 OK with status JSON"):
     val statePath = createTempStatePath()
@@ -263,7 +262,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("GET /api/status shows correct worktree count"):
     val statePath = createTempStatePath()
@@ -309,7 +308,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("GET /api/status startedAt is recent"):
     val statePath = createTempStatePath()
@@ -337,7 +336,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("DELETE /api/v1/worktrees/:issueId returns 200 and removes worktree"):
     val statePath = createTempStatePath()
@@ -380,7 +379,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("DELETE /api/v1/worktrees/:issueId returns 404 for non-existent worktree"):
     val statePath = createTempStatePath()
@@ -406,7 +405,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("status endpoint includes hosts field with single host"):
     val statePath = createTempStatePath()
@@ -427,7 +426,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("status endpoint includes hosts field with multiple hosts"):
     val statePath = createTempStatePath()
@@ -450,7 +449,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("GET / with sshHost query parameter includes value in HTML"):
     val statePath = createTempStatePath()
@@ -476,7 +475,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("GET / without sshHost query parameter uses default hostname"):
     val statePath = createTempStatePath()
@@ -502,7 +501,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("DELETE endpoint removes associated cache entries"):
     val statePath = createTempStatePath()
@@ -595,7 +594,7 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   // Dev Mode Tests (IW-82 Phase 4)
 
@@ -608,24 +607,22 @@ class CaskServerTest extends FunSuite:
     try
       // Test devMode = true
       val serverWithDevMode = new CaskServer(statePath, port, hosts, startedAt, devMode = true)
-      assert(serverWithDevMode != null, "Server should be created with devMode=true")
+      assert(Option(serverWithDevMode).isDefined, "Server should be created with devMode=true")
 
       // Test devMode = false (default)
       val serverWithoutDevMode = new CaskServer(statePath, port, hosts, startedAt, devMode = false)
-      assert(serverWithoutDevMode != null, "Server should be created with devMode=false")
+      assert(Option(serverWithoutDevMode).isDefined, "Server should be created with devMode=false")
 
     finally
       // Cleanup
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
   test("CaskServer.start() accepts devMode parameter"):
     val statePath = createTempStatePath()
     val port = findAvailablePort()
-    var serverStarted = false
-
     try
       // Start server with devMode=true in background thread
       val serverThread = new Thread(() => {
@@ -635,17 +632,15 @@ class CaskServerTest extends FunSuite:
       serverThread.start()
 
       // Wait for server to be ready
-      var retries = 0
-      while retries < 50 && !serverStarted do
-        try
+      val serverStarted = (0 until 50).exists { _ =>
+        val isReady = try
           val response = quickRequest.get(uri"http://localhost:$port/health").send()
-          if response.code.code == 200 then
-            // Server started successfully with devMode parameter
-            serverStarted = true
+          response.code.code == 200
         catch
-          case _: Exception => ()
-        Thread.sleep(100)
-        retries += 1
+          case _: Exception => false
+        if !isReady then Thread.sleep(100)
+        isReady
+      }
 
       assert(serverStarted, "Server failed to start with devMode parameter")
 
@@ -654,4 +649,4 @@ class CaskServerTest extends FunSuite:
       val stateFile = Paths.get(statePath)
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && Files.exists(parentDir) then Files.delete(parentDir)
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))

@@ -78,9 +78,9 @@ class WorkflowProgressServiceTest extends FunSuite:
     val filesMtime = Map("/worktree/project-management/issues/ISSUE-123/phase-01-tasks.md" -> 1000L)
     val cache = Map("ISSUE-123" -> CachedProgress(cachedProgress, filesMtime))
 
-    var readFileCalled = false
+    val readFileCalled = new java.util.concurrent.atomic.AtomicBoolean(false)
     val readFile = (path: String) => {
-      readFileCalled = true
+      readFileCalled.set(true)
       Right(Seq.empty)
     }
 
@@ -95,7 +95,7 @@ class WorkflowProgressServiceTest extends FunSuite:
 
     assert(result.isRight)
     assertEquals(result.toOption.get.overallCompleted, 5)
-    assert(!readFileCalled, "readFile should not be called when cache is valid")
+    assert(!readFileCalled.get, "readFile should not be called when cache is valid")
 
   test("fetchProgress re-parses when mtime changed"):
     val phase1 = PhaseInfo(1, "Phase 1", "/old/path", 10, 5)

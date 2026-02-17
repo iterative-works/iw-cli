@@ -31,37 +31,37 @@ object IssueSearchService:
     // Validate query is not empty
     val trimmedQuery = query.trim
     if trimmedQuery.isEmpty then
-      return Right(List.empty)
+      Right(List.empty)
+    else
+      // Try to parse query as issue ID (priority)
+      IssueId.parse(trimmedQuery, config.teamPrefix) match
+        case Right(issueId) =>
+          // Fetch the issue
+          fetchIssue(issueId) match
+            case Right(issue) =>
+              // Build URL for the issue
+              val url = buildIssueUrl(issueId.value, config)
 
-    // Try to parse query as issue ID (priority)
-    IssueId.parse(trimmedQuery, config.teamPrefix) match
-      case Right(issueId) =>
-        // Fetch the issue
-        fetchIssue(issueId) match
-          case Right(issue) =>
-            // Build URL for the issue
-            val url = buildIssueUrl(issueId.value, config)
+              // Check if worktree already exists for this issue
+              val hasWorktree = checkWorktreeExists(issue.id)
 
-            // Check if worktree already exists for this issue
-            val hasWorktree = checkWorktreeExists(issue.id)
+              // Convert to search result
+              val result = IssueSearchResult(
+                id = issue.id,
+                title = issue.title,
+                status = issue.status,
+                url = url,
+                hasWorktree = hasWorktree
+              )
+              Right(List(result))
 
-            // Convert to search result
-            val result = IssueSearchResult(
-              id = issue.id,
-              title = issue.title,
-              status = issue.status,
-              url = url,
-              hasWorktree = hasWorktree
-            )
-            Right(List(result))
+            case Left(_) =>
+              // ID parsed but issue not found - fall through to text search
+              searchByText(trimmedQuery, config, searchIssues, checkWorktreeExists)
 
-          case Left(_) =>
-            // ID parsed but issue not found - fall through to text search
-            searchByText(trimmedQuery, config, searchIssues, checkWorktreeExists)
-
-      case Left(_) =>
-        // Not a valid ID format - do text search
-        searchByText(trimmedQuery, config, searchIssues, checkWorktreeExists)
+        case Left(_) =>
+          // Not a valid ID format - do text search
+          searchByText(trimmedQuery, config, searchIssues, checkWorktreeExists)
 
   /** Search issues by text query.
     *

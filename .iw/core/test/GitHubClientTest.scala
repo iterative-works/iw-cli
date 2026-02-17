@@ -123,17 +123,17 @@ class GitHubClientTest extends munit.FunSuite:
     assert(!args.contains("--json"))
 
   test("createIssue retries without label on label error"):
-    var authCallCount = 0
-    var issueCreateCallCount = 0
+    val authCallCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    val issueCreateCallCount = new java.util.concurrent.atomic.AtomicInteger(0)
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
-        authCallCount += 1
+        authCallCount.incrementAndGet()
         // Auth check succeeds
         Right("Logged in")
       else if args.contains("issue") && args.contains("create") then
-        issueCreateCallCount += 1
-        if issueCreateCallCount == 1 then
+        val count = issueCreateCallCount.incrementAndGet()
+        if count == 1 then
           // First issue create call fails with label error
           Left("label 'bug' not found in repository")
         else
@@ -151,21 +151,21 @@ class GitHubClientTest extends munit.FunSuite:
       execCommand = mockExec
     )
 
-    assertEquals(authCallCount, 1)
-    assertEquals(issueCreateCallCount, 2)
+    assertEquals(authCallCount.get, 1)
+    assertEquals(issueCreateCallCount.get, 2)
     assertEquals(result, Right(CreatedIssue("42", "https://github.com/owner/repo/issues/42")))
 
   test("createIssue does not retry on non-label error"):
-    var authCallCount = 0
-    var issueCreateCallCount = 0
+    val authCallCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    val issueCreateCallCount = new java.util.concurrent.atomic.AtomicInteger(0)
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
-        authCallCount += 1
+        authCallCount.incrementAndGet()
         // Auth check succeeds
         Right("Logged in")
       else if args.contains("issue") && args.contains("create") then
-        issueCreateCallCount += 1
+        issueCreateCallCount.incrementAndGet()
         // Issue create fails with non-label error
         Left("network error: connection refused")
       else
@@ -180,23 +180,23 @@ class GitHubClientTest extends munit.FunSuite:
       execCommand = mockExec
     )
 
-    assertEquals(authCallCount, 1)
-    assertEquals(issueCreateCallCount, 1) // No retry on non-label error
+    assertEquals(authCallCount.get, 1)
+    assertEquals(issueCreateCallCount.get, 1) // No retry on non-label error
     assert(result.isLeft)
     assert(result.left.getOrElse("").contains("network error"))
 
   test("createIssue returns error when retry also fails"):
-    var authCallCount = 0
-    var issueCreateCallCount = 0
+    val authCallCount = new java.util.concurrent.atomic.AtomicInteger(0)
+    val issueCreateCallCount = new java.util.concurrent.atomic.AtomicInteger(0)
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
-        authCallCount += 1
+        authCallCount.incrementAndGet()
         // Auth check succeeds
         Right("Logged in")
       else if args.contains("issue") && args.contains("create") then
-        issueCreateCallCount += 1
-        if issueCreateCallCount == 1 then
+        val count = issueCreateCallCount.incrementAndGet()
+        if count == 1 then
           // First issue create fails with label error
           Left("label 'bug' does not exist")
         else
@@ -214,8 +214,8 @@ class GitHubClientTest extends munit.FunSuite:
       execCommand = mockExec
     )
 
-    assertEquals(authCallCount, 1)
-    assertEquals(issueCreateCallCount, 2)
+    assertEquals(authCallCount.get, 1)
+    assertEquals(issueCreateCallCount.get, 2)
     assert(result.isLeft)
     assert(result.left.getOrElse("").contains("permission denied"))
 
@@ -233,7 +233,7 @@ class GitHubClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(result.left.getOrElse(null), GitHubClient.GhPrerequisiteError.GhNotInstalled)
+    assertEquals(result.left.getOrElse(fail("Expected Left")), GitHubClient.GhPrerequisiteError.GhNotInstalled)
 
   test("validateGhPrerequisites returns GhNotAuthenticated when auth status fails with exit code 4"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -250,7 +250,7 @@ class GitHubClientTest extends munit.FunSuite:
     )
 
     assert(result.isLeft)
-    assertEquals(result.left.getOrElse(null), GitHubClient.GhPrerequisiteError.GhNotAuthenticated)
+    assertEquals(result.left.getOrElse(fail("Expected Left")), GitHubClient.GhPrerequisiteError.GhNotAuthenticated)
 
   test("validateGhPrerequisites returns Right(()) when gh is authenticated"):
     val mockIsCommandAvailable = (cmd: String) => true
@@ -477,15 +477,15 @@ class GitHubClientTest extends munit.FunSuite:
     assert(error.contains("gh is not authenticated"), s"Error should mention gh not authenticated: $error")
 
   test("fetchIssue executes command with correct arguments"):
-    var capturedCommand = ""
-    var capturedArgs = Array.empty[String]
+    val capturedCommand = new java.util.concurrent.atomic.AtomicReference[String]("")
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty[String])
     val mockIsCommandAvailable = (cmd: String) => true
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
       if args.contains("auth") && args.contains("status") then
         Right("Logged in")
       else
-        capturedCommand = cmd
-        capturedArgs = args
+        capturedCommand.set(cmd)
+        capturedArgs.set(args)
         Right("""{"number": 132, "title": "Test", "state": "OPEN", "assignees": [], "body": null}""")
 
     val result = GitHubClient.fetchIssue(
@@ -496,12 +496,12 @@ class GitHubClientTest extends munit.FunSuite:
     )
 
     assert(result.isRight)
-    assertEquals(capturedCommand, "gh")
-    assert(capturedArgs.contains("issue"))
-    assert(capturedArgs.contains("view"))
-    assert(capturedArgs.contains("132")) // API uses extracted numeric ID
-    assert(capturedArgs.contains("--repo"))
-    assert(capturedArgs.contains("owner/repo"))
+    assertEquals(capturedCommand.get, "gh")
+    assert(capturedArgs.get.contains("issue"))
+    assert(capturedArgs.get.contains("view"))
+    assert(capturedArgs.get.contains("132")) // API uses extracted numeric ID
+    assert(capturedArgs.get.contains("--repo"))
+    assert(capturedArgs.get.contains("owner/repo"))
 
   test("fetchIssue parses successful response into Issue"):
     val mockIsCommandAvailable = (cmd: String) => true

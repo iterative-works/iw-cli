@@ -36,14 +36,14 @@ class ServerClientTest extends FunSuite:
       serverThread.start()
 
       // Wait for server to be ready
-      var retries = 0
-      var serverReady = false
-      while retries < 50 && !serverReady do
+      val retries = new java.util.concurrent.atomic.AtomicInteger(0)
+      val serverReady = new java.util.concurrent.atomic.AtomicBoolean(false)
+      while retries.get < 50 && !serverReady.get do
         Thread.sleep(100)
-        serverReady = ServerClient.isHealthy(port)
-        retries += 1
+        serverReady.set(ServerClient.isHealthy(port))
+        retries.incrementAndGet()
 
-      assert(serverReady, "Server should become healthy")
+      assert(serverReady.get, "Server should become healthy")
       assert(ServerClient.isHealthy(port), "isHealthy should return true for running server")
 
     finally
@@ -52,7 +52,7 @@ class ServerClientTest extends FunSuite:
       if java.nio.file.Files.exists(stateFile) then
         java.nio.file.Files.delete(stateFile)
       val parentDir = stateFile.getParent
-      if parentDir != null && java.nio.file.Files.exists(parentDir) then
+      if Option(parentDir).exists(java.nio.file.Files.exists(_)) then
         java.nio.file.Files.delete(parentDir)
 
   test("isHealthy returns false when server is unavailable"):

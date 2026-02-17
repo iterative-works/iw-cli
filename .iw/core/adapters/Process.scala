@@ -21,9 +21,8 @@ object ProcessAdapter:
   def commandExists(command: String): Boolean =
     // Validate command name to prevent injection (defense in depth)
     if !SafeCommandPattern.matches(command) then
-      return false
-
-    try
+      false
+    else try
       val result = os.proc("which", command).call(
         check = false,
         stdout = os.Pipe,

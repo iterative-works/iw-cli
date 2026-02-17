@@ -138,9 +138,9 @@ class WorktreeCreationServiceTest extends FunSuite:
 
   test("create generates branch name with issue ID"):
     val fetchIssue = (id: String) => Right(testIssueData)
-    var capturedBranch: Option[String] = None
+    val capturedBranch = new java.util.concurrent.atomic.AtomicReference[Option[String]](None)
     val createWorktree = (path: String, branch: String) => {
-      capturedBranch = Some(branch)
+      capturedBranch.set(Some(branch))
       Right(())
     }
     val createTmux = (name: String, path: String) => Right(())
@@ -156,16 +156,16 @@ class WorktreeCreationServiceTest extends FunSuite:
     )
 
     assert(result.isRight)
-    assert(capturedBranch.isDefined)
-    capturedBranch.foreach { branch =>
+    assert(capturedBranch.get.isDefined)
+    capturedBranch.get.foreach { branch =>
       assert(branch.contains("IW-79"))
     }
 
   test("create generates worktree path with project name and issue ID"):
     val fetchIssue = (id: String) => Right(testIssueData)
-    var capturedPath: Option[String] = None
+    val capturedPath = new java.util.concurrent.atomic.AtomicReference[Option[String]](None)
     val createWorktree = (path: String, branch: String) => {
-      capturedPath = Some(path)
+      capturedPath.set(Some(path))
       Right(())
     }
     val createTmux = (name: String, path: String) => Right(())
@@ -181,8 +181,8 @@ class WorktreeCreationServiceTest extends FunSuite:
     )
 
     assert(result.isRight)
-    assert(capturedPath.isDefined)
-    capturedPath.foreach { path =>
+    assert(capturedPath.get.isDefined)
+    capturedPath.get.foreach { path =>
       assert(path.contains("iw-cli"))
       assert(path.contains("IW-79"))
     }
@@ -190,9 +190,9 @@ class WorktreeCreationServiceTest extends FunSuite:
   test("create generates tmux session name matching worktree directory"):
     val fetchIssue = (id: String) => Right(testIssueData)
     val createWorktree = (path: String, branch: String) => Right(())
-    var capturedSessionName: Option[String] = None
+    val capturedSessionName = new java.util.concurrent.atomic.AtomicReference[Option[String]](None)
     val createTmux = (name: String, path: String) => {
-      capturedSessionName = Some(name)
+      capturedSessionName.set(Some(name))
       Right(())
     }
     val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => Right(())
@@ -207,8 +207,8 @@ class WorktreeCreationServiceTest extends FunSuite:
     )
 
     assert(result.isRight)
-    assert(capturedSessionName.isDefined)
-    capturedSessionName.foreach { sessionName =>
+    assert(capturedSessionName.get.isDefined)
+    capturedSessionName.get.foreach { sessionName =>
       assert(sessionName.contains("iw-cli"))
       assert(sessionName.contains("IW-79"))
     }
@@ -217,16 +217,16 @@ class WorktreeCreationServiceTest extends FunSuite:
     val fetchIssue = (id: String) => Right(testIssueData)
     val createWorktree = (path: String, branch: String) => Right(())
     val createTmux = (name: String, path: String) => Right(())
-    var registerCalled = false
-    var capturedIssueId: Option[String] = None
-    var capturedTrackerType: Option[String] = None
-    var capturedTeam: Option[String] = None
+    val registerCalled = new java.util.concurrent.atomic.AtomicBoolean(false)
+    val capturedIssueId = new java.util.concurrent.atomic.AtomicReference[Option[String]](None)
+    val capturedTrackerType = new java.util.concurrent.atomic.AtomicReference[Option[String]](None)
+    val capturedTeam = new java.util.concurrent.atomic.AtomicReference[Option[String]](None)
 
     val registerWorktree = (issueId: String, path: String, trackerType: String, team: String) => {
-      registerCalled = true
-      capturedIssueId = Some(issueId)
-      capturedTrackerType = Some(trackerType)
-      capturedTeam = Some(team)
+      registerCalled.set(true)
+      capturedIssueId.set(Some(issueId))
+      capturedTrackerType.set(Some(trackerType))
+      capturedTeam.set(Some(team))
       Right(())
     }
 
@@ -240,10 +240,10 @@ class WorktreeCreationServiceTest extends FunSuite:
     )
 
     assert(result.isRight)
-    assert(registerCalled)
-    assertEquals(capturedIssueId, Some("IW-79"))
-    assertEquals(capturedTrackerType, Some("GitHub"))
-    assertEquals(capturedTeam, Some("IW"))
+    assert(registerCalled.get)
+    assertEquals(capturedIssueId.get, Some("IW-79"))
+    assertEquals(capturedTrackerType.get, Some("GitHub"))
+    assertEquals(capturedTeam.get, Some("IW"))
 
   // Group D: Tests for specific error types
 

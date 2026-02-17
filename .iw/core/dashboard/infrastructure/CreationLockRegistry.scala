@@ -20,7 +20,7 @@ object CreationLockRegistry:
     val now = Instant.now()
     val lock = CreationLock(issueId, now)
     // putIfAbsent returns null if key was not present, otherwise returns existing value
-    locks.putIfAbsent(issueId, lock) == null
+    Option(locks.putIfAbsent(issueId, lock)).isEmpty
 
   /** Release lock for an issue.
     *

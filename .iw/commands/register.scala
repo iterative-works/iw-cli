@@ -15,7 +15,6 @@ import iw.core.dashboard.ServerClient
     case Left(error) =>
       Output.error(error)
       sys.exit(1)
-      throw RuntimeException("unreachable") // for type checker
     case Right(b) => b
 
   // Load config
@@ -25,7 +24,6 @@ import iw.core.dashboard.ServerClient
       Output.error("Cannot read configuration")
       Output.info("Run './iw init' to initialize the project")
       sys.exit(1)
-      throw RuntimeException("unreachable") // for type checker
     case Some(c) => c
 
   // Parse issue ID from branch
@@ -33,7 +31,6 @@ import iw.core.dashboard.ServerClient
     case Left(error) =>
       Output.error(error)
       sys.exit(1)
-      throw RuntimeException("unreachable") // for type checker
     case Right(id) => id
 
   // Register worktree with dashboard (best-effort - warn on failure, don't error)

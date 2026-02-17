@@ -22,9 +22,9 @@ class PullRequestCacheServiceTest extends FunSuite:
     val cachedPR = CachedPR(mockPRData, now.minusSeconds(60)) // 1 minute ago
     val cache = Map("IWLE-123" -> cachedPR)
 
-    var execCommandCalled = false
+    val execCommandCalled = new java.util.concurrent.atomic.AtomicBoolean(false)
     val execCommand = (cmd: String, args: Array[String]) => {
-      execCommandCalled = true
+      execCommandCalled.set(true)
       Right("{}")
     }
     val detectTool = (tool: String) => true
@@ -34,7 +34,7 @@ class PullRequestCacheServiceTest extends FunSuite:
     )
 
     assert(result.isRight)
-    assert(!execCommandCalled, "Should use cache, not execute command")
+    assert(!execCommandCalled.get, "Should use cache, not execute command")
     assertEquals(result.toOption.flatten, Some(mockPRData))
 
   test("fetchPR re-fetches when cache expired (>2 min)"):

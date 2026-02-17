@@ -87,10 +87,7 @@ object ReviewStateService:
           val obj = jsValue.obj
 
           // artifacts is required
-          val artifacts = obj.get("artifacts") match {
-            case Some(arr) => read[List[ReviewArtifact]](arr)
-            case None => throw new Exception("Missing required field: artifacts")
-          }
+          val artifacts = read[List[ReviewArtifact]](obj("artifacts"))
 
           // Optional fields
           val display = obj.get("display").map(read[Display](_))

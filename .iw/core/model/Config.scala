@@ -214,54 +214,59 @@ object ConfigSerializer:
       val config = ConfigFactory.parseString(hocon)
 
       val trackerTypeStr = config.getString(Constants.ConfigKeys.TrackerType)
-      val trackerType = trackerTypeStr match
-        case Constants.TrackerTypeValues.Linear => IssueTrackerType.Linear
-        case Constants.TrackerTypeValues.YouTrack => IssueTrackerType.YouTrack
-        case Constants.TrackerTypeValues.GitHub => IssueTrackerType.GitHub
-        case Constants.TrackerTypeValues.GitLab => IssueTrackerType.GitLab
-        case other => return Left(s"Unknown tracker type: $other")
+      val trackerTypeEither = trackerTypeStr match
+        case Constants.TrackerTypeValues.Linear => Right(IssueTrackerType.Linear)
+        case Constants.TrackerTypeValues.YouTrack => Right(IssueTrackerType.YouTrack)
+        case Constants.TrackerTypeValues.GitHub => Right(IssueTrackerType.GitHub)
+        case Constants.TrackerTypeValues.GitLab => Right(IssueTrackerType.GitLab)
+        case other => Left(s"Unknown tracker type: $other")
 
-      // For GitHub and GitLab, read repository and teamPrefix; for others, read team
-      val (team, repository, teamPrefix) = trackerType match
-        case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
-          val trackerName = if trackerType == IssueTrackerType.GitHub then "GitHub" else "GitLab"
-          if !config.hasPath(Constants.ConfigKeys.TrackerRepository) then
-            return Left(s"repository required for $trackerName tracker")
-          val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
-          // Validate repository format: owner/repo or owner/group/repo for GitLab
-          if !repo.contains('/') || repo.split('/').exists(_.isEmpty) then
-            return Left("repository must be in owner/repo format")
+      trackerTypeEither.flatMap { trackerType =>
+        // For GitHub and GitLab, read repository and teamPrefix; for others, read team
+        val trackerDetailsEither: Either[String, (String, Option[String], Option[String])] = trackerType match
+          case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+            val trackerName = if trackerType == IssueTrackerType.GitHub then "GitHub" else "GitLab"
+            if !config.hasPath(Constants.ConfigKeys.TrackerRepository) then
+              Left(s"repository required for $trackerName tracker")
+            else
+              val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
+              // Validate repository format: owner/repo or owner/group/repo for GitLab
+              if !repo.contains('/') || repo.split('/').exists(_.isEmpty) then
+                Left("repository must be in owner/repo format")
+              // Require and validate teamPrefix for GitHub and GitLab
+              else if !config.hasPath(Constants.ConfigKeys.TrackerTeamPrefix) then
+                Left(s"teamPrefix required for $trackerName tracker")
+              else
+                val prefix = config.getString(Constants.ConfigKeys.TrackerTeamPrefix)
+                TeamPrefixValidator.validate(prefix).map(validPrefix =>
+                  ("", Some(repo), Some(validPrefix))
+                )
+          case _ =>
+            val t = config.getString(Constants.ConfigKeys.TrackerTeam)
+            Right((t, None, None))
 
-          // Require and validate teamPrefix for GitHub and GitLab
-          if !config.hasPath(Constants.ConfigKeys.TrackerTeamPrefix) then
-            return Left(s"teamPrefix required for $trackerName tracker")
-          val prefix = config.getString(Constants.ConfigKeys.TrackerTeamPrefix)
-          TeamPrefixValidator.validate(prefix) match
-            case Left(err) => return Left(err)
-            case Right(validPrefix) => ("", Some(repo), Some(validPrefix))
-        case _ =>
-          val t = config.getString(Constants.ConfigKeys.TrackerTeam)
-          (t, None, None)
+        trackerDetailsEither.map { case (team, repository, teamPrefix) =>
+          val projectName = config.getString(Constants.ConfigKeys.ProjectName)
 
-      val projectName = config.getString(Constants.ConfigKeys.ProjectName)
+          // Read version, default to "latest" if not present
+          val version = if config.hasPath(Constants.ConfigKeys.Version) then
+            Some(config.getString(Constants.ConfigKeys.Version))
+          else
+            Some("latest")
 
-      // Read version, default to "latest" if not present
-      val version = if config.hasPath(Constants.ConfigKeys.Version) then
-        Some(config.getString(Constants.ConfigKeys.Version))
-      else
-        Some("latest")
+          // Read YouTrack base URL if present
+          val youtrackBaseUrl = if config.hasPath(Constants.ConfigKeys.TrackerBaseUrl) then
+            Some(config.getString(Constants.ConfigKeys.TrackerBaseUrl))
+          else
+            None
 
-      // Read YouTrack base URL if present
-      val youtrackBaseUrl = if config.hasPath(Constants.ConfigKeys.TrackerBaseUrl) then
-        Some(config.getString(Constants.ConfigKeys.TrackerBaseUrl))
-      else
-        None
-
-      Right(ProjectConfiguration(
-        tracker = TrackerConfig(trackerType, team, repository, teamPrefix, youtrackBaseUrl),
-        project = ProjectConfig(projectName),
-        version = version
-      ))
+          ProjectConfiguration(
+            tracker = TrackerConfig(trackerType, team, repository, teamPrefix, youtrackBaseUrl),
+            project = ProjectConfig(projectName),
+            version = version
+          )
+        }
+      }
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")
 

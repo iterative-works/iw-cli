@@ -14,12 +14,11 @@ object Prompt:
     print(prompt)
     val input = StdIn.readLine()
 
-    if input == null then
-      default.getOrElse {
-        throw IllegalStateException("Cannot read input in non-interactive mode without a default value")
-      }
-    else if input.trim.isEmpty && default.isDefined then default.get
-    else input.trim
+    Option(input) match
+      case None =>
+        default.getOrElse("") // Non-interactive mode with no default yields empty string
+      case Some(i) if i.trim.isEmpty && default.isDefined => default.get
+      case Some(i) => i.trim
 
   def confirm(question: String, default: Boolean = false): Boolean =
     val suffix = if default then "[Y/n]" else "[y/N]"

@@ -109,41 +109,39 @@ object LinearClient:
       val parsed = ujson.read(json)
 
       if !parsed.obj.contains("data") then
-        return Left("Malformed response: missing 'data' field")
-
-      val data = parsed("data")
-      if data("issue").isNull then
-        return Left("Issue not found")
-
-      val issueData = data("issue")
-
-      if !issueData.obj.contains("identifier") then
-        return Left("Malformed response: missing 'identifier' field")
-      if !issueData.obj.contains("title") then
-        return Left("Malformed response: missing 'title' field")
-      if !issueData.obj.contains("state") then
-        return Left("Malformed response: missing 'state' field")
-
-      val state = issueData("state")
-      if !state.obj.contains("name") then
-        return Left("Malformed response: missing 'name' field in state")
-
-      val id = issueData("identifier").str
-      val title = issueData("title").str
-      val status = state("name").str
-
-      val assignee = if issueData.obj.contains("assignee") && !issueData("assignee").isNull then
-        Some(issueData("assignee")("displayName").str)
+        Left("Malformed response: missing 'data' field")
+      else if parsed("data")("issue").isNull then
+        Left("Issue not found")
       else
-        None
+        val issueData = parsed("data")("issue")
 
-      val description = if issueData.obj.contains("description") && !issueData("description").isNull then
-        val desc = issueData("description").str
-        if desc.isEmpty then None else Some(desc)
-      else
-        None
+        if !issueData.obj.contains("identifier") then
+          Left("Malformed response: missing 'identifier' field")
+        else if !issueData.obj.contains("title") then
+          Left("Malformed response: missing 'title' field")
+        else if !issueData.obj.contains("state") then
+          Left("Malformed response: missing 'state' field")
+        else
+          val state = issueData("state")
+          if !state.obj.contains("name") then
+            Left("Malformed response: missing 'name' field in state")
+          else
+            val id = issueData("identifier").str
+            val title = issueData("title").str
+            val status = state("name").str
 
-      Right(Issue(id, title, status, assignee, description))
+            val assignee = if issueData.obj.contains("assignee") && !issueData("assignee").isNull then
+              Some(issueData("assignee")("displayName").str)
+            else
+              None
+
+            val description = if issueData.obj.contains("description") && !issueData("description").isNull then
+              val desc = issueData("description").str
+              if desc.isEmpty then None else Some(desc)
+            else
+              None
+
+            Right(Issue(id, title, status, assignee, description))
     catch
       case e: Exception => Left(s"Failed to parse Linear response: ${e.getMessage}")
 
@@ -158,34 +156,29 @@ object LinearClient:
       // Error:   {"errors": [{"message": "..."}]}
 
       // Check for GraphQL errors
-      if parsed.obj.contains("errors") then
-        val errors = parsed("errors").arr
-        if errors.nonEmpty then
-          val errorMessage = errors.head("message").str
-          return Left(s"Linear API error: $errorMessage")
-
-      // Check for data field
-      if !parsed.obj.contains("data") then
-        return Left("Malformed response: missing 'data' field")
-
-      val data = parsed("data")
-      if !data.obj.contains("issueCreate") then
-        return Left("Malformed response: missing 'issueCreate' field")
-
-      val issueCreate = data("issueCreate")
-      if !issueCreate.obj.contains("issue") then
-        return Left("Malformed response: missing 'issue' field")
-
-      val issue = issueCreate("issue")
-      if !issue.obj.contains("id") then
-        return Left("Malformed response: missing 'id' field")
-      if !issue.obj.contains("url") then
-        return Left("Malformed response: missing 'url' field")
-
-      val id = issue("id").str
-      val url = issue("url").str
-
-      Right(CreatedIssue(id, url))
+      if parsed.obj.contains("errors") && parsed("errors").arr.nonEmpty then
+        val errorMessage = parsed("errors").arr.head("message").str
+        Left(s"Linear API error: $errorMessage")
+      else if !parsed.obj.contains("data") then
+        Left("Malformed response: missing 'data' field")
+      else
+        val data = parsed("data")
+        if !data.obj.contains("issueCreate") then
+          Left("Malformed response: missing 'issueCreate' field")
+        else
+          val issueCreate = data("issueCreate")
+          if !issueCreate.obj.contains("issue") then
+            Left("Malformed response: missing 'issue' field")
+          else
+            val issue = issueCreate("issue")
+            if !issue.obj.contains("id") then
+              Left("Malformed response: missing 'id' field")
+            else if !issue.obj.contains("url") then
+              Left("Malformed response: missing 'url' field")
+            else
+              val id = issue("id").str
+              val url = issue("url").str
+              Right(CreatedIssue(id, url))
     catch
       case e: Exception => Left(s"Failed to parse create issue response: ${e.getMessage}")
 
@@ -197,44 +190,24 @@ object LinearClient:
 
       // Check for data field
       if !parsed.obj.contains("data") then
-        return Left("Malformed response: missing 'data' field")
+        Left("Malformed response: missing 'data' field")
+      else if !parsed("data").obj.contains("team") then
+        Left("Malformed response: missing 'team' field")
+      else if !parsed("data")("team").obj.contains("issues") then
+        Left("Malformed response: missing 'issues' field")
+      else if !parsed("data")("team")("issues").obj.contains("nodes") then
+        Left("Malformed response: missing 'nodes' field")
+      else
+        val nodes = parsed("data")("team")("issues")("nodes").arr
 
-      val data = parsed("data")
-      if !data.obj.contains("team") then
-        return Left("Malformed response: missing 'team' field")
-
-      val team = data("team")
-      if !team.obj.contains("issues") then
-        return Left("Malformed response: missing 'issues' field")
-
-      val issues = team("issues")
-      if !issues.obj.contains("nodes") then
-        return Left("Malformed response: missing 'nodes' field")
-
-      val nodes = issues("nodes").arr
-
-      // Parse each issue node
-      val issueList = nodes.map { node =>
-        if !node.obj.contains("identifier") then
-          throw new Exception("Missing 'identifier' field in issue node")
-        if !node.obj.contains("title") then
-          throw new Exception("Missing 'title' field in issue node")
-        if !node.obj.contains("state") then
-          throw new Exception("Missing 'state' field in issue node")
-
-        val state = node("state")
-        if !state.obj.contains("name") then
-          throw new Exception("Missing 'name' field in state")
-
-        val id = node("identifier").str
-        val title = node("title").str
-        val status = state("name").str
-
-        // Recent issues don't need assignee or description
-        Issue(id, title, status, None, None)
-      }.toList
-
-      Right(issueList)
+        // Parse each issue node, collecting errors
+        val results = nodes.map(parseIssueNode).toList
+        results.foldRight[Either[String, List[Issue]]](Right(Nil)) { (item, acc) =>
+          for
+            issues <- acc
+            issue <- item
+          yield issue :: issues
+        }
     catch
       case e: Exception => Left(s"Failed to parse list recent issues response: ${e.getMessage}")
 
@@ -246,42 +219,41 @@ object LinearClient:
 
       // Check for data field
       if !parsed.obj.contains("data") then
-        return Left("Malformed response: missing 'data' field")
+        Left("Malformed response: missing 'data' field")
+      else if !parsed("data").obj.contains("issueSearch") then
+        Left("Malformed response: missing 'issueSearch' field")
+      else if !parsed("data")("issueSearch").obj.contains("nodes") then
+        Left("Malformed response: missing 'nodes' field")
+      else
+        val nodes = parsed("data")("issueSearch")("nodes").arr
 
-      val data = parsed("data")
-      if !data.obj.contains("issueSearch") then
-        return Left("Malformed response: missing 'issueSearch' field")
+        // Parse each issue node, collecting errors
+        val results = nodes.map(parseIssueNode).toList
+        results.foldRight[Either[String, List[Issue]]](Right(Nil)) { (item, acc) =>
+          for
+            issues <- acc
+            issue <- item
+          yield issue :: issues
+        }
+    catch
+      case e: Exception => Left(s"Failed to parse search issues response: ${e.getMessage}")
 
-      val issueSearch = data("issueSearch")
-      if !issueSearch.obj.contains("nodes") then
-        return Left("Malformed response: missing 'nodes' field")
-
-      val nodes = issueSearch("nodes").arr
-
-      // Parse each issue node
-      val issueList = nodes.map { node =>
-        if !node.obj.contains("identifier") then
-          throw new Exception("Missing 'identifier' field in issue node")
-        if !node.obj.contains("title") then
-          throw new Exception("Missing 'title' field in issue node")
-        if !node.obj.contains("state") then
-          throw new Exception("Missing 'state' field in issue node")
-
-        val state = node("state")
-        if !state.obj.contains("name") then
-          throw new Exception("Missing 'name' field in state")
-
+  private def parseIssueNode(node: ujson.Value): Either[String, Issue] =
+    if !node.obj.contains("identifier") then
+      Left("Missing 'identifier' field in issue node")
+    else if !node.obj.contains("title") then
+      Left("Missing 'title' field in issue node")
+    else if !node.obj.contains("state") then
+      Left("Missing 'state' field in issue node")
+    else
+      val state = node("state")
+      if !state.obj.contains("name") then
+        Left("Missing 'name' field in state")
+      else
         val id = node("identifier").str
         val title = node("title").str
         val status = state("name").str
-
-        // Search results don't need assignee or description
-        Issue(id, title, status, None, None)
-      }.toList
-
-      Right(issueList)
-    catch
-      case e: Exception => Left(s"Failed to parse search issues response: ${e.getMessage}")
+        Right(Issue(id, title, status, None, None))
 
   /** Create a new Linear issue via GraphQL mutation.
     *

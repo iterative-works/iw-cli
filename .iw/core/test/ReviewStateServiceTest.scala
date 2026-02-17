@@ -299,9 +299,9 @@ class ReviewStateServiceTest extends munit.FunSuite:
 
     // Mock I/O: getMtime returns same value, readFile should NOT be called
     val getMtime = (path: String) => Right(1000L)
-    var fileReadCalled = false
+    val fileReadCalled = new java.util.concurrent.atomic.AtomicBoolean(false)
     val readFile = (path: String) => {
-      fileReadCalled = true
+      fileReadCalled.set(true)
       fail("File should not be read when cache is valid")
     }
 
@@ -313,7 +313,7 @@ class ReviewStateServiceTest extends munit.FunSuite:
     val returned = result.toOption.get
     assert(returned.isInstanceOf[CachedReviewState])
     assertEquals(returned, cachedReviewState)
-    assert(!fileReadCalled)
+    assert(!fileReadCalled.get)
 
   test("fetchReviewState cache miss returns new CachedReviewState with updated mtime"):
     val issueId = "IWLE-123"
@@ -338,9 +338,9 @@ class ReviewStateServiceTest extends munit.FunSuite:
 
     // Mock I/O: mtime changed, file has new content
     val getMtime = (path: String) => Right(2000L) // Changed mtime
-    var fileReadCalled = false
+    val fileReadCalled = new java.util.concurrent.atomic.AtomicBoolean(false)
     val readFile = (path: String) => {
-      fileReadCalled = true
+      fileReadCalled.set(true)
       Right(newJson)
     }
 
@@ -359,7 +359,7 @@ class ReviewStateServiceTest extends munit.FunSuite:
     assertEquals(returned.filesMtime(reviewStatePath), 2000L)
 
     // Verify file was read
-    assert(fileReadCalled)
+    assert(fileReadCalled.get)
 
   test("fetchReviewState first fetch creates CachedReviewState"):
     val issueId = "IWLE-123"

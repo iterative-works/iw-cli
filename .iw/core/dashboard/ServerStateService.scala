@@ -6,9 +6,10 @@ package iw.core.dashboard
 import iw.core.model.{ServerState, WorktreeRegistration, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
 import iw.core.dashboard.StateRepository
 import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.atomic.AtomicReference
 
 class ServerStateService(repository: StateRepository):
-  @volatile private var state: ServerState = ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty)
+  private val stateRef: AtomicReference[ServerState] = new AtomicReference(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
   private val lock = new ReentrantLock()
 
   /** Initialize service by loading state from repository.
@@ -20,16 +21,16 @@ class ServerStateService(repository: StateRepository):
   def initialize(): Either[String, Unit] =
     repository.read() match
       case Right(loadedState) =>
-        state = loadedState
+        stateRef.set(loadedState)
         Right(())
       case Left(error) =>
         Left(error)
 
-  /** Get current state (thread-safe read, no lock needed due to @volatile).
+  /** Get current state (thread-safe read via AtomicReference).
     *
     * @return Current server state
     */
-  def getState: ServerState = state
+  def getState: ServerState = stateRef.get()
 
   /** Update a worktree entry using a function.
     *
@@ -45,13 +46,15 @@ class ServerStateService(repository: StateRepository):
   def updateWorktree(issueId: String)(f: Option[WorktreeRegistration] => Option[WorktreeRegistration]): Unit =
     lock.lock()
     try
-      val currentWorktree = state.worktrees.get(issueId)
-      f(currentWorktree) match
+      val current = stateRef.get()
+      val currentWorktree = current.worktrees.get(issueId)
+      val updated = f(currentWorktree) match
         case Some(worktree) =>
-          state = state.copy(worktrees = state.worktrees + (issueId -> worktree))
+          current.copy(worktrees = current.worktrees + (issueId -> worktree))
         case None =>
-          state = state.copy(worktrees = state.worktrees - issueId)
-      repository.write(state) // Best-effort persistence
+          current.copy(worktrees = current.worktrees - issueId)
+      stateRef.set(updated)
+      repository.write(updated) // Best-effort persistence
     finally
       lock.unlock()
 
@@ -63,13 +66,15 @@ class ServerStateService(repository: StateRepository):
   def updateIssueCache(issueId: String)(f: Option[CachedIssue] => Option[CachedIssue]): Unit =
     lock.lock()
     try
-      val current = state.issueCache.get(issueId)
-      f(current) match
+      val current = stateRef.get()
+      val currentCache = current.issueCache.get(issueId)
+      val updated = f(currentCache) match
         case Some(cached) =>
-          state = state.copy(issueCache = state.issueCache + (issueId -> cached))
+          current.copy(issueCache = current.issueCache + (issueId -> cached))
         case None =>
-          state = state.copy(issueCache = state.issueCache - issueId)
-      repository.write(state) // Best-effort persistence
+          current.copy(issueCache = current.issueCache - issueId)
+      stateRef.set(updated)
+      repository.write(updated) // Best-effort persistence
     finally
       lock.unlock()
 
@@ -81,13 +86,15 @@ class ServerStateService(repository: StateRepository):
   def updateProgressCache(issueId: String)(f: Option[CachedProgress] => Option[CachedProgress]): Unit =
     lock.lock()
     try
-      val current = state.progressCache.get(issueId)
-      f(current) match
+      val current = stateRef.get()
+      val currentCache = current.progressCache.get(issueId)
+      val updated = f(currentCache) match
         case Some(cached) =>
-          state = state.copy(progressCache = state.progressCache + (issueId -> cached))
+          current.copy(progressCache = current.progressCache + (issueId -> cached))
         case None =>
-          state = state.copy(progressCache = state.progressCache - issueId)
-      repository.write(state) // Best-effort persistence
+          current.copy(progressCache = current.progressCache - issueId)
+      stateRef.set(updated)
+      repository.write(updated) // Best-effort persistence
     finally
       lock.unlock()
 
@@ -99,13 +106,15 @@ class ServerStateService(repository: StateRepository):
   def updatePRCache(issueId: String)(f: Option[CachedPR] => Option[CachedPR]): Unit =
     lock.lock()
     try
-      val current = state.prCache.get(issueId)
-      f(current) match
+      val current = stateRef.get()
+      val currentCache = current.prCache.get(issueId)
+      val updated = f(currentCache) match
         case Some(cached) =>
-          state = state.copy(prCache = state.prCache + (issueId -> cached))
+          current.copy(prCache = current.prCache + (issueId -> cached))
         case None =>
-          state = state.copy(prCache = state.prCache - issueId)
-      repository.write(state) // Best-effort persistence
+          current.copy(prCache = current.prCache - issueId)
+      stateRef.set(updated)
+      repository.write(updated) // Best-effort persistence
     finally
       lock.unlock()
 
@@ -117,13 +126,15 @@ class ServerStateService(repository: StateRepository):
   def updateReviewStateCache(issueId: String)(f: Option[CachedReviewState] => Option[CachedReviewState]): Unit =
     lock.lock()
     try
-      val current = state.reviewStateCache.get(issueId)
-      f(current) match
+      val current = stateRef.get()
+      val currentCache = current.reviewStateCache.get(issueId)
+      val updated = f(currentCache) match
         case Some(cached) =>
-          state = state.copy(reviewStateCache = state.reviewStateCache + (issueId -> cached))
+          current.copy(reviewStateCache = current.reviewStateCache + (issueId -> cached))
         case None =>
-          state = state.copy(reviewStateCache = state.reviewStateCache - issueId)
-      repository.write(state) // Best-effort persistence
+          current.copy(reviewStateCache = current.reviewStateCache - issueId)
+      stateRef.set(updated)
+      repository.write(updated) // Best-effort persistence
     finally
       lock.unlock()
 
@@ -137,18 +148,20 @@ class ServerStateService(repository: StateRepository):
   def pruneWorktrees(isValid: WorktreeRegistration => Boolean): Set[String] =
     lock.lock()
     try
-      val (valid, invalid) = state.worktrees.partition { case (_, wt) => isValid(wt) }
+      val current = stateRef.get()
+      val (valid, invalid) = current.worktrees.partition { case (_, wt) => isValid(wt) }
       val prunedIds = invalid.keySet
 
       if prunedIds.nonEmpty then
-        state = state.copy(
+        val updated = current.copy(
           worktrees = valid,
-          issueCache = state.issueCache -- prunedIds,
-          progressCache = state.progressCache -- prunedIds,
-          prCache = state.prCache -- prunedIds,
-          reviewStateCache = state.reviewStateCache -- prunedIds
+          issueCache = current.issueCache -- prunedIds,
+          progressCache = current.progressCache -- prunedIds,
+          prCache = current.prCache -- prunedIds,
+          reviewStateCache = current.reviewStateCache -- prunedIds
         )
-        repository.write(state) // Best-effort persistence
+        stateRef.set(updated)
+        repository.write(updated) // Best-effort persistence
 
       prunedIds
     finally

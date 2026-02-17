@@ -8,8 +8,11 @@ import iw.core.adapters.ProcessResult
 
 class GitWorktreeAdapterTest extends FunSuite:
 
-  var tempDir: os.Path = null
-  var repoDir: os.Path = null
+  val tempDirRef = new java.util.concurrent.atomic.AtomicReference[Option[os.Path]](None)
+  val repoDirRef = new java.util.concurrent.atomic.AtomicReference[Option[os.Path]](None)
+
+  def tempDir: os.Path = tempDirRef.get.getOrElse(sys.error("tempDir not initialized"))
+  def repoDir: os.Path = repoDirRef.get.getOrElse(sys.error("repoDir not initialized"))
 
   /** Run git command in repo directory using ProcessAdapter */
   def git(args: String*): ProcessResult =
@@ -17,9 +20,11 @@ class GitWorktreeAdapterTest extends FunSuite:
 
   override def beforeEach(context: BeforeEach): Unit =
     // Create a temporary directory for test repos
-    tempDir = os.Path(java.nio.file.Files.createTempDirectory("iw-test-git"))
-    repoDir = tempDir / "test-repo"
-    os.makeDir(repoDir)
+    val td = os.Path(java.nio.file.Files.createTempDirectory("iw-test-git"))
+    tempDirRef.set(Some(td))
+    val rd = td / "test-repo"
+    repoDirRef.set(Some(rd))
+    os.makeDir(rd)
 
     // Initialize a git repo using ProcessAdapter
     git("init")
@@ -27,13 +32,13 @@ class GitWorktreeAdapterTest extends FunSuite:
     git("config", "user.name", "Test User")
 
     // Create initial commit
-    os.write(repoDir / "README.md", "# Test Repo")
+    os.write(rd / "README.md", "# Test Repo")
     git("add", "README.md")
     git("commit", "-m", "Initial commit")
 
   override def afterEach(context: AfterEach): Unit =
     // Cleanup: remove worktrees first, then delete temp directory
-    if tempDir != null && os.exists(tempDir) then
+    tempDirRef.get.filter(os.exists).foreach { td =>
       // Remove all worktrees using ProcessAdapter
       val result = git("worktree", "list", "--porcelain")
       val worktreePaths = result.stdout.split("\n")
@@ -46,7 +51,8 @@ class GitWorktreeAdapterTest extends FunSuite:
       }
 
       // Delete temp directory
-      os.remove.all(tempDir)
+      os.remove.all(td)
+    }
 
   test("GitWorktreeAdapter.worktreeExists returns false for non-existent worktree"):
     val worktreePath = tempDir / "non-existent"

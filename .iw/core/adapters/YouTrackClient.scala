@@ -42,41 +42,41 @@ object YouTrackClient:
       val parsed = ujson.read(json)
 
       if !parsed.obj.contains("idReadable") then
-        return Left("Malformed response: missing 'idReadable' field")
-      if !parsed.obj.contains("summary") then
-        return Left("Malformed response: missing 'summary' field")
-      if !parsed.obj.contains("customFields") then
-        return Left("Malformed response: missing 'customFields' field")
-
-      val id = parsed("idReadable").str
-      val title = parsed("summary").str
-
-      val description = if parsed.obj.contains("description") && !parsed("description").isNull then
-        val desc = parsed("description").str
-        if desc.isEmpty then None else Some(desc)
+        Left("Malformed response: missing 'idReadable' field")
+      else if !parsed.obj.contains("summary") then
+        Left("Malformed response: missing 'summary' field")
+      else if !parsed.obj.contains("customFields") then
+        Left("Malformed response: missing 'customFields' field")
       else
-        None
+        val id = parsed("idReadable").str
+        val title = parsed("summary").str
 
-      // Extract State from customFields
-      val customFields = parsed("customFields").arr
-      val stateField = customFields.find(field =>
-        field.obj.contains("name") && field("name").str == "State"
-      )
-      val status = stateField match
-        case Some(field) if field.obj.contains("value") && !field("value").isNull =>
-          field("value")("name").str
-        case _ => "Unknown"
+        val description = if parsed.obj.contains("description") && !parsed("description").isNull then
+          val desc = parsed("description").str
+          if desc.isEmpty then None else Some(desc)
+        else
+          None
 
-      // Extract Assignee from customFields
-      val assigneeField = customFields.find(field =>
-        field.obj.contains("name") && field("name").str == "Assignee"
-      )
-      val assignee = assigneeField match
-        case Some(field) if field.obj.contains("value") && !field("value").isNull =>
-          Some(field("value")("fullName").str)
-        case _ => None
+        // Extract State from customFields
+        val customFields = parsed("customFields").arr
+        val stateField = customFields.find(field =>
+          field.obj.contains("name") && field("name").str == "State"
+        )
+        val status = stateField match
+          case Some(field) if field.obj.contains("value") && !field("value").isNull =>
+            field("value")("name").str
+          case _ => "Unknown"
 
-      Right(Issue(id, title, status, assignee, description))
+        // Extract Assignee from customFields
+        val assigneeField = customFields.find(field =>
+          field.obj.contains("name") && field("name").str == "Assignee"
+        )
+        val assignee = assigneeField match
+          case Some(field) if field.obj.contains("value") && !field("value").isNull =>
+            Some(field("value")("fullName").str)
+          case _ => None
+
+        Right(Issue(id, title, status, assignee, description))
     catch
       case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
 
@@ -198,16 +198,13 @@ object YouTrackClient:
 
       // Check for error response
       if parsed.obj.contains("error") then
-        return Left(parsed("error").str)
-
-      // Extract idReadable from successful response
-      if !parsed.obj.contains("idReadable") then
-        return Left("Malformed response: missing 'idReadable' field")
-
-      val issueId = parsed("idReadable").str
-      val url = buildIssueUrl(baseUrl, issueId)
-
-      Right(CreatedIssue(issueId, url))
+        Left(parsed("error").str)
+      else if !parsed.obj.contains("idReadable") then
+        Left("Malformed response: missing 'idReadable' field")
+      else
+        val issueId = parsed("idReadable").str
+        val url = buildIssueUrl(baseUrl, issueId)
+        Right(CreatedIssue(issueId, url))
     catch
       case e: Exception => Left(s"Failed to parse YouTrack response: ${e.getMessage}")
 

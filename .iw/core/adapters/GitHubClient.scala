@@ -33,10 +33,10 @@ object GitHubClient:
   ): Either[GhPrerequisiteError, Unit] =
     // Check gh CLI is installed
     if !isCommandAvailable("gh") then
-      return Left(GhPrerequisiteError.GhNotInstalled)
-
-    // Check gh authentication
-    execCommand("gh", Array("auth", "status")) match
+      Left(GhPrerequisiteError.GhNotInstalled)
+    else
+      // Check gh authentication
+      execCommand("gh", Array("auth", "status")) match
       case Left(error) if isAuthenticationError(error) =>
         Left(GhPrerequisiteError.GhNotAuthenticated)
       case Left(error) =>
@@ -117,11 +117,11 @@ object GitHubClient:
   def parseCreateIssueResponse(output: String): Either[String, CreatedIssue] =
     val url = output.trim
     if url.isEmpty then
-      return Left("Empty response from gh CLI")
-
-    // Extract issue number from URL: https://github.com/owner/repo/issues/123
-    val issuePattern = """.*/issues/(\d+)$""".r
-    url match
+      Left("Empty response from gh CLI")
+    else
+      // Extract issue number from URL: https://github.com/owner/repo/issues/123
+      val issuePattern = """.*/issues/(\d+)$""".r
+      url match
       case issuePattern(number) =>
         Right(CreatedIssue(number, url))
       case _ =>
@@ -172,30 +172,28 @@ object GitHubClient:
     // Validate prerequisites before attempting creation
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GhPrerequisiteError.GhNotInstalled) =>
-        return Left(formatGhNotInstalledError())
+        Left(formatGhNotInstalledError())
       case Left(GhPrerequisiteError.GhNotAuthenticated) =>
-        return Left(formatGhNotAuthenticatedError())
+        Left(formatGhNotAuthenticatedError())
       case Left(GhPrerequisiteError.GhOtherError(msg)) =>
-        return Left(s"gh CLI error: $msg")
+        Left(s"gh CLI error: $msg")
       case Right(_) =>
-        // Proceed with issue creation
+        val args = buildCreateIssueCommand(repository, title, description, issueType)
 
-    val args = buildCreateIssueCommand(repository, title, description, issueType)
+        // Execute gh command (first element is command, rest are args)
+        val command = args.head
+        val commandArgs = args.tail
 
-    // Execute gh command (first element is command, rest are args)
-    val command = args.head
-    val commandArgs = args.tail
-
-    execCommand(command, commandArgs) match
-      case Left(error) if isLabelError(error) =>
-        // Retry without labels if label-related error
-        val argsWithoutLabel = buildCreateIssueCommandWithoutLabel(repository, title, description)
-        val commandArgsWithoutLabel = argsWithoutLabel.tail
-        execCommand(command, commandArgsWithoutLabel) match
-          case Left(retryError) => Left(retryError)
+        execCommand(command, commandArgs) match
+          case Left(error) if isLabelError(error) =>
+            // Retry without labels if label-related error
+            val argsWithoutLabel = buildCreateIssueCommandWithoutLabel(repository, title, description)
+            val commandArgsWithoutLabel = argsWithoutLabel.tail
+            execCommand(command, commandArgsWithoutLabel) match
+              case Left(retryError) => Left(retryError)
+              case Right(output) => parseCreateIssueResponse(output)
+          case Left(error) => Left(error)
           case Right(output) => parseCreateIssueResponse(output)
-      case Left(error) => Left(error)
-      case Right(output) => parseCreateIssueResponse(output)
 
   /** Create a new GitHub issue via gh CLI without labels.
     *
@@ -214,21 +212,19 @@ object GitHubClient:
     // Validate prerequisites before attempting creation
     validateGhPrerequisites(repository) match
       case Left(GhPrerequisiteError.GhNotInstalled) =>
-        return Left(formatGhNotInstalledError())
+        Left(formatGhNotInstalledError())
       case Left(GhPrerequisiteError.GhNotAuthenticated) =>
-        return Left(formatGhNotAuthenticatedError())
+        Left(formatGhNotAuthenticatedError())
       case Left(GhPrerequisiteError.GhOtherError(msg)) =>
-        return Left(s"gh CLI error: $msg")
+        Left(s"gh CLI error: $msg")
       case Right(_) =>
-        // Proceed with issue creation
+        val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
+        val command = args.head
+        val commandArgs = args.tail
 
-    val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
-    val command = args.head
-    val commandArgs = args.tail
-
-    CommandRunner.execute(command, commandArgs) match
-      case Left(error) => Left(error)
-      case Right(output) => parseCreateIssueResponse(output)
+        CommandRunner.execute(command, commandArgs) match
+          case Left(error) => Left(error)
+          case Right(output) => parseCreateIssueResponse(output)
 
   /** Check if error is related to labels (for graceful fallback). */
   private def isLabelError(error: String): Boolean =
@@ -320,24 +316,22 @@ object GitHubClient:
     // Validate prerequisites before attempting fetch
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GhPrerequisiteError.GhNotInstalled) =>
-        return Left(formatGhNotInstalledError())
+        Left(formatGhNotInstalledError())
       case Left(GhPrerequisiteError.GhNotAuthenticated) =>
-        return Left(formatGhNotAuthenticatedError())
+        Left(formatGhNotAuthenticatedError())
       case Left(GhPrerequisiteError.GhOtherError(msg)) =>
-        return Left(s"gh CLI error: $msg")
+        Left(s"gh CLI error: $msg")
       case Right(_) =>
-        // Proceed with issue fetch
+        // Build command arguments (uses numeric ID for API)
+        val args = buildFetchIssueCommand(issueNumber, repository)
 
-    // Build command arguments (uses numeric ID for API)
-    val args = buildFetchIssueCommand(issueNumber, repository)
-
-    // Execute gh issue view
-    execCommand("gh", args) match
-      case Left(error) =>
-        Left(s"Failed to fetch issue: $error")
-      case Right(jsonOutput) =>
-        // Parse JSON response (uses full ID for Issue object)
-        parseFetchIssueResponse(jsonOutput, issueIdValue)
+        // Execute gh issue view
+        execCommand("gh", args) match
+          case Left(error) =>
+            Left(s"Failed to fetch issue: $error")
+          case Right(jsonOutput) =>
+            // Parse JSON response (uses full ID for Issue object)
+            parseFetchIssueResponse(jsonOutput, issueIdValue)
 
   /** Build gh CLI command arguments for listing recent issues.
     *
@@ -412,24 +406,22 @@ object GitHubClient:
     // Validate prerequisites before attempting fetch
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GhPrerequisiteError.GhNotInstalled) =>
-        return Left(formatGhNotInstalledError())
+        Left(formatGhNotInstalledError())
       case Left(GhPrerequisiteError.GhNotAuthenticated) =>
-        return Left(formatGhNotAuthenticatedError())
+        Left(formatGhNotAuthenticatedError())
       case Left(GhPrerequisiteError.GhOtherError(msg)) =>
-        return Left(s"gh CLI error: $msg")
+        Left(s"gh CLI error: $msg")
       case Right(_) =>
-        // Proceed with fetching recent issues
+        // Build command arguments
+        val args = buildListRecentIssuesCommand(repository, limit)
 
-    // Build command arguments
-    val args = buildListRecentIssuesCommand(repository, limit)
-
-    // Execute gh issue list
-    execCommand("gh", args) match
-      case Left(error) =>
-        Left(s"Failed to fetch recent issues: $error")
-      case Right(jsonOutput) =>
-        // Parse JSON response
-        parseListRecentIssuesResponse(jsonOutput)
+        // Execute gh issue list
+        execCommand("gh", args) match
+          case Left(error) =>
+            Left(s"Failed to fetch recent issues: $error")
+          case Right(jsonOutput) =>
+            // Parse JSON response
+            parseListRecentIssuesResponse(jsonOutput)
 
   /** Build gh CLI command for searching issues by text.
     *
@@ -485,21 +477,19 @@ object GitHubClient:
     // Validate prerequisites before attempting search
     validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
       case Left(GhPrerequisiteError.GhNotInstalled) =>
-        return Left(formatGhNotInstalledError())
+        Left(formatGhNotInstalledError())
       case Left(GhPrerequisiteError.GhNotAuthenticated) =>
-        return Left(formatGhNotAuthenticatedError())
+        Left(formatGhNotAuthenticatedError())
       case Left(GhPrerequisiteError.GhOtherError(msg)) =>
-        return Left(s"gh CLI error: $msg")
+        Left(s"gh CLI error: $msg")
       case Right(_) =>
-        // Proceed with search
+        // Build command arguments
+        val args = buildSearchIssuesCommand(repository, query, limit)
 
-    // Build command arguments
-    val args = buildSearchIssuesCommand(repository, query, limit)
-
-    // Execute gh issue list --search
-    execCommand("gh", args) match
-      case Left(error) =>
-        Left(s"Failed to search issues: $error")
-      case Right(jsonOutput) =>
-        // Parse JSON response
-        parseSearchIssuesResponse(jsonOutput)
+        // Execute gh issue list --search
+        execCommand("gh", args) match
+          case Left(error) =>
+            Left(s"Failed to search issues: $error")
+          case Right(jsonOutput) =>
+            // Parse JSON response
+            parseSearchIssuesResponse(jsonOutput)
