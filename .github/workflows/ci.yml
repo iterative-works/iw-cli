@@ -20,6 +20,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:21
+          apps: scala-cli
       - uses: coursier/cache-action@v6
       - name: Compile core (warnings as errors)
         run: scala-cli compile --scalac-option -Werror .iw/core/
@@ -31,6 +32,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:21
+          apps: scala-cli
       - uses: coursier/cache-action@v6
       - name: Check formatting
         run: scala-cli fmt --check .
@@ -55,6 +57,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:21
+          apps: scala-cli
       - uses: coursier/cache-action@v6
       - name: Install E2E test dependencies
         run: sudo apt-get install -y bats tmux jq
