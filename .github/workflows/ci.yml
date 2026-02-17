@@ -60,6 +60,8 @@ jobs:
           apps: scala-cli
       - uses: coursier/cache-action@v6
       - name: Install E2E test dependencies
-        run: sudo apt-get install -y bats tmux jq
+        run: |
+          sudo apt-get install -y tmux jq
+          sudo npm install -g bats
       - name: Run all tests
         run: ./iw test
