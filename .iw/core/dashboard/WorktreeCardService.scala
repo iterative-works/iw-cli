@@ -58,7 +58,8 @@ object WorktreeCardService:
     now: Instant,
     sshHost: String,
     fetchIssue: String => Either[String, Issue],
-    buildUrl: (String, String, Option[String]) => String
+    buildUrl: (String, String, Option[String]) => String,
+    fetchPR: () => Either[String, Option[PullRequestData]] = () => Right(None)
   ): CardRenderResult =
     worktrees.get(issueId) match
       case None =>
@@ -109,11 +110,30 @@ object WorktreeCardService:
 
         val gitStatus = None // TODO: Fetch git status if needed
 
-        // Get PR data (return cached CachedPR for server cache update)
-        val (prData, prCacheUpdate) = prCache.get(issueId) match {
-          case Some(cached) => (Some(cached.pr), Some(cached))
-          case None => (None, None)
-        }
+        // Get PR data (fresh fetch when not throttled, otherwise cache-only)
+        val (prData, prCacheUpdate) = if shouldFetch then
+          fetchPR() match {
+            case Right(Some(pr)) =>
+              val cached = CachedPR(pr, now)
+              (Some(pr), Some(cached))
+            case Right(None) =>
+              // No PR found - fall back to cached if available
+              prCache.get(issueId) match {
+                case Some(cached) => (Some(cached.pr), Some(cached))
+                case None => (None, None)
+              }
+            case Left(_) =>
+              // Fetch failed - fall back to cached if available
+              prCache.get(issueId) match {
+                case Some(cached) => (Some(cached.pr), Some(cached))
+                case None => (None, None)
+              }
+          }
+        else
+          prCache.get(issueId) match {
+            case Some(cached) => (Some(cached.pr), Some(cached))
+            case None => (None, None)
+          }
 
         // Use fresh review state if available, otherwise use cached
         val (reviewStateResult, reviewStateCacheUpdate) = freshReviewState match {
