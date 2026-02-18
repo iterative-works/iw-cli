@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Git sets GIT_DIR and GIT_WORK_TREE during hook execution. These leak into
+# child processes and cause git commands to operate on unexpected repositories.
+unset GIT_DIR GIT_WORK_TREE
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
