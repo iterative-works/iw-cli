@@ -694,9 +694,9 @@ class WorktreeCardServiceTest extends munit.FunSuite:
     // Record a recent refresh to trigger throttling
     throttle.recordRefresh(issueId, now)
 
-    var fetchPRCalled = false
+    val fetchPRCalled = java.util.concurrent.atomic.AtomicBoolean(false)
     val fetchPR = () => {
-      fetchPRCalled = true
+      fetchPRCalled.set(true)
       Right(Some(PullRequestData("url", PRState.Open, 1, "Should not be called"))): Either[String, Option[PullRequestData]]
     }
 
@@ -723,4 +723,4 @@ class WorktreeCardServiceTest extends munit.FunSuite:
     )
 
     // fetchPR should NOT have been called because refresh is throttled
-    assert(!fetchPRCalled, "fetchPR should not be called when throttled")
+    assert(!fetchPRCalled.get(), "fetchPR should not be called when throttled")
