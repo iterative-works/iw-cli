@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter}
+import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner}
 import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
 import iw.core.dashboard.application.WorktreeCreationService
@@ -126,6 +126,21 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         val fetchFn = buildFetchFunction(worktree.trackerType, config)
         val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
 
+        // Build PR fetch function using CommandRunner
+        val fetchPRFn = () =>
+          val execCommand = (command: String, args: Array[String]) =>
+            CommandRunner.execute(command, args, Some(worktree.path))
+          val detectTool = (toolName: String) =>
+            CommandRunner.isCommandAvailable(toolName)
+          PullRequestCacheService.fetchPR(
+            worktree.path,
+            state.prCache,
+            issueId,
+            Instant.now(),
+            execCommand,
+            detectTool
+          )
+
         // Render the card
         val now = Instant.now()
         val sshHost = java.net.InetAddress.getLocalHost().getHostName()
@@ -140,7 +155,8 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           now,
           sshHost,
           fetchFn,
-          urlBuilder
+          urlBuilder,
+          fetchPRFn
         )
 
         // Update all caches with freshly fetched data

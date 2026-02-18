@@ -571,5 +571,156 @@ class WorktreeCardServiceTest extends munit.FunSuite:
       (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id"
     )
 
-    // Verify fetchedPR is None when no cache data
-    assert(result.fetchedPR.isEmpty, "fetchedPR should be None when PR cache is empty")
+    // Verify fetchedPR is None when no cache data and no fetchPR function
+    assert(result.fetchedPR.isEmpty, "fetchedPR should be None when PR cache is empty and no fetchPR provided")
+
+  // ============================================================================
+  // PR Fresh Fetch Tests (IW-203)
+  // ============================================================================
+  // These tests verify that PR data is fetched fresh via CLI when the card
+  // refresh is not throttled, so PR links actually appear on worktree cards.
+  // ============================================================================
+
+  test("renderCard fetches fresh PR when not throttled and fetchPR provided"):
+    import iw.core.model.{PullRequestData, PRState, CachedPR}
+
+    val now = Instant.now()
+    val issueId = "IW-FRESHPR"
+    val worktree = WorktreeRegistration(
+      issueId = issueId,
+      path = "/tmp/worktree-fresh-pr",
+      trackerType = "GitHub",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val throttle = RefreshThrottle()
+
+    // Provide a fetchPR function that returns fresh PR data
+    val freshPR = PullRequestData(
+      url = "https://github.com/org/repo/pull/42",
+      state = PRState.Open,
+      number = 42,
+      title = "Fresh PR"
+    )
+    val fetchPR = () => Right(Some(freshPR)): Either[String, Option[PullRequestData]]
+
+    val result = WorktreeCardService.renderCard(
+      issueId,
+      Map(issueId -> worktree),
+      Map.empty,
+      Map.empty,
+      Map.empty, // Empty PR cache - no existing data
+      Map.empty,
+      throttle,
+      now,
+      "test-server",
+      (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+      (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id",
+      fetchPR
+    )
+
+    // Verify fresh PR data is fetched and returned for caching
+    assert(result.fetchedPR.isDefined, "fetchedPR should be Some when fetchPR returns data")
+    val returned = result.fetchedPR.get
+    assertEquals(returned.pr.number, 42)
+    assertEquals(returned.pr.title, "Fresh PR")
+    assertEquals(returned.pr.state, PRState.Open)
+
+    // Verify PR data appears in rendered HTML
+    assert(result.html.contains("pr-link"), "HTML should contain PR link section")
+    assert(result.html.contains("https://github.com/org/repo/pull/42"), "HTML should contain PR URL")
+
+  test("renderCard falls back to cached PR when fetchPR fails"):
+    import iw.core.model.{PullRequestData, PRState, CachedPR}
+
+    val now = Instant.now()
+    val issueId = "IW-FAILPR"
+    val worktree = WorktreeRegistration(
+      issueId = issueId,
+      path = "/tmp/worktree-fail-pr",
+      trackerType = "GitHub",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val throttle = RefreshThrottle()
+
+    // Pre-populate PR cache with existing data
+    val cachedPrData = PullRequestData(
+      url = "https://github.com/org/repo/pull/99",
+      state = PRState.Open,
+      number = 99,
+      title = "Cached PR"
+    )
+    val prCache = Map(issueId -> CachedPR(cachedPrData, now))
+
+    // Provide a fetchPR that fails
+    val fetchPR = () => Left("gh command failed"): Either[String, Option[PullRequestData]]
+
+    val result = WorktreeCardService.renderCard(
+      issueId,
+      Map(issueId -> worktree),
+      Map.empty,
+      Map.empty,
+      prCache,
+      Map.empty,
+      throttle,
+      now,
+      "test-server",
+      (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+      (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id",
+      fetchPR
+    )
+
+    // Should fall back to cached PR data
+    assert(result.fetchedPR.isDefined, "fetchedPR should fall back to cached data on fetch failure")
+    assertEquals(result.fetchedPR.get.pr.number, 99)
+
+  test("renderCard does not call fetchPR when throttled"):
+    import iw.core.model.{PullRequestData, PRState, CachedPR}
+
+    val now = Instant.now()
+    val issueId = "IW-THROTTPR"
+    val worktree = WorktreeRegistration(
+      issueId = issueId,
+      path = "/tmp/worktree-throttle-pr",
+      trackerType = "GitHub",
+      team = "IW",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val throttle = RefreshThrottle()
+    // Record a recent refresh to trigger throttling
+    throttle.recordRefresh(issueId, now)
+
+    var fetchPRCalled = false
+    val fetchPR = () => {
+      fetchPRCalled = true
+      Right(Some(PullRequestData("url", PRState.Open, 1, "Should not be called"))): Either[String, Option[PullRequestData]]
+    }
+
+    // Pre-populate caches so we get a rendered card (not skeleton)
+    val issueData = IssueData(
+      id = issueId, title = "Test", status = "Open",
+      assignee = None, description = None,
+      url = "https://example.com", fetchedAt = now
+    )
+
+    val result = WorktreeCardService.renderCard(
+      issueId,
+      Map(issueId -> worktree),
+      Map(issueId -> CachedIssue(issueData)),
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      throttle,
+      now,
+      "test-server",
+      (id: String) => Right(Issue(id, "Test Issue", "Open", None, None)),
+      (id: String, tracker: String, config: Option[String]) => s"https://example.com/issue/$id",
+      fetchPR
+    )
+
+    // fetchPR should NOT have been called because refresh is throttled
+    assert(!fetchPRCalled, "fetchPR should not be called when throttled")

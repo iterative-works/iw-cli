@@ -120,7 +120,7 @@ object WorktreeCardRenderer:
             cls := "pr-button",
             href := pr.url,
             target := "_blank",
-            "View PR ↗"
+            s"PR #${pr.number}"
           ),
           span(
             cls := s"pr-badge ${pr.stateBadgeClass}",
