@@ -90,9 +90,15 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
     mainProjectOpt match
       case None =>
-        // Project not found - return 404
+        // Project not found - return styled 404 page
+        val bodyContent = ProjectDetailsView.renderNotFound(projectName)
+        val html = PageLayout.render(
+          title = s"$projectName - Not Found",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
         cask.Response(
-          data = "Project not found",
+          data = html,
           statusCode = 404,
           headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
         )

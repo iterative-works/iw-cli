@@ -195,3 +195,32 @@ M .iw/core/test/MainProjectsViewTest.scala
 ```
 
 ---
+
+## Phase 6: Handle unknown project name gracefully (2026-02-20)
+
+**What was built:**
+- Method: `ProjectDetailsView.renderNotFound(projectName)` - styled not-found page with breadcrumb, message, and link back to overview
+- CaskServer: 404 response now uses `PageLayout.render` with `renderNotFound` instead of plain text
+
+**Decisions made:**
+- Render a full styled page (using PageLayout) instead of plain text, for consistent user experience
+- Include breadcrumb navigation even on 404 page for orientation
+- Keep 404 HTTP status code (not redirect to overview)
+
+**Testing:**
+- Unit tests: 3 tests (project name in output, link to overview, breadcrumb)
+
+**Code review:**
+- Skipped (small change: new method + CaskServer 404 case update)
+
+**For next phases:**
+- Phase 7 (HTMX auto-refresh) is the final and most complex phase
+
+**Files changed:**
+```
+M .iw/core/dashboard/presentation/views/ProjectDetailsView.scala
+M .iw/core/dashboard/CaskServer.scala
+M .iw/core/test/ProjectDetailsViewTest.scala
+```
+
+---

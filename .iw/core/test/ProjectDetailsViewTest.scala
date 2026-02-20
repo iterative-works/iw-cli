@@ -207,3 +207,18 @@ class ProjectDetailsViewTest extends FunSuite:
 
     assert(html.contains("hx-get=\"/worktrees/IW-79/card\""), "Should have hx-get attribute for polling")
     assert(html.contains("hx-trigger") && html.contains("30s"), "Should have hx-trigger with polling interval")
+
+  test("renderNotFound includes project name"):
+    val html = ProjectDetailsView.renderNotFound("nonexistent-project").render
+
+    assert(html.contains("nonexistent-project"), "Should include the project name")
+
+  test("renderNotFound includes link back to overview"):
+    val html = ProjectDetailsView.renderNotFound("nonexistent-project").render
+
+    assert(html.contains("href=\"/\""), "Should include link to root overview")
+
+  test("renderNotFound includes breadcrumb"):
+    val html = ProjectDetailsView.renderNotFound("nonexistent-project").render
+
+    assert(html.contains("breadcrumb") || html.contains("Projects"), "Should include breadcrumb or Projects link")
