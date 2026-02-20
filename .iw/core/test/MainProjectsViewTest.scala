@@ -135,3 +135,40 @@ class MainProjectsViewTest extends FunSuite:
 
     assert(html.contains("<span class=\"team-info\">owner/repo</span>"))
     assert(!html.contains("<a class=\"team-info\""))
+
+  test("project name links to project details page"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val html = MainProjectsView.render(List(project)).render
+
+    assert(html.contains("href=\"/projects/iw-cli\""), "Should link to /projects/iw-cli")
+
+  test("project name link wraps the project heading"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val html = MainProjectsView.render(List(project)).render
+
+    assert(html.contains("<a ") && html.contains("iw-cli</h3>"), "Link should wrap the h3 heading")
+
+  test("create button still present alongside project link"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val html = MainProjectsView.render(List(project)).render
+
+    assert(html.contains("create-worktree-button"), "Create button should still be present")
+    assert(html.contains("/api/modal/create-worktree"), "Create button should have modal URL")
