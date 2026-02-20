@@ -9,6 +9,28 @@ import iw.core.adapters.ConfigFileRepository
 import iw.core.model.{ProjectConfiguration, Constants}
 
 object MainProjectService:
+  /** Filter worktrees by project name.
+    *
+    * Uses MainProject.deriveMainProjectPath to extract the main project path
+    * from each worktree path, then compares the last path component (project name)
+    * to the requested project name.
+    *
+    * @param worktrees List of registered worktrees
+    * @param projectName Project name to filter by (exact match, case-sensitive)
+    * @return List of worktrees belonging to the specified project
+    */
+  def filterByProjectName(
+    worktrees: List[WorktreeRegistration],
+    projectName: String
+  ): List[WorktreeRegistration] =
+    worktrees.filter { wt =>
+      MainProject.deriveMainProjectPath(wt.path)
+        .exists { mainProjectPath =>
+          val pathComponents = mainProjectPath.split('/')
+          pathComponents.lastOption.contains(projectName)
+        }
+    }
+
   /** Derive unique main projects from a list of registered worktrees.
     *
     * This function:
