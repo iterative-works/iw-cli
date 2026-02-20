@@ -727,6 +727,67 @@
       }
     }
 
+    /* Project details page */
+    .project-details {
+      margin-top: 10px;
+    }
+
+    .breadcrumb {
+      font-size: 14px;
+      color: #868e96;
+      margin-bottom: 16px;
+    }
+
+    .breadcrumb a {
+      color: #228be6;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumb span {
+      color: #868e96;
+    }
+
+    .project-header {
+      margin-bottom: 24px;
+    }
+
+    .project-header h1 {
+      margin-bottom: 8px;
+    }
+
+    .project-metadata {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .tracker-type-badge {
+      padding: 2px 10px;
+      border-radius: 12px;
+      background: #e9ecef;
+      color: #495057;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .project-metadata .team-info {
+      color: #228be6;
+      text-decoration: none;
+    }
+
+    .project-metadata .team-info:hover {
+      text-decoration: underline;
+    }
+
+    .project-metadata span.team-info {
+      color: #868e96;
+    }
+
     /* Touch-friendly buttons and links */
     button, .pr-button, .create-worktree-btn, .create-worktree-button, .modal-close {
       min-height: 44px;

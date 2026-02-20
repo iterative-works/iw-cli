@@ -96,3 +96,35 @@ M .iw/core/dashboard/application/MainProjectService.scala
 ```
 
 ---
+
+## Phase 3: Breadcrumb navigation from project page back to overview (2026-02-20)
+
+**What was built:**
+- CSS: Added styles for `.breadcrumb`, `.project-details`, `.project-header`, `.project-metadata`, `.tracker-type-badge`, and `.team-info` to `dashboard.css`
+
+**Decisions made:**
+- CSS-only phase: breadcrumb HTML and behavior were already implemented in Phase 2
+- Used existing dashboard color palette and spacing patterns for consistency
+- Tracker type badge uses pill/rounded style matching status badges
+- Team info link uses primary blue color (#228be6) consistent with other links
+
+**Patterns applied:**
+- Consistent spacing: 12px gap in metadata, 16px breadcrumb margin
+- Flex layout for metadata badge + team display
+
+**Testing:**
+- All existing unit tests pass (CSS-only changes don't affect HTML structure)
+
+**Code review:**
+- Skipped (CSS-only, no logic changes)
+
+**For next phases:**
+- Project details page is now visually complete with proper styling
+- Extension points: Phase 4 can add "Create Worktree" button to project-header area
+
+**Files changed:**
+```
+M .iw/core/dashboard/resources/static/dashboard.css
+```
+
+---

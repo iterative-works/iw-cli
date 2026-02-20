@@ -17,21 +17,21 @@
 
 ### Breadcrumb Styling
 
-- [ ] [impl] Add `.breadcrumb` styles (font size, color, margin, link styling)
-- [ ] [impl] Add `.project-details` container styles
-- [ ] [impl] Add `.project-header` styles (spacing, alignment)
-- [ ] [impl] Add `.project-metadata` styles (flex layout for badge + team)
-- [ ] [impl] Add `.tracker-type-badge` styles (pill/badge appearance)
-- [ ] [impl] Add `.team-info` link styles
-- [ ] [impl] Add `.empty-state` styles for project page
+- [x] [impl] Add `.breadcrumb` styles (font size, color, margin, link styling)
+- [x] [impl] Add `.project-details` container styles
+- [x] [impl] Add `.project-header` styles (spacing, alignment)
+- [x] [impl] Add `.project-metadata` styles (flex layout for badge + team)
+- [x] [impl] Add `.tracker-type-badge` styles (pill/badge appearance)
+- [x] [impl] Add `.team-info` link styles
+- [x] [impl] Add `.empty-state` styles for project page
 
 ---
 
 ## Integration
 
-- [ ] [integration] Verify all existing tests pass (CSS-only changes don't affect HTML)
-- [ ] [integration] Verify project details page renders with styled breadcrumb
-- [ ] [integration] Verify root dashboard still renders correctly
+- [x] [integration] Verify all existing tests pass (CSS-only changes don't affect HTML)
+- [x] [integration] Verify project details page renders with styled breadcrumb
+- [x] [integration] Verify root dashboard still renders correctly
 
 ---
 
