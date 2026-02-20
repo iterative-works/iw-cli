@@ -381,7 +381,11 @@ class DashboardServiceTest extends FunSuite:
 
   // CSS Transition Tests (Phase 4 - IW-92)
 
-  test("Dashboard CSS includes .htmx-swapping styles"):
+  // CSS/JS externalized to static files (Phase 01)
+  // CSS classes like .htmx-swapping, .htmx-settling, mobile styles, etc. are now in /static/dashboard.css
+  // Visibilitychange script is now in /static/dashboard.js
+
+  test("Dashboard HTML links to external CSS file for styles"):
     val worktree = createWorktree("IWLE-TEST")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
@@ -393,10 +397,9 @@ class DashboardServiceTest extends FunSuite:
       sshHost = "test-server"
     )
 
-    assert(html.contains(".htmx-swapping"), "Should contain .htmx-swapping CSS class")
-    assert(html.contains("opacity: 0"), "Should contain opacity: 0 for swapping state")
+    assert(html.contains("href=\"/static/dashboard.css\""), "Should link to external CSS file")
 
-  test("Dashboard CSS includes .htmx-settling styles"):
+  test("Dashboard HTML links to external JS file for visibilitychange handler"):
     val worktree = createWorktree("IWLE-TEST")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
@@ -408,88 +411,8 @@ class DashboardServiceTest extends FunSuite:
       sshHost = "test-server"
     )
 
-    assert(html.contains(".htmx-settling"), "Should contain .htmx-settling CSS class")
-    assert(html.contains("opacity: 1"), "Should contain opacity: 1 for settling state")
+    assert(html.contains("src=\"/static/dashboard.js\""), "Should link to external JS file")
 
-  test("Dashboard CSS includes transition property for cards"):
-    val worktree = createWorktree("IWLE-TEST")
-    val html = DashboardService.renderDashboard(
-      worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
-      reviewStateCache = Map.empty,
-      config = None,
-      sshHost = "test-server"
-    )
-
-    assert(html.contains("transition:"), "Should contain transition property")
-    assert(html.contains("opacity"), "Should include opacity in transition")
-    assert(html.contains("200ms") || html.contains("0.2s"), "Should specify transition duration")
-
-  // Tab Visibility Tests (Phase 4 - IW-92)
-
-  test("Dashboard HTML includes visibilitychange script"):
-    val worktree = createWorktree("IWLE-TEST")
-    val html = DashboardService.renderDashboard(
-      worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
-      reviewStateCache = Map.empty,
-      config = None,
-      sshHost = "test-server"
-    )
-
-    assert(html.contains("visibilitychange"), "Should contain visibilitychange event listener")
-    assert(html.contains("htmx.trigger"), "Should use htmx.trigger to trigger refresh")
-    assert(html.contains("document.body"), "Should trigger refresh on document.body")
-
-  // Mobile Styling Tests (Phase 4 - IW-92)
-
-  test("Dashboard CSS includes mobile breakpoint styles"):
-    val worktree = createWorktree("IWLE-TEST")
-    val html = DashboardService.renderDashboard(
-      worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
-      reviewStateCache = Map.empty,
-      config = None,
-      sshHost = "test-server"
-    )
-
-    assert(html.contains("@media"), "Should contain @media query for responsive design")
-    assert(html.contains("max-width") || html.contains("min-width"), "Should have breakpoint conditions")
-
-  test("Dashboard CSS includes minimum touch target sizes"):
-    val worktree = createWorktree("IWLE-TEST")
-    val html = DashboardService.renderDashboard(
-      worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
-      reviewStateCache = Map.empty,
-      config = None,
-      sshHost = "test-server"
-    )
-
-    assert(html.contains("min-height: 44px") || html.contains("min-height:44px"), "Should have 44px minimum touch target height")
-
-  test("Dashboard CSS includes touch-action manipulation"):
-    val worktree = createWorktree("IWLE-TEST")
-    val html = DashboardService.renderDashboard(
-      worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
-      reviewStateCache = Map.empty,
-      config = None,
-      sshHost = "test-server"
-    )
-
-    assert(html.contains("touch-action"), "Should contain touch-action property")
-    assert(html.contains("manipulation"), "Should use manipulation value to prevent zoom on double-tap")
 
   // Priority Sorting Tests (Phase 5 - IW-92)
 
@@ -646,7 +569,7 @@ class DashboardServiceTest extends FunSuite:
     assert(!html.contains("<div class=\"dev-mode-banner\">"), "Should NOT contain dev-mode-banner div element when devMode not specified")
     assert(!html.contains(">DEV MODE<"), "Should NOT contain DEV MODE text in body when devMode not specified")
 
-  test("renderDashboard includes dev-mode-banner CSS styles"):
+  test("renderDashboard links to external CSS file containing dev-mode-banner styles"):
     val worktree = createWorktree("IW-82-TEST-4")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
@@ -659,7 +582,62 @@ class DashboardServiceTest extends FunSuite:
       devMode = true
     )
 
-    // Verify CSS styles are present
-    assert(html.contains(".dev-mode-banner"), "Should contain .dev-mode-banner CSS class definition")
-    assert(html.contains("background: #ffc107") || html.contains("background:#ffc107"), "Should have yellow background")
-    assert(html.contains("font-weight: bold") || html.contains("font-weight:bold"), "Should have bold text")
+    // Verify external CSS is linked (styles are in dashboard.css, not inline)
+    assert(html.contains("href=\"/static/dashboard.css\""), "Should link to external CSS file with .dev-mode-banner styles")
+
+  // CSS/JS Refactoring Tests (Phase 01)
+
+  test("renderDashboard output contains CSS link to /static/dashboard.css"):
+    val html = DashboardService.renderDashboard(
+      worktrees = List.empty,
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost"
+    )
+
+    assert(html.contains("href=\"/static/dashboard.css\""), "Should link to external CSS file")
+
+  test("renderDashboard output contains JS script for /static/dashboard.js"):
+    val html = DashboardService.renderDashboard(
+      worktrees = List.empty,
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost"
+    )
+
+    assert(html.contains("src=\"/static/dashboard.js\""), "Should link to external JS file")
+
+  test("renderDashboard output does NOT contain inline style tag"):
+    val html = DashboardService.renderDashboard(
+      worktrees = List.empty,
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost"
+    )
+
+    // Should not have inline <style> tag with CSS rules
+    assert(!html.contains("<style>"), "Should not contain inline <style> tag")
+
+  test("renderDashboard output does NOT contain inline visibilitychange script"):
+    val html = DashboardService.renderDashboard(
+      worktrees = List.empty,
+      issueCache = Map.empty,
+      progressCache = Map.empty,
+      prCache = Map.empty,
+      reviewStateCache = Map.empty,
+      config = None,
+      sshHost = "localhost"
+    )
+
+    // The script tag for /static/dashboard.js is ok, but inline script with visibilitychange is not
+    val hasInlineScript = html.contains("<script>") && html.contains("visibilitychange")
+    assert(!hasInlineScript, "Should not contain inline script with visibilitychange")

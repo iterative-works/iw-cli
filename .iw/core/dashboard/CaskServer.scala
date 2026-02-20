@@ -235,6 +235,34 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
   def health(): ujson.Value =
     ujson.Obj("status" -> "ok")
 
+  @cask.get("/static/:filename")
+  def staticFiles(filename: String): cask.Response[Array[Byte]] =
+    // Determine static files directory relative to CWD (project root)
+    val staticDir = os.pwd / ".iw" / "core" / "dashboard" / "resources" / "static"
+    val filePath = staticDir / filename
+
+    // Check if file exists
+    if os.exists(filePath) && os.isFile(filePath) then
+      // Read file content
+      val content = os.read.bytes(filePath)
+
+      // Determine Content-Type based on file extension
+      val contentType = filename match
+        case f if f.endsWith(".css") => "text/css; charset=UTF-8"
+        case f if f.endsWith(".js") => "application/javascript; charset=UTF-8"
+        case _ => "application/octet-stream"
+
+      cask.Response(
+        data = content,
+        headers = Seq("Content-Type" -> contentType)
+      )
+    else
+      // File not found
+      cask.Response(
+        data = Array.empty[Byte],
+        statusCode = 404
+      )
+
   @cask.get("/api/status")
   def status(): ujson.Value =
     val state = stateService.getState
