@@ -8,6 +8,8 @@ import iw.core.dashboard.domain.MainProject
 import scalatags.Text.all.*
 import scalatags.Text.tags2.nav
 import java.time.Instant
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 object ProjectDetailsView:
   /** Render project details page with filtered worktree cards.
@@ -26,6 +28,7 @@ object ProjectDetailsView:
     now: Instant,
     sshHost: String
   ): Frag =
+    val encodedPath = URLEncoder.encode(mainProject.path.toString, StandardCharsets.UTF_8.toString)
     div(
       cls := "project-details",
       // Breadcrumb navigation
@@ -57,6 +60,14 @@ object ProjectDetailsView:
               )
             case None =>
               span(cls := "team-info", mainProject.team)
+        ),
+        // Create worktree button scoped to this project
+        button(
+          cls := "create-worktree-button",
+          attr("hx-get") := s"/api/modal/create-worktree?project=$encodedPath",
+          attr("hx-target") := "#modal-container",
+          attr("hx-swap") := "innerHTML",
+          "+ Create Worktree"
         )
       ),
       // Worktree cards section
@@ -72,7 +83,9 @@ object ProjectDetailsView:
           worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewStateResult) =>
             renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now, sshHost)
           }
-        )
+        ),
+      // Modal container for create worktree modal (populated by HTMX)
+      div(id := "modal-container")
     )
 
   /** Render a single worktree card.

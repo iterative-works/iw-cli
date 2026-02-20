@@ -128,3 +128,39 @@ M .iw/core/dashboard/resources/static/dashboard.css
 ```
 
 ---
+
+## Phase 4: Project-scoped Create Worktree button (2026-02-20)
+
+**What was built:**
+- Button: "Create Worktree" button in `ProjectDetailsView` project-header section with HTMX attributes
+- Container: `#modal-container` div added to project details page for HTMX modal rendering
+- Tests: 5 unit tests in `ProjectDetailsCreateButtonTest.scala`
+
+**Decisions made:**
+- Reuse existing `CreateWorktreeModal` with `projectPath` parameter (no new modal needed)
+- Replicate button HTMX pattern from `MainProjectsView.renderProjectCard`
+- URL-encode `mainProject.path` for the `hx-get` query parameter
+- Place button inside `project-header` div, after the metadata section
+
+**Patterns applied:**
+- HTMX button pattern: `hx-get` → `hx-target` → `hx-swap` for modal loading
+- Reuse existing endpoint: `/api/modal/create-worktree?project=...`
+
+**Testing:**
+- Unit tests: 5 tests (button presence, hx-get URL, hx-target, hx-swap, modal container)
+
+**Code review:**
+- Skipped (minimal changes: 2 imports, 1 button, 1 div)
+
+**For next phases:**
+- Project details page now has a working create button that scopes to the project
+- Phase 5 can add clickable project cards on the overview page
+- Phase 6 can improve 404 handling for unknown projects
+
+**Files changed:**
+```
+M .iw/core/dashboard/presentation/views/ProjectDetailsView.scala
+A .iw/core/test/ProjectDetailsCreateButtonTest.scala
+```
+
+---
