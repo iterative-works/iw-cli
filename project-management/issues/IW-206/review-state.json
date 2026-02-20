@@ -37,12 +37,12 @@
       "path": "project-management/issues/IW-206/review-packet-phase-02.md"
     }
   ],
-  "last_updated": "2026-02-20T17:22:56.074280561Z",
+  "last_updated": "2026-02-20T17:28:26.027530352Z",
   "status": "phase_merged",
   "display": {
-    "text": "Phase 2: Merged",
+    "text": "Phase 3: Merged",
     "type": "success",
-    "subtext": "Project details page with filtered worktree cards"
+    "subtext": "Breadcrumb navigation and project page styling"
   },
   "badges": [
     {
@@ -60,9 +60,13 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
-  "message": "Phase 2 auto-merged - continuing to next phase",
+  "message": "Phase 3 auto-merged - continuing to next phase",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -92,5 +96,5 @@
       "context_sha": "context_sha=68a28f6da8c91e854bd7eab268017b71cf73aec7"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/210"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/211"
 }
