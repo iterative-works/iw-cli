@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "issue_id": "IW-206",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-206/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-206/tasks.md",
+      "category": "output"
+    }
+  ],
+  "last_updated": "2026-02-20T16:22:30.529578326Z",
+  "status": "tasks_ready",
+  "display": {
+    "text": "Tasks Ready",
+    "type": "success",
+    "subtext": "7 phases identified"
+  },
+  "badges": [
+    {
+      "label": "Feature",
+      "type": "info"
+    }
+  ],
+  "message": "Task breakdown complete. Ready to begin implementation.",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "ag-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    }
+  ],
+  "git_sha": "aaebf8b",
+  "needs_attention": true
+}
