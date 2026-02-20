@@ -230,6 +230,21 @@ The route handler in CaskServer needs to check whether any worktrees exist for t
 
 **Purpose:** List WHAT components each story needs, not HOW they're implemented.
 
+### Pre-requisite: Extract CSS/JS to static resources
+
+Extract inline CSS and JS from `DashboardService.renderDashboard` into external files. Add static resource serving to `CaskServer`. Create a shared page layout component that both the root dashboard and project details page can use.
+
+**Infrastructure Layer:**
+- Static resource serving route in `CaskServer`
+- CSS file (e.g., `.iw/core/dashboard/resources/static/dashboard.css`)
+- JS file (e.g., `.iw/core/dashboard/resources/static/dashboard.js`)
+
+**Presentation Layer:**
+- Shared layout component (page shell: head, CSS link, script tags, body wrapper)
+- Refactor `DashboardService.renderDashboard` to use the shared layout
+
+---
+
 ### For Story 1: Project details page with filtered worktree cards
 
 **Domain Layer:**
@@ -278,7 +293,7 @@ The route handler in CaskServer needs to check whether any worktrees exist for t
 - No new adapters
 
 **Presentation Layer:**
-- Either new route `GET /api/projects/:projectName/worktrees/changes` or extend existing `GET /api/worktrees/changes` with a `project` query parameter
+- New route `GET /api/projects/:projectName/worktrees/changes`
 - Worktree list div with `hx-get` pointing to the project-scoped changes endpoint
 - HTMX `hx-vals` with current card IDs (same pattern as root dashboard)
 
@@ -302,56 +317,36 @@ The route handler in CaskServer needs to check whether any worktrees exist for t
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Worktree-to-project filtering strategy
+### RESOLVED: Worktree-to-project filtering strategy
 
-The current `MainProject.deriveMainProjectPath` strips the issue ID suffix from worktree paths (e.g., `/home/user/projects/iw-cli-IW-79` -> `/home/user/projects/iw-cli`). To filter worktrees for a project on the details page, we need to reverse this mapping: given a project name like "iw-cli", find all worktrees whose derived main project path ends with "iw-cli".
+**Decision: Match by project name (last path component) using existing `MainProject.deriveMainProjectPath` heuristic.**
 
-**Questions to answer:**
-1. Is matching by project name (last path component) sufficient, or could two projects have the same name in different parent directories?
-2. Should we match by full project path (more precise) or by name (simpler URL)?
+The current heuristic strips the issue ID suffix from worktree paths (e.g., `/home/user/projects/iw-cli-IW-79` → `/home/user/projects/iw-cli`). For filtering, given a project name like "iw-cli", we find all worktrees whose derived main project path's last component matches. Project names are practically unique on a single developer machine.
 
-**Options:**
-- **Option A: Match by project name (last path component)**: Simpler URLs (`/projects/iw-cli`), but breaks if two projects share a name. In practice this is unlikely since projects are on the same machine.
-- **Option B: Match by encoded full path**: URL like `/projects/%2Fhome%2Fuser%2Fprojects%2Fiw-cli` -- precise but ugly and fragile (path changes break bookmarks).
-- **Option C: Match by name with disambiguation**: Use name by default, and full path only when ambiguous. Adds complexity for an edge case.
-
-**Recommended:** Option A. Project names are derived from directory names and are unique in practice on a single developer machine. If a collision occurs, we can add disambiguation later.
-
-**Impact:** Affects URL scheme, route design, and filtering logic.
+A future improvement (#208) will switch to `git worktree list` for ground-truth discovery instead of the path heuristic.
 
 ---
 
-### CLARIFY: Shared styles vs duplicated page shell
+### RESOLVED: Shared styles vs duplicated page shell
 
-`DashboardService.renderDashboard` contains inline CSS (the `styles` val) and the full HTML page shell (head, body, HTMX scripts). The project details page needs the same CSS and scripts.
+**Decision: Extract CSS and JS to external resource files served by the server. Create a shared page layout component.**
 
-**Questions to answer:**
-1. Should we extract the shared CSS and page shell into a reusable layout component?
-2. Or duplicate the page structure for now and extract later?
+Currently `DashboardService.renderDashboard` has inline CSS and JS. We will:
+1. Extract CSS to a static file (e.g., `/static/dashboard.css`)
+2. Extract JS to a static file (e.g., `/static/dashboard.js`)
+3. Add static resource serving to CaskServer (via `@cask.staticResources` or equivalent)
+4. Create a shared layout component for the HTML page shell (head, scripts, body wrapper)
+5. Refactor `DashboardService` to use the shared layout
 
-**Options:**
-- **Option A: Extract shared layout now**: Cleaner, avoids drift, but larger initial change (refactoring `DashboardService`).
-- **Option B: Duplicate for now, extract later**: Faster delivery for Story 1, but risks style drift. Mark with a TODO.
-
-**Impact:** Affects how much of `DashboardService` needs to change in Story 1.
+This becomes a prerequisite step before building the project details page.
 
 ---
 
-### CLARIFY: Project-scoped worktree list sync endpoint
+### RESOLVED: Project-scoped worktree list sync endpoint
 
-The root dashboard uses `GET /api/worktrees/changes?have=ID1,ID2,...` to detect additions/removals. The project details page needs the same functionality but scoped to one project.
+**Decision: New endpoint `GET /api/projects/:projectName/worktrees/changes?have=...`.**
 
-**Questions to answer:**
-1. Should we add a `project` query parameter to the existing `/api/worktrees/changes` endpoint?
-2. Or create a separate `/api/projects/:projectName/worktrees/changes` endpoint?
-
-**Options:**
-- **Option A: Add `project` parameter to existing endpoint**: Less code duplication, one endpoint to maintain. But the filtering logic gets conditional.
-- **Option B: New endpoint per project**: Cleaner separation, more explicit. But duplicates the changes-detection logic or requires extracting it into a shared service (which `WorktreeListSync` already is).
-
-**Recommended:** Option A. The filtering logic is one extra `.filter()` call on the worktree list. `WorktreeListSync.detectChanges` is already a pure function that works on ID lists regardless of source.
-
-**Impact:** Affects route design in `CaskServer` and HTMX attributes in `ProjectDetailsView`.
+Cleaner REST structure that mirrors the page URL hierarchy (`/projects/:projectName`). Internally reuses `WorktreeListSync.detectChanges` — the only addition is filtering the worktree list to project scope before calling the existing pure function.
 
 ---
 
@@ -468,6 +463,7 @@ None -- no new environment variables or config file changes.
 
 **Recommended Story Order:**
 
+0. **Pre-requisite: Extract CSS/JS to static resources** -- Extract inline styles/scripts, add static serving, create shared layout. All subsequent stories depend on the shared layout.
 1. **Story 1: Project details page** -- Core page with route, view, and filtering. Everything else builds on this.
 2. **Story 2: Breadcrumb navigation** -- Small addition to the page from Story 1. Can be implemented as part of Story 1 or immediately after.
 3. **Story 3: Create Worktree button** -- Reuses existing modal, small addition to the page.
@@ -477,6 +473,7 @@ None -- no new environment variables or config file changes.
 
 **Iteration Plan:**
 
+- **Iteration 0** (Pre-requisite): Extract CSS/JS to static resources, create shared page layout component, refactor root dashboard to use it. Foundation for all new pages.
 - **Iteration 1** (Stories 1-3): Core project page with metadata, filtered cards, breadcrumb, and create button. Delivers the primary user value -- a dedicated, navigable project view.
 - **Iteration 2** (Stories 5-6): Navigation integration (project cards link to details) and error handling. Completes the navigation flow.
 - **Iteration 3** (Story 4): Live updates. Adds polish with auto-refresh for additions/removals within the project scope.
@@ -491,9 +488,8 @@ None -- no new environment variables or config file changes.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved (all CLARIFY markers resolved)
 
 **Next Steps:**
-1. Resolve CLARIFY markers with stakeholders
-2. Run **ag-create-tasks** with the issue ID
-3. Run **ag-implement** for iterative story implementation
+1. Run **ag-create-tasks** to generate implementation tasks
+2. Run **ag-implement** for iterative story implementation
