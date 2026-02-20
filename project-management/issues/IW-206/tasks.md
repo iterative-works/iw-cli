@@ -2,7 +2,7 @@
 
 **Issue:** IW-206
 **Created:** 2026-02-20
-**Status:** 5/7 phases complete (71%)
+**Status:** 6/7 phases complete (86%)
 
 ## Phase Index
 
@@ -11,12 +11,12 @@
 - [x] Phase 03: Breadcrumb navigation from project page back to overview (Est: 2-3h) → `phase-03-context.md`
 - [x] Phase 04: Project-scoped Create Worktree button (Est: 3-4h) → `phase-04-context.md`
 - [x] Phase 05: Project cards on overview link to project details (Est: 2-3h) → `phase-05-context.md`
-- [ ] Phase 06: Handle unknown project name gracefully (Est: 2-3h) → `phase-06-context.md`
+- [x] Phase 06: Handle unknown project name gracefully (Est: 2-3h) → `phase-06-context.md`
 - [ ] Phase 07: HTMX auto-refresh for project worktree list (Est: 6-8h) → `phase-07-context.md`
 
 ## Progress Tracker
 
-**Completed:** 5/7 phases
+**Completed:** 6/7 phases
 **Estimated Total:** 27-39 hours
 **Time Spent:** 0 hours
 
