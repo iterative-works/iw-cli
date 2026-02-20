@@ -140,6 +140,31 @@ object ProjectDetailsView:
     * @param trackerType Tracker type string (e.g., "github", "linear")
     * @return Capitalized tracker type (e.g., "GitHub", "Linear")
     */
+  /** Render a not-found page for an unknown project name.
+    *
+    * @param projectName The project name that was requested but not found
+    * @return Scalatags Frag for the not-found page body content
+    */
+  def renderNotFound(projectName: String): Frag =
+    div(
+      cls := "project-details",
+      // Breadcrumb navigation
+      nav(
+        cls := "breadcrumb",
+        a(href := "/", "Projects"),
+        span(" > "),
+        span(projectName)
+      ),
+      div(
+        cls := "empty-state",
+        h2("Project Not Found"),
+        p(s"No worktrees are registered for project '$projectName'."),
+        p(
+          a(href := "/", "Back to Projects Overview")
+        )
+      )
+    )
+
   private def capitalizeTrackerType(trackerType: String): String =
     trackerType.toLowerCase match
       case "github" => "GitHub"
