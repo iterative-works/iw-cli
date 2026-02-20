@@ -8,9 +8,9 @@
 
 ## Setup
 
-- [ ] [setup] Verify Phase 1 components are available (PageLayout, static serving)
-- [ ] [setup] Review existing worktree filtering patterns in MainProjectService
-- [ ] [setup] Review WorktreeCardRenderer for card HTML structure
+- [x] [setup] Verify Phase 1 components are available (PageLayout, static serving)
+- [x] [setup] Review existing worktree filtering patterns in MainProjectService
+- [x] [setup] Review WorktreeCardRenderer for card HTML structure
 
 ---
 
@@ -18,22 +18,22 @@
 
 ### Worktree Filtering Logic
 
-- [ ] [test] Write test: filterByProjectName returns only worktrees matching project name
-- [ ] [test] Write test: filterByProjectName returns empty list when no worktrees match
-- [ ] [test] Write test: filterByProjectName handles worktrees without valid main project path
-- [ ] [test] Write test: filterByProjectName handles multiple projects with similar names
-- [ ] [test] Write test: filterByProjectName is case-sensitive on project names
+- [x] [test] Write test: filterByProjectName returns only worktrees matching project name
+- [x] [test] Write test: filterByProjectName returns empty list when no worktrees match
+- [x] [test] Write test: filterByProjectName handles worktrees without valid main project path
+- [x] [test] Write test: filterByProjectName handles multiple projects with similar names
+- [x] [test] Write test: filterByProjectName is case-sensitive on project names
 
 ### ProjectDetailsView Component
 
-- [ ] [test] Write test: ProjectDetailsView.render includes project name in heading
-- [ ] [test] Write test: ProjectDetailsView.render includes breadcrumb with link to root (/)
-- [ ] [test] Write test: ProjectDetailsView.render includes tracker type in metadata
-- [ ] [test] Write test: ProjectDetailsView.render includes team info in metadata
-- [ ] [test] Write test: ProjectDetailsView.render includes tracker URL link when available
-- [ ] [test] Write test: ProjectDetailsView.render includes worktree cards for matching worktrees
-- [ ] [test] Write test: ProjectDetailsView.render shows empty state when no worktrees
-- [ ] [test] Write test: ProjectDetailsView.render cards have HTMX polling attributes (hx-get, hx-trigger)
+- [x] [test] Write test: ProjectDetailsView.render includes project name in heading
+- [x] [test] Write test: ProjectDetailsView.render includes breadcrumb with link to root (/)
+- [x] [test] Write test: ProjectDetailsView.render includes tracker type in metadata
+- [x] [test] Write test: ProjectDetailsView.render includes team info in metadata
+- [x] [test] Write test: ProjectDetailsView.render includes tracker URL link when available
+- [x] [test] Write test: ProjectDetailsView.render includes worktree cards for matching worktrees
+- [x] [test] Write test: ProjectDetailsView.render shows empty state when no worktrees
+- [x] [test] Write test: ProjectDetailsView.render cards have HTMX polling attributes (hx-get, hx-trigger)
 
 ### Route Integration
 
@@ -51,52 +51,52 @@
 
 ### Worktree Filtering Function
 
-- [ ] [impl] Add filterByProjectName function to MainProjectService
-- [ ] [impl] Implement project name matching using MainProject.deriveMainProjectPath
-- [ ] [impl] Run tests and verify all filtering tests pass
+- [x] [impl] Add filterByProjectName function to MainProjectService
+- [x] [impl] Implement project name matching using MainProject.deriveMainProjectPath
+- [x] [impl] Run tests and verify all filtering tests pass
 
 ### ProjectDetailsView Component
 
-- [ ] [impl] Create ProjectDetailsView.scala in presentation/views/
-- [ ] [impl] Implement render method signature (projectName, mainProject, worktreesWithData, now, sshHost)
-- [ ] [impl] Implement breadcrumb HTML ("Projects > projectName" with link to /)
-- [ ] [impl] Implement project metadata header (name, tracker type, team, tracker URL)
-- [ ] [impl] Implement worktree card grid using WorktreeCardRenderer
-- [ ] [impl] Implement empty state message for no worktrees
-- [ ] [impl] Run tests and verify all ProjectDetailsView tests pass
+- [x] [impl] Create ProjectDetailsView.scala in presentation/views/
+- [x] [impl] Implement render method signature (projectName, mainProject, worktreesWithData, now, sshHost)
+- [x] [impl] Implement breadcrumb HTML ("Projects > projectName" with link to /)
+- [x] [impl] Implement project metadata header (name, tracker type, team, tracker URL)
+- [x] [impl] Implement worktree card grid using WorktreeCardRenderer
+- [x] [impl] Implement empty state message for no worktrees
+- [x] [impl] Run tests and verify all ProjectDetailsView tests pass
 
 ### Route Handler
 
-- [ ] [impl] Add GET /projects/:projectName route to CaskServer
-- [ ] [impl] Extract projectName from URL path parameter
-- [ ] [impl] Get all registered worktrees from server state
-- [ ] [impl] Filter worktrees using filterByProjectName
-- [ ] [impl] Derive project metadata using MainProjectService.deriveFromWorktrees
-- [ ] [impl] Fetch cached data for each filtered worktree
-- [ ] [impl] Render page using PageLayout.render + ProjectDetailsView.render
-- [ ] [impl] Run tests and verify all route integration tests pass
+- [x] [impl] Add GET /projects/:projectName route to CaskServer
+- [x] [impl] Extract projectName from URL path parameter
+- [x] [impl] Get all registered worktrees from server state
+- [x] [impl] Filter worktrees using filterByProjectName
+- [x] [impl] Derive project metadata using MainProjectService.deriveFromWorktrees
+- [x] [impl] Fetch cached data for each filtered worktree
+- [x] [impl] Render page using PageLayout.render + ProjectDetailsView.render
+- [x] [impl] Run tests and verify all route integration tests pass
 
 ### Card HTMX Attributes
 
-- [ ] [impl] Verify WorktreeCardRenderer includes hx-get="/worktrees/:issueId/card"
-- [ ] [impl] Verify WorktreeCardRenderer includes hx-trigger="every 30s, refresh from:body"
-- [ ] [impl] Run manual test: verify individual cards poll correctly on project page
+- [x] [impl] Verify WorktreeCardRenderer includes hx-get="/worktrees/:issueId/card"
+- [x] [impl] Verify WorktreeCardRenderer includes hx-trigger="every 30s, refresh from:body"
+- [x] [impl] Run manual test: verify individual cards poll correctly on project page
 
 ---
 
 ## Integration
 
-- [ ] [integration] Run all unit tests and verify they pass
-- [ ] [integration] Start dashboard server and verify /projects/:projectName route works
-- [ ] [integration] Register worktrees for two different projects via API
-- [ ] [integration] Verify /projects/project-one only shows project-one worktrees
-- [ ] [integration] Verify /projects/project-two only shows project-two worktrees
-- [ ] [integration] Verify breadcrumb link navigates back to root dashboard
-- [ ] [integration] Verify HTMX polling updates individual cards on project page
-- [ ] [integration] Verify empty state displays when project has no worktrees
-- [ ] [integration] Verify existing root dashboard (GET /) still shows all worktrees
-- [ ] [integration] Verify existing per-card refresh (GET /worktrees/:issueId/card) still works
-- [ ] [integration] Run full test suite (./iw test) and verify all tests pass
+- [x] [integration] Run all unit tests and verify they pass
+- [x] [integration] Start dashboard server and verify /projects/:projectName route works
+- [x] [integration] Register worktrees for two different projects via API
+- [x] [integration] Verify /projects/project-one only shows project-one worktrees
+- [x] [integration] Verify /projects/project-two only shows project-two worktrees
+- [x] [integration] Verify breadcrumb link navigates back to root dashboard
+- [x] [integration] Verify HTMX polling updates individual cards on project page
+- [x] [integration] Verify empty state displays when project has no worktrees
+- [x] [integration] Verify existing root dashboard (GET /) still shows all worktrees
+- [x] [integration] Verify existing per-card refresh (GET /worktrees/:issueId/card) still works
+- [x] [integration] Run full test suite (./iw test) and verify all tests pass
 
 ---
 

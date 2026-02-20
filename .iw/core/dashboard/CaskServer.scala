@@ -6,9 +6,9 @@ package iw.core.dashboard
 import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner}
 import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
-import iw.core.dashboard.application.WorktreeCreationService
+import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
-import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
+import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, PageLayout}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant, devMode: Boolean = false) extends cask.MainRoutes:
@@ -62,6 +62,74 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       data = html,
       headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
     )
+
+  @cask.get("/projects/:projectName")
+  def projectDetails(projectName: String, sshHost: Option[String] = None): cask.Response[String] =
+    // Resolve effective SSH host: use query param or default to server hostname
+    val effectiveSshHost = sshHost.getOrElse(
+      java.net.InetAddress.getLocalHost().getHostName()
+    )
+
+    // Get current state (read-only)
+    val state = stateService.getState
+
+    // Get all registered worktrees
+    val allWorktrees = state.listByIssueId
+
+    // Filter worktrees by project name
+    val filteredWorktrees = MainProjectService.filterByProjectName(allWorktrees, projectName)
+
+    // Derive project metadata using MainProjectService
+    val projects = MainProjectService.deriveFromWorktrees(
+      filteredWorktrees,
+      MainProjectService.loadConfig
+    )
+
+    // Get the main project (should be exactly one since we filtered by name)
+    val mainProjectOpt = projects.headOption
+
+    mainProjectOpt match
+      case None =>
+        // Project not found - return 404
+        cask.Response(
+          data = "Project not found",
+          statusCode = 404,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(mainProject) =>
+        // Fetch cached data for each filtered worktree
+        val now = Instant.now()
+        val worktreesWithData = filteredWorktrees.map { wt =>
+          val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(wt, state.issueCache, now)
+          val progress = DashboardService.fetchProgressForWorktree(wt, state.progressCache)
+          val gitStatus = DashboardService.fetchGitStatusForWorktree(wt)
+          val prData = DashboardService.fetchPRForWorktreeCachedOnly(wt, state.prCache, now)
+          val reviewStateResult = state.reviewStateCache.get(wt.issueId).map(cached => Right(cached.state))
+
+          (wt, issueData, progress, gitStatus, prData, reviewStateResult)
+        }
+
+        // Render page body using ProjectDetailsView
+        val bodyContent = ProjectDetailsView.render(
+          projectName,
+          mainProject,
+          worktreesWithData,
+          now,
+          effectiveSshHost
+        )
+
+        // Wrap in PageLayout
+        val html = PageLayout.render(
+          title = s"$projectName - iw Dashboard",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+
+        cask.Response(
+          data = html,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
 
   @cask.get("/worktrees/:issueId/artifacts")
   def artifactPage(issueId: String, path: String): cask.Response[String] =

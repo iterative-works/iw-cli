@@ -113,7 +113,7 @@ object DashboardService:
     * @param now Current timestamp for staleness check
     * @return Optional tuple of (IssueData, fromCache flag, isStale flag)
     */
-  private def fetchIssueForWorktreeCachedOnly(
+  private[dashboard] def fetchIssueForWorktreeCachedOnly(
     wt: WorktreeRegistration,
     cache: Map[String, CachedIssue],
     now: Instant
@@ -270,7 +270,7 @@ object DashboardService:
     * @param cache Current progress cache
     * @return Optional WorkflowProgress, None if unavailable
     */
-  private def fetchProgressForWorktree(
+  private[dashboard] def fetchProgressForWorktree(
     wt: WorktreeRegistration,
     cache: Map[String, CachedProgress]
   ): Option[WorkflowProgress] =
@@ -306,7 +306,7 @@ object DashboardService:
     * @param wt Worktree registration
     * @return Optional GitStatus, None if unavailable
     */
-  private def fetchGitStatusForWorktree(
+  private[dashboard] def fetchGitStatusForWorktree(
     wt: WorktreeRegistration
   ): Option[GitStatus] =
     // Wrapper for CommandRunner.execute that doesn't need workingDir
@@ -326,7 +326,7 @@ object DashboardService:
     * @param now Current timestamp (not used but kept for consistency)
     * @return Optional PullRequestData, None if not cached
     */
-  private def fetchPRForWorktreeCachedOnly(
+  private[dashboard] def fetchPRForWorktreeCachedOnly(
     wt: WorktreeRegistration,
     cache: Map[String, CachedPR],
     now: Instant

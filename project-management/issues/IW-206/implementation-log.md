@@ -51,3 +51,48 @@ M .iw/core/test/DashboardServiceTest.scala
 ```
 
 ---
+
+## Phase 2: Project details page with filtered worktree cards (2026-02-20)
+
+**What was built:**
+- View: `.iw/core/dashboard/presentation/views/ProjectDetailsView.scala` - Project page with breadcrumb, metadata header, and filtered worktree cards
+- Function: `MainProjectService.filterByProjectName` - Pure function to filter worktrees by derived project name
+- Route: `GET /projects/:projectName` in CaskServer - Project details page endpoint
+- Reuses `WorktreeCardRenderer` for card HTML and `PageLayout` for page shell
+
+**Decisions made:**
+- Filter by last path component of derived main project path (exact match, case-sensitive)
+- Reuse existing `WorktreeCardRenderer` with `HtmxCardConfig.dashboard` for consistent card behavior
+- Changed 4 DashboardService cache-fetching methods from `private` to `private[dashboard]` to avoid duplicating data fetching logic in CaskServer
+- Render 404 response when no worktrees match project name (project not found)
+
+**Patterns applied:**
+- View component: ProjectDetailsView.render returns Scalatags Frag, composed with PageLayout.render
+- Pure filtering: filterByProjectName is a pure function using existing deriveMainProjectPath heuristic
+- Reuse: WorktreeCardRenderer shared between root dashboard and project details page
+
+**Testing:**
+- Unit tests: 5 filtering tests + 8 view tests + 6 service tests = 19 total
+- Integration tests: Route integration tests deferred (tracked in tasks)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260220.md
+- Major findings: No critical issues. Warnings about pre-existing FCIS violation in loadConfig, private[dashboard] visibility trade-off, and missing route integration tests (deferred).
+
+**For next phases:**
+- Available utilities: `ProjectDetailsView.render(...)` for project page, `MainProjectService.filterByProjectName(...)` for filtering
+- Extension points: Add project-scoped actions (create worktree button, sync) to ProjectDetailsView
+- Notes: Breadcrumb navigation from Phase 3 can extend the existing nav element in ProjectDetailsView
+
+**Files changed:**
+```
+A .iw/core/dashboard/presentation/views/ProjectDetailsView.scala
+A .iw/core/test/ProjectDetailsViewTest.scala
+A .iw/core/test/ProjectFilteringTest.scala
+M .iw/core/dashboard/CaskServer.scala
+M .iw/core/dashboard/DashboardService.scala
+M .iw/core/dashboard/application/MainProjectService.scala
+```
+
+---
