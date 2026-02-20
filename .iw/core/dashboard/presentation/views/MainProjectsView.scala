@@ -37,8 +37,11 @@ object MainProjectsView:
 
     div(
       cls := "main-project-card",
-      // Project name
-      h3(project.projectName),
+      // Project name linking to project details page
+      a(
+        href := s"/projects/${project.projectName}",
+        h3(project.projectName)
+      ),
       // Tracker info
       div(
         cls := "project-info",

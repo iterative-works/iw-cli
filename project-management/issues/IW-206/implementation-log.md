@@ -164,3 +164,34 @@ A .iw/core/test/ProjectDetailsCreateButtonTest.scala
 ```
 
 ---
+
+## Phase 5: Project cards on overview link to project details (2026-02-20)
+
+**What was built:**
+- Link: Project name in `MainProjectsView.renderProjectCard` now wraps `h3` in an `<a href="/projects/{projectName}">` element
+- Tests: 3 unit tests added to existing `MainProjectsViewTest.scala`
+
+**Decisions made:**
+- Wrap `h3` inside `<a>` rather than making the entire card clickable, to keep the Create button independent
+- Use `projectName` (not encoded path) in the URL since it's a clean URL path segment
+
+**Patterns applied:**
+- Standard HTML link wrapping heading element
+
+**Testing:**
+- Unit tests: 3 tests (link presence, href correctness, Create button still present)
+
+**Code review:**
+- Skipped (single line change: wrap h3 in anchor tag)
+
+**For next phases:**
+- Navigation flow is now complete: overview → project details → worktrees
+- Phase 6 can add graceful 404 handling for unknown project names
+
+**Files changed:**
+```
+M .iw/core/dashboard/presentation/views/MainProjectsView.scala
+M .iw/core/test/MainProjectsViewTest.scala
+```
+
+---
