@@ -305,6 +305,48 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       )
     )
 
+  @cask.get("/api/projects/:projectName/worktrees/changes")
+  def projectWorktreeChanges(projectName: String, have: Option[String] = None): cask.Response[String] =
+    // Resolve effective SSH host from server hostname
+    val sshHost = java.net.InetAddress.getLocalHost().getHostName()
+
+    // Get current server state
+    val state = stateService.getState
+    val now = Instant.now()
+
+    // Get worktrees filtered by project name
+    val allWorktrees = state.listByIssueId
+    val filteredWorktrees = MainProjectService.filterByProjectName(allWorktrees, projectName)
+    val currentIds = filteredWorktrees.map(_.issueId)
+
+    // Parse client's known IDs from `have` param (comma-separated)
+    val clientIds = have
+      .map(_.split(",").map(_.trim).filter(_.nonEmpty).toList)
+      .getOrElse(List.empty)
+
+    // Detect changes between client's list and server's current filtered list
+    val changes = WorktreeListSync.detectChanges(clientIds, currentIds)
+
+    // Generate OOB response for any changes
+    val html = WorktreeListSync.generateChangesResponse(
+      changes,
+      state.worktrees,
+      state.issueCache,
+      state.progressCache,
+      state.prCache,
+      state.reviewStateCache,
+      now,
+      sshHost,
+      currentIds
+    )
+
+    cask.Response(
+      data = html,
+      headers = Seq(
+        "Content-Type" -> "text/html; charset=UTF-8"
+      )
+    )
+
   @cask.get("/health")
   def health(): ujson.Value =
     ujson.Obj("status" -> "ok")

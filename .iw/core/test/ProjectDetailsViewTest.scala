@@ -208,6 +208,170 @@ class ProjectDetailsViewTest extends FunSuite:
     assert(html.contains("hx-get=\"/worktrees/IW-79/card\""), "Should have hx-get attribute for polling")
     assert(html.contains("hx-trigger") && html.contains("30s"), "Should have hx-trigger with polling interval")
 
+  test("worktree-list div has hx-get for project-scoped changes endpoint"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val worktree = WorktreeRegistration(
+      issueId = "IW-79",
+      path = "/home/user/projects/iw-cli-IW-79",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      registeredAt = Instant.now(),
+      lastSeenAt = Instant.now()
+    )
+
+    val issueData = IssueData(
+      id = "IW-79",
+      title = "Test Issue",
+      status = "In Progress",
+      assignee = Some("testuser"),
+      description = None,
+      url = "https://github.com/test/test/issues/79",
+      fetchedAt = Instant.now()
+    )
+
+    val worktreesWithData = List(
+      (worktree, Some((issueData, false, false)), None, None, None, None)
+    )
+
+    val html = ProjectDetailsView.render(
+      "iw-cli",
+      project,
+      worktreesWithData,
+      Instant.now(),
+      "localhost"
+    ).render
+
+    assert(html.contains("hx-get=\"/api/projects/iw-cli/worktrees/changes\""), "Should have hx-get pointing to project-scoped changes endpoint")
+
+  test("worktree-list div has hx-trigger with polling interval"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val worktree = WorktreeRegistration(
+      issueId = "IW-79",
+      path = "/home/user/projects/iw-cli-IW-79",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      registeredAt = Instant.now(),
+      lastSeenAt = Instant.now()
+    )
+
+    val issueData = IssueData(
+      id = "IW-79",
+      title = "Test Issue",
+      status = "In Progress",
+      assignee = Some("testuser"),
+      description = None,
+      url = "https://github.com/test/test/issues/79",
+      fetchedAt = Instant.now()
+    )
+
+    val worktreesWithData = List(
+      (worktree, Some((issueData, false, false)), None, None, None, None)
+    )
+
+    val html = ProjectDetailsView.render(
+      "iw-cli",
+      project,
+      worktreesWithData,
+      Instant.now(),
+      "localhost"
+    ).render
+
+    assert(html.contains("hx-trigger=\"every 30s\""), "Should have hx-trigger with 30s polling interval")
+
+  test("worktree-list div has hx-swap none for OOB swaps"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val worktree = WorktreeRegistration(
+      issueId = "IW-79",
+      path = "/home/user/projects/iw-cli-IW-79",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      registeredAt = Instant.now(),
+      lastSeenAt = Instant.now()
+    )
+
+    val issueData = IssueData(
+      id = "IW-79",
+      title = "Test Issue",
+      status = "In Progress",
+      assignee = Some("testuser"),
+      description = None,
+      url = "https://github.com/test/test/issues/79",
+      fetchedAt = Instant.now()
+    )
+
+    val worktreesWithData = List(
+      (worktree, Some((issueData, false, false)), None, None, None, None)
+    )
+
+    val html = ProjectDetailsView.render(
+      "iw-cli",
+      project,
+      worktreesWithData,
+      Instant.now(),
+      "localhost"
+    ).render
+
+    assert(html.contains("hx-swap=\"none\""), "Should have hx-swap=none for OOB swaps")
+
+  test("worktree-list div has hx-vals with JS expression for card IDs"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val worktree = WorktreeRegistration(
+      issueId = "IW-79",
+      path = "/home/user/projects/iw-cli-IW-79",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      registeredAt = Instant.now(),
+      lastSeenAt = Instant.now()
+    )
+
+    val issueData = IssueData(
+      id = "IW-79",
+      title = "Test Issue",
+      status = "In Progress",
+      assignee = Some("testuser"),
+      description = None,
+      url = "https://github.com/test/test/issues/79",
+      fetchedAt = Instant.now()
+    )
+
+    val worktreesWithData = List(
+      (worktree, Some((issueData, false, false)), None, None, None, None)
+    )
+
+    val html = ProjectDetailsView.render(
+      "iw-cli",
+      project,
+      worktreesWithData,
+      Instant.now(),
+      "localhost"
+    ).render
+
+    assert(html.contains("hx-vals=\"js:{have:"), "Should have hx-vals with JS expression for card IDs")
+
   test("renderNotFound includes project name"):
     val html = ProjectDetailsView.renderNotFound("nonexistent-project").render
 

@@ -224,3 +224,37 @@ M .iw/core/test/ProjectDetailsViewTest.scala
 ```
 
 ---
+
+## Phase 7: HTMX auto-refresh for project worktree list (2026-02-20)
+
+**What was built:**
+- HTMX attributes: Added `hx-get`, `hx-trigger`, `hx-swap`, `hx-vals` to `#worktree-list` div in `ProjectDetailsView`
+- Route: `GET /api/projects/:projectName/worktrees/changes` in CaskServer - project-scoped list sync endpoint
+
+**Decisions made:**
+- New dedicated endpoint rather than query parameter on existing `/api/worktrees/changes`, for clean REST URL hierarchy mirroring `/projects/:projectName`
+- Reuse `WorktreeListSync.detectChanges` and `generateChangesResponse` unchanged - only the input list is filtered by project
+- Same 30s polling interval as root dashboard
+
+**Patterns applied:**
+- HTMX OOB swap pattern: `hx-swap="none"` with server returning OOB-attributed fragments
+- Project-scoped filtering: `MainProjectService.filterByProjectName` applied before change detection
+- Same `hx-vals` JS expression as root dashboard to collect current card IDs from DOM
+
+**Testing:**
+- Unit tests: 4 tests added (hx-get, hx-trigger, hx-swap, hx-vals)
+
+**Code review:**
+- Skipped (minimal changes: 4 HTMX attributes + 1 route mirroring existing pattern)
+
+**For next phases:**
+- All 7 phases complete. Project details page is fully functional with auto-refresh.
+
+**Files changed:**
+```
+M .iw/core/dashboard/presentation/views/ProjectDetailsView.scala
+M .iw/core/dashboard/CaskServer.scala
+M .iw/core/test/ProjectDetailsViewTest.scala
+```
+
+---
