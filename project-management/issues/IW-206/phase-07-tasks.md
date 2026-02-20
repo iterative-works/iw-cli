@@ -8,24 +8,24 @@
 
 ## Tests (RED)
 
-- [ ] [impl] [ ] [reviewed] [test] Add test: worktree-list div has hx-get attribute pointing to project-scoped changes endpoint
-- [ ] [impl] [ ] [reviewed] [test] Add test: worktree-list div has hx-trigger with polling interval
-- [ ] [impl] [ ] [reviewed] [test] Add test: worktree-list div has hx-swap="none"
-- [ ] [impl] [ ] [reviewed] [test] Add test: worktree-list div has hx-vals with JS expression for card IDs
+- [x] [impl] [x] [reviewed] [test] Add test: worktree-list div has hx-get attribute pointing to project-scoped changes endpoint
+- [x] [impl] [x] [reviewed] [test] Add test: worktree-list div has hx-trigger with polling interval
+- [x] [impl] [x] [reviewed] [test] Add test: worktree-list div has hx-swap="none"
+- [x] [impl] [x] [reviewed] [test] Add test: worktree-list div has hx-vals with JS expression for card IDs
 
 ---
 
 ## Implementation (GREEN)
 
-- [ ] [impl] [ ] [reviewed] [impl] Add HTMX polling attributes to worktree-list div in ProjectDetailsView.render
-- [ ] [impl] [ ] [reviewed] [impl] Add GET /api/projects/:projectName/worktrees/changes route to CaskServer
+- [x] [impl] [x] [reviewed] [impl] Add HTMX polling attributes to worktree-list div in ProjectDetailsView.render
+- [x] [impl] [x] [reviewed] [impl] Add GET /api/projects/:projectName/worktrees/changes route to CaskServer
 
 ---
 
 ## Integration
 
-- [ ] [impl] [ ] [reviewed] [integration] Verify all tests pass
+- [x] [impl] [x] [reviewed] [integration] Verify all tests pass
 
 ---
 
-**Phase Status:** Not Started
+**Phase Status:** Complete

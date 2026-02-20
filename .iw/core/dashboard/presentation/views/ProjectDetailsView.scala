@@ -80,6 +80,10 @@ object ProjectDetailsView:
         div(
           id := "worktree-list",
           cls := "worktree-list",
+          attr("hx-get") := s"/api/projects/$projectName/worktrees/changes",
+          attr("hx-vals") := "js:{have: [...document.querySelectorAll('#worktree-list > [id^=\"card-\"]')].map(e => e.id.replace('card-', '')).join(',')}",
+          attr("hx-trigger") := "every 30s",
+          attr("hx-swap") := "none",
           worktreesWithData.map { case (wt, issueData, progress, gitStatus, prData, reviewStateResult) =>
             renderWorktreeCard(wt, issueData, progress, gitStatus, prData, reviewStateResult, now, sshHost)
           }
