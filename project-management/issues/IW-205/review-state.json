@@ -11,13 +11,25 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-205/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-205/phase-01-context.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-205/review-packet-phase-01.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-205/implementation-log.md"
     }
   ],
-  "last_updated": "2026-02-21T20:33:54.794406195Z",
-  "status": "implementing",
+  "last_updated": "2026-02-21T21:03:03.405694763Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 1: Implementing",
-    "type": "progress",
+    "text": "Phase 1: Awaiting Review",
+    "type": "warning",
     "subtext": "Project cards show worktree count and summary status"
   },
   "badges": [
@@ -28,9 +40,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "message": "Phase 1 implementation in progress",
+  "message": "Phase 1 complete - Project cards show worktree count and summary status",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -46,8 +62,14 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "14b22d5",
-  "needs_attention": true
+  "needs_attention": true,
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/218"
 }
