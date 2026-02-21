@@ -1,0 +1,116 @@
+{
+  "version": 2,
+  "issue_id": "IW-206",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-206/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-206/tasks.md",
+      "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-206/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-206/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-206/phase-01-context.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-206/review-packet-phase-01.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-206/phase-02-context.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-206/review-packet-phase-02.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-206/phase-04-context.md"
+    },
+    {
+      "label": "Phase 5 Context",
+      "path": "project-management/issues/IW-206/phase-05-context.md"
+    }
+  ],
+  "last_updated": "2026-02-20T17:44:08.657833434Z",
+  "status": "phase_merged",
+  "display": {
+    "text": "Phase 5: Merged",
+    "type": "success",
+    "subtext": "Project cards link to project details"
+  },
+  "badges": [
+    {
+      "label": "Feature",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    }
+  ],
+  "message": "Phase 5 auto-merged - continuing to next phase",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "ag-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    }
+  ],
+  "git_sha": "aaebf8b",
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "1": {
+      "context_sha": "context_sha=68a28f6da8c91e854bd7eab268017b71cf73aec7"
+    }
+  },
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/213"
+}

@@ -6,9 +6,9 @@ package iw.core.dashboard
 import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner}
 import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
-import iw.core.dashboard.application.WorktreeCreationService
+import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
-import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView}
+import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, PageLayout}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant, devMode: Boolean = false) extends cask.MainRoutes:
@@ -62,6 +62,80 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       data = html,
       headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
     )
+
+  @cask.get("/projects/:projectName")
+  def projectDetails(projectName: String, sshHost: Option[String] = None): cask.Response[String] =
+    // Resolve effective SSH host: use query param or default to server hostname
+    val effectiveSshHost = sshHost.getOrElse(
+      java.net.InetAddress.getLocalHost().getHostName()
+    )
+
+    // Get current state (read-only)
+    val state = stateService.getState
+
+    // Get all registered worktrees
+    val allWorktrees = state.listByIssueId
+
+    // Filter worktrees by project name
+    val filteredWorktrees = MainProjectService.filterByProjectName(allWorktrees, projectName)
+
+    // Derive project metadata using MainProjectService
+    val projects = MainProjectService.deriveFromWorktrees(
+      filteredWorktrees,
+      MainProjectService.loadConfig
+    )
+
+    // Get the main project (should be exactly one since we filtered by name)
+    val mainProjectOpt = projects.headOption
+
+    mainProjectOpt match
+      case None =>
+        // Project not found - return styled 404 page
+        val bodyContent = ProjectDetailsView.renderNotFound(projectName)
+        val html = PageLayout.render(
+          title = s"$projectName - Not Found",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+        cask.Response(
+          data = html,
+          statusCode = 404,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(mainProject) =>
+        // Fetch cached data for each filtered worktree
+        val now = Instant.now()
+        val worktreesWithData = filteredWorktrees.map { wt =>
+          val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(wt, state.issueCache, now)
+          val progress = DashboardService.fetchProgressForWorktree(wt, state.progressCache)
+          val gitStatus = DashboardService.fetchGitStatusForWorktree(wt)
+          val prData = DashboardService.fetchPRForWorktreeCachedOnly(wt, state.prCache, now)
+          val reviewStateResult = state.reviewStateCache.get(wt.issueId).map(cached => Right(cached.state))
+
+          (wt, issueData, progress, gitStatus, prData, reviewStateResult)
+        }
+
+        // Render page body using ProjectDetailsView
+        val bodyContent = ProjectDetailsView.render(
+          projectName,
+          mainProject,
+          worktreesWithData,
+          now,
+          effectiveSshHost
+        )
+
+        // Wrap in PageLayout
+        val html = PageLayout.render(
+          title = s"$projectName - iw Dashboard",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+
+        cask.Response(
+          data = html,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
 
   @cask.get("/worktrees/:issueId/artifacts")
   def artifactPage(issueId: String, path: String): cask.Response[String] =
@@ -231,9 +305,79 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       )
     )
 
+  @cask.get("/api/projects/:projectName/worktrees/changes")
+  def projectWorktreeChanges(projectName: String, have: Option[String] = None): cask.Response[String] =
+    // Resolve effective SSH host from server hostname
+    val sshHost = java.net.InetAddress.getLocalHost().getHostName()
+
+    // Get current server state
+    val state = stateService.getState
+    val now = Instant.now()
+
+    // Get worktrees filtered by project name
+    val allWorktrees = state.listByIssueId
+    val filteredWorktrees = MainProjectService.filterByProjectName(allWorktrees, projectName)
+    val currentIds = filteredWorktrees.map(_.issueId)
+
+    // Parse client's known IDs from `have` param (comma-separated)
+    val clientIds = have
+      .map(_.split(",").map(_.trim).filter(_.nonEmpty).toList)
+      .getOrElse(List.empty)
+
+    // Detect changes between client's list and server's current filtered list
+    val changes = WorktreeListSync.detectChanges(clientIds, currentIds)
+
+    // Generate OOB response for any changes
+    val html = WorktreeListSync.generateChangesResponse(
+      changes,
+      state.worktrees,
+      state.issueCache,
+      state.progressCache,
+      state.prCache,
+      state.reviewStateCache,
+      now,
+      sshHost,
+      currentIds
+    )
+
+    cask.Response(
+      data = html,
+      headers = Seq(
+        "Content-Type" -> "text/html; charset=UTF-8"
+      )
+    )
+
   @cask.get("/health")
   def health(): ujson.Value =
     ujson.Obj("status" -> "ok")
+
+  @cask.get("/static/:filename")
+  def staticFiles(filename: String): cask.Response[Array[Byte]] =
+    // Determine static files directory relative to CWD (project root)
+    val staticDir = os.pwd / ".iw" / "core" / "dashboard" / "resources" / "static"
+    val filePath = staticDir / filename
+
+    // Check if file exists
+    if os.exists(filePath) && os.isFile(filePath) then
+      // Read file content
+      val content = os.read.bytes(filePath)
+
+      // Determine Content-Type based on file extension
+      val contentType = filename match
+        case f if f.endsWith(".css") => "text/css; charset=UTF-8"
+        case f if f.endsWith(".js") => "application/javascript; charset=UTF-8"
+        case _ => "application/octet-stream"
+
+      cask.Response(
+        data = content,
+        headers = Seq("Content-Type" -> contentType)
+      )
+    else
+      // File not found
+      cask.Response(
+        data = Array.empty[Byte],
+        statusCode = 404
+      )
 
   @cask.get("/api/status")
   def status(): ujson.Value =

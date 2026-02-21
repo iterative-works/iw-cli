@@ -620,6 +620,130 @@ class CaskServerTest extends FunSuite:
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
+  // Project worktree changes endpoint tests (IW-206 Phase 7)
+
+  test("GET /api/projects/:projectName/worktrees/changes returns 200 with HTML"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a worktree whose path derives project name "iw-cli"
+      val registerRequest = ujson.Obj(
+        "path" -> "/test/projects/iw-cli-IW-123",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-123")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Call project-scoped changes endpoint with no have param (client has nothing)
+      val response = quickRequest
+        .get(uri"http://localhost:$port/api/projects/iw-cli/worktrees/changes")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      assert(
+        response.headers.exists { h =>
+          h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
+        },
+        "Response should have text/html content type"
+      )
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /api/projects/:projectName/worktrees/changes filters by project name"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register worktree for project "iw-cli"
+      val req1 = ujson.Obj(
+        "path" -> "/test/projects/iw-cli-IW-100",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-100")
+        .body(ujson.write(req1))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Register worktree for a different project "kanon"
+      val req2 = ujson.Obj(
+        "path" -> "/test/projects/kanon-IWLE-200",
+        "trackerType" -> "linear",
+        "team" -> "IWLE"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IWLE-200")
+        .body(ujson.write(req2))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Query changes for "iw-cli" only — client has nothing
+      val response = quickRequest
+        .get(uri"http://localhost:$port/api/projects/iw-cli/worktrees/changes")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      val body = response.body
+      // Should include the iw-cli worktree card
+      assert(body.contains("IW-100"), "Response should contain IW-100 (iw-cli project)")
+      // Should NOT include the kanon worktree card
+      assert(!body.contains("IWLE-200"), "Response should not contain IWLE-200 (kanon project)")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /api/projects/:projectName/worktrees/changes with have param detects no changes"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a worktree
+      val registerRequest = ujson.Obj(
+        "path" -> "/test/projects/iw-cli-IW-300",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-300")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Client already has IW-300 — should detect no changes
+      val response = quickRequest
+        .get(uri"http://localhost:$port/api/projects/iw-cli/worktrees/changes?have=IW-300")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      val body = response.body
+      // No changes detected — response should be empty or minimal
+      assert(!body.contains("hx-swap-oob"), "No OOB swaps expected when client is up to date")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
   test("CaskServer.start() accepts devMode parameter"):
     val statePath = createTempStatePath()
     val port = findAvailablePort()
