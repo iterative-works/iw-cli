@@ -11,11 +11,11 @@ import java.nio.charset.StandardCharsets
 object MainProjectsView:
   /** Render main projects section with create buttons.
     *
-    * @param projects List of main projects derived from worktrees
+    * @param summaries List of project summaries with worktree counts
     * @return HTML fragment
     */
-  def render(projects: List[MainProject]): Frag =
-    if projects.isEmpty then
+  def render(summaries: List[ProjectSummary]): Frag =
+    if summaries.isEmpty then
       div(
         cls := "empty-state main-projects-empty",
         h3("No main projects found"),
@@ -27,13 +27,17 @@ object MainProjectsView:
         h2("Main Projects"),
         div(
           cls := "main-projects-list",
-          projects.map(renderProjectCard)
+          summaries.map(renderProjectCard)
         )
       )
 
-  private def renderProjectCard(project: MainProject): Frag =
+  private def renderProjectCard(summary: ProjectSummary): Frag =
+    val project = summary.project
     // URL-encode the project path for use in query parameters
     val encodedPath = URLEncoder.encode(project.path.toString, StandardCharsets.UTF_8.toString)
+
+    // Determine worktree count text (singular vs plural)
+    val worktreeText = if summary.worktreeCount == 1 then "1 worktree" else s"${summary.worktreeCount} worktrees"
 
     div(
       cls := "main-project-card",
@@ -52,6 +56,19 @@ object MainProjectsView:
           case None =>
             span(cls := "team-info", project.team)
       ),
+      // Worktree count
+      div(
+        cls := "worktree-count",
+        worktreeText
+      ),
+      // Attention indicator (only shown if > 0)
+      if summary.attentionCount > 0 then
+        div(
+          cls := "attention-count",
+          s"${summary.attentionCount} needs attention"
+        )
+      else
+        frag(),
       // Create worktree button
       button(
         cls := "create-worktree-button",
