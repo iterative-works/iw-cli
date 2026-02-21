@@ -55,7 +55,7 @@ The main design decision is how to pass this summary data to `MainProjectsView.r
 
 A clean approach is a presentation-layer view model that bundles `MainProject` with its summary data.
 
-**CLARIFY: What counts as "needs attention"?** The `ReviewState.needsAttention` field is the only indicator currently available. Should we also consider stale issue data, dirty git status, or other signals? For now, we use only `needsAttention` from review state, which is the most explicit signal. Other indicators can be added later.
+**Decided:** "Needs attention" uses only `ReviewState.needsAttention == Some(true)`. No heuristic signals (stale data, dirty git). Can be expanded later if needed.
 
 **Acceptance:**
 - Project cards display worktree count (e.g., "3 worktrees")
@@ -190,27 +190,21 @@ This is a refactoring story that follows naturally from Story 2. It reduces the 
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Definition of "needs attention"
+### Resolved: Definition of "needs attention"
 
-The issue mentions "1 needs attention" in the summary status. The only current mechanism is `ReviewState.needsAttention: Option[Boolean]`. This is set by external tooling (Claude Code agent workflow) and is not universally present.
-
-**Proposed resolution:** Use `ReviewState.needsAttention == Some(true)` as the sole signal for now. If no review state cache entry exists for a worktree, it does not count as needing attention. This keeps the logic simple and avoids false positives.
+**Decision:** Use `ReviewState.needsAttention == Some(true)` as the sole signal. If no review state cache entry exists for a worktree, it does not count as needing attention. This keeps the logic simple and avoids false positives from heuristic signals (stale data, dirty git).
 
 ---
 
-### CLARIFY: What happens to the root page HTMX polling?
+### Resolved: Root page HTMX polling removed
 
-The root page currently has HTMX polling via `WorktreeListView` (`hx-get="/api/worktrees/changes"` with `hx-trigger="every 30s"`). Once we remove the worktree list, this polling is no longer needed on the root page. However, the `/api/worktrees/changes` endpoint itself must remain since it is still used by project details pages (indirectly, through the project-scoped variant).
-
-**Proposed resolution:** Simply remove the polling from the root page HTML output. The API endpoint stays.
+**Decision:** Remove the HTMX polling from the root page HTML output. No replacement polling is added -- the root page is a navigation entry point, not a live monitoring dashboard. The `/api/worktrees/changes` endpoint stays since project details pages use it.
 
 ---
 
-### CLARIFY: Should "Create Worktree" remain on root page project cards?
+### Resolved: "Create Worktree" stays on root page project cards
 
-The issue says: "Keep the + Create Worktree action accessible (either on project cards or in project details)". Currently, `MainProjectsView` renders a "+ Create" button on each project card, and `ProjectDetailsView` also has a "+ Create Worktree" button.
-
-**Proposed resolution:** Keep the "+ Create" button on project cards on the root page. It already works and provides a shortcut without navigating to the project details page. The modal container div must remain on the root page for this to work.
+**Decision:** Keep the "+ Create" button on project cards on the root page. It already works and provides a shortcut without navigating to the project details page. The modal container div remains on the root page for this to work.
 
 ---
 
