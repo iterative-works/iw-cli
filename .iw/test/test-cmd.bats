@@ -128,6 +128,10 @@ EOF
 }
 EOF
 
+    # Remove all commands except test.scala so the compile check is fast —
+    # this test only verifies that unit and E2E tests both run together.
+    find .iw/commands -name '*.scala' ! -name 'test.scala' -delete
+
     run_with_clean_path ./iw test
     [ "$status" -eq 0 ]
     [[ "$output" == *"unit test passes"* ]] || [[ "$output" == *"UnitTest"* ]]

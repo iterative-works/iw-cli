@@ -66,3 +66,4 @@ jobs:
           sudo /tmp/bats-core/install.sh /usr/local
       - name: Run all tests
         run: ./iw test
+        timeout-minutes: 15
