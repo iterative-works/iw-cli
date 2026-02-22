@@ -1,5 +1,5 @@
 // PURPOSE: Application service for rendering the complete dashboard HTML
-// PURPOSE: Generates full HTML page with header, worktree list, and styling
+// PURPOSE: Generates full HTML page with header, project cards, and styling
 
 package iw.core.dashboard
 
@@ -54,19 +54,6 @@ object DashboardService:
       reviewStateCache
     )
 
-    // Fetch data for each worktree (read-only from cache)
-    val worktreesWithData = sortedWorktrees.map { wt =>
-      val issueData = fetchIssueForWorktreeCachedOnly(wt, issueCache, now)
-      val progress = fetchProgressForWorktree(wt, progressCache)
-      val gitStatus = fetchGitStatusForWorktree(wt)
-      val prData = fetchPRForWorktreeCachedOnly(wt, prCache, now)
-
-      // Just read review state from cache (no filesystem reads)
-      val reviewStateResult = reviewStateCache.get(wt.issueId).map(cached => Right(cached.state))
-
-      (wt, issueData, progress, gitStatus, prData, reviewStateResult)
-    }
-
     // Prepare body content for PageLayout
     val bodyContent = frag(
       // Header with title and SSH host configuration
@@ -96,9 +83,8 @@ object DashboardService:
           )
         )
       ),
-      // Main projects section (above worktree list)
+      // Main projects section
       MainProjectsView.render(projectSummaries),
-      WorktreeListView.render(worktreesWithData, now, sshHost),
       // Modal container (empty by default)
       div(id := "modal-container")
     )
