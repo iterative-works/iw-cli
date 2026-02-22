@@ -2,17 +2,17 @@
 
 **Issue:** IW-205
 **Created:** 2026-02-21
-**Status:** 0/3 phases complete (0%)
+**Status:** 1/3 phases complete (33%)
 
 ## Phase Index
 
-- [ ] Phase 1: Project cards show worktree count and summary status (Est: 6-8h) → `phase-01-context.md`
+- [x] Phase 1: Project cards show worktree count and summary status (Est: 6-8h) → `phase-01-context.md`
 - [ ] Phase 2: Remove flat worktree list from root page (Est: 2-3h) → `phase-02-context.md`
 - [ ] Phase 3: Simplify DashboardService after worktree list removal (Est: 2-3h) → `phase-03-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/3 phases
+**Completed:** 1/3 phases
 **Estimated Total:** 10-14 hours
 **Time Spent:** 0 hours
 
