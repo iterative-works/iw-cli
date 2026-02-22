@@ -50,3 +50,42 @@ M  .iw/core/test/DashboardServiceTest.scala
 ```
 
 ---
+
+## Phase 2: Remove flat worktree list from root page (2026-02-22)
+
+**What was built:**
+- Removal: `.iw/core/dashboard/DashboardService.scala` - Removed `worktreesWithData` per-worktree data fetching and `WorktreeListView.render` call from root page
+- Root page now renders: header + project summary cards + modal container (no worktree cards, no HTMX polling)
+
+**Decisions made:**
+- Function signature kept unchanged (unused params `issueCache`, `progressCache`, `prCache` stay for Phase 3)
+- `val now = Instant.now()` kept even though unused (Phase 3 cleanup)
+- Helper methods (`fetchIssueForWorktreeCachedOnly`, etc.) kept — still used by per-card refresh paths
+- `WorktreeListView` object kept in codebase — still used by `WorktreeCardRenderer`
+
+**Patterns applied:**
+- Incremental removal: Phase 2 removes usage, Phase 3 removes unused parameters
+- Negative assertion testing: New tests verify absence of worktree list content
+
+**Testing:**
+- Unit tests: 3 new negative assertion tests (no worktree-list, no worktree-card, no polling)
+- Unit tests: 9 existing tests updated (removed issue-ID assertions that depended on worktree cards)
+- Unit tests: 4 tests removed (worktree sorting and Zed button tests — no longer root page concerns)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260222.md
+- Findings: Added positive assertions to new tests (reviewer feedback), no critical issues
+
+**For next phases:**
+- Phase 3 should remove unused `issueCache`, `progressCache`, `prCache` parameters from `renderDashboard`
+- Phase 3 should remove unused `val now = Instant.now()`
+- Phase 3 should update Scaladoc to reflect simplified signature
+
+**Files changed:**
+```
+M  .iw/core/dashboard/DashboardService.scala
+M  .iw/core/test/DashboardServiceTest.scala
+```
+
+---

@@ -23,14 +23,22 @@
     {
       "label": "Implementation Log",
       "path": "project-management/issues/IW-205/implementation-log.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-205/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-205/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-02-22T12:59:38.020852185Z",
-  "status": "phase_merged",
+  "last_updated": "2026-02-22T13:17:07.495923970Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 1: Merged",
-    "type": "success",
-    "subtext": "Project cards show worktree count and summary status"
+    "text": "Phase 2: Implementing",
+    "type": "progress",
+    "subtext": "Remove flat worktree list from root page"
   },
   "badges": [
     {
@@ -48,9 +56,13 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 1 merged - ready for Phase 2",
+  "message": "Phase 2 implementation in progress",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -71,9 +83,19 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "14b22d5",
   "needs_attention": true,
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/218"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/218",
+  "phase_checkpoints": {
+    "2": {
+      "context_sha": "context_sha=764c806360c3929ae404662c23c2b6801315991f"
+    }
+  }
 }
