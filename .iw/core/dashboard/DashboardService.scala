@@ -6,7 +6,7 @@ package iw.core.dashboard
 import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
 import iw.core.adapters.{LinearClient, YouTrackClient, GitHubClient, ConfigFileRepository, CommandRunner}
 import iw.core.dashboard.application.MainProjectService
-import iw.core.dashboard.presentation.views.{MainProjectsView, PageLayout}
+import iw.core.dashboard.presentation.views.{MainProjectsView, PageLayout, ProjectSummary}
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try
@@ -45,6 +45,13 @@ object DashboardService:
     val mainProjects = MainProjectService.deriveFromWorktrees(
       sortedWorktrees,
       MainProjectService.loadConfig
+    )
+
+    // Compute project summaries with worktree counts and attention indicators
+    val projectSummaries = ProjectSummary.computeSummaries(
+      sortedWorktrees,
+      mainProjects,
+      reviewStateCache
     )
 
     // Fetch data for each worktree (read-only from cache)
@@ -90,7 +97,7 @@ object DashboardService:
         )
       ),
       // Main projects section (above worktree list)
-      MainProjectsView.render(mainProjects),
+      MainProjectsView.render(projectSummaries),
       WorktreeListView.render(worktreesWithData, now, sshHost),
       // Modal container (empty by default)
       div(id := "modal-container")
