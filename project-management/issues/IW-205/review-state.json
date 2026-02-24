@@ -33,11 +33,11 @@
       "path": "project-management/issues/IW-205/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-02-22T13:17:07.495923970Z",
-  "status": "implementing",
+  "last_updated": "2026-02-24T08:21:39.922297392Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 2: Implementing",
-    "type": "progress",
+    "text": "Phase 2: Merged",
+    "type": "success",
     "subtext": "Remove flat worktree list from root page"
   },
   "badges": [
@@ -60,9 +60,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
-  "message": "Phase 2 implementation in progress",
+  "message": "Phase 2 merged - ready for Phase 3",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -92,7 +96,7 @@
   ],
   "git_sha": "14b22d5",
   "needs_attention": true,
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/218",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/219",
   "phase_checkpoints": {
     "2": {
       "context_sha": "context_sha=764c806360c3929ae404662c23c2b6801315991f"
