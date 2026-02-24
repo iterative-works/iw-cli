@@ -20,4 +20,4 @@
 - [x] [integration] Run ./iw test unit to confirm all unit tests pass
 - [x] [integration] Run ./iw test e2e to confirm E2E tests pass
 - [x] [integration] Verify compiler produces no warnings about unused parameters or imports
-- [ ] [integration] Commit changes with clear message about simplified DashboardService signature
+- [x] [integration] Commit changes with clear message about simplified DashboardService signature

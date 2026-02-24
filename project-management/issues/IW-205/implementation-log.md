@@ -89,3 +89,37 @@ M  .iw/core/test/DashboardServiceTest.scala
 ```
 
 ---
+
+## Phase 3: Simplify DashboardService after worktree list removal (2026-02-22)
+
+**What was built:**
+- Refactoring: `.iw/core/dashboard/DashboardService.scala` - Simplified `renderDashboard` from 8 to 4 parameters, removed dead `val now`, updated Scaladoc
+- Caller update: `.iw/core/dashboard/CaskServer.scala` - Updated `dashboard()` to use new signature, removed unnecessary config loading
+- Test update: `.iw/core/test/DashboardServiceTest.scala` - Updated 27 call sites, removed unused imports (`CachedPR`, `CachedProgress`)
+
+**Decisions made:**
+- Removed `config` parameter too (was unused — `MainProjectService.loadConfig` reads config independently)
+- Kept all private helper methods and imports in `DashboardService` (still used by per-card refresh paths)
+- Kept `CachedIssue` import in test file (still used by `createCachedIssue` helper)
+
+**Patterns applied:**
+- Parameter pruning: Removed parameters that became dead after Phase 2
+- FCIS: `renderDashboard` is now a pure presentation function with minimal surface area
+
+**Testing:**
+- Unit tests: 27 call sites updated, all pass
+- No new tests needed (pure refactoring, no behavior change)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260222.md
+- Findings: No issues — clean refactoring
+
+**Files changed:**
+```
+M  .iw/core/dashboard/DashboardService.scala
+M  .iw/core/dashboard/CaskServer.scala
+M  .iw/core/test/DashboardServiceTest.scala
+```
+
+---
