@@ -35,16 +35,24 @@
     {
       "label": "Phase 2 Tasks",
       "path": "project-management/issues/IW-222/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-222/phase-02-context.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-222/implementation-log.md"
     }
   ],
-  "last_updated": "2026-02-24T18:27:35.036671003Z",
-  "status": "implementing",
+  "last_updated": "2026-02-24T19:22:14.832951124Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 2: Implementing",
-    "type": "progress",
+    "text": "Phase 2: Awaiting Review",
+    "type": "warning",
     "subtext": "Infrastructure Layer — adapter moves, StateReader, TmuxAdapter.sendKeys"
   },
-  "message": "Phase 2 implementation in progress",
+  "message": "Phase 2 complete — Infrastructure Layer",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -75,6 +83,11 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "6a9680d",
@@ -100,7 +113,11 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/223"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/224"
 }
