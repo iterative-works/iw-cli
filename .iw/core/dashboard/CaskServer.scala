@@ -42,18 +42,10 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
     val worktrees = state.listByIssueId
 
-    // Load project configuration
-    val configPath = os.pwd / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
-    val config = ConfigFileRepository.read(configPath)
-
-    // Render dashboard with cached data only (read-only, no writes)
+    // Render projects overview page
     val html = DashboardService.renderDashboard(
       worktrees,
-      state.issueCache,
-      state.progressCache,
-      state.prCache,
       state.reviewStateCache,
-      config,
       sshHost = effectiveSshHost,
       devMode = devMode
     )

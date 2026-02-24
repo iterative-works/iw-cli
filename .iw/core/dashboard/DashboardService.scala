@@ -12,31 +12,23 @@ import java.time.Instant
 import scala.util.Try
 
 object DashboardService:
-  /** Render dashboard with cached data only (read-only).
+  /** Render projects overview page with worktree summary counts.
     *
-    * Dashboard no longer computes or updates caches. Per-card refresh handles all cache updates.
+    * Displays project cards with worktree counts and attention indicators.
+    * Dashboard renders read-only view without updating caches.
     *
     * @param worktrees List of registered worktrees
-    * @param issueCache Current issue cache
-    * @param progressCache Current progress cache
-    * @param prCache Current PR cache
     * @param reviewStateCache Current review state cache
-    * @param config Project configuration (for tracker type and team)
     * @param sshHost SSH hostname for Zed editor remote connections
     * @param devMode Whether to show DEV MODE banner (default: false)
     * @return HTML page as string
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
-    issueCache: Map[String, CachedIssue],
-    progressCache: Map[String, CachedProgress],
-    prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
-    config: Option[ProjectConfiguration],
     sshHost: String,
     devMode: Boolean = false
   ): String =
-    val now = Instant.now()
 
     // Sort worktrees by issue ID (alphabetical ascending)
     val sortedWorktrees = worktrees.sortBy(_.issueId)
