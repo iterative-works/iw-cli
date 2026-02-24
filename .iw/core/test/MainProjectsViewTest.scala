@@ -4,9 +4,7 @@
 package iw.tests
 
 import iw.core.dashboard.domain.MainProject
-import iw.core.dashboard.presentation.views.MainProjectsView
-import iw.core.dashboard.domain.*
-import iw.core.dashboard.presentation.views.MainProjectsView
+import iw.core.dashboard.presentation.views.{MainProjectsView, ProjectSummary}
 import munit.FunSuite
 
 class MainProjectsViewTest extends FunSuite:
@@ -23,8 +21,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "github",
       team = "iterative-works/iw-cli"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("iw-cli"))
     assert(html.contains("GitHub"))
@@ -46,7 +45,10 @@ class MainProjectsViewTest extends FunSuite:
       team = "IWLE"
     )
 
-    val html = MainProjectsView.render(List(project1, project2)).render
+    val summary1 = ProjectSummary(project1, worktreeCount = 0, attentionCount = 0)
+    val summary2 = ProjectSummary(project2, worktreeCount = 0, attentionCount = 0)
+
+    val html = MainProjectsView.render(List(summary1, summary2)).render
 
     assert(html.contains("iw-cli"))
     assert(html.contains("kanon"))
@@ -60,8 +62,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "github",
       team = "iterative-works/iw-cli"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     // Should include project path in modal URL (URL-encoded)
     assert(html.contains("/api/modal/create-worktree"))
@@ -74,8 +77,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "github",
       team = "owner/repo"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("GitHub"))
     assert(html.contains("owner/repo"))
@@ -87,8 +91,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "linear",
       team = "TEAM"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("Linear"))
     assert(html.contains("TEAM"))
@@ -100,8 +105,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "youtrack",
       team = "PROJECT"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("YouTrack"))
     assert(html.contains("PROJECT"))
@@ -114,8 +120,9 @@ class MainProjectsViewTest extends FunSuite:
       team = "iterative-works/iw-cli",
       trackerUrl = Some("https://github.com/iterative-works/iw-cli/issues")
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("<a"), "Should render as link")
     assert(html.contains("href=\"https://github.com/iterative-works/iw-cli/issues\""))
@@ -130,8 +137,9 @@ class MainProjectsViewTest extends FunSuite:
       team = "owner/repo",
       trackerUrl = None
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("<span class=\"team-info\">owner/repo</span>"))
     assert(!html.contains("<a class=\"team-info\""))
@@ -143,8 +151,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "github",
       team = "iterative-works/iw-cli"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("href=\"/projects/iw-cli\""), "Should link to /projects/iw-cli")
 
@@ -155,8 +164,9 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "github",
       team = "iterative-works/iw-cli"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("<a ") && html.contains("iw-cli</h3>"), "Link should wrap the h3 heading")
 
@@ -167,8 +177,75 @@ class MainProjectsViewTest extends FunSuite:
       trackerType = "github",
       team = "iterative-works/iw-cli"
     )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
 
-    val html = MainProjectsView.render(List(project)).render
+    val html = MainProjectsView.render(List(summary)).render
 
     assert(html.contains("create-worktree-button"), "Create button should still be present")
     assert(html.contains("/api/modal/create-worktree"), "Create button should have modal URL")
+
+  test("render with summary showing worktree count text"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+    val summary = ProjectSummary(project, worktreeCount = 3, attentionCount = 0)
+
+    val html = MainProjectsView.render(List(summary)).render
+
+    assert(html.contains("3 worktrees"))
+
+  test("render with zero worktrees shows 0 worktrees"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+    val summary = ProjectSummary(project, worktreeCount = 0, attentionCount = 0)
+
+    val html = MainProjectsView.render(List(summary)).render
+
+    assert(html.contains("0 worktrees"))
+
+  test("render with attention count > 0 shows attention indicator"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+    val summary = ProjectSummary(project, worktreeCount = 3, attentionCount = 1)
+
+    val html = MainProjectsView.render(List(summary)).render
+
+    assert(html.contains("1 needs attention"))
+
+  test("render with attention count == 0 does not show attention indicator"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+    val summary = ProjectSummary(project, worktreeCount = 3, attentionCount = 0)
+
+    val html = MainProjectsView.render(List(summary)).render
+
+    assert(!html.contains("needs attention"))
+
+  test("render with single worktree shows singular text"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+    val summary = ProjectSummary(project, worktreeCount = 1, attentionCount = 0)
+
+    val html = MainProjectsView.render(List(summary)).render
+
+    assert(html.contains("1 worktree"))
+    assert(!html.contains("1 worktrees"))

@@ -1,0 +1,105 @@
+{
+  "version": 2,
+  "issue_id": "IW-205",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-205/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-205/tasks.md",
+      "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-205/phase-01-context.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-205/review-packet-phase-01.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-205/implementation-log.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-205/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-205/phase-02-tasks.md"
+    }
+  ],
+  "last_updated": "2026-02-24T09:47:51.903697013Z",
+  "status": "all_complete",
+  "display": {
+    "text": "Ready for Final Review",
+    "type": "success",
+    "subtext": "All 3 phases complete"
+  },
+  "badges": [
+    {
+      "label": "Feature",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    }
+  ],
+  "message": "All phases complete - creating final PR to main",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "ag-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    }
+  ],
+  "git_sha": "14b22d5",
+  "needs_attention": true,
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/219",
+  "phase_checkpoints": {
+    "2": {
+      "context_sha": "context_sha=764c806360c3929ae404662c23c2b6801315991f"
+    }
+  }
+}

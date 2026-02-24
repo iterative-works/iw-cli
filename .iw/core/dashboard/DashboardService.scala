@@ -1,42 +1,34 @@
 // PURPOSE: Application service for rendering the complete dashboard HTML
-// PURPOSE: Generates full HTML page with header, worktree list, and styling
+// PURPOSE: Generates full HTML page with header, project cards, and styling
 
 package iw.core.dashboard
 
 import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
 import iw.core.adapters.{LinearClient, YouTrackClient, GitHubClient, ConfigFileRepository, CommandRunner}
 import iw.core.dashboard.application.MainProjectService
-import iw.core.dashboard.presentation.views.{MainProjectsView, PageLayout}
+import iw.core.dashboard.presentation.views.{MainProjectsView, PageLayout, ProjectSummary}
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try
 
 object DashboardService:
-  /** Render dashboard with cached data only (read-only).
+  /** Render projects overview page with worktree summary counts.
     *
-    * Dashboard no longer computes or updates caches. Per-card refresh handles all cache updates.
+    * Displays project cards with worktree counts and attention indicators.
+    * Dashboard renders read-only view without updating caches.
     *
     * @param worktrees List of registered worktrees
-    * @param issueCache Current issue cache
-    * @param progressCache Current progress cache
-    * @param prCache Current PR cache
     * @param reviewStateCache Current review state cache
-    * @param config Project configuration (for tracker type and team)
     * @param sshHost SSH hostname for Zed editor remote connections
     * @param devMode Whether to show DEV MODE banner (default: false)
     * @return HTML page as string
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
-    issueCache: Map[String, CachedIssue],
-    progressCache: Map[String, CachedProgress],
-    prCache: Map[String, CachedPR],
     reviewStateCache: Map[String, CachedReviewState],
-    config: Option[ProjectConfiguration],
     sshHost: String,
     devMode: Boolean = false
   ): String =
-    val now = Instant.now()
 
     // Sort worktrees by issue ID (alphabetical ascending)
     val sortedWorktrees = worktrees.sortBy(_.issueId)
@@ -47,18 +39,12 @@ object DashboardService:
       MainProjectService.loadConfig
     )
 
-    // Fetch data for each worktree (read-only from cache)
-    val worktreesWithData = sortedWorktrees.map { wt =>
-      val issueData = fetchIssueForWorktreeCachedOnly(wt, issueCache, now)
-      val progress = fetchProgressForWorktree(wt, progressCache)
-      val gitStatus = fetchGitStatusForWorktree(wt)
-      val prData = fetchPRForWorktreeCachedOnly(wt, prCache, now)
-
-      // Just read review state from cache (no filesystem reads)
-      val reviewStateResult = reviewStateCache.get(wt.issueId).map(cached => Right(cached.state))
-
-      (wt, issueData, progress, gitStatus, prData, reviewStateResult)
-    }
+    // Compute project summaries with worktree counts and attention indicators
+    val projectSummaries = ProjectSummary.computeSummaries(
+      sortedWorktrees,
+      mainProjects,
+      reviewStateCache
+    )
 
     // Prepare body content for PageLayout
     val bodyContent = frag(
@@ -89,9 +75,8 @@ object DashboardService:
           )
         )
       ),
-      // Main projects section (above worktree list)
-      MainProjectsView.render(mainProjects),
-      WorktreeListView.render(worktreesWithData, now, sshHost),
+      // Main projects section
+      MainProjectsView.render(projectSummaries),
       // Modal container (empty by default)
       div(id := "modal-container")
     )
