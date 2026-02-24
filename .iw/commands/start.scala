@@ -4,7 +4,6 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
-import iw.core.dashboard.ServerClient
 
 @main def start(args: String*): Unit =
   if args.isEmpty then

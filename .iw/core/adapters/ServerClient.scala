@@ -1,9 +1,8 @@
 // PURPOSE: HTTP client for CLI commands to communicate with CaskServer
 // PURPOSE: Provides best-effort registration with lazy server start capability
 
-package iw.core.dashboard
+package iw.core.adapters
 
-import iw.core.dashboard.{ServerConfigRepository, ProcessManager}
 import iw.core.model.ServerConfig
 import sttp.client4.quick.*
 import sttp.model.StatusCode

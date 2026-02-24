@@ -55,3 +55,71 @@ M  .iw/core/dashboard/domain/MainProject.scala (delegates to ProjectPath)
 ```
 
 ---
+
+## Phase 2: Infrastructure Layer — adapter moves, StateReader, TmuxAdapter.sendKeys (2026-02-24)
+
+**Layer:** Infrastructure
+
+**What was built:**
+- `.iw/core/adapters/ProcessManager.scala` — Process spawning and PID file management (moved from dashboard/)
+- `.iw/core/adapters/ServerConfigRepository.scala` — Server configuration file persistence (moved from dashboard/)
+- `.iw/core/adapters/ServerClient.scala` — HTTP client for CLI-to-server communication (moved from dashboard/)
+- `.iw/core/adapters/StateReader.scala` — Read-only adapter for querying server state from state.json
+- `.iw/core/adapters/Tmux.scala` — Added `sendKeys` method for tmux keystroke injection
+
+**Dependencies on other layers:**
+- `model/ServerStateCodec` — Used by `StateReader` for JSON deserialization (from Phase 1)
+- `model/ServerConfig` — Used by `ServerConfigRepository` (pre-existing)
+
+**Decisions made:**
+- Used incremental move strategy: move files one at a time with temporary re-exports, then update all imports, then remove re-exports
+- `StateReader` follows `StateRepository.read()` pattern but is read-only (no write, no file creation)
+- `sendKeys` always appends Enter keystroke — intentional for the `--prompt` command execution use case
+- All Phase 1 re-export files (`dashboard/FeedbackParser.scala`, `dashboard/ServerLifecycleService.scala`) cleaned up in this phase along with the 3 new re-exports
+- `CaskServer.scala` got an explicit import for `ServerClient` since it's no longer same-package
+
+**Testing:**
+- Unit tests: 6 new tests (4 StateReaderTest + 2 TmuxAdapterSendKeysTest)
+- All existing tests pass with updated imports
+- E2E: 269/273 pass (4 pre-existing dev-mode failures unrelated to Phase 2)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-02-20260224.md
+- Findings: 0 critical, 5 warnings (1 fixed, 4 pre-existing), 8 suggestions (2 fixed)
+
+**Files changed:**
+```
+A  .iw/core/adapters/ProcessManager.scala
+A  .iw/core/adapters/ServerClient.scala
+A  .iw/core/adapters/ServerConfigRepository.scala
+A  .iw/core/adapters/StateReader.scala
+A  .iw/core/test/StateReaderTest.scala
+A  .iw/core/test/TmuxAdapterSendKeysTest.scala
+M  .iw/core/adapters/Tmux.scala (added sendKeys)
+M  .iw/core/dashboard/CaskServer.scala (import update)
+M  .iw/commands/dashboard.scala (import update)
+M  .iw/commands/feedback.scala (import update)
+M  .iw/commands/issue.scala (import update)
+M  .iw/commands/open.scala (import update)
+M  .iw/commands/register.scala (import update)
+M  .iw/commands/rm.scala (import update)
+M  .iw/commands/server.scala (import update)
+M  .iw/commands/start.scala (import update)
+M  .iw/core/adapters/GitHubClient.scala (import update)
+M  .iw/core/adapters/GitLabClient.scala (import update)
+M  .iw/core/test/FeedbackParserTest.scala (import update)
+M  .iw/core/test/GitHubClientTest.scala (import update)
+M  .iw/core/test/GitLabClientTest.scala (import update)
+M  .iw/core/test/ProcessManagerTest.scala (import update)
+M  .iw/core/test/ServerClientTest.scala (import update)
+M  .iw/core/test/ServerConfigRepositoryTest.scala (import update)
+M  .iw/core/test/ServerLifecycleServiceTest.scala (import update)
+D  .iw/core/dashboard/FeedbackParser.scala (re-export removed)
+D  .iw/core/dashboard/ProcessManager.scala (moved to adapters/)
+D  .iw/core/dashboard/ServerClient.scala (moved to adapters/)
+D  .iw/core/dashboard/ServerConfigRepository.scala (moved to adapters/)
+D  .iw/core/dashboard/ServerLifecycleService.scala (re-export removed)
+```
+
+---

@@ -3,10 +3,8 @@
 
 package iw.core.test
 
-import iw.core.adapters.GitHubClient
-import iw.core.dashboard.FeedbackParser
-import iw.core.adapters.CreatedIssue
-import iw.core.model.Issue
+import iw.core.adapters.{GitHubClient, CreatedIssue}
+import iw.core.model.{FeedbackParser, Issue}
 
 class GitHubClientTest extends munit.FunSuite:
 
