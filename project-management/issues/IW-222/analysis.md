@@ -33,6 +33,8 @@ The architecture cleanup is necessary -- not just cosmetic -- because the new co
 **Components:**
 - `ProjectPath` -- pure function to derive main project path from worktree path (extracted from `MainProject.deriveMainProjectPath`)
 - `ServerStateCodec` -- shared `ReadWriter` instances for `ServerState` and all its nested types (extracted from `StateRepository`'s instance-scoped givens)
+- `ServerLifecycleService` -- moved from `dashboard/` to `model/` (pure formatting/status creation logic, only imports from `model/`)
+- `FeedbackParser` -- moved from `dashboard/` to `model/` (pure argument parsing logic, no I/O)
 - `ProjectSummary` -- value object for `iw projects` output (project name, main tree path, tracker type, team, worktree count)
 - `WorktreeSummary` -- value object for `iw worktrees` output (issue ID, path, PR state, review display, needs_attention)
 - `WorktreeStatus` -- value object for `iw status` output (git state, issue data, PR data, review state, progress)
@@ -62,7 +64,7 @@ This issue does not introduce a separate application layer. The commands are thi
 - `ServerClient` -- moved from `dashboard/`, package changed to `iw.core.adapters`, imports updated
 - `ServerConfigRepository` -- moved from `dashboard/`, package changed to `iw.core.adapters`
 - `ProcessManager` -- moved from `dashboard/`, package changed to `iw.core.adapters`
-- `FeedbackParser` -- moved from `dashboard/`, package changed to `iw.core.adapters` (currently imported by `feedback.scala` command)
+- `FeedbackParser` -- moved from `dashboard/` to `iw.core.model` (pure parsing logic, no I/O)
 - `StateReader` -- new adapter: reads `state.json` from standard location (`~/.local/share/iw/server/state.json`), returns `ServerState`, uses `ServerStateCodec` from `model/`
 - `TmuxAdapter.sendKeys` -- new method: sends keystrokes to a tmux session pane via `tmux send-keys`
 
@@ -70,7 +72,7 @@ This issue does not introduce a separate application layer. The commands are thi
 - HTTP communication with dashboard server (ServerClient)
 - JSON config file I/O (ServerConfigRepository)
 - Process lifecycle management (ProcessManager)
-- CLI argument parsing for feedback command (FeedbackParser)
+- *(FeedbackParser moved to `model/` instead — pure parsing logic)*
 - Read-only access to server state file (StateReader)
 - Tmux session keystroke injection (TmuxAdapter.sendKeys)
 
@@ -133,99 +135,43 @@ The complexity is moderate primarily because of the codec extraction and the nee
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: ServerStateCodec extraction from StateRepository
+### RESOLVED: ServerStateCodec extraction from StateRepository
 
-The `ReadWriter` givens in `StateRepository` are currently defined as instance members of a `case class`. Moving them to a standalone `object` in `model/` changes their scope and may affect implicit resolution in `StateRepository` and other code that currently relies on the instance-scoped givens.
+**Decision:** Option A — Extract codecs to `model/ServerStateCodec` object with all `given ReadWriter[X]` as members. Both `StateRepository` and `StateReader` import from it. Minimal change to `StateRepository` — just add an import and remove the local given definitions.
 
-**Questions to answer:**
-1. Should `ServerStateCodec` provide all givens as top-level members, or should they be imported explicitly?
-2. Does `StateRepository` need to remain a `case class` after codec extraction, or can it become an `object` taking `statePath` as a parameter?
-3. Are there any other consumers of these codecs beyond `StateRepository` and the new `StateReader`?
-
-**Options:**
-- **Option A**: Extract codecs to `model/ServerStateCodec` object with all `given ReadWriter[X]` as members. Both `StateRepository` and `StateReader` import from it. Minimal change to `StateRepository` -- just add an import and remove the local given definitions.
-- **Option B**: Keep codecs in `StateRepository`, have `StateReader` import from `StateRepository`. This avoids the extraction but means `StateReader` (an adapter) imports from `dashboard/`, which defeats the purpose.
-- **Option C**: Duplicate the codec definitions in `StateReader`. Violates DRY but avoids cross-layer coupling.
-
-**Recommendation:** Option A. It's the clean solution and aligns with the stated architecture goal.
-
-**Impact:** Affects `StateRepository` (must import codecs), `StateReader` (new, uses codecs), and any test that creates `StateRepository` instances.
+**Impact:** Affects `StateRepository` (must import codecs), `StateReader` (new, uses codecs), and any test that creates `StateRepository` instances. Mitigate with roundtrip serialization test.
 
 ---
 
-### CLARIFY: FeedbackParser placement
+### RESOLVED: FeedbackParser placement
 
-`FeedbackParser` is imported by `feedback.scala` from `dashboard/`. It is pure argument parsing logic (no I/O, no dashboard dependencies). The issue description does not mention it, but it violates the same import rule.
-
-**Questions to answer:**
-1. Should `FeedbackParser` move to `model/` (pure logic) or `adapters/` (it's a parser, not I/O)?
-2. Is this in scope for IW-222 or should it be a separate cleanup?
-
-**Options:**
-- **Option A**: Move to `model/` since it's pure parsing logic with no I/O. Most principled placement.
-- **Option B**: Move to `adapters/` alongside other moved code. Less principled but groups all moves together.
-- **Option C**: Leave it in `dashboard/` and address separately. Reduces IW-222 scope.
-
-**Recommendation:** Option A (move to `model/`), included in the architecture cleanup phase since the cost is minimal and it fixes the import violation completely.
+**Decision:** Option A — Move to `model/` since it's pure parsing logic with no I/O. Included in the architecture cleanup phase.
 
 **Impact:** `feedback.scala` import line changes. Minimal risk.
 
 ---
 
-### CLARIFY: `server.scala` import of ServerLifecycleService
+### RESOLVED: `server.scala` import of ServerLifecycleService
 
-After moving `ProcessManager` and `ServerConfigRepository` to `adapters/`, `server.scala` will still import `ServerLifecycleService` from `dashboard/`. This is a legitimate server-specific service, but it means `server.scala` still has a `dashboard/` import.
+**Decision:** Option B — Move `ServerLifecycleService` to `model/`. It's ~67 lines of pure formatting logic with only `model/` imports. Eliminates the last `dashboard/` import from commands.
 
-**Questions to answer:**
-1. Is it acceptable for `server.scala` to import from `dashboard/` since it's literally managing the server?
-2. Should `ServerLifecycleService` (pure logic: uptime formatting, security analysis display) also be moved?
-
-**Options:**
-- **Option A**: Accept the exception -- `server.scala` is the server management command, importing from `dashboard/` is natural for it.
-- **Option B**: Move `ServerLifecycleService` to `model/` or `output/` since its functions are pure formatting logic. This eliminates the last `dashboard/` import from commands.
-
-**Recommendation:** Option B if the effort is low (the service is ~50 lines of pure formatting). Option A if we want to keep scope tight.
-
-**Impact:** Minor. Only affects `server.scala` and `dashboard.scala` imports.
+**Impact:** `server.scala` and `dashboard.scala` import lines change. Minimal risk.
 
 ---
 
-### CLARIFY: `iw status` data freshness strategy
+### RESOLVED: `iw status` data freshness strategy
 
-The issue says "Fresh review-state.json is read from disk; other data comes from server state cache." This means `status` reads two data sources: `state.json` (cached, via `StateReader`) and `review-state.json` (fresh, from the worktree directory on disk).
+**Decision:** Option A — Read `review-state.json` from the canonical path `{worktree_path}/project-management/issues/{issue-id}/review-state.json` (confirmed from `ReviewStateService.scala:135`). Fall back gracefully if missing.
 
-**Questions to answer:**
-1. How does the command locate the `review-state.json` file? Is it always at `{worktree_path}/.iw/review-state.json` or a different location?
-2. Should the command also fetch fresh git status from disk (e.g., `git status` in the worktree), or rely on cached data?
-3. What happens when `review-state.json` does not exist for a worktree?
-
-**Options:**
-- **Option A**: Read `review-state.json` from a conventional path in the worktree (`{worktree_path}/project-management/issues/{issue-id}/review-state.json` as seen in test fixtures). Fall back gracefully if missing.
-- **Option B**: Read from whatever path is referenced in the cached review state data.
-
-**Recommendation:** Need to determine the canonical location. The review-state test fixtures suggest paths like `project-management/issues/{id}/review-state.json`, but the actual on-disk location needs to be confirmed.
-
-**Impact:** Affects `status` command implementation and `StateReader` or a separate `ReviewStateReader` adapter.
+**Impact:** `status` command reads from this path using the worktree path from `state.json` and the issue ID.
 
 ---
 
-### CLARIFY: `--prompt` agent launch mechanism
+### RESOLVED: `--prompt` agent launch mechanism
 
-The issue says "iw owns the agent launch mechanism" and currently it's `claude --dangerously-skip-permissions --prompt "..."`. 
+**Decision:** Option A — Hard-code `claude --dangerously-skip-permissions --prompt "..."` for now. Matches the issue spec. YAGNI — trivial to change later if needed.
 
-**Questions to answer:**
-1. Should the agent command be configurable (e.g., via config or environment variable), or is hard-coding `claude` acceptable for now?
-2. Is `--dangerously-skip-permissions` the right flag? This has security implications. Should there be a way to opt into permission mode?
-3. What happens if `claude` is not installed? Should the command fail or warn?
-
-**Options:**
-- **Option A**: Hard-code `claude --dangerously-skip-permissions --prompt "..."` for now. Simplest, matches the stated design.
-- **Option B**: Make the agent command configurable via `config.conf` (e.g., `agent.command = "claude"`). More flexible but more work.
-- **Option C**: Hard-code `claude` but make the flags configurable.
-
-**Recommendation:** Option A for initial implementation. The issue explicitly says "iw owns the agent launch mechanism" and specifies the exact command. Configuration can be added later if needed.
-
-**Impact:** Affects `start.scala` and `open.scala` `--prompt` handling. If `claude` is missing, `sendKeys` will still succeed (it just types into the terminal); the error will appear in the tmux session.
+**Impact:** `start.scala` and `open.scala` `--prompt` handling. If `claude` is missing, `sendKeys` still succeeds (types into terminal); error appears in tmux pane.
 
 ---
 
@@ -297,9 +243,7 @@ Revert the branch. Since state.json format is unchanged, there is no data migrat
 ## Dependencies
 
 ### Prerequisites
-- Understanding of the canonical location for `review-state.json` files in worktrees (CLARIFY marker above)
-- Decision on `FeedbackParser` placement
-- Decision on `ServerLifecycleService` placement
+- All CLARIFY markers resolved (see decisions above)
 
 ### Layer Dependencies
 - Domain layer (`model/`) changes must be completed before infrastructure layer, because `StateReader` and `StateRepository` both need `ServerStateCodec`
@@ -361,9 +305,8 @@ Revert the branch. Since state.json format is unchanged, there is no data migrat
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved (all CLARIFY markers resolved)
 
 **Next Steps:**
-1. Resolve CLARIFY markers with stakeholders (especially review-state.json location and FeedbackParser/ServerLifecycleService placement)
-2. Run **wf-create-tasks** with the issue ID
-3. Run **wf-implement** for layer-by-layer implementation
+1. Run **wf-create-tasks** with the issue ID
+2. Run **wf-implement** for layer-by-layer implementation
