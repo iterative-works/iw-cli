@@ -2,18 +2,18 @@
 
 **Issue:** IW-222
 **Created:** 2026-02-24
-**Status:** 0/4 phases complete (0%)
+**Status:** 1/4 phases complete (25%)
 
 ## Phase Index
 
-- [ ] Phase 01: Domain Layer — model/ extractions and value objects (Est: 3-5h) → `phase-01-context.md`
+- [x] Phase 01: Domain Layer — model/ extractions and value objects (Est: 3-5h) → `phase-01-context.md`
 - [ ] Phase 02: Infrastructure Layer — adapter moves, StateReader, TmuxAdapter.sendKeys (Est: 6-9h) → `phase-02-context.md`
 - [ ] Phase 03: Presentation Layer — new commands (projects, worktrees, status) with --json (Est: 6-9h) → `phase-03-context.md`
 - [ ] Phase 04: Presentation Layer — --prompt support for start/open (Est: 2-3h) → `phase-04-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/4 phases
+**Completed:** 1/4 phases
 **Estimated Total:** 17-26 hours
 **Time Spent:** 0 hours
 
