@@ -33,12 +33,12 @@
       "path": "project-management/issues/IW-205/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-02-24T08:21:39.922297392Z",
-  "status": "phase_merged",
+  "last_updated": "2026-02-24T08:26:06.718461184Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 2: Merged",
-    "type": "success",
-    "subtext": "Remove flat worktree list from root page"
+    "text": "Phase 3: Implementing",
+    "type": "progress",
+    "subtext": "Simplify DashboardService after worktree list removal"
   },
   "badges": [
     {
@@ -66,7 +66,7 @@
       "type": "success"
     }
   ],
-  "message": "Phase 2 merged - ready for Phase 3",
+  "message": "Phase 3 implementation in progress",
   "available_actions": [
     {
       "id": "create-tasks",

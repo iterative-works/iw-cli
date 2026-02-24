@@ -4,7 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.model.{CachedIssue, CachedPR, CachedProgress, CachedReviewState, IssueData, PhaseInfo, PRState, PullRequestData, ReviewArtifact, ReviewState, WorkflowProgress, WorktreeRegistration}
+import iw.core.model.{CachedIssue, CachedReviewState, IssueData, PhaseInfo, PRState, PullRequestData, ReviewArtifact, ReviewState, WorkflowProgress, WorktreeRegistration}
 import iw.core.dashboard.{DashboardService, IssueCacheService, RefreshThrottle, GitStatusService, PullRequestCacheService, WorkflowProgressService, ReviewStateService}
 import iw.core.adapters.{GitHubClient, LinearClient}
 import java.time.Instant
@@ -64,11 +64,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = reviewStateCache,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -81,11 +77,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty, // No cached review state
-      config = None,
       sshHost = "localhost"
     )
 
@@ -95,11 +87,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard with empty worktree list"):
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -131,11 +119,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2, worktree3),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = reviewStateCache,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -164,11 +148,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = reviewStateCache, // Wrong issue ID
-      config = None,
       sshHost = "localhost"
     )
 
@@ -185,11 +165,7 @@ class DashboardServiceTest extends FunSuite:
     // DashboardService.fetchReviewStateForWorktree is private, so we test via renderDashboard
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -211,11 +187,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-INVALID")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -230,11 +202,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -250,11 +218,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -270,11 +234,7 @@ class DashboardServiceTest extends FunSuite:
 
     val _ = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty, // Start with empty cache
-      config = None,
       sshHost = "localhost"
     )
 
@@ -285,11 +245,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-SSH-1")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "my-server.example.com"
     )
 
@@ -300,11 +256,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-SSH-2")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "test-server.local"
     )
 
@@ -316,11 +268,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-SSH-3")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "my-host"
     )
 
@@ -338,11 +286,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-TEST")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "test-server"
     )
 
@@ -352,11 +296,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IWLE-TEST")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "test-server"
     )
 
@@ -368,11 +308,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-82-TEST-1")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost",
       devMode = true
     )
@@ -385,11 +321,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-82-TEST-2")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost",
       devMode = false
     )
@@ -402,11 +334,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-82-TEST-3")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
       // devMode not specified, should default to false
     )
@@ -419,11 +347,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-82-TEST-4")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost",
       devMode = true
     )
@@ -436,11 +360,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard output contains CSS link to /static/dashboard.css"):
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -449,11 +369,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard output contains JS script for /static/dashboard.js"):
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -462,11 +378,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard output does NOT contain inline style tag"):
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -476,11 +388,7 @@ class DashboardServiceTest extends FunSuite:
   test("renderDashboard output does NOT contain inline visibilitychange script"):
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -502,11 +410,7 @@ class DashboardServiceTest extends FunSuite:
 
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -520,11 +424,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-205-TEST-1")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -537,11 +437,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-205-TEST-2")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
@@ -554,11 +450,7 @@ class DashboardServiceTest extends FunSuite:
     val worktree = createWorktree("IW-205-TEST-3")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
-      issueCache = Map.empty,
-      progressCache = Map.empty,
-      prCache = Map.empty,
       reviewStateCache = Map.empty,
-      config = None,
       sshHost = "localhost"
     )
 
