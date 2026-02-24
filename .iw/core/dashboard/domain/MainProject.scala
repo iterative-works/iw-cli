@@ -3,6 +3,8 @@
 
 package iw.core.dashboard.domain
 
+import iw.core.model.ProjectPath
+
 case class MainProject(
   path: os.Path,
   projectName: String,
@@ -27,28 +29,4 @@ object MainProject:
     * @return Some(mainProjectPath) if pattern matches, None otherwise
     */
   def deriveMainProjectPath(worktreePath: String): Option[String] =
-    // Extract the directory name (last component of path)
-    val dirName = worktreePath.split('/').lastOption.getOrElse("")
-
-    // Pattern to match issue ID suffix: -{LETTERS}-{DIGITS} or -{DIGITS}
-    // This matches:
-    // - IW-79 (standard format)
-    // - IWLE-123 (Linear format)
-    // - ABC-9999 (multi-digit)
-    // - 123 (GitHub format - numeric only)
-    // - A-123 (single letter prefix)
-    val issueIdPattern = """-([A-Z]+-\d+|\d+)$""".r
-
-    issueIdPattern.findFirstIn(dirName) match
-      case Some(suffix) =>
-        // Found issue ID suffix - remove it from the full path
-        val mainProjectName = dirName.stripSuffix(suffix)
-        // Don't just remove from directory name, reconstruct the full path
-        val parentPath = worktreePath.stripSuffix("/" + dirName).stripSuffix(dirName)
-        if parentPath.isEmpty then
-          Some(mainProjectName)
-        else
-          Some(s"$parentPath/$mainProjectName")
-      case None =>
-        // No issue ID pattern found
-        None
+    ProjectPath.deriveMainProjectPath(worktreePath)
