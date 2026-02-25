@@ -3,8 +3,7 @@
 
 package iw.core.adapters
 
-import iw.core.model.{Issue, IssueId, ApiToken}
-import iw.core.dashboard.FeedbackParser
+import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser}
 
 object GitHubClient:
 

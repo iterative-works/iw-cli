@@ -1,7 +1,7 @@
 // PURPOSE: Infrastructure for background process spawning and PID file management
 // PURPOSE: Handles process lifecycle control with UNIX signals and process detection
 
-package iw.core.dashboard
+package iw.core.adapters
 
 import scala.util.{Try, Success, Failure}
 import java.nio.file.{Files, Paths, NoSuchFileException}

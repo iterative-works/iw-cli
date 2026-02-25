@@ -5,7 +5,6 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
-import iw.core.dashboard.ServerClient
 
 @main def open(args: String*): Unit =
   // Load config first to get team prefix

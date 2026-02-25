@@ -27,16 +27,32 @@
     {
       "label": "Implementation Log",
       "path": "project-management/issues/IW-222/implementation-log.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-222/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-222/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-222/phase-02-context.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-222/implementation-log.md"
     }
   ],
-  "last_updated": "2026-02-24T18:17:37.354897579Z",
-  "status": "phase_merged",
+  "last_updated": "2026-02-24T19:22:14.832951124Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 1: Merged",
-    "type": "success",
-    "subtext": "Domain Layer — model/ extractions and value objects"
+    "text": "Phase 2: Awaiting Review",
+    "type": "warning",
+    "subtext": "Infrastructure Layer — adapter moves, StateReader, TmuxAdapter.sendKeys"
   },
-  "message": "Phase 1 merged — ready for Phase 2",
+  "message": "Phase 2 complete — Infrastructure Layer",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -62,13 +78,23 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "6a9680d",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=fe13891f2409f7440ca68fef7a3188e3df5afc1b"
+    "2": {
+      "context_sha": "context_sha=672c0201d66ff2a106a4ccaaf857df0c73a1281e"
     }
   },
   "badges": [
@@ -83,7 +109,15 @@
     {
       "label": "Phase 1",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/223"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/224"
 }

@@ -3,10 +3,8 @@
 
 package iw.core.test
 
-import iw.core.adapters.GitLabClient
-import iw.core.dashboard.FeedbackParser
-import iw.core.model.Issue
-import iw.core.adapters.CreatedIssue
+import iw.core.adapters.{GitLabClient, CreatedIssue}
+import iw.core.model.{FeedbackParser, Issue}
 
 class GitLabClientTest extends munit.FunSuite:
 
