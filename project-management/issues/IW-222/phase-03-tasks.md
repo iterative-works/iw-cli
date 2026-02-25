@@ -10,11 +10,10 @@
 
 ### Task 3.1: ProjectsFormatter — test and implement
 
-**What to do:**
-1. Create `.iw/core/test/ProjectsFormatterTest.scala` (package `iw.tests`, extends `munit.FunSuite`)
-2. Run tests — confirm they all fail
-3. Create `.iw/core/output/ProjectsFormatter.scala` (package `iw.core.output`, object `ProjectsFormatter`)
-4. Run tests — confirm they all pass
+- [x] Create `.iw/core/test/ProjectsFormatterTest.scala` (package `iw.tests`, extends `munit.FunSuite`)
+- [x] Run tests — confirm they all fail
+- [x] Create `.iw/core/output/ProjectsFormatter.scala` (package `iw.core.output`, object `ProjectsFormatter`)
+- [x] Run tests — confirm they all pass
 
 **Test cases for `ProjectsFormatterTest`:**
 - `"format single project shows all fields"` — construct `ProjectSummary(name = "testproject", path = "/home/user/testproject", trackerType = "linear", team = "IWLE", worktreeCount = 1)`, call `ProjectsFormatter.format(List(summary))`, assert output contains "testproject", "/home/user/testproject", "linear", "IWLE", "1 worktree" (singular)
@@ -39,11 +38,10 @@
 
 ### Task 3.2: WorktreesFormatter — test and implement
 
-**What to do:**
-1. Create `.iw/core/test/WorktreesFormatterTest.scala` (package `iw.tests`, extends `munit.FunSuite`)
-2. Run tests — confirm they all fail
-3. Create `.iw/core/output/WorktreesFormatter.scala` (package `iw.core.output`, object `WorktreesFormatter`)
-4. Run tests — confirm they all pass
+- [x] Create `.iw/core/test/WorktreesFormatterTest.scala` (package `iw.tests`, extends `munit.FunSuite`)
+- [x] Run tests — confirm they all fail
+- [x] Create `.iw/core/output/WorktreesFormatter.scala` (package `iw.core.output`, object `WorktreesFormatter`)
+- [x] Run tests — confirm they all pass
 
 **Test cases for `WorktreesFormatterTest`:**
 - `"format worktree with all fields"` — construct `WorktreeSummary(issueId = "IWLE-123", path = "/home/user/testproject-IWLE-123", issueTitle = Some("Add user login"), issueStatus = Some("In Progress"), prState = Some("Open"), reviewDisplay = Some("Waiting for review"), needsAttention = true)`, assert output contains "IWLE-123", "Add user login", "In Progress", "Open", attention indicator
@@ -72,11 +70,10 @@
 
 ### Task 3.3: StatusFormatter — test and implement
 
-**What to do:**
-1. Create `.iw/core/test/StatusFormatterTest.scala` (package `iw.tests`, extends `munit.FunSuite`)
-2. Run tests — confirm they all fail
-3. Create `.iw/core/output/StatusFormatter.scala` (package `iw.core.output`, object `StatusFormatter`)
-4. Run tests — confirm they all pass
+- [x] Create `.iw/core/test/StatusFormatterTest.scala` (package `iw.tests`, extends `munit.FunSuite`)
+- [x] Run tests — confirm they all fail
+- [x] Create `.iw/core/output/StatusFormatter.scala` (package `iw.core.output`, object `StatusFormatter`)
+- [x] Run tests — confirm they all pass
 
 **Test cases for `StatusFormatterTest`:**
 - `"format status with all fields populated"` — full `WorktreeStatus` with every Option as `Some(...)`, assert output contains all sections: Git (branch, clean), Issue (status, URL), Pull Request (state, number, URL), Review (display, badges, attention), Progress (phase, percentage)
@@ -109,8 +106,7 @@
 
 ### Task 3.4: `iw projects` command
 
-**What to do:**
-1. Create `.iw/commands/projects.scala` with PURPOSE header and USAGE comment
+- [x] Create `.iw/commands/projects.scala` with PURPOSE header and USAGE comment
 
 **Command signature:**
 ```scala
@@ -153,8 +149,7 @@ import iw.core.output.*
 
 ### Task 3.5: `iw worktrees` command
 
-**What to do:**
-1. Create `.iw/commands/worktrees.scala` with PURPOSE header and USAGE comment
+- [x] Create `.iw/commands/worktrees.scala` with PURPOSE header and USAGE comment
 
 **Command signature:**
 ```scala
@@ -204,8 +199,7 @@ import iw.core.output.*
 
 ### Task 3.6: `iw status` command
 
-**What to do:**
-1. Create `.iw/commands/status.scala` with PURPOSE header and USAGE comment
+- [x] Create `.iw/commands/status.scala` with PURPOSE header and USAGE comment
 
 **Command signature:**
 ```scala
@@ -268,8 +262,7 @@ import iw.core.output.*
 
 ### Task 3.7: E2E tests for `iw projects`
 
-**What to do:**
-1. Create `.iw/test/projects.bats`
+- [x] Create `.iw/test/projects.bats`
 
 **Setup pattern** (follows `start.bats` pattern):
 ```bash
@@ -301,8 +294,7 @@ Best approach: set `HOME` to `$TEST_DIR` in setup, create `$TEST_DIR/.local/shar
 
 ### Task 3.8: E2E tests for `iw worktrees`
 
-**What to do:**
-1. Create `.iw/test/worktrees.bats`
+- [x] Create `.iw/test/worktrees.bats`
 
 **Setup pattern:** Same HOME override approach as projects.bats. Additionally create a git repo so `os.pwd` resolves to a known project.
 
@@ -320,8 +312,7 @@ Best approach: set `HOME` to `$TEST_DIR` in setup, create `$TEST_DIR/.local/shar
 
 ### Task 3.9: E2E tests for `iw status`
 
-**What to do:**
-1. Create `.iw/test/status.bats`
+- [x] Create `.iw/test/status.bats`
 
 **Setup pattern:** Same HOME override approach. Additionally need a real git worktree for live git state queries.
 
@@ -339,13 +330,12 @@ Best approach: set `HOME` to `$TEST_DIR` in setup, create `$TEST_DIR/.local/shar
 
 ### Task 3.10: Run full test suite and verify no regressions
 
-**What to do:**
-1. Run `./iw test unit` — all existing unit tests must pass, plus all new formatter tests
-2. Run `./iw test e2e` — all existing E2E tests must pass, plus all new command E2E tests
-3. Verify no imports from `iw.core.dashboard` in any of the 3 new command files
-4. Verify all 9 new files (3 formatters, 3 formatter tests, 3 commands) have PURPOSE headers
-5. Verify all 3 new BATS test files have PURPOSE comments
-6. Spot-check `--json` output stability: run each command with `--json` and verify output matches the API contract in `phase-03-context.md`
+- [x] Run `./iw test unit` — all existing unit tests must pass, plus all new formatter tests
+- [x] Run `./iw test e2e` — all existing E2E tests must pass, plus all new command E2E tests
+- [x] Verify no imports from `iw.core.dashboard` in any of the 3 new command files
+- [x] Verify all 9 new files (3 formatters, 3 formatter tests, 3 commands) have PURPOSE headers
+- [x] Verify all 3 new BATS test files have PURPOSE comments
+- [x] Spot-check `--json` output stability: run each command with `--json` and verify output matches the API contract in `phase-03-context.md`
 
 **Dependencies:** All tasks 3.0-3.9 complete
 **Acceptance criteria:**
