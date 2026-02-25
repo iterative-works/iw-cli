@@ -45,14 +45,14 @@
       "path": "project-management/issues/IW-222/implementation-log.md"
     }
   ],
-  "last_updated": "2026-02-24T19:22:14.832951124Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-02-25T10:08:33.530274724Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 2: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 2: Merged",
+    "type": "success",
     "subtext": "Infrastructure Layer — adapter moves, StateReader, TmuxAdapter.sendKeys"
   },
-  "message": "Phase 2 complete — Infrastructure Layer",
+  "message": "Phase 2 merged — ready for Phase 3",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -117,6 +117,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/224"
