@@ -59,16 +59,24 @@
     {
       "label": "Implementation Log",
       "path": "project-management/issues/IW-222/implementation-log.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-222/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-222/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-02-26T08:35:30.762862524Z",
-  "status": "phase_merged",
+  "last_updated": "2026-02-26T08:51:33.118861654Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 3: Merged",
-    "type": "success",
-    "subtext": "Presentation Layer — new commands (projects, worktrees, status) with --json"
+    "text": "Phase 4: Implementing",
+    "type": "progress",
+    "subtext": "Presentation Layer — --prompt support for start/open"
   },
-  "message": "Phase 3 merged — ready for Phase 4",
+  "message": "Phase 4 implementation in progress",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -124,13 +132,18 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "6a9680d",
   "needs_attention": true,
   "phase_checkpoints": {
-    "3": {
-      "context_sha": "context_sha=e79866e22d2738c439b76cd87deee2485d6bab69"
+    "4": {
+      "context_sha": "context_sha=81b1b15dfa8e9c64af59089ecfe51f3f03f841c8"
     }
   },
   "badges": [
@@ -169,6 +182,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/226"
