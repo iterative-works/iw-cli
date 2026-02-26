@@ -192,9 +192,28 @@ teardown() {
     # Session should be created
     tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-444" 2>/dev/null
 
-    # Pane should contain the command
+    # Pane should contain the command with single-quoted prompt
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-444)"
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+}
+
+@test "open --prompt protects against shell metacharacters" {
+    # Create worktree
+    git worktree add -b IWLE-555 "../testproject-IWLE-555"
+
+    run env -u TMUX "$PROJECT_ROOT/iw" open --prompt '$(echo INJECTED)' IWLE-555
+
+    [ "$status" -eq 0 ]
+
+    # Give tmux a moment to process
+    sleep 0.1
+
+    # Capture pane content — the $() should appear literally (single-quoted), not executed
+    local pane_content
+    pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-555)"
+    # The literal $(echo should appear in the pane (inside single quotes)
+    [[ "$pane_content" == *'$(echo'* ]]
     [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
 }

@@ -175,3 +175,40 @@ A  .iw/test/status.bats
 ```
 
 ---
+
+## Phase 4: Presentation Layer — --prompt support for start/open (2026-02-26)
+
+**Layer:** Presentation
+
+**What was built:**
+- `.iw/commands/start.scala` — Added `--prompt <text>` flag: parses flag, sends `claude --dangerously-skip-permissions --prompt '<text>'` to tmux session via `sendKeys` instead of attaching
+- `.iw/commands/open.scala` — Added `--prompt <text>` flag with same behavior; refactored session joining into `handleSessionJoin` helper for clarity
+
+**Dependencies on other layers:**
+- `adapters/TmuxAdapter.sendKeys` — Keystroke injection from Phase 2
+- `model/IssueId`, `adapters/ConfigFileRepository` — Pre-existing, unchanged
+
+**Decisions made:**
+- Single-quote wrapping for shell safety: prompt text wrapped in `'...'` with internal single quotes escaped as `'\''`, protecting against shell metacharacter injection (`$()`, backticks, etc.)
+- `extractPrompt` helper duplicated in both command scripts — acceptable trade-off of the script-per-command architecture (standalone scala-cli scripts don't share compilation units)
+- `open.scala` refactored `handleSessionJoin` to reduce nesting — applies to both `--prompt` and normal paths
+
+**Testing:**
+- E2E tests: 17 new tests (8 start-prompt.bats + 9 open-prompt.bats)
+- Shell metacharacter injection test verifies `$(...)` is treated literally
+- All existing tests pass: 18 start.bats, 9 open.bats, all unit tests
+
+**Code review:**
+- Iterations: 1 (critical shell escaping issue found and fixed before re-review)
+- Review file: review-phase-04-20260226.md
+- Findings: 1 critical (fixed: shell escaping), 4 warnings (2 duplication — architectural trade-off, 2 acceptable), 3 suggestions
+
+**Files changed:**
+```
+M  .iw/commands/open.scala
+M  .iw/commands/start.scala
+A  .iw/test/open-prompt.bats
+A  .iw/test/start-prompt.bats
+```
+
+---
