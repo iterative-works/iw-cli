@@ -1,17 +1,20 @@
 // PURPOSE: Creates an isolated worktree for a specific issue with a tmux session
-// USAGE: iw start <issue-id>
+// USAGE: iw start [--prompt <text>] <issue-id>
 
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
 
 @main def start(args: String*): Unit =
-  if args.isEmpty then
+  // Parse --prompt flag if present
+  val (promptOpt, remainingArgs) = extractPrompt(args.toList)
+
+  if remainingArgs.isEmpty then
     Output.error("Missing issue ID")
-    Output.info("Usage: iw start <issue-id>")
+    Output.info("Usage: iw start [--prompt <text>] <issue-id>")
     sys.exit(1)
 
-  val rawIssueId = args.head
+  val rawIssueId = remainingArgs.head
   val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
 
   // Read config to check tracker type and team prefix
@@ -34,9 +37,21 @@ import iw.core.output.*
       Output.error(error)
       sys.exit(1)
     case Right(issueId) =>
-      createWorktreeForIssue(issueId, config)
+      createWorktreeForIssue(issueId, config, promptOpt)
 
-def createWorktreeForIssue(issueId: IssueId, config: ProjectConfiguration): Unit =
+def extractPrompt(args: List[String]): (Option[String], List[String]) =
+  args.indexOf("--prompt") match
+    case -1 => (None, args)
+    case idx =>
+      if idx + 1 >= args.length then
+        Output.error("--prompt requires a text argument")
+        Output.info("Usage: iw start [--prompt <text>] <issue-id>")
+        sys.exit(1)
+      val prompt = args(idx + 1)
+      val remaining = args.take(idx) ++ args.drop(idx + 2)
+      (Some(prompt), remaining)
+
+def createWorktreeForIssue(issueId: IssueId, config: ProjectConfiguration, promptOpt: Option[String]): Unit =
   val currentDir = os.pwd
   val worktreePath = WorktreePath(config.projectName, issueId)
   val targetPath = worktreePath.resolve(currentDir)
@@ -97,22 +112,36 @@ def createWorktreeForIssue(issueId: IssueId, config: ProjectConfiguration): Unit
     case Right(_) =>
       Output.success(s"Tmux session created")
 
-  // Join session (switch if inside tmux, attach if outside)
-  if TmuxAdapter.isInsideTmux then
-    Output.info(s"Switching to session '$sessionName'...")
-    TmuxAdapter.switchSession(sessionName) match
-      case Left(error) =>
-        Output.error(error)
-        Output.info(s"Session created. Switch manually with: tmux switch-client -t $sessionName")
-        sys.exit(1)
-      case Right(_) =>
-        () // Successfully switched
-  else
-    Output.info(s"Attaching to session...")
-    TmuxAdapter.attachSession(sessionName) match
-      case Left(error) =>
-        Output.error(error)
-        Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
-        sys.exit(1)
-      case Right(_) =>
-        () // Successfully attached and detached
+  // Handle session joining based on --prompt flag
+  promptOpt match
+    case Some(prompt) =>
+      // Send claude command instead of attaching
+      val escapedPrompt = prompt.replace("\"", "\\\"")
+      val claudeCommand = s"""claude --dangerously-skip-permissions --prompt "$escapedPrompt""""
+      TmuxAdapter.sendKeys(sessionName, claudeCommand) match
+        case Left(error) =>
+          Output.error(s"Failed to send claude command: $error")
+          Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
+          sys.exit(1)
+        case Right(_) =>
+          Output.success(s"Session '$sessionName' created and claude agent launched")
+    case None =>
+      // Normal attach/switch behavior
+      if TmuxAdapter.isInsideTmux then
+        Output.info(s"Switching to session '$sessionName'...")
+        TmuxAdapter.switchSession(sessionName) match
+          case Left(error) =>
+            Output.error(error)
+            Output.info(s"Session created. Switch manually with: tmux switch-client -t $sessionName")
+            sys.exit(1)
+          case Right(_) =>
+            () // Successfully switched
+      else
+        Output.info(s"Attaching to session...")
+        TmuxAdapter.attachSession(sessionName) match
+          case Left(error) =>
+            Output.error(error)
+            Output.info(s"Session created. Attach manually with: tmux attach -t $sessionName")
+            sys.exit(1)
+          case Right(_) =>
+            () // Successfully attached and detached
