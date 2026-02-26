@@ -51,16 +51,24 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-222/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-222/phase-03-context.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-222/implementation-log.md"
     }
   ],
-  "last_updated": "2026-02-25T22:37:32.139537011Z",
-  "status": "implementing",
+  "last_updated": "2026-02-26T08:35:30.762862524Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 3: Implementing",
-    "type": "progress",
+    "text": "Phase 3: Merged",
+    "type": "success",
     "subtext": "Presentation Layer — new commands (projects, worktrees, status) with --json"
   },
-  "message": "Phase 3 implementation in progress",
+  "message": "Phase 3 merged — ready for Phase 4",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -101,6 +109,21 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "6a9680d",
@@ -138,7 +161,15 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/224"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/226"
 }
