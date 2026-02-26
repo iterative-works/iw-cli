@@ -123,3 +123,55 @@ D  .iw/core/dashboard/ServerLifecycleService.scala (re-export removed)
 ```
 
 ---
+
+## Phase 3: Presentation Layer — new commands (projects, worktrees, status) with --json (2026-02-25)
+
+**Layer:** Presentation
+
+**What was built:**
+- `.iw/core/output/ProjectsFormatter.scala` — Human-readable formatter for projects list (column-aligned table)
+- `.iw/core/output/WorktreesFormatter.scala` — Human-readable formatter for worktrees list (issue/PR/review summary)
+- `.iw/core/output/StatusFormatter.scala` — Human-readable formatter for detailed worktree status (conditional multi-section display)
+- `.iw/commands/projects.scala` — `iw projects [--json]` command: lists registered projects from state.json
+- `.iw/commands/worktrees.scala` — `iw worktrees [--all] [--json]` command: lists worktrees for current project or all
+- `.iw/commands/status.scala` — `iw status [issue-id] [--json]` command: detailed worktree status with live git + cached data
+
+**Dependencies on other layers:**
+- `model/ProjectSummary`, `model/WorktreeSummary`, `model/WorktreeStatus` — value objects from Phase 1
+- `model/ProjectPath`, `model/ServerState`, `model/ServerStateCodec` — domain types from Phase 1
+- `adapters/StateReader` — read-only state access from Phase 2
+- `adapters/ConfigFileRepository`, `adapters/GitAdapter` — pre-existing adapters
+
+**Decisions made:**
+- Commands follow existing script-per-command pattern (consistent with `start.scala`, `open.scala`)
+- `--json` outputs the value objects directly via `upickle.default.write` (automatic serialization via `derives ReadWriter`)
+- `status` command issue ID resolution follows same pattern as `open.scala` (branch inference + team prefix)
+- `worktrees` default filters to current project using `ProjectPath.deriveMainProjectPath` matching
+
+**Testing:**
+- Unit tests: 24 new tests (6 ProjectsFormatterTest + 8 WorktreesFormatterTest + 10 StatusFormatterTest)
+- E2E tests: 15 new tests (5 projects.bats + 5 worktrees.bats + 5 status.bats)
+- All existing tests pass: 269+ E2E tests, all unit tests
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260225.md
+- Findings: 0 critical, 5 warnings (2 pre-existing patterns, 3 minor), 12 suggestions
+
+**Files changed:**
+```
+A  .iw/commands/projects.scala
+A  .iw/commands/worktrees.scala
+A  .iw/commands/status.scala
+A  .iw/core/output/ProjectsFormatter.scala
+A  .iw/core/output/WorktreesFormatter.scala
+A  .iw/core/output/StatusFormatter.scala
+A  .iw/core/test/ProjectsFormatterTest.scala
+A  .iw/core/test/WorktreesFormatterTest.scala
+A  .iw/core/test/StatusFormatterTest.scala
+A  .iw/test/projects.bats
+A  .iw/test/worktrees.bats
+A  .iw/test/status.bats
+```
+
+---
