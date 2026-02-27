@@ -1,7 +1,7 @@
 // PURPOSE: Application service for server lifecycle pure business logic
 // PURPOSE: Provides uptime formatting and status creation
 
-package iw.core.dashboard
+package iw.core.model
 
 import iw.core.model.{ServerState, ServerStatus, SecurityAnalysis}
 import java.time.Instant

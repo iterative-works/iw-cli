@@ -1,7 +1,7 @@
 // PURPOSE: Repository for server configuration file persistence
 // PURPOSE: Handles reading and writing ServerConfig to/from JSON
 
-package iw.core.dashboard
+package iw.core.adapters
 
 import iw.core.model.ServerConfig
 import upickle.default.*

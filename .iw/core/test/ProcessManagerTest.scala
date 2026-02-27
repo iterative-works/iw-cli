@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.dashboard.ProcessManager
+import iw.core.adapters.ProcessManager
 import java.nio.file.{Files, Paths}
 import iw.core.model.Check
 

@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner}
+import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner, ServerClient}
 import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
 import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}

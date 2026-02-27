@@ -59,6 +59,18 @@ object TmuxAdapter:
     if result.exitCode == 0 then Right(())
     else Left(s"Failed to kill session: ${result.stderr}")
 
+  /** Send keystrokes to a tmux session pane and press Enter to execute.
+    * Designed for the --prompt use case (typing a command and executing it).
+    *
+    * @param sessionName The name of the tmux session to send keys to
+    * @param keys The keystrokes to send (will be followed by Enter)
+    * @return Right(()) on success, Left(error message) on failure
+    */
+  def sendKeys(sessionName: String, keys: String): Either[String, Unit] =
+    val result = ProcessAdapter.run(tmuxCmd("send-keys", "-t", sessionName, keys, "Enter"))
+    if result.exitCode == 0 then Right(())
+    else Left(s"Failed to send keys to session '$sessionName': ${result.stderr}")
+
   /** Check if currently running inside a tmux session on our managed server */
   def isInsideTmux: Boolean =
     sys.env.get(Constants.EnvVars.Tmux) match

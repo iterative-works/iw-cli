@@ -1,7 +1,7 @@
 // PURPOSE: Parser for feedback command arguments
 // PURPOSE: Handles title, --description, and --type flags for issue creation
 
-package iw.core.dashboard
+package iw.core.model
 
 import iw.core.model.Constants
 
