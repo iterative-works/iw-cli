@@ -55,13 +55,42 @@ If not specified, defaults to "latest".
 
 | Command | Description |
 |---------|-------------|
-| `iw init` | Interactive setup, creates `.iw/config.yaml` |
+| `iw init` | Interactive setup, creates `.iw/config.conf` |
 | `iw doctor` | Validate environment (tokens, tmux, etc.) |
-| `iw start <issue-id>` | Create sibling worktree + tmux session |
-| `iw open [issue-id]` | Open tmux session (defaults to current branch) |
+| `iw start [--prompt <text>] <issue-id>` | Create sibling worktree + tmux session |
+| `iw open [--prompt <text>] [issue-id]` | Open tmux session (defaults to current branch) |
 | `iw rm <issue-id>` | Kill session, remove worktree, delete branch |
-| `iw issue` | Fetch issue details from configured tracker |
+| `iw issue [issue-id]` | Fetch issue details from configured tracker |
+| `iw projects [--json]` | List all registered projects |
+| `iw worktrees [--all] [--json]` | List worktrees for current project |
+| `iw status [issue-id] [--json]` | Show detailed worktree status |
 | `iw review-state` | Manage review-state.json files (validate, write, update) |
+| `iw test [unit\|compile\|e2e]` | Run tests |
+
+### Agent integration
+
+The `--prompt` flag on `start` and `open` enables agent-driven development. When provided, `iw` launches a Claude Code session in the tmux pane with the given prompt and exits immediately (detached mode).
+
+```bash
+# Start work on an issue with an agent
+iw start 203 --prompt "Analyze this issue and create analysis.md"
+
+# Send new instructions to an existing session
+iw open 203 --prompt "Continue with implementation phase 2"
+```
+
+The `projects`, `worktrees`, and `status` commands support `--json` for machine-readable output, enabling agents to discover and monitor worktrees programmatically.
+
+```bash
+# List all projects
+iw projects --json
+
+# List worktrees for current project
+iw worktrees --json
+
+# Get detailed status for a worktree
+iw status IW-203 --json
+```
 
 For detailed documentation on `review-state` commands, see [docs/commands/review-state.md](docs/commands/review-state.md).
 
