@@ -104,11 +104,12 @@ The alternative of filesystem scanning (looking for directories with `.iw/config
 
 **Components:**
 - `start.scala` extension - register main project after creating worktree
-- `register.scala` extension - register main project alongside worktree registration
+- `register.scala` extension - context-aware: register project from main dir, or worktree + project from issue worktree
 - `projects.scala` extension - also read from registered projects (not just derive from worktrees)
 
 **Responsibilities:**
-- Ensure every `./iw start` or `./iw register` invocation registers the main project
+- `register.scala`: detect context (issue worktree vs main project dir) and register accordingly
+- `start.scala`: auto-register the parent project alongside the worktree
 - Extract project metadata from `.iw/config.conf` at the call site (already loaded by these commands)
 - Best-effort registration (same pattern as current worktree registration: warn on failure, don't error)
 
@@ -140,57 +141,30 @@ The alternative of filesystem scanning (looking for directories with `.iw/config
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Project Identity and Deduplication
+### RESOLVED: Project Identity and Deduplication
 
-When merging registered projects with worktree-derived projects, we need a stable identity key.
+**Decision:** Path as storage key, project name for display (Option C).
 
-**Questions to answer:**
-1. Should the deduplication key be the project path (absolute filesystem path) or the project name?
-2. What happens if a project is registered from two different machines with different absolute paths (e.g., `/home/alice/projects/iw-cli` vs `/home/bob/projects/iw-cli`)?
-3. Should we allow multiple registrations of the "same" project from different paths?
-
-**Options:**
-- **Option A: Deduplicate by absolute path** - Simple, deterministic. Two different paths = two different projects. Matches current worktree behavior. Downside: moving a project directory orphans the registration.
-- **Option B: Deduplicate by project name** - More user-friendly. Risk of name collisions if user has two different projects with the same directory name.
-- **Option C: Deduplicate by path, with projectName as display key** - Use path as the storage key (like worktrees use issueId), display projectName in the UI. This is what the current worktree-derivation approach effectively does.
-
-**Recommended:** Option C (path as key, name for display). This matches existing behavior.
-
-**Impact:** Determines the key for `ServerState.projects` map and affects merge logic.
+Absolute filesystem path is the map key in `ServerState.projects`. Project name (last path component) is used for display and URL routing. Two different paths = two different projects. This matches the current worktree-derivation approach.
 
 ---
 
-### CLARIFY: Auto-Registration Timing
+### RESOLVED: Auto-Registration Timing
 
-**Questions to answer:**
-1. Should running `./iw start <issue-id>` from the main project directory automatically register that project, or should there be a separate `./iw project register` command?
-2. If auto-registering, should it happen on every `start`/`register` call (idempotent), or only if not already registered?
+**Decision:** Context-aware `register` + auto-register on `start`.
 
-**Options:**
-- **Option A: Auto-register on every `start`/`register`** - Simplest, idempotent, no new commands needed. Slight overhead of an extra HTTP call per `start`.
-- **Option B: Separate `./iw project register` command** - Explicit, but adds friction. Users must remember to run it.
-- **Option C: Auto-register on first `start`, skip if already registered** - Optimized but requires checking registration status first (another HTTP call or local state check).
-
-**Recommended:** Option A. The overhead of an idempotent PUT is negligible, and it keeps things simple.
-
-**Impact:** Determines whether we need a new CLI command and how `start.scala`/`register.scala` change.
+- `./iw register` from main project dir (no issue ID in branch) → registers the project
+- `./iw register` from issue worktree → registers the worktree (current behavior) AND auto-registers the parent project
+- `./iw start` → auto-registers the parent project alongside the worktree
+- All registrations are idempotent (PUT semantics)
 
 ---
 
-### CLARIFY: Pruning Stale Project Registrations
+### RESOLVED: Pruning Stale Project Registrations
 
-**Questions to answer:**
-1. Should the dashboard auto-prune projects whose paths no longer exist on disk?
-2. The current worktree auto-prune logic (`stateService.pruneWorktrees`) checks `os.exists(os.Path(wt.path))`. Should we do the same for projects?
+**Decision:** Auto-prune on dashboard load (Option A).
 
-**Options:**
-- **Option A: Auto-prune on dashboard load** - Consistent with worktree behavior. Removes projects if directory is deleted/moved.
-- **Option B: Never auto-prune** - Projects persist until explicitly removed. Useful if directory is temporarily unmounted.
-- **Option C: Manual prune only** - Add `./iw project remove` command. No auto-pruning.
-
-**Recommended:** Option A for consistency with existing worktree pruning behavior.
-
-**Impact:** Determines whether we need a prune method and when it runs.
+Consistent with existing worktree pruning. On dashboard load, remove registered projects whose paths no longer exist on disk. Uses the same `os.exists` check pattern as `stateService.pruneWorktrees`.
 
 ---
 
@@ -332,9 +306,8 @@ When merging registered projects with worktree-derived projects, we need a stabl
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Approved (all CLARIFY items resolved)
 
 **Next Steps:**
-1. Resolve CLARIFY markers with stakeholders
-2. Run **wf-create-tasks** with issue IW-148
-3. Run **wf-implement** for layer-by-layer implementation
+1. Run **wf-create-tasks** with issue IW-148
+2. Run **wf-implement** for layer-by-layer implementation
