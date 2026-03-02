@@ -122,7 +122,7 @@ class ServerStateCodecTest extends FunSuite:
 
     assertEquals(parsed, PRState.Closed)
 
-  test("backward compatibility - JSON missing optional cache fields parses successfully"):
+  test("backward compatibility - JSON with only worktrees key parses with all optional fields as empty"):
     val json = """{"worktrees":{}}"""
     val parsed = read[StateJson](json)
 
@@ -131,6 +131,91 @@ class ServerStateCodecTest extends FunSuite:
     assertEquals(parsed.progressCache, Map.empty)
     assertEquals(parsed.prCache, Map.empty)
     assertEquals(parsed.reviewStateCache, Map.empty)
+    assertEquals(parsed.projects, Map.empty)
+
+  test("ProjectRegistration roundtrip serialization"):
+    val now = Instant.parse("2025-12-19T10:30:00Z")
+    val reg = ProjectRegistration(
+      path = "/home/user/projects/iw-cli",
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      trackerUrl = Some("https://github.com/iterative-works/iw-cli"),
+      registeredAt = now
+    )
+
+    val json = write(reg)
+    val parsed = read[ProjectRegistration](json)
+
+    assertEquals(parsed, reg)
+
+  test("ProjectRegistration roundtrip with no trackerUrl"):
+    val now = Instant.parse("2025-12-19T10:30:00Z")
+    val reg = ProjectRegistration(
+      path = "/home/user/projects/kanon",
+      projectName = "kanon",
+      trackerType = "linear",
+      team = "IWLE",
+      trackerUrl = None,
+      registeredAt = now
+    )
+
+    val json = write(reg)
+    val parsed = read[ProjectRegistration](json)
+
+    assertEquals(parsed, reg)
+
+  test("StateJson with projects field roundtrips correctly"):
+    val now = Instant.parse("2025-12-19T10:30:00Z")
+    val project = ProjectRegistration(
+      path = "/home/user/projects/iw-cli",
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      trackerUrl = None,
+      registeredAt = now
+    )
+
+    val stateJson = StateJson(
+      worktrees = Map.empty,
+      projects = Map("/home/user/projects/iw-cli" -> project)
+    )
+
+    val json = write(stateJson)
+    val parsed = read[StateJson](json)
+
+    assertEquals(parsed, stateJson)
+    assertEquals(parsed.projects.size, 1)
+    assertEquals(parsed.projects("/home/user/projects/iw-cli"), project)
+
+  test("full StateJson with worktrees AND projects roundtrip"):
+    val now = Instant.parse("2025-12-19T10:30:00Z")
+    val worktree = WorktreeRegistration(
+      issueId = "IW-123",
+      path = "/home/user/projects/iw-cli-IW-123",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      registeredAt = now,
+      lastSeenAt = now
+    )
+    val project = ProjectRegistration(
+      path = "/home/user/projects/iw-cli",
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli",
+      trackerUrl = Some("https://github.com/iterative-works/iw-cli"),
+      registeredAt = now
+    )
+
+    val stateJson = StateJson(
+      worktrees = Map("IW-123" -> worktree),
+      projects = Map("/home/user/projects/iw-cli" -> project)
+    )
+
+    val json = write(stateJson)
+    val parsed = read[StateJson](json)
+
+    assertEquals(parsed, stateJson)
 
   test("ProjectSummary roundtrip serialization"):
     val summary = ProjectSummary(

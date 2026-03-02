@@ -543,6 +543,38 @@ object SampleData:
       )
     )
 
+  /** Sample project registrations across multiple tracker types.
+    * Includes GitHub, Linear, and YouTrack projects for testing.
+    */
+  lazy val sampleProjects: List[ProjectRegistration] =
+    val now = Instant.now()
+    List(
+      ProjectRegistration(
+        path = "/home/user/projects/iw-cli",
+        projectName = "iw-cli",
+        trackerType = "GitHub",
+        team = "iterative-works/iw-cli",
+        trackerUrl = Some("https://github.com/iterative-works/iw-cli"),
+        registeredAt = now.minus(30, ChronoUnit.DAYS)
+      ),
+      ProjectRegistration(
+        path = "/home/user/projects/kanon",
+        projectName = "kanon",
+        trackerType = "Linear",
+        team = "IWLE",
+        trackerUrl = None,
+        registeredAt = now.minus(90, ChronoUnit.DAYS)
+      ),
+      ProjectRegistration(
+        path = "/home/user/projects/myproject",
+        projectName = "myproject",
+        trackerType = "YouTrack",
+        team = "TEST",
+        trackerUrl = Some("https://youtrack.example.com"),
+        registeredAt = now.minus(14, ChronoUnit.DAYS)
+      )
+    )
+
   /** Sample cached review states with file modification timestamps.
     * Note: YT-111 has no review state (edge case in design).
     */

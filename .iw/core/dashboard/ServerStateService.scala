@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.atomic.AtomicReference
 
 class ServerStateService(repository: StateRepository):
-  private val stateRef: AtomicReference[ServerState] = new AtomicReference(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
+  private val stateRef: AtomicReference[ServerState] = new AtomicReference(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
   private val lock = new ReentrantLock()
 
   /** Initialize service by loading state from repository.

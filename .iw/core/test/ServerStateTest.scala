@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.model.{ServerState, WorktreeRegistration}
+import iw.core.model.{ServerState, WorktreeRegistration, ProjectRegistration}
 import java.time.Instant
 import iw.core.model.CachedIssue
 import iw.core.model.CachedPR
@@ -294,3 +294,97 @@ class ServerStateTest extends munit.FunSuite:
     assertEquals(sorted(1).issueId, "IW-10")
     assertEquals(sorted(2).issueId, "IW-100")
     assertEquals(sorted(3).issueId, "IW-2")
+
+  test("ServerState has default empty projects map"):
+    val state = ServerState(worktrees = Map.empty)
+    assertEquals(state.projects.size, 0)
+
+  test("ServerState.listProjects returns projects sorted by projectName"):
+    val now = Instant.now()
+    val projectA = ProjectRegistration(
+      path = "/path/to/zebra",
+      projectName = "zebra",
+      trackerType = "github",
+      team = "org/zebra",
+      trackerUrl = None,
+      registeredAt = now
+    )
+    val projectB = ProjectRegistration(
+      path = "/path/to/alpha",
+      projectName = "alpha",
+      trackerType = "linear",
+      team = "TEAM",
+      trackerUrl = None,
+      registeredAt = now
+    )
+    val state = ServerState(
+      worktrees = Map.empty,
+      projects = Map("/path/to/zebra" -> projectA, "/path/to/alpha" -> projectB)
+    )
+
+    val listed = state.listProjects
+    assertEquals(listed.size, 2)
+    assertEquals(listed(0).projectName, "alpha")
+    assertEquals(listed(1).projectName, "zebra")
+
+  test("ServerState.listProjects with multiple projects uses alphabetical sort"):
+    val now = Instant.now()
+    val makeProject = (name: String, path: String) => ProjectRegistration(
+      path = path,
+      projectName = name,
+      trackerType = "github",
+      team = "org",
+      trackerUrl = None,
+      registeredAt = now
+    )
+    val state = ServerState(
+      worktrees = Map.empty,
+      projects = Map(
+        "/c" -> makeProject("cherry", "/c"),
+        "/a" -> makeProject("apple", "/a"),
+        "/b" -> makeProject("banana", "/b")
+      )
+    )
+
+    val listed = state.listProjects
+    assertEquals(listed.map(_.projectName), List("apple", "banana", "cherry"))
+
+  test("ServerState.removeProject removes entry by path key"):
+    val now = Instant.now()
+    val project = ProjectRegistration(
+      path = "/path/to/proj",
+      projectName = "proj",
+      trackerType = "github",
+      team = "org/proj",
+      trackerUrl = None,
+      registeredAt = now
+    )
+    val state = ServerState(
+      worktrees = Map.empty,
+      projects = Map("/path/to/proj" -> project)
+    )
+
+    val newState = state.removeProject("/path/to/proj")
+
+    assertEquals(newState.projects.size, 0)
+    assert(!newState.projects.contains("/path/to/proj"))
+
+  test("ServerState.removeProject is idempotent for non-existent key"):
+    val now = Instant.now()
+    val project = ProjectRegistration(
+      path = "/path/to/proj",
+      projectName = "proj",
+      trackerType = "github",
+      team = "org/proj",
+      trackerUrl = None,
+      registeredAt = now
+    )
+    val state = ServerState(
+      worktrees = Map.empty,
+      projects = Map("/path/to/proj" -> project)
+    )
+
+    val newState = state.removeProject("/path/to/nonexistent")
+
+    assertEquals(newState.projects.size, 1)
+    assert(newState.projects.contains("/path/to/proj"))
