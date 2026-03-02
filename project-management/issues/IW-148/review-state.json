@@ -11,9 +11,14 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-148/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-148/tasks.md",
+      "category": "output"
     }
   ],
-  "last_updated": "2026-03-02T12:53:54.333556218Z",
+  "last_updated": "2026-03-02T21:29:19.517638180Z",
   "status": "tasks_ready",
   "display": {
     "text": "Tasks Ready",
@@ -36,6 +41,11 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "0f3a1ce",
