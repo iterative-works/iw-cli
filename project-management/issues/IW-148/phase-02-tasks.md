@@ -2,47 +2,47 @@
 
 ## Setup
 
-- [ ] Create `ProjectRegistrationService.scala` with PURPOSE comments and package declaration
-- [ ] Create `ProjectRegistrationServiceTest.scala` with test class skeleton
+- [x] Create `ProjectRegistrationService.scala` with PURPOSE comments and package declaration
+- [x] Create `ProjectRegistrationServiceTest.scala` with test class skeleton
 
 ## Tests First (TDD)
 
 ### ProjectRegistrationService
-- [ ] Test: `register()` new project creates entry with correct fields and `wasCreated = true`
-- [ ] Test: `register()` existing project updates fields, preserves `registeredAt`, returns `wasCreated = false`
-- [ ] Test: `register()` with empty path returns `Left`
-- [ ] Test: `register()` with empty projectName returns `Left`
-- [ ] Test: `deregister()` removes project from state
-- [ ] Test: `deregister()` is idempotent for non-existent path
+- [x] Test: `register()` new project creates entry with correct fields and `wasCreated = true`
+- [x] Test: `register()` existing project updates fields, preserves `registeredAt`, returns `wasCreated = false`
+- [x] Test: `register()` with empty path returns `Left`
+- [x] Test: `register()` with empty projectName returns `Left`
+- [x] Test: `deregister()` removes project from state
+- [x] Test: `deregister()` is idempotent for non-existent path
 
 ### MainProjectService.resolveProjects
-- [ ] Test: no worktrees and no registered projects returns empty list
-- [ ] Test: worktrees only returns same as `deriveFromWorktrees()`
-- [ ] Test: registered projects only (no worktrees) returns registered projects as MainProject
-- [ ] Test: both registered and derived projects are merged with deduplication by path
-- [ ] Test: registered project with zero worktrees appears in output
+- [x] Test: no worktrees and no registered projects returns empty list
+- [x] Test: worktrees only returns same as `deriveFromWorktrees()`
+- [x] Test: registered projects only (no worktrees) returns registered projects as MainProject
+- [x] Test: both registered and derived projects are merged with deduplication by path
+- [x] Test: registered project with zero worktrees appears in output
 
 ### ServerStateService
-- [ ] Test: `updateProject()` adds new project
-- [ ] Test: `updateProject()` updates existing project
-- [ ] Test: `updateProject()` with None removes project
-- [ ] Test: `pruneProjects()` removes entries that fail validation
+- [x] Test: `updateProject()` adds new project
+- [x] Test: `updateProject()` updates existing project
+- [x] Test: `updateProject()` with None removes project
+- [x] Test: `pruneProjects()` removes entries that fail validation
 
 ### DashboardService
-- [ ] Test: `renderDashboard()` with registered projects and no worktrees still renders projects
-- [ ] Test: existing `renderDashboard()` tests still pass (regression check)
+- [x] Test: `renderDashboard()` with registered projects and no worktrees still renders projects
+- [x] Test: existing `renderDashboard()` tests still pass (regression check)
 
 ## Implementation
 
-- [ ] Implement `ProjectRegistrationService.register()`
-- [ ] Implement `ProjectRegistrationService.deregister()`
-- [ ] Implement `MainProjectService.resolveProjects()`
-- [ ] Implement `ServerStateService.updateProject()`
-- [ ] Implement `ServerStateService.pruneProjects()`
-- [ ] Update `DashboardService.renderDashboard()` to use `resolveProjects()`
+- [x] Implement `ProjectRegistrationService.register()`
+- [x] Implement `ProjectRegistrationService.deregister()`
+- [x] Implement `MainProjectService.resolveProjects()`
+- [x] Implement `ServerStateService.updateProject()`
+- [x] Implement `ServerStateService.pruneProjects()`
+- [x] Update `DashboardService.renderDashboard()` to use `resolveProjects()`
 
 ## Verification
 
-- [ ] Run `./iw test unit` — all tests pass
-- [ ] No compilation warnings
-- [ ] Existing tests show no regression
+- [x] Run `./iw test unit` — all tests pass
+- [x] No compilation warnings
+- [x] Existing tests show no regression

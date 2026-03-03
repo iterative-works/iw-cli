@@ -3,7 +3,7 @@
 
 package iw.core.dashboard.application
 
-import iw.core.model.WorktreeRegistration
+import iw.core.model.{WorktreeRegistration, ProjectRegistration}
 import iw.core.dashboard.domain.MainProject
 import iw.core.adapters.ConfigFileRepository
 import iw.core.model.{ProjectConfiguration, Constants}
@@ -109,6 +109,39 @@ object MainProjectService:
           val baseUrl = config.youtrackBaseUrl.getOrElse("https://gitlab.com")
           s"${baseUrl.stripSuffix("/")}/$repo/-/issues"
         )
+
+  /** Merge registered projects and worktree-derived projects into a unified list.
+    *
+    * Produces a list of MainProject instances from both sources, deduplicating by path.
+    * When both a registered project and a derived project share a path, the derived project
+    * takes precedence since its metadata comes from fresher on-disk config.
+    *
+    * @param worktrees List of registered worktrees
+    * @param registeredProjects Map from path to registered project
+    * @param loadConfig Function to load project configuration from a path
+    * @return Merged list of unique MainProject instances
+    */
+  def resolveProjects(
+    worktrees: List[WorktreeRegistration],
+    registeredProjects: Map[String, ProjectRegistration],
+    loadConfig: os.Path => Either[String, ProjectConfiguration]
+  ): List[MainProject] =
+    val derived = deriveFromWorktrees(worktrees, loadConfig)
+
+    val fromRegistered = registeredProjects.values.map { reg =>
+      MainProject(
+        path = os.Path(reg.path),
+        projectName = reg.projectName,
+        trackerType = reg.trackerType,
+        team = reg.team,
+        trackerUrl = reg.trackerUrl
+      )
+    }
+
+    // Build map of registered projects, then overlay derived ones (derived wins on collision)
+    val registeredByPath = fromRegistered.map(p => p.path -> p).toMap
+    val derivedByPath = derived.map(p => p.path -> p).toMap
+    (registeredByPath ++ derivedByPath).values.toList
 
   /** Load project configuration from a main project path.
     *

@@ -44,8 +44,9 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
     // Render projects overview page
     val html = DashboardService.renderDashboard(
-      worktrees,
-      state.reviewStateCache,
+      worktrees = worktrees,
+      registeredProjects = state.projects,
+      reviewStateCache = state.reviewStateCache,
       sshHost = effectiveSshHost,
       devMode = devMode
     )
