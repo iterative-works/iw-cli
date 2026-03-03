@@ -66,11 +66,7 @@ object MainProjectService:
 
             // Create MainProject with metadata from config
             val trackerTypeStr = config.trackerType.toString.toLowerCase
-            val team = config.trackerType match
-              case iw.core.model.IssueTrackerType.GitHub =>
-                config.repository.getOrElse(config.team)
-              case _ =>
-                config.team
+            val team = config.teamIdentifier
 
             // Build tracker URL based on tracker type
             val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(config)

@@ -115,3 +115,48 @@ teardown() {
     [[ "$output" == *"Registered worktree"* ]]
     [[ "$output" == *"IWLE-999"* ]]
 }
+
+@test "register succeeds with GitHub config (repository instead of team)" {
+    # Replace config with a GitHub-style config (no team key)
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = github
+  repository = "owner/repo"
+  teamPrefix = "TR"
+}
+EOF
+    # On a non-issue branch, register should register the project
+    git checkout -b feature-xyz
+
+    run "$PROJECT_ROOT/iw" register
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Registered project"* ]]
+    [[ "$output" == *"testproject"* ]]
+}
+
+@test "register succeeds with GitLab config (repository instead of team)" {
+    # Replace config with a GitLab-style config (no team key)
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = gitlab
+  repository = "group/project"
+  teamPrefix = "GL"
+}
+EOF
+    git checkout -b feature-xyz
+
+    run "$PROJECT_ROOT/iw" register
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Registered project"* ]]
+    [[ "$output" == *"testproject"* ]]
+}

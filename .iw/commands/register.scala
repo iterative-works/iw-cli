@@ -33,15 +33,14 @@ import iw.core.output.*
         config.projectName,
         currentDir.toString,
         config.trackerType.toString,
-        config.team,
+        config.teamIdentifier,
         trackerUrl
       ) match
         case Left(error) =>
-          Output.warning(s"Failed to register project with dashboard: $error")
+          Output.error(s"Failed to register project with dashboard: $error")
+          sys.exit(1)
         case Right(_) =>
-          () // Silent success for dashboard call
-
-      Output.success(s"Registered project '${config.projectName}' at ${currentDir}")
+          Output.success(s"Registered project '${config.projectName}' at ${currentDir}")
 
     case Right(issueId) =>
       // Issue worktree — register the worktree
@@ -52,31 +51,30 @@ import iw.core.output.*
         issueId.team
       ) match
         case Left(error) =>
-          Output.warning(s"Failed to register worktree with dashboard: $error")
+          Output.error(s"Failed to register worktree with dashboard: $error")
+          sys.exit(1)
         case Right(_) =>
-          () // Silent success for dashboard call
-
-      // Also register the parent project (best-effort)
-      ProjectPath.deriveMainProjectPath(currentDir.toString) match
-        case None =>
-          Output.warning("Could not derive parent project path from current directory")
-        case Some(parentPath) =>
-          val parentConfigPath = os.Path(parentPath) / Constants.Paths.IwDir / "config.conf"
-          ConfigFileRepository.read(parentConfigPath) match
+          // Also register the parent project (best-effort)
+          ProjectPath.deriveMainProjectPath(currentDir.toString) match
             case None =>
-              Output.warning(s"Could not read parent project config at $parentConfigPath, skipping project registration")
-            case Some(parentConfig) =>
-              val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(parentConfig)
-              ServerClient.registerProject(
-                parentConfig.projectName,
-                parentPath,
-                parentConfig.trackerType.toString,
-                parentConfig.team,
-                trackerUrl
-              ) match
-                case Left(error) =>
-                  Output.warning(s"Failed to register parent project with dashboard: $error")
-                case Right(_) =>
-                  () // Silent success for dashboard call
+              Output.warning("Could not derive parent project path from current directory")
+            case Some(parentPath) =>
+              val parentConfigPath = os.Path(parentPath) / Constants.Paths.IwDir / "config.conf"
+              ConfigFileRepository.read(parentConfigPath) match
+                case None =>
+                  Output.warning(s"Could not read parent project config at $parentConfigPath, skipping project registration")
+                case Some(parentConfig) =>
+                  val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(parentConfig)
+                  ServerClient.registerProject(
+                    parentConfig.projectName,
+                    parentPath,
+                    parentConfig.trackerType.toString,
+                    parentConfig.teamIdentifier,
+                    trackerUrl
+                  ) match
+                    case Left(error) =>
+                      Output.warning(s"Failed to register parent project with dashboard: $error")
+                    case Right(_) =>
+                      () // Silent success for parent project dashboard call
 
-      Output.success(s"Registered worktree for ${issueId.value} at ${currentDir}")
+          Output.success(s"Registered worktree for ${issueId.value} at ${currentDir}")

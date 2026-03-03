@@ -130,6 +130,16 @@ case class ProjectConfiguration(
   def teamPrefix: Option[String] = tracker.teamPrefix
   def youtrackBaseUrl: Option[String] = tracker.baseUrl
 
+  /** Team identifier for server registration.
+    * GitHub and GitLab use the repository (owner/repo) as the team identifier.
+    * Linear and YouTrack use the team key directly.
+    */
+  def teamIdentifier: String = trackerType match
+    case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+      repository.getOrElse(team)
+    case _ =>
+      team
+
 object ProjectConfiguration:
   // Factory method for flat parameter style (used by tests and legacy code)
   def create(

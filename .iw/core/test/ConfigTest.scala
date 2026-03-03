@@ -731,3 +731,50 @@ class ConfigTest extends munit.FunSuite:
     assert(result.isRight)
     val roundTripped = result.getOrElse(fail("Expected Right"))
     assertEquals(roundTripped.repository, original.repository)
+
+  // ========== teamIdentifier Tests ==========
+
+  test("teamIdentifier returns repository for GitHub config"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.GitHub,
+      team = "",
+      repository = Some("iterative-works/iw-cli"),
+      projectName = "test",
+      teamPrefix = Some("IW")
+    )
+    assertEquals(config.teamIdentifier, "iterative-works/iw-cli")
+
+  test("teamIdentifier falls back to team for GitHub config without repository"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.GitHub,
+      team = "fallback-team",
+      projectName = "test",
+      teamPrefix = Some("IW")
+    )
+    assertEquals(config.teamIdentifier, "fallback-team")
+
+  test("teamIdentifier returns repository for GitLab config"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.GitLab,
+      team = "",
+      repository = Some("group/subgroup/project"),
+      projectName = "test",
+      teamPrefix = Some("PROJ")
+    )
+    assertEquals(config.teamIdentifier, "group/subgroup/project")
+
+  test("teamIdentifier returns team for Linear config"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Linear,
+      team = "IWLE",
+      projectName = "test"
+    )
+    assertEquals(config.teamIdentifier, "IWLE")
+
+  test("teamIdentifier returns team for YouTrack config"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.YouTrack,
+      team = "TEST",
+      projectName = "test"
+    )
+    assertEquals(config.teamIdentifier, "TEST")
