@@ -112,3 +112,31 @@ M	.iw/core/test/ServerClientTest.scala
 ```
 
 ---
+
+## Phase 4: Presentation Layer (2026-03-03)
+
+**Layer:** Presentation
+
+**What was built:**
+- `.iw/core/dashboard/presentation/views/ProjectDetailsView.scala` - Updated `renderNotFound()` text for unregistered projects, added registration guidance
+- `.iw/core/dashboard/presentation/views/MainProjectsView.scala` - Updated empty state to mention `./iw register`
+
+**Dependencies on other layers:**
+- Phase 3 (Infrastructure Layer): `CaskServer.projectDetails()` now falls back to registered projects
+
+**Testing:**
+- Unit tests: 3 new assertions added (renderNotFound text, empty state text, Create Worktree button)
+- All existing view tests pass (no regression)
+
+**Code review:**
+- Skipped (trivial text-only changes)
+
+**Files changed:**
+```
+M	.iw/core/dashboard/presentation/views/ProjectDetailsView.scala
+M	.iw/core/dashboard/presentation/views/MainProjectsView.scala
+M	.iw/core/test/ProjectDetailsViewTest.scala
+M	.iw/core/test/MainProjectsViewTest.scala
+```
+
+---

@@ -19,7 +19,7 @@ object MainProjectsView:
       div(
         cls := "empty-state main-projects-empty",
         h3("No main projects found"),
-        p("Run './iw start <issue-id>' from a project directory to register it")
+        p("Run './iw register' from a project directory, or './iw start <issue-id>' to create a worktree")
       )
     else
       div(
