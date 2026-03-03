@@ -162,7 +162,8 @@ object ProjectDetailsView:
       div(
         cls := "empty-state",
         h2("Project Not Found"),
-        p(s"No worktrees are registered for project '$projectName'."),
+        p(s"Project '$projectName' is not registered."),
+        p("Run './iw register' from the project directory to register it."),
         p(
           a(href := "/", "Back to Projects Overview")
         )

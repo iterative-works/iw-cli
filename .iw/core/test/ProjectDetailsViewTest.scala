@@ -386,3 +386,26 @@ class ProjectDetailsViewTest extends FunSuite:
     val html = ProjectDetailsView.renderNotFound("nonexistent-project").render
 
     assert(html.contains("breadcrumb") || html.contains("Projects"), "Should include breadcrumb or Projects link")
+
+  test("renderNotFound mentions registration"):
+    val html = ProjectDetailsView.renderNotFound("nonexistent-project").render
+
+    assert(html.contains("not registered") || html.contains("register"), "Should mention registration")
+
+  test("render with empty worktrees includes Create Worktree button"):
+    val project = MainProject(
+      path = os.Path("/home/user/projects/iw-cli"),
+      projectName = "iw-cli",
+      trackerType = "github",
+      team = "iterative-works/iw-cli"
+    )
+
+    val html = ProjectDetailsView.render(
+      "iw-cli",
+      project,
+      List.empty,
+      Instant.now(),
+      "localhost"
+    ).render
+
+    assert(html.contains("Create Worktree"), "Empty state should include Create Worktree button")

@@ -13,6 +13,7 @@ class MainProjectsViewTest extends FunSuite:
 
     assert(html.contains("No main projects found"))
     assert(html.contains("./iw start"))
+    assert(html.contains("./iw register"), "Empty state should mention ./iw register")
 
   test("render with single project shows project card"):
     val project = MainProject(
