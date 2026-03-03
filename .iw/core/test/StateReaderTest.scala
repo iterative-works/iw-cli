@@ -4,7 +4,7 @@
 package iw.core.test
 
 import iw.core.adapters.StateReader
-import iw.core.model.{ServerState, WorktreeRegistration, CachedIssue, IssueData, CachedProgress, WorkflowProgress, PhaseInfo, CachedPR, PullRequestData, PRState, CachedReviewState, ReviewState}
+import iw.core.model.{ServerState, WorktreeRegistration, CachedIssue, IssueData, CachedProgress, WorkflowProgress, PhaseInfo, CachedPR, PullRequestData, PRState, CachedReviewState, ReviewState, ProjectRegistration}
 import java.time.Instant
 
 class StateReaderTest extends munit.FunSuite:
@@ -146,6 +146,7 @@ class StateReaderTest extends munit.FunSuite:
       assertEquals(state.progressCache, Map.empty)
       assertEquals(state.prCache, Map.empty)
       assertEquals(state.reviewStateCache, Map.empty)
+      assertEquals(state.projects, Map.empty)
 
   fixture.test("read malformed JSON returns Left with error message"):
     tempDir =>
@@ -157,6 +158,38 @@ class StateReaderTest extends munit.FunSuite:
       assert(result.isLeft)
       val error = result.left.getOrElse("")
       assert(error.contains("Failed to parse JSON"), s"Error message should mention parsing failure: $error")
+
+  fixture.test("read state.json with projects populates state.projects map"):
+    tempDir =>
+      val statePath = tempDir / "state.json"
+
+      val jsonContent = """{
+        "worktrees": {},
+        "projects": {
+          "/home/user/projects/my-app": {
+            "path": "/home/user/projects/my-app",
+            "projectName": "my-app",
+            "trackerType": "GitHub",
+            "team": "my-org",
+            "trackerUrl": "https://github.com/my-org/my-app/issues",
+            "registeredAt": "2025-01-01T10:00:00Z"
+          }
+        }
+      }"""
+
+      os.write(statePath, jsonContent)
+
+      val result = StateReader.read(statePath.toString)
+
+      assert(result.isRight, s"Expected Right but got Left: ${result.left.getOrElse("")}")
+      val state = result.toOption.get
+      assertEquals(state.projects.size, 1)
+
+      val project = state.projects("/home/user/projects/my-app")
+      assertEquals(project.projectName, "my-app")
+      assertEquals(project.trackerType, "GitHub")
+      assertEquals(project.team, "my-org")
+      assertEquals(project.trackerUrl, Some("https://github.com/my-org/my-app/issues"))
 
   fixture.test("read empty JSON object returns ServerState with empty maps"):
     tempDir =>
@@ -172,3 +205,4 @@ class StateReaderTest extends munit.FunSuite:
       assertEquals(state.progressCache, Map.empty)
       assertEquals(state.prCache, Map.empty)
       assertEquals(state.reviewStateCache, Map.empty)
+      assertEquals(state.projects, Map.empty)

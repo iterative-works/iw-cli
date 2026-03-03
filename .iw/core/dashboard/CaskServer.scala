@@ -5,7 +5,7 @@ package iw.core.dashboard
 
 import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner, ServerClient}
 import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
-import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
+import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ProjectRegistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
 import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
 import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, PageLayout}
@@ -40,12 +40,18 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       wt => os.exists(os.Path(wt.path, os.pwd))
     )
 
+    // Auto-prune non-existent projects
+    val prunedProjectPaths = stateService.pruneProjects(
+      p => os.exists(os.Path(p.path, os.pwd))
+    )
+
     val worktrees = state.listByIssueId
 
     // Render projects overview page
     val html = DashboardService.renderDashboard(
-      worktrees,
-      state.reviewStateCache,
+      worktrees = worktrees,
+      registeredProjects = state.projects,
+      reviewStateCache = state.reviewStateCache,
       sshHost = effectiveSshHost,
       devMode = devMode
     )
@@ -77,8 +83,18 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       MainProjectService.loadConfig
     )
 
-    // Get the main project (should be exactly one since we filtered by name)
-    val mainProjectOpt = projects.headOption
+    // Get the main project from worktrees, or fall back to registered projects
+    val mainProjectOpt = projects.headOption.orElse {
+      state.projects.values.find(_.projectName == projectName).map { reg =>
+        iw.core.dashboard.domain.MainProject(
+          path = os.Path(reg.path),
+          projectName = reg.projectName,
+          trackerType = reg.trackerType,
+          team = reg.team,
+          trackerUrl = reg.trackerUrl
+        )
+      }
+    }
 
     mainProjectOpt match
       case None =>
@@ -504,6 +520,113 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           ujson.Obj("code" -> "NOT_FOUND", "message" -> err),
           statusCode = 404
         )
+
+  @cask.put("/api/v1/projects/:projectName")
+  def registerProject(projectName: String, request: cask.Request): cask.Response[ujson.Value] =
+    val parsedBody: Either[cask.Response[ujson.Value], ujson.Value] = try
+      val bodyBytes = request.readAllBytes()
+      val bodyStr = new String(bodyBytes, "UTF-8")
+      Right(ujson.read(bodyStr))
+    catch
+      case e: Throwable if e.getClass.getName.contains("ParseException") ||
+                           e.getClass.getName.contains("Abort") ||
+                           e.getClass.getName.contains("TraceException") =>
+        Left(cask.Response(
+          data = ujson.Obj(
+            "code" -> "MALFORMED_JSON",
+            "message" -> s"Malformed JSON: ${e.getMessage}"
+          ),
+          statusCode = 400
+        ))
+      case e: Exception =>
+        System.err.println(s"Error reading request body: ${e.getClass.getName}: ${e.getMessage}")
+        Left(cask.Response(
+          data = ujson.Obj(
+            "code" -> "INTERNAL_ERROR",
+            "message" -> "Internal server error"
+          ),
+          statusCode = 500
+        ))
+
+    parsedBody match
+      case Left(errorResponse) => errorResponse
+      case Right(requestJson) =>
+        try
+          // Extract required fields from request
+          val path = requestJson("path").str
+          val trackerType = requestJson("trackerType").str
+          val team = requestJson("team").str
+          val trackerUrl = requestJson.obj.get("trackerUrl").flatMap {
+            case ujson.Null => None
+            case v => Some(v.str)
+          }
+
+          // Get current state
+          val currentState = stateService.getState
+
+          // Register or update project with current timestamp
+          val now = Instant.now()
+          val registrationResult = ProjectRegistrationService.register(
+            path,
+            projectName,
+            trackerType,
+            team,
+            trackerUrl,
+            now,
+            currentState
+          )
+
+          registrationResult match
+            case Right((newState, wasCreated)) =>
+              val registration = newState.projects(path)
+              stateService.updateProject(path)(_ => Some(registration))
+
+              cask.Response(
+                data = ujson.Obj(
+                  "status" -> "registered",
+                  "projectName" -> projectName,
+                  "path" -> path
+                ),
+                statusCode = if wasCreated then 201 else 200
+              )
+
+            case Left(error) =>
+              cask.Response(
+                data = ujson.Obj(
+                  "code" -> "VALIDATION_ERROR",
+                  "message" -> error
+                ),
+                statusCode = 400
+              )
+
+        catch
+          case e: Throwable if e.getClass.getName.contains("ParseException") ||
+                               e.getClass.getName.contains("Abort") ||
+                               e.getClass.getName.contains("TraceException") =>
+            cask.Response(
+              data = ujson.Obj(
+                "code" -> "MALFORMED_JSON",
+                "message" -> s"Malformed JSON: ${e.getMessage}"
+              ),
+              statusCode = 400
+            )
+          case e: NoSuchElementException =>
+            cask.Response(
+              data = ujson.Obj(
+                "code" -> "MISSING_FIELD",
+                "message" -> s"Missing required field: ${e.getMessage}"
+              ),
+              statusCode = 400
+            )
+          case e: Exception =>
+            System.err.println(s"Internal error: ${e.getMessage}")
+            cask.Response(
+              data = ujson.Obj(
+                "code" -> "INTERNAL_ERROR",
+                "message" -> "Internal server error"
+              ),
+              statusCode = 500
+            )
 
   @cask.get("/api/issues/search")
   def searchIssues(q: String, project: Option[String] = None): cask.Response[String] =

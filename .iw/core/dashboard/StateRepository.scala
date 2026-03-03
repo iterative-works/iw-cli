@@ -17,12 +17,12 @@ case class StateRepository(statePath: String):
     if !Files.exists(path) then
       // Create empty state file if it doesn't exist
       ensureDirectoryExists()
-      Right(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
+      Right(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
     else
       Try {
         val content = Files.readString(path)
         val stateJson = upickle.default.read[StateJson](content)
-        ServerState(stateJson.worktrees, stateJson.issueCache, stateJson.progressCache, stateJson.prCache, stateJson.reviewStateCache)
+        ServerState(stateJson.worktrees, stateJson.issueCache, stateJson.progressCache, stateJson.prCache, stateJson.reviewStateCache, stateJson.projects)
       } match
         case Success(state) => Right(state)
         case Failure(ex) => Left(s"Failed to parse JSON from $statePath: ${ex.getMessage}")
@@ -31,7 +31,7 @@ case class StateRepository(statePath: String):
     Try {
       ensureDirectoryExists()
 
-      val stateJson = StateJson(state.worktrees, state.issueCache, state.progressCache, state.prCache, state.reviewStateCache)
+      val stateJson = StateJson(state.worktrees, state.issueCache, state.progressCache, state.prCache, state.reviewStateCache, state.projects)
       val json = upickle.default.write(stateJson, indent = 2)
 
       // Atomic write: write to unique temp file, then rename

@@ -744,6 +744,263 @@ class CaskServerTest extends FunSuite:
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
+  // Project registration endpoint tests (IW-148 Phase 3)
+
+  test("PUT /api/v1/projects/:projectName registers new project → 201"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    val tmpDir = Files.createTempDirectory("iw-project-test").toAbsolutePath.toString
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val requestBody = ujson.Obj(
+        "path" -> tmpDir,
+        "trackerType" -> "GitHub",
+        "team" -> "iterative-works"
+      )
+
+      val response = quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      assertEquals(response.code.code, 201)
+
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("status").str, "registered")
+      assertEquals(responseJson("projectName").str, "my-app")
+      assertEquals(responseJson("path").str, tmpDir)
+
+      // Verify state.json contains the project
+      val stateContent = Files.readString(Paths.get(statePath))
+      val stateJson = ujson.read(stateContent)
+      assert(stateJson("projects").obj.contains(tmpDir))
+
+      val project = stateJson("projects")(tmpDir)
+      assertEquals(project("projectName").str, "my-app")
+      assertEquals(project("trackerType").str, "GitHub")
+      assertEquals(project("team").str, "iterative-works")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+      val tmpPath = Paths.get(tmpDir)
+      if Files.exists(tmpPath) then Files.delete(tmpPath)
+
+  test("PUT /api/v1/projects/:projectName updates existing project → 200"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    val tmpDir = Files.createTempDirectory("iw-project-test").toAbsolutePath.toString
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // First registration
+      val firstRequest = ujson.Obj(
+        "path" -> tmpDir,
+        "trackerType" -> "GitHub",
+        "team" -> "iterative-works"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body(ujson.write(firstRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Second registration with updated team
+      val secondRequest = ujson.Obj(
+        "path" -> tmpDir,
+        "trackerType" -> "GitHub",
+        "team" -> "new-team"
+      )
+      val response = quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body(ujson.write(secondRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+      val stateContent = Files.readString(Paths.get(statePath))
+      val stateJson = ujson.read(stateContent)
+      val project = stateJson("projects")(tmpDir)
+      assertEquals(project("team").str, "new-team")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+      val tmpPath = Paths.get(tmpDir)
+      if Files.exists(tmpPath) then Files.delete(tmpPath)
+
+  test("PUT /api/v1/projects/:projectName with missing required field → 400 MISSING_FIELD"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Missing 'team' field
+      val requestBody = ujson.Obj(
+        "path" -> "/some/path",
+        "trackerType" -> "GitHub"
+      )
+
+      val response = quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      assertEquals(response.code.code, 400)
+
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("code").str, "MISSING_FIELD")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("PUT /api/v1/projects/:projectName with malformed JSON → 400 MALFORMED_JSON"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val response = quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body("{invalid json")
+        .header("Content-Type", "application/json")
+        .send()
+
+      assertEquals(response.code.code, 400)
+
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("code").str, "MALFORMED_JSON")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("PUT /api/v1/projects/:projectName with empty path → 400 VALIDATION_ERROR"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val requestBody = ujson.Obj(
+        "path" -> "",
+        "trackerType" -> "GitHub",
+        "team" -> "iterative-works"
+      )
+
+      val response = quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      assertEquals(response.code.code, 400)
+
+      val responseJson = ujson.read(response.body)
+      assertEquals(responseJson("code").str, "VALIDATION_ERROR")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /projects/:projectName for registered project with no worktrees → 200"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    val tmpDir = Files.createTempDirectory("iw-project-test").toAbsolutePath.toString
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a project with no worktrees
+      val requestBody = ujson.Obj(
+        "path" -> tmpDir,
+        "trackerType" -> "GitHub",
+        "team" -> "iterative-works"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-zero-worktree-project")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Get project details — should return 200, not 404
+      val response = quickRequest
+        .get(uri"http://localhost:$port/projects/my-zero-worktree-project")
+        .send()
+
+      assertEquals(response.code.code, 200)
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+      val tmpPath = Paths.get(tmpDir)
+      if Files.exists(tmpPath) then Files.delete(tmpPath)
+
+  test("dashboard auto-prunes projects whose path does not exist on disk"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    val tmpDir = Files.createTempDirectory("iw-project-prune-test").toAbsolutePath.toString
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a project at a real path
+      val requestBody = ujson.Obj(
+        "path" -> tmpDir,
+        "trackerType" -> "GitHub",
+        "team" -> "iterative-works"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/projects/my-app")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Verify it was registered
+      val stateAfterRegister = ujson.read(Files.readString(Paths.get(statePath)))
+      assert(stateAfterRegister("projects").obj.contains(tmpDir), "Project should be registered")
+
+      // Delete the directory to simulate stale registration
+      Files.delete(Paths.get(tmpDir))
+
+      // Load the dashboard — this triggers auto-pruning
+      quickRequest.get(uri"http://localhost:$port/").send()
+
+      // Verify the stale project was pruned (key absent means empty map; either way tmpDir is gone)
+      val stateAfterDashboard = ujson.read(Files.readString(Paths.get(statePath)))
+      val projectsContainsTmpDir = stateAfterDashboard.obj.get("projects")
+        .exists(_.obj.contains(tmpDir))
+      assert(!projectsContainsTmpDir, "Stale project should have been pruned")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+      val tmpPath = Paths.get(tmpDir)
+      if Files.exists(tmpPath) then Files.delete(tmpPath)
+
   test("CaskServer.start() accepts devMode parameter"):
     val statePath = createTempStatePath()
     val port = findAvailablePort()

@@ -15,6 +15,7 @@ object ServerStateCodec:
 
   // JSON serialization for domain models
   given ReadWriter[WorktreeRegistration] = macroRW[WorktreeRegistration]
+  given ReadWriter[ProjectRegistration] = macroRW[ProjectRegistration]
   given ReadWriter[IssueData] = macroRW[IssueData]
   given ReadWriter[CachedIssue] = macroRW[CachedIssue]
   given ReadWriter[PhaseInfo] = macroRW[PhaseInfo]
@@ -44,6 +45,7 @@ object ServerStateCodec:
     issueCache: Map[String, CachedIssue] = Map.empty,
     progressCache: Map[String, CachedProgress] = Map.empty,
     prCache: Map[String, CachedPR] = Map.empty,
-    reviewStateCache: Map[String, CachedReviewState] = Map.empty
+    reviewStateCache: Map[String, CachedReviewState] = Map.empty,
+    projects: Map[String, ProjectRegistration] = Map.empty
   )
   given ReadWriter[StateJson] = macroRW[StateJson]

@@ -23,8 +23,8 @@ import iw.core.output.*
       ProjectPath.deriveMainProjectPath(wt.path).getOrElse(wt.path)
     }
 
-  // Build ProjectSummary for each group
-  val projectSummaries = worktreesByProject.map { case (mainPath, worktrees) =>
+  // Build ProjectSummary for each worktree-derived project group
+  val worktreeSummaries = worktreesByProject.map { case (mainPath, worktrees) =>
     // Derive project name from path
     val projectName = mainPath.split('/').lastOption.getOrElse(mainPath)
 
@@ -48,7 +48,23 @@ import iw.core.output.*
       team = team,
       worktreeCount = worktrees.size
     )
-  }.toList.sortBy(_.name)
+  }
+
+  // Build summaries from registered projects not already covered by worktree-derived summaries
+  val worktreePaths = worktreeSummaries.map(_.path).toSet
+  val registeredSummaries = state.projects.values
+    .filterNot(reg => worktreePaths.contains(reg.path))
+    .map { reg =>
+      ProjectSummary(
+        name = reg.projectName,
+        path = reg.path,
+        trackerType = reg.trackerType,
+        team = reg.team,
+        worktreeCount = 0
+      )
+    }
+
+  val projectSummaries = (worktreeSummaries ++ registeredSummaries).toList.sortBy(_.name)
 
   // Output
   if jsonFlag then

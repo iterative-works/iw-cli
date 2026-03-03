@@ -3,10 +3,10 @@
 
 package iw.core.dashboard.application
 
-import iw.core.model.WorktreeRegistration
+import iw.core.model.{WorktreeRegistration, ProjectRegistration}
 import iw.core.dashboard.domain.MainProject
 import iw.core.adapters.ConfigFileRepository
-import iw.core.model.{ProjectConfiguration, Constants}
+import iw.core.model.{ProjectConfiguration, Constants, TrackerUrlBuilder}
 
 object MainProjectService:
   /** Filter worktrees by project name.
@@ -73,7 +73,7 @@ object MainProjectService:
                 config.team
 
             // Build tracker URL based on tracker type
-            val trackerUrl = buildTrackerUrl(config)
+            val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(config)
 
             Some(MainProject(
               path = mainProjectPath,
@@ -89,26 +89,38 @@ object MainProjectService:
       }
       .toList
 
-  /** Build the issue tracker URL for a project.
+  /** Merge registered projects and worktree-derived projects into a unified list.
     *
-    * @param config Project configuration
-    * @return Optional tracker URL (None if not enough info)
+    * Produces a list of MainProject instances from both sources, deduplicating by path.
+    * When both a registered project and a derived project share a path, the derived project
+    * takes precedence since its metadata comes from fresher on-disk config.
+    *
+    * @param worktrees List of registered worktrees
+    * @param registeredProjects Map from path to registered project
+    * @param loadConfig Function to load project configuration from a path
+    * @return Merged list of unique MainProject instances
     */
-  private def buildTrackerUrl(config: ProjectConfiguration): Option[String] =
-    config.trackerType match
-      case iw.core.model.IssueTrackerType.GitHub =>
-        config.repository.map(repo => s"https://github.com/$repo/issues")
-      case iw.core.model.IssueTrackerType.Linear =>
-        Some(s"https://linear.app/${config.team.toLowerCase}")
-      case iw.core.model.IssueTrackerType.YouTrack =>
-        config.youtrackBaseUrl.map(baseUrl =>
-          s"${baseUrl.stripSuffix("/")}/issues/${config.team}"
-        )
-      case iw.core.model.IssueTrackerType.GitLab =>
-        config.repository.map(repo =>
-          val baseUrl = config.youtrackBaseUrl.getOrElse("https://gitlab.com")
-          s"${baseUrl.stripSuffix("/")}/$repo/-/issues"
-        )
+  def resolveProjects(
+    worktrees: List[WorktreeRegistration],
+    registeredProjects: Map[String, ProjectRegistration],
+    loadConfig: os.Path => Either[String, ProjectConfiguration]
+  ): List[MainProject] =
+    val derived = deriveFromWorktrees(worktrees, loadConfig)
+
+    val fromRegistered = registeredProjects.values.map { reg =>
+      MainProject(
+        path = os.Path(reg.path),
+        projectName = reg.projectName,
+        trackerType = reg.trackerType,
+        team = reg.team,
+        trackerUrl = reg.trackerUrl
+      )
+    }
+
+    // Build map of registered projects, then overlay derived ones (derived wins on collision)
+    val registeredByPath = fromRegistered.map(p => p.path -> p).toMap
+    val derivedByPath = derived.map(p => p.path -> p).toMap
+    (registeredByPath ++ derivedByPath).values.toList
 
   /** Load project configuration from a main project path.
     *

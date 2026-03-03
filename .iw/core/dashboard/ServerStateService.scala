@@ -3,13 +3,13 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{ServerState, WorktreeRegistration, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
+import iw.core.model.{ServerState, WorktreeRegistration, CachedIssue, CachedProgress, CachedPR, CachedReviewState, ProjectRegistration}
 import iw.core.dashboard.StateRepository
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.atomic.AtomicReference
 
 class ServerStateService(repository: StateRepository):
-  private val stateRef: AtomicReference[ServerState] = new AtomicReference(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
+  private val stateRef: AtomicReference[ServerState] = new AtomicReference(ServerState(Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
   private val lock = new ReentrantLock()
 
   /** Initialize service by loading state from repository.
@@ -135,6 +135,53 @@ class ServerStateService(repository: StateRepository):
           current.copy(reviewStateCache = current.reviewStateCache - issueId)
       stateRef.set(updated)
       repository.write(updated) // Best-effort persistence
+    finally
+      lock.unlock()
+
+  /** Update a project entry using a function.
+    *
+    * The function receives the current project (if any) and returns:
+    * - Some(project) to add/update
+    * - None to remove
+    *
+    * Changes are persisted to disk.
+    *
+    * @param path Filesystem path for the project
+    * @param f Update function
+    */
+  def updateProject(path: String)(f: Option[ProjectRegistration] => Option[ProjectRegistration]): Unit =
+    lock.lock()
+    try
+      val current = stateRef.get()
+      val currentProject = current.projects.get(path)
+      val updated = f(currentProject) match
+        case Some(project) =>
+          current.copy(projects = current.projects + (path -> project))
+        case None =>
+          current.copy(projects = current.projects - path)
+      stateRef.set(updated)
+      repository.write(updated) // Best-effort persistence
+    finally
+      lock.unlock()
+
+  /** Prune project registrations that don't pass validation.
+    *
+    * @param isValid Function to validate a project registration
+    * @return Set of pruned paths
+    */
+  def pruneProjects(isValid: ProjectRegistration => Boolean): Set[String] =
+    lock.lock()
+    try
+      val current = stateRef.get()
+      val (valid, invalid) = current.projects.partition { case (_, p) => isValid(p) }
+      val prunedPaths = invalid.keySet
+
+      if prunedPaths.nonEmpty then
+        val updated = current.copy(projects = valid)
+        stateRef.set(updated)
+        repository.write(updated) // Best-effort persistence
+
+      prunedPaths
     finally
       lock.unlock()
 
