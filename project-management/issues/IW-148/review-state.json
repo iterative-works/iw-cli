@@ -32,16 +32,20 @@
     {
       "label": "Phase 3 Context",
       "path": "project-management/issues/IW-148/phase-03-context.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-148/phase-04-context.md"
     }
   ],
-  "last_updated": "2026-03-03T10:59:36.666982163Z",
+  "last_updated": "2026-03-03T11:07:43.593233969Z",
   "status": "phase_merged",
   "display": {
-    "text": "Phase 3: Merged",
+    "text": "Phase 4: Merged",
     "type": "success",
-    "subtext": "Infrastructure Layer"
+    "subtext": "Presentation Layer"
   },
-  "message": "Phase 3 auto-merged - continuing to next phase",
+  "message": "Phase 4 auto-merged - continuing to next phase",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -96,7 +100,11 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/233"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/234"
 }
