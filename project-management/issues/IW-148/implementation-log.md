@@ -43,3 +43,72 @@ M	.iw/core/test/TestFixtures.scala
 ```
 
 ---
+
+## Phase 2: Application Layer (2026-03-03)
+
+**Layer:** Application
+
+**What was built:**
+- `.iw/core/dashboard/ProjectRegistrationService.scala` - Pure business logic for registering/deregistering projects
+- `.iw/core/dashboard/application/MainProjectService.scala` - Added `resolveProjects()` to merge registered + derived projects
+- `.iw/core/dashboard/ServerStateService.scala` - Added `updateProject()` and `pruneProjects()` methods
+- `.iw/core/dashboard/DashboardService.scala` - Updated `renderDashboard()` to accept registered projects
+- `.iw/core/dashboard/CaskServer.scala` - Updated to pass `state.projects` to `renderDashboard()`
+
+**Dependencies on other layers:**
+- Phase 1 (Domain Layer): `ProjectRegistration`, `ServerState.projects`
+
+**Testing:**
+- Unit tests: 19 tests added (8 ProjectRegistrationService, 5 resolveProjects, 4 ServerStateService, 2 DashboardService)
+- Integration tests: 0
+
+**Code review:**
+- Iterations: 1
+- No critical issues.
+
+**Files changed:**
+```
+A	.iw/core/dashboard/ProjectRegistrationService.scala
+A	.iw/core/test/ProjectRegistrationServiceTest.scala
+M	.iw/core/dashboard/application/MainProjectService.scala
+M	.iw/core/dashboard/ServerStateService.scala
+M	.iw/core/dashboard/DashboardService.scala
+M	.iw/core/dashboard/CaskServer.scala
+M	.iw/core/test/MainProjectServiceTest.scala
+M	.iw/core/test/ServerStateServiceTest.scala
+M	.iw/core/test/DashboardServiceTest.scala
+```
+
+---
+
+## Phase 3: Infrastructure Layer (2026-03-03)
+
+**Layer:** Infrastructure
+
+**What was built:**
+- `.iw/core/dashboard/CaskServer.scala` - Added `PUT /api/v1/projects/:projectName` endpoint, auto-pruning of stale projects on dashboard load, updated `projectDetails()` to find registered projects with zero worktrees
+- `.iw/core/adapters/ServerClient.scala` - Added `registerProject()` method for CLI-to-server communication
+
+**Dependencies on other layers:**
+- Phase 1 (Domain Layer): `ProjectRegistration`, `ServerState.projects`
+- Phase 2 (Application Layer): `ProjectRegistrationService.register()`, `ServerStateService.updateProject()`, `pruneProjects()`
+
+**Testing:**
+- Integration tests: 8 tests added (5 endpoint, 1 project details, 1 auto-prune, 1 ServerClient disabled)
+- Total: 1665 tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260303.md
+- No critical issues. Warnings about pre-existing code duplication patterns.
+
+**Files changed:**
+```
+M	.iw/core/adapters/ServerClient.scala
+M	.iw/core/dashboard/CaskServer.scala
+M	.iw/core/project.scala
+M	.iw/core/test/CaskServerTest.scala
+M	.iw/core/test/ServerClientTest.scala
+```
+
+---
