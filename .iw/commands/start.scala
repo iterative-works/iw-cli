@@ -100,6 +100,20 @@ def createWorktreeForIssue(issueId: IssueId, config: ProjectConfiguration, promp
     case Right(_) =>
       () // Silent success
 
+  // Register parent project with dashboard (best-effort)
+  val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(config)
+  ServerClient.registerProject(
+    config.projectName,
+    currentDir.toString,
+    config.trackerType.toString,
+    config.team,
+    trackerUrl
+  ) match
+    case Left(error) =>
+      Output.warning(s"Failed to register parent project with dashboard: $error")
+    case Right(_) =>
+      () // Silent success
+
   // Create tmux session
   Output.info(s"Creating tmux session '$sessionName'...")
   TmuxAdapter.createSession(sessionName, targetPath) match

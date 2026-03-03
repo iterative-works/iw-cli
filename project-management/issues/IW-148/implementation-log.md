@@ -140,3 +140,41 @@ M	.iw/core/test/MainProjectsViewTest.scala
 ```
 
 ---
+
+## Phase 5: CLI Integration (2026-03-03)
+
+**Layer:** CLI
+
+**What was built:**
+- `.iw/core/model/TrackerUrlBuilder.scala` - Pure function for building tracker URLs from config (extracted from `MainProjectService.buildTrackerUrl`)
+- `.iw/commands/register.scala` - Context-aware: registers project from main branch, or worktree + parent project from issue branch
+- `.iw/commands/start.scala` - Auto-registers parent project alongside worktree creation
+- `.iw/commands/projects.scala` - Merges registered projects (from `state.projects`) into project listing
+- `.iw/core/adapters/StateReader.scala` - Fixed bug: `projects` field was not being passed to `ServerState`
+
+**Dependencies on other layers:**
+- Phase 1 (Domain): `ProjectRegistration`, `ServerState.projects`
+- Phase 3 (Infrastructure): `ServerClient.registerProject()`, `PUT /api/v1/projects/:projectName` endpoint
+
+**Testing:**
+- Unit tests: 9 new TrackerUrlBuilder tests, 1 StateReader test, 2 additional assertions
+- Total: 1687 tests passing
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-05-20260303.md
+- No critical issues. Fixed: silent config fallback → explicit warning, removed unnecessary private wrapper in MainProjectService.
+
+**Files changed:**
+```
+A	.iw/core/model/TrackerUrlBuilder.scala
+A	.iw/core/test/TrackerUrlBuilderTest.scala
+M	.iw/commands/register.scala
+M	.iw/commands/start.scala
+M	.iw/commands/projects.scala
+M	.iw/core/adapters/StateReader.scala
+M	.iw/core/dashboard/application/MainProjectService.scala
+M	.iw/core/test/StateReaderTest.scala
+```
+
+---
