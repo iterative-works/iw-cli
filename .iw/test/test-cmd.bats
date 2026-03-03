@@ -135,6 +135,10 @@ EOF
     find .iw/core/test -name '*.scala' ! -name 'UnitTest.scala' -delete
 
     run_with_clean_path ./iw test
+    if [ "$status" -ne 0 ]; then
+        echo "FAILED with status $status. Output:" >&3
+        echo "$output" >&3
+    fi
     [ "$status" -eq 0 ]
     [[ "$output" == *"unit test passes"* ]] || [[ "$output" == *"UnitTest"* ]]
     [[ "$output" == *"e2e test passes"* ]]
