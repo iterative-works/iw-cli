@@ -4,7 +4,7 @@
 package iw.tests
 
 import iw.core.dashboard.ServerStateService
-import iw.core.model.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR, ReviewState, ReviewArtifact, CachedReviewState}
+import iw.core.model.{ServerState, WorktreeRegistration, IssueData, CachedIssue, PhaseInfo, WorkflowProgress, CachedProgress, PullRequestData, PRState, CachedPR, ReviewState, ReviewArtifact, CachedReviewState, ProjectRegistration}
 import iw.core.dashboard.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path}
@@ -314,3 +314,100 @@ class ServerStateServiceTest extends munit.FunSuite:
       val state = service.getState
       assertEquals(state.reviewStateCache.size, 1)
       assert(state.reviewStateCache.contains("IWLE-400"))
+
+  tempDir.test("ServerStateService.updateProject adds new project"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val service = new ServerStateService(repo)
+      service.initialize()
+
+      val project = ProjectRegistration(
+        path = "/home/user/projects/my-project",
+        projectName = "my-project",
+        trackerType = "linear",
+        team = "IWLE",
+        trackerUrl = None,
+        registeredAt = Instant.now()
+      )
+
+      service.updateProject("/home/user/projects/my-project")(_ => Some(project))
+
+      val state = service.getState
+      assertEquals(state.projects.size, 1)
+      assert(state.projects.contains("/home/user/projects/my-project"))
+
+  tempDir.test("ServerStateService.updateProject updates existing project"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val service = new ServerStateService(repo)
+      service.initialize()
+
+      val project = ProjectRegistration(
+        path = "/home/user/projects/my-project",
+        projectName = "my-project",
+        trackerType = "linear",
+        team = "IWLE",
+        trackerUrl = None,
+        registeredAt = Instant.now()
+      )
+
+      service.updateProject("/home/user/projects/my-project")(_ => Some(project))
+      assertEquals(service.getState.projects.size, 1)
+
+      val updated = project.copy(projectName = "my-project-renamed")
+      service.updateProject("/home/user/projects/my-project")(_ => Some(updated))
+
+      val state = service.getState
+      assertEquals(state.projects.size, 1)
+      assertEquals(state.projects("/home/user/projects/my-project").projectName, "my-project-renamed")
+
+  tempDir.test("ServerStateService.updateProject with None removes project"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val service = new ServerStateService(repo)
+      service.initialize()
+
+      val project = ProjectRegistration(
+        path = "/home/user/projects/my-project",
+        projectName = "my-project",
+        trackerType = "linear",
+        team = "IWLE",
+        trackerUrl = None,
+        registeredAt = Instant.now()
+      )
+
+      service.updateProject("/home/user/projects/my-project")(_ => Some(project))
+      assertEquals(service.getState.projects.size, 1)
+
+      service.updateProject("/home/user/projects/my-project")(_ => None)
+      assertEquals(service.getState.projects.size, 0)
+
+  tempDir.test("ServerStateService.pruneProjects removes entries that fail validation"):
+    tempDir =>
+      val statePath = tempDir.resolve("state.json")
+      val repo = StateRepository(statePath.toString)
+
+      val service = new ServerStateService(repo)
+      service.initialize()
+
+      service.updateProject("/path/valid1")(_ => Some(ProjectRegistration(
+        "/path/valid1", "valid1", "linear", "IWLE", None, Instant.now()
+      )))
+      service.updateProject("/path/invalid")(_ => Some(ProjectRegistration(
+        "/path/invalid", "invalid", "linear", "IWLE", None, Instant.now()
+      )))
+      service.updateProject("/path/valid2")(_ => Some(ProjectRegistration(
+        "/path/valid2", "valid2", "linear", "IWLE", None, Instant.now()
+      )))
+
+      val pruned = service.pruneProjects(p => !p.path.contains("invalid"))
+
+      assertEquals(pruned.size, 1)
+      assert(pruned.contains("/path/invalid"))
+      assertEquals(service.getState.projects.size, 2)

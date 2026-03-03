@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
+import iw.core.model.{Issue, IssueId, ApiToken, ProjectConfiguration, Constants, WorktreeRegistration, ProjectRegistration, IssueData, WorkflowProgress, GitStatus, PullRequestData, ReviewState, CachedIssue, CachedProgress, CachedPR, CachedReviewState}
 import iw.core.adapters.{LinearClient, YouTrackClient, GitHubClient, ConfigFileRepository, CommandRunner}
 import iw.core.dashboard.application.MainProjectService
 import iw.core.dashboard.presentation.views.{MainProjectsView, PageLayout, ProjectSummary}
@@ -18,6 +18,7 @@ object DashboardService:
     * Dashboard renders read-only view without updating caches.
     *
     * @param worktrees List of registered worktrees
+    * @param registeredProjects Explicitly registered projects (may have no worktrees)
     * @param reviewStateCache Current review state cache
     * @param sshHost SSH hostname for Zed editor remote connections
     * @param devMode Whether to show DEV MODE banner (default: false)
@@ -25,6 +26,7 @@ object DashboardService:
     */
   def renderDashboard(
     worktrees: List[WorktreeRegistration],
+    registeredProjects: Map[String, ProjectRegistration] = Map.empty,
     reviewStateCache: Map[String, CachedReviewState],
     sshHost: String,
     devMode: Boolean = false
@@ -33,9 +35,10 @@ object DashboardService:
     // Sort worktrees by issue ID (alphabetical ascending)
     val sortedWorktrees = worktrees.sortBy(_.issueId)
 
-    // Derive main projects from registered worktrees
-    val mainProjects = MainProjectService.deriveFromWorktrees(
+    // Resolve main projects from registered worktrees and explicit project registrations
+    val mainProjects = MainProjectService.resolveProjects(
       sortedWorktrees,
+      registeredProjects,
       MainProjectService.loadConfig
     )
 

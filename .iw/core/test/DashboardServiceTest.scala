@@ -4,7 +4,7 @@
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.model.{CachedIssue, CachedReviewState, IssueData, PhaseInfo, PRState, PullRequestData, ReviewArtifact, ReviewState, WorkflowProgress, WorktreeRegistration}
+import iw.core.model.{CachedIssue, CachedReviewState, IssueData, PhaseInfo, PRState, PullRequestData, ReviewArtifact, ReviewState, WorkflowProgress, WorktreeRegistration, ProjectRegistration}
 import iw.core.dashboard.{DashboardService, IssueCacheService, RefreshThrottle, GitStatusService, PullRequestCacheService, WorkflowProgressService, ReviewStateService}
 import iw.core.adapters.{GitHubClient, LinearClient}
 import java.time.Instant
@@ -458,3 +458,36 @@ class DashboardServiceTest extends FunSuite:
     assert(!html.contains("/api/worktrees/changes"), "Root page should not poll /api/worktrees/changes")
     assert(html.contains("<!DOCTYPE html>"))
     assert(html.contains("modal-container"), "Modal container should still be present")
+
+  // Phase 2 Tests: Registered projects appear in dashboard even without worktrees (IW-148)
+
+  test("renderDashboard with registered projects and no worktrees renders project section"):
+    val registered = ProjectRegistration(
+      path = "/home/user/projects/my-project",
+      projectName = "my-project",
+      trackerType = "linear",
+      team = "IWLE",
+      trackerUrl = Some("https://linear.app/iwle"),
+      registeredAt = now
+    )
+
+    val html = DashboardService.renderDashboard(
+      worktrees = List.empty,
+      registeredProjects = Map("/home/user/projects/my-project" -> registered),
+      reviewStateCache = Map.empty,
+      sshHost = "localhost"
+    )
+
+    assert(html.contains("<!DOCTYPE html>"))
+    assert(html.contains("main-projects-section") || html.contains("my-project"),
+      "Dashboard should render the registered project")
+
+  test("renderDashboard without registeredProjects parameter uses empty map"):
+    val html = DashboardService.renderDashboard(
+      worktrees = List.empty,
+      reviewStateCache = Map.empty,
+      sshHost = "localhost"
+    )
+
+    assert(html.contains("<!DOCTYPE html>"))
+    assert(html.contains("iw Dashboard"))
