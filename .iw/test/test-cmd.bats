@@ -128,9 +128,11 @@ EOF
 }
 EOF
 
-    # Remove all commands except test.scala so the compile check is fast —
-    # this test only verifies that unit and E2E tests both run together.
+    # Remove all commands except test.scala so the compile check is fast,
+    # and remove existing test files so only our simple tests run.
+    # This test only verifies that unit and E2E tests both run together.
     find .iw/commands -name '*.scala' ! -name 'test.scala' -delete
+    find .iw/core/test -name '*.scala' ! -name 'UnitTest.scala' -delete
 
     run_with_clean_path ./iw test
     [ "$status" -eq 0 ]
