@@ -171,6 +171,56 @@ object ServerClient:
     registerWorktree(issueId, path, trackerType, team, statePath)
 
   /**
+   * Registers or updates a project with the server.
+   *
+   * @param projectName The display name for the project
+   * @param path The filesystem path to the project root
+   * @param trackerType The tracker system (e.g., "GitHub", "Linear")
+   * @param team The team identifier
+   * @param trackerUrl Optional URL to the issue tracker
+   * @param statePath Path to state.json for lazy start (default: ~/.local/share/iw/server/state.json)
+   * @return Right(()) on success, Left(error message) on failure
+   */
+  def registerProject(
+    projectName: String,
+    path: String,
+    trackerType: String,
+    team: String,
+    trackerUrl: Option[String],
+    statePath: String = s"${System.getProperty("user.home")}/.local/share/iw/server/state.json"
+  ): Either[String, Unit] =
+    if isServerDisabled then Right(())
+    else
+      val port = getServerPort()
+      // Ensure server is running
+      ensureServerRunning(statePath) match
+        case Left(error) => Left(s"Failed to start server: $error")
+        case Right(_) =>
+          // Send registration request
+          try
+            val requestBody = ujson.Obj(
+              "path" -> path,
+              "trackerType" -> trackerType,
+              "team" -> team
+            )
+            trackerUrl.foreach(url => requestBody("trackerUrl") = url)
+
+            val response = quickRequest
+              .put(uri"http://localhost:$port/api/v1/projects/$projectName")
+              .body(ujson.write(requestBody))
+              .header("Content-Type", "application/json")
+              .send()
+
+            response.code match
+              case StatusCode.Ok | StatusCode.Created => Right(())
+              case _ =>
+                val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
+                Left(s"Server returned ${response.code.code}: $errorMsg")
+
+          catch
+            case e: Exception => Left(s"Failed to register project: ${e.getMessage}")
+
+  /**
    * Unregisters a worktree from the server.
    *
    * @param issueId The issue identifier
