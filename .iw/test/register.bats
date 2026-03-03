@@ -68,14 +68,15 @@ teardown() {
     [[ "$output" == *"Not in a git repository"* ]] || [[ "$output" == *"git"* ]]
 }
 
-@test "register fails on branch without issue ID" {
-    # Create a non-issue branch name
+@test "register on non-issue branch registers the project" {
+    # On a non-issue branch, register should register the project (not fail)
     git checkout -b feature-xyz
 
     run "$PROJECT_ROOT/iw" register
 
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"Cannot extract issue ID"* ]] || [[ "$output" == *"from branch"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Registered project"* ]]
+    [[ "$output" == *"testproject"* ]]
 }
 
 @test "register fails without config file" {
