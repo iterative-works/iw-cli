@@ -1,6 +1,5 @@
-// PURPOSE: Registers current worktree with the dashboard server
-// PURPOSE: Auto-detects issue ID from current branch and sends registration to dashboard
-// USAGE: iw register
+// PURPOSE: Registers current directory with the dashboard server
+// PURPOSE: Context-aware: registers worktree+project from issue branch, or project alone from main branch
 
 import iw.core.model.*
 import iw.core.adapters.*
@@ -25,24 +24,59 @@ import iw.core.output.*
       sys.exit(1)
     case Some(c) => c
 
-  // Parse issue ID from branch
-  val issueId = IssueId.fromBranch(branch) match
-    case Left(error) =>
-      Output.error(error)
-      sys.exit(1)
-    case Right(id) => id
+  // Determine context from branch: issue worktree or main project directory
+  IssueId.fromBranch(branch) match
+    case Left(_) =>
+      // Main project directory (not an issue branch) — register the project
+      val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(config)
+      ServerClient.registerProject(
+        config.projectName,
+        currentDir.toString,
+        config.trackerType.toString,
+        config.team,
+        trackerUrl
+      ) match
+        case Left(error) =>
+          Output.warning(s"Failed to register project with dashboard: $error")
+        case Right(_) =>
+          () // Silent success for dashboard call
 
-  // Register worktree with dashboard (best-effort - warn on failure, don't error)
-  ServerClient.registerWorktree(
-    issueId.value,
-    currentDir.toString,
-    config.trackerType.toString,
-    issueId.team
-  ) match
-    case Left(error) =>
-      Output.warning(s"Failed to register worktree with dashboard: $error")
-    case Right(_) =>
-      () // Silent success for dashboard call
+      Output.success(s"Registered project '${config.projectName}' at ${currentDir}")
 
-  // Output success message
-  Output.success(s"Registered worktree for ${issueId.value} at ${currentDir}")
+    case Right(issueId) =>
+      // Issue worktree — register the worktree
+      ServerClient.registerWorktree(
+        issueId.value,
+        currentDir.toString,
+        config.trackerType.toString,
+        issueId.team
+      ) match
+        case Left(error) =>
+          Output.warning(s"Failed to register worktree with dashboard: $error")
+        case Right(_) =>
+          () // Silent success for dashboard call
+
+      // Also register the parent project (best-effort)
+      ProjectPath.deriveMainProjectPath(currentDir.toString) match
+        case None =>
+          Output.warning("Could not derive parent project path from current directory")
+        case Some(parentPath) =>
+          val parentConfigPath = os.Path(parentPath) / Constants.Paths.IwDir / "config.conf"
+          ConfigFileRepository.read(parentConfigPath) match
+            case None =>
+              Output.warning(s"Could not read parent project config at $parentConfigPath, skipping project registration")
+            case Some(parentConfig) =>
+              val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(parentConfig)
+              ServerClient.registerProject(
+                parentConfig.projectName,
+                parentPath,
+                parentConfig.trackerType.toString,
+                parentConfig.team,
+                trackerUrl
+              ) match
+                case Left(error) =>
+                  Output.warning(s"Failed to register parent project with dashboard: $error")
+                case Right(_) =>
+                  () // Silent success for dashboard call
+
+      Output.success(s"Registered worktree for ${issueId.value} at ${currentDir}")

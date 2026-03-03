@@ -6,7 +6,7 @@ package iw.core.dashboard.application
 import iw.core.model.{WorktreeRegistration, ProjectRegistration}
 import iw.core.dashboard.domain.MainProject
 import iw.core.adapters.ConfigFileRepository
-import iw.core.model.{ProjectConfiguration, Constants}
+import iw.core.model.{ProjectConfiguration, Constants, TrackerUrlBuilder}
 
 object MainProjectService:
   /** Filter worktrees by project name.
@@ -73,7 +73,7 @@ object MainProjectService:
                 config.team
 
             // Build tracker URL based on tracker type
-            val trackerUrl = buildTrackerUrl(config)
+            val trackerUrl = TrackerUrlBuilder.buildTrackerUrl(config)
 
             Some(MainProject(
               path = mainProjectPath,
@@ -88,27 +88,6 @@ object MainProjectService:
             None
       }
       .toList
-
-  /** Build the issue tracker URL for a project.
-    *
-    * @param config Project configuration
-    * @return Optional tracker URL (None if not enough info)
-    */
-  private def buildTrackerUrl(config: ProjectConfiguration): Option[String] =
-    config.trackerType match
-      case iw.core.model.IssueTrackerType.GitHub =>
-        config.repository.map(repo => s"https://github.com/$repo/issues")
-      case iw.core.model.IssueTrackerType.Linear =>
-        Some(s"https://linear.app/${config.team.toLowerCase}")
-      case iw.core.model.IssueTrackerType.YouTrack =>
-        config.youtrackBaseUrl.map(baseUrl =>
-          s"${baseUrl.stripSuffix("/")}/issues/${config.team}"
-        )
-      case iw.core.model.IssueTrackerType.GitLab =>
-        config.repository.map(repo =>
-          val baseUrl = config.youtrackBaseUrl.getOrElse("https://gitlab.com")
-          s"${baseUrl.stripSuffix("/")}/$repo/-/issues"
-        )
 
   /** Merge registered projects and worktree-derived projects into a unified list.
     *

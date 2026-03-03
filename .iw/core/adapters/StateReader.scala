@@ -33,7 +33,8 @@ object StateReader:
           stateJson.issueCache,
           stateJson.progressCache,
           stateJson.prCache,
-          stateJson.reviewStateCache
+          stateJson.reviewStateCache,
+          stateJson.projects
         )
       } match
         case Success(state) => Right(state)
