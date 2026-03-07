@@ -27,10 +27,10 @@ Three standalone commands rather than a `phase` subcommand dispatcher because:
 2. The existing dispatcher pattern (review-state.scala) adds indirection and an extra scala-cli invocation
 3. Standalone commands are simpler and match the majority of existing commands (start, open, rm, etc.)
 
-Using existing `review-state update` via shell invocation for review-state changes because:
-1. Avoids duplicating the validation, merge, and write logic
-2. Review-state update already handles all the flag parsing and file location
-3. Keeps review-state as the single source of truth for state file manipulation
+Using direct library calls for review-state changes via a shared `ReviewStateAdapter`:
+1. Faster than subprocess invocation (no extra scala-cli process)
+2. Extracts the read/merge/validate/write sequence into a shared adapter
+3. Both `review-state update` command and phase commands use the same adapter
 
 ## Architecture Design
 
@@ -75,15 +75,21 @@ Using existing `review-state update` via shell invocation for review-state chang
   - `createPullRequest(repo, headBranch, baseBranch, title, body, dir)` -- `gh pr create`
   - `mergePullRequest(prUrl, dir)` -- `gh pr merge --merge`
   - `parseCreatePrResponse(output)` -- extract PR URL from gh output
+- Extend `GitLabClient` with:
+  - `createMergeRequest(repo, headBranch, baseBranch, title, body, dir)` -- `glab mr create`
+  - `mergeMergeRequest(mrUrl, dir)` -- `glab mr merge`
+  - `parseCreateMrResponse(output)` -- extract MR URL from glab output
 - `FileUrlBuilder` -- derive GitHub/GitLab file URL base from remote URL and branch name
+- `ReviewStateAdapter` -- shared read/merge/validate/write sequence for review-state.json (extracted from `review-state update` command to avoid duplication)
 
 **Responsibilities:**
 - Execute all git operations (branch creation, staging, committing, pushing, pulling)
-- Execute gh CLI operations (PR creation, PR merge)
+- Execute gh/glab CLI operations (PR/MR creation, PR/MR merge)
 - Return `Either[String, T]` for all operations, consistent with existing adapters
-- Build file-browseable URLs for PR body templates
+- Build file-browseable URLs for PR body templates (GitHub and GitLab patterns)
+- Provide shared review-state read/merge/validate/write operations
 
-**Estimated Effort:** 5-7 hours
+**Estimated Effort:** 6-9 hours
 **Complexity:** Moderate (many operations but each is straightforward; the PR creation/merge flow has more surface area)
 
 ---
@@ -98,9 +104,9 @@ Using existing `review-state update` via shell invocation for review-state chang
 - JSON output construction and printing
 
 **Responsibilities:**
-- `phase-start`: validate inputs -> check branch state -> create sub-branch -> capture baseline SHA -> invoke `review-state update` -> print JSON output
-- `phase-commit`: validate inputs -> detect changed files (excluding tracking files) -> stage changes -> construct commit message -> execute commit -> update phase task file -> update reviewed checkboxes -> print JSON output
-- `phase-pr`: validate inputs -> determine feature branch -> push sub-branch -> create PR with templated body -> invoke `review-state update` -> optionally merge + checkout + pull -> print JSON output
+- `phase-start`: validate inputs -> check branch state -> create sub-branch -> capture baseline SHA -> update review-state via shared adapter -> print JSON output
+- `phase-commit`: validate inputs -> stage all changes -> construct commit message -> execute commit -> update phase task file -> update reviewed checkboxes -> print JSON output
+- `phase-pr`: validate inputs -> determine feature branch -> push sub-branch -> create PR/MR (GitHub or GitLab) with templated body -> update review-state via shared adapter -> optionally merge + checkout + pull -> print JSON output
 
 **Estimated Effort:** (included in Presentation Layer estimate since commands ARE the presentation)
 **Complexity:** N/A (folded into Presentation Layer)
@@ -119,7 +125,7 @@ Using existing `review-state update` via shell invocation for review-state chang
 - Orchestrate domain + adapter calls in sequence with error handling
 - Print structured JSON to stdout on success
 - Print human-readable error/info messages to stderr via `Output.*`
-- Invoke `review-state update` as a subprocess for review-state changes
+- Update review-state via shared `ReviewStateAdapter`
 - Exit with appropriate codes (0 success, 1 error)
 
 **Estimated Effort:** 6-8 hours
@@ -133,7 +139,7 @@ Using existing `review-state update` via shell invocation for review-state chang
 
 - **FCIS**: Pure domain logic (branch name derivation, commit message construction, markdown parsing) in `model/`, I/O in `adapters/`, orchestration in `commands/`
 - **Either-based error handling**: All adapter operations return `Either[String, T]`, commands use early-exit on `Left`
-- **Subprocess delegation for review-state**: Commands shell out to `iw review-state update` rather than importing and calling the update logic directly, keeping review-state as a single entry point for state file manipulation
+- **Shared adapter for review-state**: Commands use a shared `ReviewStateAdapter` for read/merge/validate/write operations, avoiding subprocess overhead while preventing logic duplication
 - **JSON output to stdout**: Machine-consumable output via `ujson` on stdout; human messages via `Output.*` on stderr
 
 ### Technology Choices
@@ -147,79 +153,40 @@ Using existing `review-state update` via shell invocation for review-state chang
 - `phase-start` creates the branch that `phase-commit` and `phase-pr` operate on
 - `phase-commit` stages and commits work done between `phase-start` and itself
 - `phase-pr` pushes the branch created by `phase-start` and creates a PR
-- All three commands update review-state.json via `iw review-state update` subprocess calls
+- All three commands update review-state.json via shared `ReviewStateAdapter` (direct library call)
 - All three commands infer issue ID from branch name (fallback) or accept it as argument
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Phase task file format and location
+### RESOLVED: Phase task file format and location
 
-The issue description mentions updating "Phase Status" in `phase-NN-tasks.md` and updating `[reviewed]` checkboxes. The exact format of these files, and how to locate them relative to the worktree, needs to be pinned down.
-
-**Questions to answer:**
-1. What is the exact directory path for phase task files? Is it `project-management/issues/{ISSUE-ID}/phase-{NN}-tasks.md`?
-2. What does the "Phase Status" line look like in the markdown? Is it a specific pattern like `**Phase Status:** In Progress` that gets changed to `**Phase Status:** Complete`?
-3. What is the exact format of `[impl]` and `[reviewed]` checkboxes? Are these `- [x] [impl]` and `- [ ] [reviewed]` patterns, or something else?
-
-**Options:**
-- **Option A**: Hard-code the path pattern and markdown patterns based on the existing workflow skill documentation. Pro: fast. Con: brittle if format varies.
-- **Option B**: Make the path pattern configurable or derive it from review-state.json task_lists entries. Pro: flexible. Con: more complex.
-- **Option C**: Read the existing MarkdownTaskParser patterns and extend them. Pro: consistent with dashboard parsing. Con: MarkdownTaskParser is in `dashboard/` which commands should not import from.
-
-**Impact:** Affects `PhaseTaskFile` domain model design and `phase-commit` command logic.
+**Decision:** Use existing patterns from the codebase.
+- Path: `project-management/issues/{ISSUE-ID}/phase-{NN}-tasks.md`
+- Phase Status line: `**Phase Status:** Complete` (at end of file)
+- Checkboxes use inline tags: `- [x] [impl]` and `- [x] [reviewed]` (e.g., `- [x] [test] [x] [reviewed] Write test: ...`)
 
 ---
 
-### CLARIFY: Tracking file exclusion list
+### RESOLVED: Tracking file exclusion list
 
-`phase-commit` should exclude "tracking files" from staging. The issue mentions `tasks.md` and `phase-*.md`, but the complete list needs definition.
-
-**Questions to answer:**
-1. Should `review-state.json` be excluded from staging?
-2. Should `analysis.md` be excluded?
-3. Is the exclusion list based on file paths (e.g., everything under `project-management/`) or specific filenames?
-4. Should these files be committed separately, or not at all?
-
-**Options:**
-- **Option A**: Exclude everything under `project-management/issues/` directory. Simple, broad.
-- **Option B**: Exclude specific filenames: `tasks.md`, `phase-*-tasks.md`, `review-state.json`, `analysis.md`. Precise but fragile.
-- **Option C**: Make the exclusion patterns configurable via command flags or a config file.
-
-**Impact:** Affects which files get staged in `phase-commit`, and whether tracking file changes get lost.
+**Decision:** No exclusion. Stage everything including tracking files. All files changed during a phase (code + tracking) are committed together.
 
 ---
 
-### CLARIFY: Review-state update invocation method
+### RESOLVED: Review-state update invocation method
 
-The commands need to update review-state.json. Two approaches exist.
+**Decision:** Direct library call to `ReviewStateUpdater.merge()` + `ReviewStateValidator.validate()` + `os.write.over()`. Faster, no subprocess overhead, and the commands already share the core library via scala-cli compilation.
 
-**Questions to answer:**
-1. Should the commands invoke `iw review-state update` as a subprocess, or directly call `ReviewStateUpdater.merge()` + file I/O?
-2. If subprocess, does the `iw` bootstrap script need to be located at runtime?
-
-**Options:**
-- **Option A**: Subprocess invocation via `iw review-state update --display-text "..." ...`. Pro: single source of truth, includes validation. Con: spawns another scala-cli process, slower.
-- **Option B**: Direct library call to `ReviewStateUpdater.merge()` + `ReviewStateValidator.validate()` + `os.write.over()`. Pro: fast, no subprocess overhead. Con: duplicates the file-location and write logic from the update command.
-- **Option C**: Extract the review-state read/merge/validate/write sequence into a shared adapter function, used by both the `review-state update` command and the phase commands. Pro: clean, no duplication. Con: refactoring the existing command.
-
-**Impact:** Affects performance (subprocess overhead vs direct call) and maintainability.
+This means extracting a shared adapter for the read/merge/validate/write sequence (Option C from original analysis) to avoid duplicating file-location logic.
 
 ---
 
-### CLARIFY: GitHub-only or multi-tracker support for phase-pr
+### RESOLVED: GitHub-only or multi-tracker support for phase-pr
 
-The issue describes `gh pr create` which is GitHub-specific. The project supports GitHub, GitLab, Linear, and YouTrack trackers.
-
-**Questions to answer:**
-1. Should `phase-pr` support GitLab (`glab`) in addition to GitHub (`gh`)?
-2. Should it fail gracefully for non-GitHub/GitLab trackers (Linear, YouTrack don't have PR concepts in the same way)?
-3. Should the file URL generation in PR body work for GitLab URLs too?
-
-**Options:**
-- **Option A**: GitHub-only for now. Simplest, matches current `GitHubClient` scope. Add GitLab later.
-- **Option B**: Support both GitHub and GitLab from the start. More work but avoids rework.
-
-**Impact:** Affects `phase-pr` command complexity and adapter scope.
+**Decision:** Support both GitHub (`gh`) and GitLab (`glab`) from the start. This requires:
+- Extending `GitLabClient` with PR (merge request) creation and merge operations
+- `FileUrlBuilder` supporting both GitHub and GitLab URL patterns
+- Tracker-type detection in `phase-pr` to dispatch to the right client
 
 ---
 
@@ -227,10 +194,10 @@ The issue describes `gh pr create` which is GitHub-specific. The project support
 
 **Per-Layer Breakdown:**
 - Domain Layer: 4-6 hours
-- Infrastructure Layer: 5-7 hours
+- Infrastructure Layer: 6-9 hours
 - Presentation Layer: 6-8 hours
 
-**Total Range:** 15 - 21 hours
+**Total Range:** 16 - 23 hours
 
 **Confidence:** Medium
 
@@ -312,10 +279,10 @@ Remove the three command files and any new adapter/model files. No state migrati
 **Impact:** Medium
 **Mitigation:** Examine actual phase-NN-tasks.md files from recent workflow executions to pin down the exact format before implementing `PhaseTaskFile` parsing. Start with the simplest viable parser and iterate.
 
-### Risk 2: Subprocess invocation of `iw review-state update` adds significant latency
-**Likelihood:** Medium
-**Impact:** Low (latency is acceptable since these commands are called once per phase transition, not in a tight loop)
-**Mitigation:** If latency is unacceptable, refactor to direct library call. The command execution time is dominated by git/gh operations anyway.
+### Risk 2: Shared ReviewStateAdapter refactoring may break existing review-state commands
+**Likelihood:** Low
+**Impact:** Medium
+**Mitigation:** Extract the adapter as a new file, then have the existing `review-state update` command delegate to it. Existing tests must continue passing.
 
 ### Risk 3: `phase-pr --batch` merge could fail mid-way, leaving inconsistent state
 **Likelihood:** Medium
