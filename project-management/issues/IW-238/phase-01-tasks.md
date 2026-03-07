@@ -92,7 +92,7 @@
 ## Integration
 
 - [x] [int] Run full unit test suite (`./iw test unit`) -- all tests pass, no regressions
-- [ ] [int] Run full test suite (`./iw test`) -- no regressions
+- [x] [int] Run full test suite (`./iw test`) -- no regressions
 - [x] [int] Verify all new files have PURPOSE comments (two lines starting with `// PURPOSE:`)
 - [x] [int] Verify all new files are in `iw.core.model` package
 - [x] [int] Verify all code is pure (no I/O, no side effects, no mutable state)
