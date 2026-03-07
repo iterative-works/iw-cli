@@ -19,16 +19,20 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-238/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-238/phase-01-context.md"
     }
   ],
-  "last_updated": "2026-03-07T22:06:25.182641597Z",
-  "status": "implementing",
+  "last_updated": "2026-03-07T23:06:32.580031429Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 1: Implementing",
-    "type": "progress",
+    "text": "Phase 1: Awaiting Review",
+    "type": "warning",
     "subtext": "Domain Layer"
   },
-  "message": "Phase 1 implementation in progress",
+  "message": "Phase 1 complete - Domain Layer",
   "available_actions": [
     {
       "id": "implement",
@@ -39,6 +43,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1d2f609",
@@ -51,6 +60,12 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
-  ]
+  ],
+  "needs_attention": true,
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/239"
 }
