@@ -1,7 +1,7 @@
 // PURPOSE: Unit tests for CommitMessage pure commit message construction
 // PURPOSE: Tests title-only and title-with-items formatting edge cases
 
-package iw.core.domain
+package iw.tests
 
 import munit.FunSuite
 import iw.core.model.CommitMessage

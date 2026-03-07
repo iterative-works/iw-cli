@@ -1,7 +1,7 @@
 // PURPOSE: Unit tests for PhaseNumber and PhaseBranch value objects
 // PURPOSE: Tests phase number parsing, normalization, and branch name derivation
 
-package iw.core.domain
+package iw.tests
 
 import munit.FunSuite
 import iw.core.model.{PhaseNumber, PhaseBranch}

@@ -1,11 +1,10 @@
 // PURPOSE: Unit tests for PhaseOutput JSON data types for phase commands
 // PURPOSE: Tests JSON serialization of StartOutput, CommitOutput, and PrOutput
 
-package iw.core.domain
+package iw.tests
 
 import munit.FunSuite
 import iw.core.model.PhaseOutput
-import ujson.*
 
 class PhaseOutputTest extends FunSuite:
 

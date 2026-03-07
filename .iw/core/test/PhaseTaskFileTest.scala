@@ -1,7 +1,7 @@
 // PURPOSE: Unit tests for PhaseTaskFile markdown parsing and rewriting
 // PURPOSE: Tests markComplete and markReviewed pure string transformations
 
-package iw.core.domain
+package iw.tests
 
 import munit.FunSuite
 import iw.core.model.PhaseTaskFile
@@ -19,8 +19,7 @@ class PhaseTaskFileTest extends FunSuite:
   test("markComplete is idempotent on already-complete content"):
     val content = "# My Phase\n\n**Phase Status:** Complete\n"
     val result = PhaseTaskFile.markComplete(content)
-    assertEquals(result.count(_ == '\n'), content.count(_ == '\n'))
-    assert(result.contains("**Phase Status:** Complete"))
+    assertEquals(result, content)
 
   test("markComplete appends status line when none exists"):
     val content = "# My Phase\n\nSome content without a status line.\n"

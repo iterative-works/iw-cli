@@ -5,6 +5,10 @@ package iw.core.model
 
 object PhaseOutput:
 
+  /** Serialize key-value pairs to pretty-printed JSON */
+  private def toJson(fields: (String, ujson.Value)*): String =
+    ujson.write(ujson.Obj.from(fields), indent = 2)
+
   /** Output of `phase-start` command */
   case class StartOutput(
     issueId: String,
@@ -12,14 +16,12 @@ object PhaseOutput:
     branch: String,
     baselineSha: String
   ):
-    def toJson: String =
-      val obj = ujson.Obj(
-        "issueId"     -> ujson.Str(issueId),
-        "phaseNumber" -> ujson.Str(phaseNumber),
-        "branch"      -> ujson.Str(branch),
-        "baselineSha" -> ujson.Str(baselineSha)
-      )
-      ujson.write(obj, indent = 2)
+    def toJson: String = PhaseOutput.toJson(
+      "issueId"     -> ujson.Str(issueId),
+      "phaseNumber" -> ujson.Str(phaseNumber),
+      "branch"      -> ujson.Str(branch),
+      "baselineSha" -> ujson.Str(baselineSha)
+    )
 
   /** Output of `phase-commit` command */
   case class CommitOutput(
@@ -29,15 +31,13 @@ object PhaseOutput:
     filesCommitted: Int,
     message: String
   ):
-    def toJson: String =
-      val obj = ujson.Obj(
-        "issueId"        -> ujson.Str(issueId),
-        "phaseNumber"    -> ujson.Str(phaseNumber),
-        "commitSha"      -> ujson.Str(commitSha),
-        "filesCommitted" -> ujson.Num(filesCommitted),
-        "message"        -> ujson.Str(message)
-      )
-      ujson.write(obj, indent = 2)
+    def toJson: String = PhaseOutput.toJson(
+      "issueId"        -> ujson.Str(issueId),
+      "phaseNumber"    -> ujson.Str(phaseNumber),
+      "commitSha"      -> ujson.Str(commitSha),
+      "filesCommitted" -> ujson.Num(filesCommitted),
+      "message"        -> ujson.Str(message)
+    )
 
   /** Output of `phase-pr` command */
   case class PrOutput(
@@ -48,13 +48,11 @@ object PhaseOutput:
     baseBranch: String,
     merged: Boolean
   ):
-    def toJson: String =
-      val obj = ujson.Obj(
-        "issueId"     -> ujson.Str(issueId),
-        "phaseNumber" -> ujson.Str(phaseNumber),
-        "prUrl"       -> ujson.Str(prUrl),
-        "headBranch"  -> ujson.Str(headBranch),
-        "baseBranch"  -> ujson.Str(baseBranch),
-        "merged"      -> ujson.Bool(merged)
-      )
-      ujson.write(obj, indent = 2)
+    def toJson: String = PhaseOutput.toJson(
+      "issueId"     -> ujson.Str(issueId),
+      "phaseNumber" -> ujson.Str(phaseNumber),
+      "prUrl"       -> ujson.Str(prUrl),
+      "headBranch"  -> ujson.Str(headBranch),
+      "baseBranch"  -> ujson.Str(baseBranch),
+      "merged"      -> ujson.Bool(merged)
+    )
