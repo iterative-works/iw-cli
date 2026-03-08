@@ -1,5 +1,5 @@
-// PURPOSE: GitHub CLI client for issue creation via gh CLI
-// PURPOSE: Provides createIssue to create GitHub issues via gh command
+// PURPOSE: GitHub CLI client for issue and PR management via gh CLI
+// PURPOSE: Provides issue creation, fetching, and PR creation/merge operations
 
 package iw.core.adapters
 
@@ -492,3 +492,112 @@ object GitHubClient:
           case Right(jsonOutput) =>
             // Parse JSON response
             parseSearchIssuesResponse(jsonOutput)
+
+  /** Build gh CLI command arguments for creating a pull request.
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param headBranch Branch containing the changes
+    * @param baseBranch Target branch to merge into
+    * @param title PR title
+    * @param body PR body/description
+    * @return Array of command arguments for gh CLI
+    */
+  def buildCreatePrCommand(
+    repository: String,
+    headBranch: String,
+    baseBranch: String,
+    title: String,
+    body: String
+  ): Array[String] =
+    Array(
+      "pr", "create",
+      "--repo", repository,
+      "--head", headBranch,
+      "--base", baseBranch,
+      "--title", title,
+      "--body", body
+    )
+
+  /** Parse PR URL from gh pr create output.
+    *
+    * Expected format: https://github.com/owner/repo/pull/42
+    *
+    * @param output URL string from gh CLI (may have trailing newline)
+    * @return Right(PR URL) on success, Left(error message) on failure
+    */
+  def parseCreatePrResponse(output: String): Either[String, String] =
+    val url = output.trim
+    if url.isEmpty then
+      Left("Empty response from gh CLI")
+    else
+      val prPattern = """https://github\.com/.+/pull/\d+""".r
+      prPattern.findFirstIn(url) match
+        case Some(prUrl) => Right(prUrl)
+        case None => Left(s"Unexpected response format: $url")
+
+  /** Build gh CLI command arguments for merging a pull request.
+    *
+    * @param prUrl URL of the PR to merge
+    * @return Array of command arguments for gh CLI
+    */
+  def buildMergePrCommand(prUrl: String): Array[String] =
+    Array("pr", "merge", "--merge", prUrl)
+
+  /** Create a pull request via gh CLI.
+    *
+    * @param repository GitHub repository in owner/repo format
+    * @param headBranch Branch containing the changes
+    * @param baseBranch Target branch to merge into
+    * @param title PR title
+    * @param body PR body/description
+    * @param dir Working directory for the command
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(PR URL) on success, Left(error message) on failure
+    */
+  def createPullRequest(
+    repository: String,
+    headBranch: String,
+    baseBranch: String,
+    title: String,
+    body: String,
+    dir: os.Path,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, String] =
+    validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GhPrerequisiteError.GhNotInstalled) =>
+        Left(formatGhNotInstalledError())
+      case Left(GhPrerequisiteError.GhNotAuthenticated) =>
+        Left(formatGhNotAuthenticatedError())
+      case Left(GhPrerequisiteError.GhOtherError(msg)) =>
+        Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        val args = buildCreatePrCommand(repository, headBranch, baseBranch, title, body)
+        execCommand("gh", args) match
+          case Left(error) => Left(error)
+          case Right(output) => parseCreatePrResponse(output)
+
+  /** Merge a pull request via gh CLI.
+    *
+    * @param prUrl URL of the PR to merge
+    * @param dir Working directory for the command
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(()) on success, Left(error message) on failure
+    */
+  def mergePullRequest(
+    prUrl: String,
+    dir: os.Path,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, Unit] =
+    if !isCommandAvailable("gh") then
+      Left(formatGhNotInstalledError())
+    else
+      val args = buildMergePrCommand(prUrl)
+      execCommand("gh", args) match
+        case Left(error) => Left(error)
+        case Right(_) => Right(())

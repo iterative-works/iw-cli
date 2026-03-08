@@ -819,3 +819,146 @@ class GitHubClientTest extends munit.FunSuite:
     assert(result.isRight)
     val issues = result.getOrElse(fail("Expected Right"))
     assertEquals(issues.length, 0)
+
+  // ========== buildCreatePrCommand Tests ==========
+
+  test("buildCreatePrCommand produces correct gh pr create argument array"):
+    val args = GitHubClient.buildCreatePrCommand(
+      repository = "owner/repo",
+      headBranch = "feature-phase-01",
+      baseBranch = "main",
+      title = "Phase 1: Domain layer",
+      body = "Implements domain types"
+    )
+
+    assert(args.contains("pr"), "Should contain 'pr'")
+    assert(args.contains("create"), "Should contain 'create'")
+    assert(args.contains("--repo"), "Should contain '--repo'")
+    val repoIndex = args.indexOf("--repo")
+    assertEquals(args(repoIndex + 1), "owner/repo")
+
+  test("buildCreatePrCommand includes --repo --head --base --title --body flags with correct values"):
+    val args = GitHubClient.buildCreatePrCommand(
+      repository = "iterative-works/iw-cli",
+      headBranch = "feature/new-feature",
+      baseBranch = "develop",
+      title = "Add new feature",
+      body = "Feature description"
+    )
+
+    val headIndex = args.indexOf("--head")
+    assertEquals(args(headIndex + 1), "feature/new-feature")
+    val baseIndex = args.indexOf("--base")
+    assertEquals(args(baseIndex + 1), "develop")
+    val titleIndex = args.indexOf("--title")
+    assertEquals(args(titleIndex + 1), "Add new feature")
+    val bodyIndex = args.indexOf("--body")
+    assertEquals(args(bodyIndex + 1), "Feature description")
+
+  // ========== parseCreatePrResponse Tests ==========
+
+  test("parseCreatePrResponse extracts PR URL from plain-URL stdout"):
+    val output = "https://github.com/owner/repo/pull/42\n"
+    val result = GitHubClient.parseCreatePrResponse(output)
+
+    assertEquals(result, Right("https://github.com/owner/repo/pull/42"))
+
+  test("parseCreatePrResponse returns Left on empty output"):
+    val result = GitHubClient.parseCreatePrResponse("")
+    assert(result.isLeft)
+
+  test("parseCreatePrResponse returns Left on unrecognised output"):
+    val result = GitHubClient.parseCreatePrResponse("some unexpected text\n")
+    assert(result.isLeft)
+
+  // ========== buildMergePrCommand Tests ==========
+
+  test("buildMergePrCommand produces correct gh pr merge argument array with --merge flag"):
+    val args = GitHubClient.buildMergePrCommand("https://github.com/owner/repo/pull/42")
+
+    assert(args.contains("pr"), "Should contain 'pr'")
+    assert(args.contains("merge"), "Should contain 'merge'")
+    assert(args.contains("--merge"), "Should contain '--merge' flag")
+    assert(args.contains("https://github.com/owner/repo/pull/42"), "Should contain PR URL")
+
+  // ========== createPullRequest Tests ==========
+
+  test("createPullRequest returns Left when gh is unavailable"):
+    val result = GitHubClient.createPullRequest(
+      repository = "owner/repo",
+      headBranch = "feature",
+      baseBranch = "main",
+      title = "Test PR",
+      body = "Test body",
+      dir = os.temp.dir(),
+      isCommandAvailable = _ => false
+    )
+    assert(result.isLeft)
+
+  test("createPullRequest invokes execCommand with buildCreatePrCommand result and returns PR URL"):
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty)
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else
+        capturedArgs.set(args)
+        Right("https://github.com/owner/repo/pull/42\n")
+
+    val result = GitHubClient.createPullRequest(
+      repository = "owner/repo",
+      headBranch = "feature-branch",
+      baseBranch = "main",
+      title = "Test PR",
+      body = "PR body",
+      dir = os.temp.dir(),
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assertEquals(result, Right("https://github.com/owner/repo/pull/42"))
+    assert(capturedArgs.get.contains("create"), "Should have called pr create")
+
+  test("createPullRequest returns Left when execCommand returns Left"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else Left("Permission denied")
+
+    val result = GitHubClient.createPullRequest(
+      repository = "owner/repo",
+      headBranch = "feature-branch",
+      baseBranch = "main",
+      title = "Test PR",
+      body = "PR body",
+      dir = os.temp.dir(),
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+
+  // ========== mergePullRequest Tests ==========
+
+  test("mergePullRequest returns Left when gh is unavailable"):
+    val result = GitHubClient.mergePullRequest(
+      prUrl = "https://github.com/owner/repo/pull/42",
+      dir = os.temp.dir(),
+      isCommandAvailable = _ => false
+    )
+    assert(result.isLeft)
+
+  test("mergePullRequest invokes execCommand with buildMergePrCommand and returns Right(()) on success"):
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty)
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else
+        capturedArgs.set(args)
+        Right("")
+
+    val result = GitHubClient.mergePullRequest(
+      prUrl = "https://github.com/owner/repo/pull/42",
+      dir = os.temp.dir(),
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assertEquals(result, Right(()))
+    assert(capturedArgs.get.contains("merge"), "Should have called pr merge")
