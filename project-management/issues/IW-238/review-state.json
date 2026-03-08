@@ -47,16 +47,24 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-238/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-238/phase-03-context.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-238/implementation-log.md"
     }
   ],
-  "last_updated": "2026-03-08T19:25:34.594649041Z",
-  "status": "implementing",
+  "last_updated": "2026-03-08T20:31:00.717064979Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 3: Implementing",
-    "type": "progress",
+    "text": "Phase 3: Awaiting Review",
+    "type": "warning",
     "subtext": "Presentation Layer"
   },
-  "message": "Phase 3 implementation in progress",
+  "message": "Phase 3 complete - Presentation Layer",
   "available_actions": [
     {
       "id": "implement",
@@ -87,6 +95,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1d2f609",
@@ -123,8 +136,12 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
   "needs_attention": true,
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/240"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/241"
 }
