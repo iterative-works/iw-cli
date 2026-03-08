@@ -752,3 +752,167 @@ class GitLabClientTest extends munit.FunSuite:
     assert(result.isLeft)
     assertEquals(commandCalls.get, 1) // Only one attempt, no retry
     assert(result.left.getOrElse("").contains("Network timeout"))
+
+  // ========== buildCreateMrCommand Tests ==========
+
+  test("buildCreateMrCommand produces correct glab mr create argument array"):
+    val args = GitLabClient.buildCreateMrCommand(
+      repository = "owner/project",
+      headBranch = "feature-phase-01",
+      baseBranch = "main",
+      title = "Phase 1: Domain layer",
+      body = "Implements domain types"
+    )
+
+    assert(args.contains("mr"), "Should contain 'mr'")
+    assert(args.contains("create"), "Should contain 'create'")
+    assert(args.contains("--repo"), "Should contain '--repo'")
+    val repoIndex = args.indexOf("--repo")
+    assertEquals(args(repoIndex + 1), "owner/project")
+
+  test("buildCreateMrCommand uses --description (not --body) for the MR body"):
+    val args = GitLabClient.buildCreateMrCommand(
+      repository = "owner/project",
+      headBranch = "feature",
+      baseBranch = "main",
+      title = "Test MR",
+      body = "MR description"
+    )
+
+    assert(args.contains("--description"), "Should use --description flag")
+    assert(!args.contains("--body"), "Should NOT use --body flag")
+    val descIndex = args.indexOf("--description")
+    assertEquals(args(descIndex + 1), "MR description")
+
+  test("buildCreateMrCommand uses --head and --base for branch specification"):
+    val args = GitLabClient.buildCreateMrCommand(
+      repository = "owner/project",
+      headBranch = "feature-branch",
+      baseBranch = "develop",
+      title = "Test MR",
+      body = "Body"
+    )
+
+    val headIndex = args.indexOf("--head")
+    assertEquals(args(headIndex + 1), "feature-branch")
+    val baseIndex = args.indexOf("--base")
+    assertEquals(args(baseIndex + 1), "develop")
+
+  // ========== parseCreateMrResponse Tests ==========
+
+  test("parseCreateMrResponse extracts MR URL from glab output"):
+    val output = "https://gitlab.com/owner/project/-/merge_requests/42\n"
+    val result = GitLabClient.parseCreateMrResponse(output)
+
+    assertEquals(result, Right("https://gitlab.com/owner/project/-/merge_requests/42"))
+
+  test("parseCreateMrResponse returns Left on empty output"):
+    val result = GitLabClient.parseCreateMrResponse("")
+    assert(result.isLeft)
+
+  test("parseCreateMrResponse returns Left on unrecognised output"):
+    val result = GitLabClient.parseCreateMrResponse("some unexpected text\n")
+    assert(result.isLeft)
+
+  // ========== buildMergeMrCommand Tests ==========
+
+  test("buildMergeMrCommand produces correct glab mr merge argument array with MR URL"):
+    val args = GitLabClient.buildMergeMrCommand("https://gitlab.com/owner/project/-/merge_requests/42")
+
+    assert(args.contains("mr"), "Should contain 'mr'")
+    assert(args.contains("merge"), "Should contain 'merge'")
+    assert(args.contains("https://gitlab.com/owner/project/-/merge_requests/42"), "Should contain MR URL")
+
+  // ========== createMergeRequest Tests ==========
+
+  test("createMergeRequest returns Left when glab is unavailable"):
+    val result = GitLabClient.createMergeRequest(
+      repository = "owner/project",
+      headBranch = "feature",
+      baseBranch = "main",
+      title = "Test MR",
+      body = "Test body",
+      isCommandAvailable = _ => false
+    )
+    assert(result.isLeft)
+
+  test("createMergeRequest invokes execCommand with buildCreateMrCommand result and returns MR URL"):
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty)
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else
+        capturedArgs.set(args)
+        Right("https://gitlab.com/owner/project/-/merge_requests/42\n")
+
+    val result = GitLabClient.createMergeRequest(
+      repository = "owner/project",
+      headBranch = "feature-branch",
+      baseBranch = "main",
+      title = "Test MR",
+      body = "MR body",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assertEquals(result, Right("https://gitlab.com/owner/project/-/merge_requests/42"))
+    assert(capturedArgs.get.contains("create"), "Should have called mr create")
+
+  test("createMergeRequest returns Left when execCommand returns Left"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else Left("Permission denied")
+
+    val result = GitLabClient.createMergeRequest(
+      repository = "owner/project",
+      headBranch = "feature-branch",
+      baseBranch = "main",
+      title = "Test MR",
+      body = "MR body",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+
+  // ========== mergeMergeRequest Tests ==========
+
+  test("mergeMergeRequest returns Left when glab is unavailable"):
+    val result = GitLabClient.mergeMergeRequest(
+      mrUrl = "https://gitlab.com/owner/project/-/merge_requests/42",
+      isCommandAvailable = _ => false
+    )
+    assert(result.isLeft)
+
+  test("mergeMergeRequest returns Left when glab is not authenticated"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("not logged in")
+      else
+        Right("should not get here")
+
+    val result = GitLabClient.mergeMergeRequest(
+      mrUrl = "https://gitlab.com/owner/project/-/merge_requests/42",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("glab is not authenticated"))
+
+  test("mergeMergeRequest invokes execCommand with buildMergeMrCommand and returns Right(()) on success"):
+    val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty)
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else
+        capturedArgs.set(args)
+        Right("")
+
+    val result = GitLabClient.mergeMergeRequest(
+      mrUrl = "https://gitlab.com/owner/project/-/merge_requests/42",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assertEquals(result, Right(()))
+    assert(capturedArgs.get.contains("merge"), "Should have called mr merge")

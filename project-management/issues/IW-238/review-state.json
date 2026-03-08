@@ -27,16 +27,28 @@
     {
       "label": "Implementation Log",
       "path": "project-management/issues/IW-238/implementation-log.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-238/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-238/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-238/phase-02-context.md"
     }
   ],
-  "last_updated": "2026-03-08T08:10:47.341493538Z",
-  "status": "phase_merged",
+  "last_updated": "2026-03-08T09:20:25.498002578Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 1: Merged",
-    "type": "success",
-    "subtext": "Domain Layer"
+    "text": "Phase 2: Awaiting Review",
+    "type": "warning",
+    "subtext": "Infrastructure Layer"
   },
-  "message": "Phase 1 merged - ready for Phase 2",
+  "message": "Phase 2 complete - Infrastructure Layer",
   "available_actions": [
     {
       "id": "implement",
@@ -52,12 +64,22 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1d2f609",
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=6f2ef5bd7a5c598f0d1deabd263a9abe257d7602"
+    "2": {
+      "context_sha": "context_sha=d5a81aed12d3499e34b40ecb0563e3a891c3b983"
     }
   },
   "badges": [
@@ -72,8 +94,16 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
   "needs_attention": true,
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/239"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/240"
 }
