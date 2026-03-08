@@ -7,11 +7,17 @@
 ## Setup
 
 - [ ] [setup] Verify all existing tests pass (`./iw test`) to establish a clean baseline
+- [ ] [setup] Add `AdvanceOutput` case class to `.iw/core/model/PhaseOutput.scala`
 - [ ] [setup] Create `.iw/commands/phase-start.scala` with PURPOSE header and `@main` stub
 - [ ] [setup] Create `.iw/commands/phase-commit.scala` with PURPOSE header and `@main` stub
 - [ ] [setup] Create `.iw/commands/phase-pr.scala` with PURPOSE header and `@main` stub
+- [ ] [setup] Create `.iw/commands/phase-advance.scala` with PURPOSE header and `@main` stub
 
 ## Tests First (TDD)
+
+### AdvanceOutput unit test
+
+- [ ] [test] Add test to `.iw/core/test/PhaseOutputTest.scala`: `AdvanceOutput.toJson` produces valid JSON with issueId, phaseNumber, branch, previousBranch, headSha
 
 ### phase-start E2E tests
 
@@ -39,7 +45,17 @@
 - [ ] [test] Test: `phase-pr` without `--title` exits with error
 - [ ] [test] Test: `phase-pr --title "Test"` without config file exits with error about missing config
 
+### phase-advance E2E tests
+
+- [ ] [test] Create `.iw/test/phase-advance.bats` with test: `phase-advance` when not on a phase or feature branch exits with error
+- [ ] [test] Test: `phase-advance` when `gh` is not available exits with error
+
 ## Implementation
+
+### AdvanceOutput model
+
+- [ ] [impl] Implement `AdvanceOutput` case class with fields: issueId, phaseNumber, branch, previousBranch, headSha
+- [ ] [test] Run PhaseOutputTest and verify new test passes
 
 ### phase-start command
 
@@ -71,16 +87,27 @@
 - [ ] [impl] Implement PR/MR creation: dispatch to `GitHubClient.createPullRequest()` or `GitLabClient.createMergeRequest()` based on tracker type
 - [ ] [impl] Implement default body generation with `FileUrlBuilder.build()` for artifact links
 - [ ] [impl] Implement review-state update: status "awaiting_review" with pr_url
-- [ ] [impl] Implement `--batch` path: squash-merge via `ProcessAdapter.run`, checkout feature branch, `fetch + reset --hard origin/{branch}`, update review-state to "phase_merged"
+- [ ] [impl] Implement `--batch` path: squash-merge via `ProcessAdapter.run`, then delegate to same advance logic as `phase-advance`
 - [ ] [impl] Implement JSON output: `PrOutput(...).toJson` to stdout
 - [ ] [test] Run phase-pr E2E tests and verify all pass
+
+### phase-advance command
+
+- [ ] [impl] Implement argument parsing: optional `--issue-id` and `--phase-number`
+- [ ] [impl] Implement branch detection: determine if on phase sub-branch or feature branch
+- [ ] [impl] Implement PR merge verification: check phase PR/MR is merged via `gh pr list` / `glab mr list`
+- [ ] [impl] Implement checkout: if on phase sub-branch, `GitAdapter.checkoutBranch(featureBranch, os.pwd)`
+- [ ] [impl] Implement advance: `ProcessAdapter.run` for `git fetch origin` + `git reset --hard origin/{branch}`
+- [ ] [impl] Implement review-state update: status "phase_merged"
+- [ ] [impl] Implement JSON output: `AdvanceOutput(...).toJson` to stdout
+- [ ] [test] Run phase-advance E2E tests and verify all pass
 
 ## Integration
 
 - [ ] [int] Run full unit test suite (`./iw test unit`) — all tests pass, no regressions
 - [ ] [int] Run full test suite (`./iw test`) — all tests pass including new E2E tests
 - [ ] [int] Verify all new files have PURPOSE comments (two lines starting with `// PURPOSE:`)
-- [ ] [int] Verify all three commands are accessible via `iw phase-start`, `iw phase-commit`, `iw phase-pr`
+- [ ] [int] Verify all four commands are accessible via `iw phase-start`, `iw phase-commit`, `iw phase-pr`, `iw phase-advance`
 - [ ] [int] Verify JSON output is valid JSON (parseable by `jq`)
 - [ ] [int] Verify error messages go to stderr (not stdout)
 

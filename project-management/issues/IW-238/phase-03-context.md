@@ -6,26 +6,28 @@ Implement the three command scripts that compose domain model types (Phase 1) wi
 
 1. **`phase-start`** — Create phase sub-branch, capture baseline SHA, update review-state
 2. **`phase-commit`** — Stage all changes, commit with structured message, update task file, update review-state
-3. **`phase-pr`** — Push sub-branch, create PR/MR, optionally squash-merge + advance to feature branch, update review-state
+3. **`phase-pr`** — Push sub-branch, create PR/MR, update review-state
+4. **`phase-advance`** — After PR is merged, advance feature branch to match remote (checkout, fetch, reset)
 
 Each command outputs structured JSON to stdout for machine consumption and human-readable messages to stderr via `Output.*`.
 
 ## Scope
 
 ### In Scope
-- Three new command scripts in `.iw/commands/`
+- Four new command scripts in `.iw/commands/`
 - E2E tests (BATS) for each command in `.iw/test/` (matching existing test directory convention)
-- JSON output via `PhaseOutput.{StartOutput, CommitOutput, PrOutput}.toJson`
+- JSON output via `PhaseOutput.{StartOutput, CommitOutput, PrOutput, AdvanceOutput}.toJson`
 - Review-state updates via `ReviewStateAdapter.update()`
-- Both GitHub (`gh`) and GitLab (`glab`) support in `phase-pr`
+- Both GitHub (`gh`) and GitLab (`glab`) support in `phase-pr` and `phase-advance`
+- Add `AdvanceOutput` case class to `PhaseOutput.scala` (minor additive change to Phase 1 model)
 
 ### Out of Scope
-- Modifying domain model types (Phase 1) or existing adapter methods (Phase 2)
+- Modifying existing adapter methods (Phase 2)
 - Dashboard server integration
 - Workflow skill updates (those are updated separately after the commands exist)
 
-### Scope Note: Batch-Mode Git Operations
-The `--batch` path in `phase-pr` requires `git fetch`, `git reset --hard`, and `gh pr merge --squash --delete-branch` — none of which have existing adapter methods. Rather than modifying Phase 2 adapters, **use `ProcessAdapter.run()` directly** in the command for these three batch-specific operations. This is appropriate because they are specific to the batch merge flow, not general-purpose adapter functionality.
+### Scope Note: Git Operations Without Adapter Methods
+`phase-advance` (and `phase-pr --batch`) require `git fetch` and `git reset --hard`, which have no existing adapter methods. **Use `ProcessAdapter.run()` directly** in the command scripts for these operations. Similarly, squash-merge uses `ProcessAdapter.run` since the existing merge adapter methods use `--merge` not `--squash`.
 
 ## What Was Built in Previous Phases
 
@@ -34,7 +36,7 @@ The `--batch` path in `phase-pr` requires `git fetch`, `git reset --hard`, and `
 - `PhaseNumber` — Opaque type in `PhaseBranch.scala`, `PhaseNumber.parse(raw): Either[String, PhaseNumber]`, `.value`, `.toInt`
 - `CommitMessage` — `CommitMessage.build(title: String, items: List[String] = Nil): String`
 - `PhaseTaskFile` — `markComplete(content): String`, `markReviewed(content): String`
-- `PhaseOutput` — `StartOutput.toJson`, `CommitOutput.toJson`, `PrOutput.toJson`
+- `PhaseOutput` — `StartOutput.toJson`, `CommitOutput.toJson`, `PrOutput.toJson` (Phase 3 adds `AdvanceOutput`)
 
 ### Phase 2: Infrastructure Layer
 **In `adapters/`:**
@@ -152,12 +154,11 @@ GitHubClient.createPullRequest(repository, headBranch, baseBranch, title, body)
 
 ### `phase-pr`
 
-**Usage:** `iw phase-pr --title TITLE [--body BODY] [--batch] [--issue-id ID] [--phase-number N]`
+**Usage:** `iw phase-pr --title TITLE [--body BODY] [--issue-id ID] [--phase-number N]`
 
 **Inputs:**
 - `--title` (required) — PR/MR title
 - `--body` (optional) — PR/MR body text; if omitted, generates a default body
-- `--batch` (optional) — after creating PR, squash-merge it, checkout feature branch, advance
 - `--issue-id` (optional) — inferred from branch if omitted
 - `--phase-number` (optional) — inferred from branch if omitted
 
@@ -174,31 +175,7 @@ GitHubClient.createPullRequest(repository, headBranch, baseBranch, title, body)
    - GitHub: `GitHubClient.createPullRequest(repository, headBranch, featureBranch, title, body)`
    - GitLab: `GitLabClient.createMergeRequest(repository, headBranch, featureBranch, title, body)`
 10. Update review-state: status "awaiting_review", pr_url set
-11. If `--batch`:
-    a. Squash-merge PR/MR via `ProcessAdapter.run` (see "Batch-mode merge" section below)
-    b. Checkout feature branch: `GitAdapter.checkoutBranch(featureBranch, os.pwd)`
-    c. Advance to remote state via `ProcessAdapter.run` (see "Batch-mode advance" section below)
-    d. Update review-state: status "phase_merged"
-12. Print `PrOutput(...).toJson` to stdout
-
-**Batch-mode merge (step 11a):**
-```scala
-// GitHub: squash merge and delete remote branch
-ProcessAdapter.run(Seq("gh", "pr", "merge", "--squash", "--delete-branch", prUrl))
-
-// GitLab: squash merge
-ProcessAdapter.run(Seq("glab", "mr", "merge", "--squash", mrUrl))
-```
-
-**Batch-mode advance (step 11c):**
-```scala
-// Fetch the updated remote after squash merge
-ProcessAdapter.run(Seq("git", "-C", os.pwd.toString, "fetch", "origin"))
-// Reset local feature branch to match remote (safe — see rationale below)
-ProcessAdapter.run(Seq("git", "-C", os.pwd.toString, "reset", "--hard", s"origin/$featureBranch"))
-```
-
-**Why `git fetch && git reset --hard` instead of `git pull`:** After squash-merging the phase sub-branch PR, the feature branch may have local checkpoint commits (context/tasks generation from the workflow) that are already included in the squash. A normal `git pull` attempts to rebase these, causing spurious conflicts. Since the feature branch only advances via squash merges from phase sub-branches, `origin/{branch}` is guaranteed to be a superset of all local content. `reset --hard` is the correct operation.
+11. Print `PrOutput(...).toJson` to stdout
 
 **Output JSON:**
 ```json
@@ -217,7 +194,71 @@ ProcessAdapter.run(Seq("git", "-C", os.pwd.toString, "reset", "--hard", s"origin
 - Missing `--title` → exit 1
 - `gh`/`glab` not available or not authenticated → exit 1
 - PR creation fails → exit 1 (push already happened, report that PR needs manual creation)
-- Merge fails (--batch) → exit 1 (PR was created, report PR URL and that merge needs manual action)
+
+### `phase-advance`
+
+**Usage:** `iw phase-advance [--issue-id ID] [--phase-number N]`
+
+**Inputs:**
+- `--issue-id` (optional) — inferred from branch if omitted
+- `--phase-number` (optional) — inferred from branch if omitted
+
+**Can be called from either:**
+- The phase sub-branch (e.g., `IW-238-phase-02`) — will checkout feature branch first
+- The feature branch (e.g., `IW-238`) — will advance in place
+
+**Sequence:**
+1. Get current branch
+2. Determine if on phase sub-branch or feature branch:
+   - Phase sub-branch: extract feature branch name and phase number
+   - Feature branch: extract issue ID, require `--phase-number` (or infer from most recent phase)
+3. Read config for tracker type: `ConfigFileRepository.read(configPath)`
+4. Verify the phase PR/MR is merged:
+   - GitHub: `ProcessAdapter.run(Seq("gh", "pr", "list", "--head", phaseBranch, "--state", "merged", "--json", "url"))` — check non-empty result
+   - GitLab: `ProcessAdapter.run(Seq("glab", "mr", "list", "--head", phaseBranch, "--state", "merged"))` — check non-empty result
+5. If on phase sub-branch: `GitAdapter.checkoutBranch(featureBranch, os.pwd)`
+6. Fetch remote: `ProcessAdapter.run(Seq("git", "-C", os.pwd.toString, "fetch", "origin"))`
+7. Reset to remote: `ProcessAdapter.run(Seq("git", "-C", os.pwd.toString, "reset", "--hard", s"origin/$featureBranch"))`
+8. Update review-state: status "phase_merged"
+9. Print `AdvanceOutput(...).toJson` to stdout
+
+**Why `git fetch && git reset --hard` instead of `git pull`:** After squash-merging the phase sub-branch PR, the feature branch may have local checkpoint commits (context/tasks generation from the workflow) that are already included in the squash. A normal `git pull` attempts to rebase these, causing spurious conflicts. Since the feature branch only advances via squash merges from phase sub-branches, `origin/{branch}` is guaranteed to be a superset of all local content. `reset --hard` is the correct operation.
+
+**Output JSON:**
+```json
+{
+  "issueId": "IW-238",
+  "phaseNumber": "02",
+  "branch": "IW-238",
+  "previousBranch": "IW-238-phase-02",
+  "headSha": "469809c..."
+}
+```
+
+**Errors:**
+- Cannot determine issue ID → exit 1
+- Phase PR/MR is not merged → exit 1 with message "PR still open, merge it first"
+- Phase PR/MR not found → exit 1 with message "No PR found for phase branch"
+- `gh`/`glab` not available → exit 1
+- Fetch or reset fails → exit 1
+
+### `phase-pr --batch` (convenience shortcut)
+
+`phase-pr` also supports a `--batch` flag that combines PR creation with immediate squash-merge and advance. This is a convenience for automated workflows:
+
+**Usage:** `iw phase-pr --title TITLE [--body BODY] --batch [--issue-id ID] [--phase-number N]`
+
+**Additional `--batch` steps after PR creation:**
+1. Squash-merge the PR/MR:
+   - GitHub: `ProcessAdapter.run(Seq("gh", "pr", "merge", "--squash", "--delete-branch", prUrl))`
+   - GitLab: `ProcessAdapter.run(Seq("glab", "mr", "merge", "--squash", mrUrl))`
+2. Checkout feature branch: `GitAdapter.checkoutBranch(featureBranch, os.pwd)`
+3. Fetch + reset: same as `phase-advance` steps 6-7
+4. Update review-state: status "phase_merged"
+5. Print `PrOutput(...).toJson` with `merged: true`
+
+**Errors (additional):**
+- Merge fails → exit 1 (PR was created, report PR URL for manual merge, then run `phase-advance`)
 
 ## Tracker Type Detection
 
@@ -291,13 +332,12 @@ ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
 ))
 ```
 
-**phase-pr --batch (merged):**
+**phase-advance (and phase-pr --batch):**
 ```scala
 ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
   status = Some("phase_merged"),
   displayText = Some(s"Phase $phaseNum: Merged"),
   displayType = Some("success"),
-  prUrl = Some(prUrl),
   badges = Some(List(("Complete", "success"))),
   badgesMode = ReviewStateUpdater.ArrayMergeMode.Append
 ))
@@ -354,16 +394,24 @@ E2E tests using BATS in `.iw/test/` directory, following the pattern from `start
 - Test: missing title → error
 - Test: `gh` not available → appropriate error message
 
-## Files to Create
+**`.iw/test/phase-advance.bats`:**
+- Limited testability without real GitHub — focus on argument validation and error cases
+- Test: not on a phase branch or feature branch → error
+- Test: `gh` not available → appropriate error message
 
-| File | Purpose |
-|------|---------|
-| `.iw/commands/phase-start.scala` | phase-start command script |
-| `.iw/commands/phase-commit.scala` | phase-commit command script |
-| `.iw/commands/phase-pr.scala` | phase-pr command script |
-| `.iw/test/phase-start.bats` | E2E tests for phase-start |
-| `.iw/test/phase-commit.bats` | E2E tests for phase-commit |
-| `.iw/test/phase-pr.bats` | E2E tests for phase-pr |
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `.iw/core/model/PhaseOutput.scala` | Modify | Add `AdvanceOutput` case class |
+| `.iw/commands/phase-start.scala` | Create | phase-start command script |
+| `.iw/commands/phase-commit.scala` | Create | phase-commit command script |
+| `.iw/commands/phase-pr.scala` | Create | phase-pr command script |
+| `.iw/commands/phase-advance.scala` | Create | phase-advance command script |
+| `.iw/test/phase-start.bats` | Create | E2E tests for phase-start |
+| `.iw/test/phase-commit.bats` | Create | E2E tests for phase-commit |
+| `.iw/test/phase-pr.bats` | Create | E2E tests for phase-pr |
+| `.iw/test/phase-advance.bats` | Create | E2E tests for phase-advance |
 
 ## Acceptance Criteria
 
@@ -371,7 +419,8 @@ E2E tests using BATS in `.iw/test/` directory, following the pattern from `start
 2. `iw phase-commit --title "Phase 2: Infrastructure"` stages, commits, outputs JSON
 3. `iw phase-pr --title "Phase 2: Infrastructure Layer"` pushes, creates PR, outputs JSON
 4. `iw phase-pr --title "Phase 2" --batch` creates PR, squash-merges, checks out feature branch, resets to remote
-5. All three commands print errors to stderr and exit 1 on failure
-6. All three commands infer issue ID and phase number from branch when not provided
-7. E2E tests pass for happy paths and key error cases
-8. All existing tests continue to pass (no regressions)
+5. `iw phase-advance` verifies PR merged, checks out feature branch, fetches, resets to remote, outputs JSON
+6. All four commands print errors to stderr and exit 1 on failure
+7. All four commands infer issue ID and phase number from branch when not provided
+8. E2E tests pass for happy paths and key error cases
+9. All existing tests continue to pass (no regressions)
