@@ -43,16 +43,20 @@
     {
       "label": "Phase 3 Context",
       "path": "project-management/issues/IW-238/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-238/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-03-08T14:15:24.207847345Z",
-  "status": "context_ready",
+  "last_updated": "2026-03-08T14:16:10.122914097Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Phase 3: Context Ready",
-    "type": "info",
+    "text": "Phase 3: Tasks Ready",
+    "type": "success",
     "subtext": "Presentation Layer"
   },
-  "message": "Phase 3 context ready",
+  "message": "Phase 3 tasks ready",
   "available_actions": [
     {
       "id": "implement",
@@ -78,6 +82,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "1d2f609",
