@@ -96,3 +96,52 @@ A	.iw/core/test/ReviewStateAdapterTest.scala
 ```
 
 ---
+
+## Phase 3: Presentation Layer (2026-03-08)
+
+**Layer:** Presentation
+
+**What was built:**
+- `.iw/commands/phase-start.scala` - Creates phase sub-branch, captures baseline SHA, updates review-state, outputs JSON
+- `.iw/commands/phase-commit.scala` - Stages all changes, commits with structured message, updates task file, outputs JSON
+- `.iw/commands/phase-pr.scala` - Pushes branch, creates GitHub/GitLab PR/MR, supports `--batch` squash-merge mode, outputs JSON
+- `.iw/commands/phase-advance.scala` - Verifies PR is merged, resets feature branch to remote, outputs JSON
+- `.iw/core/model/PhaseOutput.scala` - Added AdvanceOutput case class
+- `.iw/core/model/PhaseBranch.scala` - Added unapply extractor for branch name pattern matching
+
+**Dependencies on other layers:**
+- Domain (Phase 1): PhaseBranch, PhaseNumber, CommitMessage, PhaseTaskFile, PhaseOutput
+- Infrastructure (Phase 2): GitAdapter, GitHubClient, GitLabClient, ReviewStateAdapter, FileUrlBuilder, ConfigFileRepository
+
+**Testing:**
+- Unit tests: 2 tests added (AdvanceOutput JSON serialization)
+- E2E tests: 19 tests added (7 phase-start, 7 phase-commit, 3 phase-pr, 2 phase-advance)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260308-202756.md
+- Fixed: `var merged` → immutable val, dead code in phase-advance, stale PURPOSE comment, duplicated PhaseSubBranchPattern extracted to PhaseBranch.unapply, phase-advance.bats test assertions, phase-commit.bats missing output assertion
+
+**Notable decisions:**
+- Commands use `ProcessAdapter.run()` directly for `git fetch`/`git reset --hard` (no adapter methods, as designed in context)
+- Squash-merge in `--batch` mode uses `gh pr merge --squash --delete-branch` instead of existing merge adapter methods
+- `PhaseBranch.unapply` extracted during code review to eliminate duplicated regex across 4 command files
+- Review-state updates are best-effort (missing review-state.json logged but not fatal)
+- `phase-start` uses positional arg for phase number; other commands use `--phase-number` flag
+
+**Files changed:**
+```
+A	.iw/commands/phase-advance.scala
+A	.iw/commands/phase-commit.scala
+A	.iw/commands/phase-pr.scala
+A	.iw/commands/phase-start.scala
+M	.iw/core/model/PhaseBranch.scala
+M	.iw/core/model/PhaseOutput.scala
+M	.iw/core/test/PhaseOutputTest.scala
+A	.iw/test/phase-advance.bats
+A	.iw/test/phase-commit.bats
+A	.iw/test/phase-pr.bats
+A	.iw/test/phase-start.bats
+```
+
+---
