@@ -31,16 +31,20 @@
     {
       "label": "Phase 2 Context",
       "path": "project-management/issues/IW-238/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-238/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-03-08T08:18:10.458777522Z",
-  "status": "context_ready",
+  "last_updated": "2026-03-08T08:20:32.099599866Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 2: Context Ready",
-    "type": "info",
+    "text": "Phase 2: Implementing",
+    "type": "progress",
     "subtext": "Infrastructure Layer"
   },
-  "message": "Phase 2 context ready for review",
+  "message": "Phase 2 implementation in progress",
   "available_actions": [
     {
       "id": "implement",
@@ -56,6 +60,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "1d2f609",
@@ -76,6 +85,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "needs_attention": true,

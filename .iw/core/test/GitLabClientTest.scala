@@ -832,7 +832,6 @@ class GitLabClientTest extends munit.FunSuite:
       baseBranch = "main",
       title = "Test MR",
       body = "Test body",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => false
     )
     assert(result.isLeft)
@@ -851,7 +850,6 @@ class GitLabClientTest extends munit.FunSuite:
       baseBranch = "main",
       title = "Test MR",
       body = "MR body",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => true,
       execCommand = mockExec
     )
@@ -870,7 +868,6 @@ class GitLabClientTest extends munit.FunSuite:
       baseBranch = "main",
       title = "Test MR",
       body = "MR body",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => true,
       execCommand = mockExec
     )
@@ -882,10 +879,26 @@ class GitLabClientTest extends munit.FunSuite:
   test("mergeMergeRequest returns Left when glab is unavailable"):
     val result = GitLabClient.mergeMergeRequest(
       mrUrl = "https://gitlab.com/owner/project/-/merge_requests/42",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => false
     )
     assert(result.isLeft)
+
+  test("mergeMergeRequest returns Left when glab is not authenticated"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("not logged in")
+      else
+        Right("should not get here")
+
+    val result = GitLabClient.mergeMergeRequest(
+      mrUrl = "https://gitlab.com/owner/project/-/merge_requests/42",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("glab is not authenticated"))
 
   test("mergeMergeRequest invokes execCommand with buildMergeMrCommand and returns Right(()) on success"):
     val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty)
@@ -897,7 +910,6 @@ class GitLabClientTest extends munit.FunSuite:
 
     val result = GitLabClient.mergeMergeRequest(
       mrUrl = "https://gitlab.com/owner/project/-/merge_requests/42",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => true,
       execCommand = mockExec
     )

@@ -435,7 +435,6 @@ Check your network connection and try again.""".stripMargin
     * @param baseBranch Target branch to merge into
     * @param title MR title
     * @param body MR description
-    * @param dir Working directory for the command
     * @param isCommandAvailable Function to check if command exists (injected for testability)
     * @param execCommand Function to execute shell command (injected for testability)
     * @return Right(MR URL) on success, Left(error message) on failure
@@ -446,7 +445,6 @@ Check your network connection and try again.""".stripMargin
     baseBranch: String,
     title: String,
     body: String,
-    dir: os.Path,
     isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
     execCommand: (String, Array[String]) => Either[String, String] =
       (cmd, args) => CommandRunner.execute(cmd, args)
@@ -467,22 +465,21 @@ Check your network connection and try again.""".stripMargin
   /** Merge a merge request via glab CLI.
     *
     * @param mrUrl URL of the MR to merge
-    * @param dir Working directory for the command
     * @param isCommandAvailable Function to check if command exists (injected for testability)
     * @param execCommand Function to execute shell command (injected for testability)
     * @return Right(()) on success, Left(error message) on failure
     */
   def mergeMergeRequest(
     mrUrl: String,
-    dir: os.Path,
     isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
     execCommand: (String, Array[String]) => Either[String, String] =
       (cmd, args) => CommandRunner.execute(cmd, args)
   ): Either[String, Unit] =
-    if !isCommandAvailable("glab") then
-      Left(formatGlabNotInstalledError())
-    else
-      val args = buildMergeMrCommand(mrUrl)
-      execCommand("glab", args) match
-        case Left(error) => Left(error)
-        case Right(_) => Right(())
+    validateGlabPrerequisites("", isCommandAvailable, execCommand) match
+      case Left(GlabPrerequisiteError.GlabNotInstalled) => Left(formatGlabNotInstalledError())
+      case Left(GlabPrerequisiteError.GlabNotAuthenticated) => Left(formatGlabNotAuthenticatedError())
+      case Left(GlabPrerequisiteError.GlabError(msg)) => Left(s"glab CLI error: $msg")
+      case Right(_) =>
+        execCommand("glab", buildMergeMrCommand(mrUrl)) match
+          case Left(error) => Left(error)
+          case Right(_) => Right(())

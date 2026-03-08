@@ -124,11 +124,11 @@
 ## Integration
 
 - [x] [int] Run full unit test suite (`./iw test unit`) -- all tests pass, no regressions
-- [ ] [int] Run full test suite (`./iw test`) -- no regressions
+- [x] [int] Run full test suite (`./iw test`) -- no regressions
 - [x] [int] Verify all new files have PURPOSE comments (two lines starting with `// PURPOSE:`)
 - [x] [int] Verify `FileUrlBuilder` is in the `iw.core.model` package (pure, no I/O)
 - [x] [int] Verify `ReviewStateAdapter` is in the `iw.core.adapters` package (performs I/O)
 - [x] [int] Verify all new adapter methods use `ProcessAdapter.run()` (not `scala.sys.process.Process` directly)
 - [x] [int] Verify all new adapter methods return `Either[String, T]`
 
-**Phase Status:** Complete (pending E2E test verification)
+**Phase Status:** Complete

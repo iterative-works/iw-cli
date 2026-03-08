@@ -890,7 +890,6 @@ class GitHubClientTest extends munit.FunSuite:
       baseBranch = "main",
       title = "Test PR",
       body = "Test body",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => false
     )
     assert(result.isLeft)
@@ -909,7 +908,6 @@ class GitHubClientTest extends munit.FunSuite:
       baseBranch = "main",
       title = "Test PR",
       body = "PR body",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => true,
       execCommand = mockExec
     )
@@ -928,7 +926,6 @@ class GitHubClientTest extends munit.FunSuite:
       baseBranch = "main",
       title = "Test PR",
       body = "PR body",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => true,
       execCommand = mockExec
     )
@@ -940,10 +937,26 @@ class GitHubClientTest extends munit.FunSuite:
   test("mergePullRequest returns Left when gh is unavailable"):
     val result = GitHubClient.mergePullRequest(
       prUrl = "https://github.com/owner/repo/pull/42",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => false
     )
     assert(result.isLeft)
+
+  test("mergePullRequest returns Left when gh is not authenticated"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Left("Command failed: gh auth status: exit status 4")
+      else
+        Right("should not get here")
+
+    val result = GitHubClient.mergePullRequest(
+      prUrl = "https://github.com/owner/repo/pull/42",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+    val error = result.left.getOrElse("")
+    assert(error.contains("gh is not authenticated"))
 
   test("mergePullRequest invokes execCommand with buildMergePrCommand and returns Right(()) on success"):
     val capturedArgs = new java.util.concurrent.atomic.AtomicReference[Array[String]](Array.empty)
@@ -955,7 +968,6 @@ class GitHubClientTest extends munit.FunSuite:
 
     val result = GitHubClient.mergePullRequest(
       prUrl = "https://github.com/owner/repo/pull/42",
-      dir = os.temp.dir(),
       isCommandAvailable = _ => true,
       execCommand = mockExec
     )

@@ -550,7 +550,6 @@ object GitHubClient:
     * @param baseBranch Target branch to merge into
     * @param title PR title
     * @param body PR body/description
-    * @param dir Working directory for the command
     * @param isCommandAvailable Function to check if command exists (injected for testability)
     * @param execCommand Function to execute shell command (injected for testability)
     * @return Right(PR URL) on success, Left(error message) on failure
@@ -561,7 +560,6 @@ object GitHubClient:
     baseBranch: String,
     title: String,
     body: String,
-    dir: os.Path,
     isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
     execCommand: (String, Array[String]) => Either[String, String] =
       (cmd, args) => CommandRunner.execute(cmd, args)
@@ -582,22 +580,21 @@ object GitHubClient:
   /** Merge a pull request via gh CLI.
     *
     * @param prUrl URL of the PR to merge
-    * @param dir Working directory for the command
     * @param isCommandAvailable Function to check if command exists (injected for testability)
     * @param execCommand Function to execute shell command (injected for testability)
     * @return Right(()) on success, Left(error message) on failure
     */
   def mergePullRequest(
     prUrl: String,
-    dir: os.Path,
     isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
     execCommand: (String, Array[String]) => Either[String, String] =
       (cmd, args) => CommandRunner.execute(cmd, args)
   ): Either[String, Unit] =
-    if !isCommandAvailable("gh") then
-      Left(formatGhNotInstalledError())
-    else
-      val args = buildMergePrCommand(prUrl)
-      execCommand("gh", args) match
-        case Left(error) => Left(error)
-        case Right(_) => Right(())
+    validateGhPrerequisites("", isCommandAvailable, execCommand) match
+      case Left(GhPrerequisiteError.GhNotInstalled) => Left(formatGhNotInstalledError())
+      case Left(GhPrerequisiteError.GhNotAuthenticated) => Left(formatGhNotAuthenticatedError())
+      case Left(GhPrerequisiteError.GhOtherError(msg)) => Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        execCommand("gh", buildMergePrCommand(prUrl)) match
+          case Left(error) => Left(error)
+          case Right(_) => Right(())

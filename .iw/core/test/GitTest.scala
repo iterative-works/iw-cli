@@ -205,9 +205,7 @@ class GitTest extends munit.FunSuite, Fixtures:
         Process(Seq("git", "init", "--bare"), bareDir.toIO).!
         // Update origin to point to bare repo
         Process(Seq("git", "remote", "set-url", "origin", bareDir.toString), repo.toIO).!
-        val result = GitAdapter.push("main", repo, setUpstream = true)
         // The actual branch might be 'master' or 'main' in the test repo
-        // Let's first find the current branch
         val branch = GitAdapter.getCurrentBranch(repo).getOrElse("main")
         val pushResult = GitAdapter.push(branch, repo, setUpstream = true)
         assert(pushResult.isRight, s"Expected Right but got: $pushResult")
