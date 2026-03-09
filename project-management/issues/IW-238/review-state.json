@@ -63,16 +63,20 @@
     {
       "label": "Refactoring",
       "path": "project-management/issues/IW-238/refactor-phase-03-R1.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-238/phase-03-context.md"
     }
   ],
-  "last_updated": "2026-03-09T15:22:01.374379329Z",
-  "status": "refactoring_complete",
+  "last_updated": "2026-03-09T16:25:22.940289411Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Refactoring Complete",
-    "type": "success",
-    "subtext": "Extract shared helpers and fix forge detection"
+    "text": "Phase 3: Awaiting Review",
+    "type": "warning",
+    "subtext": "Presentation Layer"
   },
-  "message": "Refactoring R1 complete",
+  "message": "Phase 3 complete - Presentation Layer",
   "available_actions": [
     {
       "id": "implement",
@@ -103,6 +107,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     },
     {
       "id": "view-pr",
@@ -152,8 +161,12 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
   "needs_attention": true,
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/241"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/242"
 }
