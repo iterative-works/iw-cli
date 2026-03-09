@@ -1,5 +1,5 @@
 // PURPOSE: Stages all changes, commits with a structured message, and updates phase task file
-// PURPOSE: Usage: iw phase-commit --title TITLE [--items ITEM1,ITEM2,...] [--issue-id ID] [--phase-number N]
+// USAGE: iw phase-commit --title TITLE [--items ITEM1,ITEM2,...] [--issue-id ID] [--phase-number N]
 
 import iw.core.model.*
 import iw.core.adapters.*
