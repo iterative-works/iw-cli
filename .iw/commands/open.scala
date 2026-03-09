@@ -59,7 +59,7 @@ def handleSessionJoin(sessionName: String, promptOpt: Option[String]): Unit =
       // Send claude command instead of attaching
       // Use single-quote wrapping for shell safety (protects all metacharacters)
       val shellSafe = "'" + prompt.replace("'", "'\\''") + "'"
-      val claudeCommand = s"claude --dangerously-skip-permissions --prompt $shellSafe"
+      val claudeCommand = s"claude --dangerously-skip-permissions $shellSafe"
       TmuxAdapter.sendKeys(sessionName, claudeCommand) match
         case Left(error) =>
           Output.error(s"Failed to send claude command: $error")
@@ -129,6 +129,12 @@ def openWorktreeSession(issueId: IssueId, config: ProjectConfiguration, promptOp
             sys.exit(1)
           case Right(_) =>
             Output.success("Session created")
+
+        // If .envrc exists, run direnv allow before anything else in the session
+        if os.exists(targetPath / ".envrc") then
+          TmuxAdapter.sendKeys(sessionName, "direnv allow") match
+            case Left(error) => Output.warning(s"Failed to run direnv allow: $error")
+            case Right(_) => ()
 
       // Join session or send prompt
       handleSessionJoin(sessionName, promptOpt)
