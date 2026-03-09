@@ -130,5 +130,11 @@ def openWorktreeSession(issueId: IssueId, config: ProjectConfiguration, promptOp
           case Right(_) =>
             Output.success("Session created")
 
+        // If .envrc exists, run direnv allow before anything else in the session
+        if os.exists(targetPath / ".envrc") then
+          TmuxAdapter.sendKeys(sessionName, "direnv allow") match
+            case Left(error) => Output.warning(s"Failed to run direnv allow: $error")
+            case Right(_) => ()
+
       // Join session or send prompt
       handleSessionJoin(sessionName, promptOpt)
