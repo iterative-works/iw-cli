@@ -1,5 +1,5 @@
 // PURPOSE: Verifies a phase PR is merged then advances the feature branch to match remote
-// PURPOSE: Usage: iw phase-advance [--issue-id ID] [--phase-number N]
+// USAGE: iw phase-advance [--issue-id ID] [--phase-number N]
 
 import iw.core.model.*
 import iw.core.adapters.*

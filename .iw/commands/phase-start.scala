@@ -1,5 +1,5 @@
 // PURPOSE: Creates a phase sub-branch from a feature branch and records baseline SHA
-// PURPOSE: Usage: iw phase-start <phase-number> [--issue-id ID]
+// USAGE: iw phase-start <phase-number> [--issue-id ID]
 
 import iw.core.model.*
 import iw.core.adapters.*

@@ -1,5 +1,5 @@
 // PURPOSE: Pushes the phase sub-branch and creates a GitHub/GitLab PR or MR
-// PURPOSE: Usage: iw phase-pr --title TITLE [--body BODY] [--batch] [--issue-id ID] [--phase-number N]
+// USAGE: iw phase-pr --title TITLE [--body BODY] [--batch] [--issue-id ID] [--phase-number N]
 
 import iw.core.model.*
 import iw.core.adapters.*
