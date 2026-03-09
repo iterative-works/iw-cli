@@ -19,9 +19,7 @@ import iw.core.output.*
     .map(_.split(",").toList.map(_.trim).filter(_.nonEmpty))
     .getOrElse(Nil)
 
-  val currentBranch = CommandHelpers.exitOnError(
-    GitAdapter.getCurrentBranch(os.pwd).left.map(err => s"Failed to get current branch: $err")
-  )
+  val currentBranch = CommandHelpers.exitOnError(GitAdapter.getCurrentBranch(os.pwd))
 
   val (featureBranch, phaseNumRaw) = currentBranch match
     case PhaseBranch(fb, pn) => (fb, pn)
@@ -37,15 +35,11 @@ import iw.core.output.*
     PhaseArgs.resolvePhaseNumber(PhaseArgs.namedArg(argList, "--phase-number"), phaseNumRaw)
   )
 
-  CommandHelpers.exitOnError(
-    GitAdapter.stageAll(os.pwd).left.map(err => s"Failed to stage changes: $err")
-  )
+  CommandHelpers.exitOnError(GitAdapter.stageAll(os.pwd))
 
   val message = CommitMessage.build(title, items)
 
-  val commitSha = CommandHelpers.exitOnError(
-    GitAdapter.commit(message, os.pwd).left.map(err => s"Failed to commit: $err")
-  )
+  val commitSha = CommandHelpers.exitOnError(GitAdapter.commit(message, os.pwd))
 
   val filesCommitted = GitAdapter.diffNameOnly(s"${commitSha}^", os.pwd) match
     case Left(_)      => 0

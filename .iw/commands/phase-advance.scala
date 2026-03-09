@@ -8,9 +8,7 @@ import iw.core.output.*
 @main def phaseAdvance(args: String*): Unit =
   val argList = args.toList
 
-  val currentBranch = CommandHelpers.exitOnError(
-    GitAdapter.getCurrentBranch(os.pwd).left.map(err => s"Failed to get current branch: $err")
-  )
+  val currentBranch = CommandHelpers.exitOnError(GitAdapter.getCurrentBranch(os.pwd))
 
   val (featureBranch, phaseBranchName, phaseNumRaw) = currentBranch match
     case PhaseBranch(fb, pn) =>
@@ -41,11 +39,7 @@ import iw.core.output.*
 
   val remoteOpt = GitAdapter.getRemoteUrl(os.pwd)
 
-  val forgeType = remoteOpt.flatMap(r => ForgeType.fromRemote(r).toOption).getOrElse {
-    config.trackerType match
-      case IssueTrackerType.GitHub => ForgeType.GitHub
-      case _                       => ForgeType.GitLab
-  }
+  val forgeType = ForgeType.resolve(remoteOpt, config.trackerType)
 
   val cliTool = forgeType.cliTool
 
@@ -56,7 +50,7 @@ import iw.core.output.*
   val isMerged = forgeType match
     case ForgeType.GitHub =>
       val result = ProcessAdapter.run(
-        Seq("gh", "pr", "list", "--head", phaseBranchName, "--state", "merged", "--json", "url")
+        Seq(forgeType.cliTool, "pr", "list", "--head", phaseBranchName, "--state", "merged", "--json", "url")
       )
       if result.exitCode != 0 then
         Output.error(s"Failed to check PR status: ${result.stderr}")
@@ -65,7 +59,7 @@ import iw.core.output.*
       out != "[]" && out.nonEmpty
     case ForgeType.GitLab =>
       val result = ProcessAdapter.run(
-        Seq("glab", "mr", "list", "--head", phaseBranchName, "--state", "merged")
+        Seq(forgeType.cliTool, "mr", "list", "--head", phaseBranchName, "--state", "merged")
       )
       if result.exitCode != 0 then
         Output.error(s"Failed to check MR status: ${result.stderr}")
@@ -76,7 +70,7 @@ import iw.core.output.*
     val prExists = forgeType match
       case ForgeType.GitHub =>
         val result = ProcessAdapter.run(
-          Seq("gh", "pr", "list", "--head", phaseBranchName, "--state", "open", "--json", "url")
+          Seq(forgeType.cliTool, "pr", "list", "--head", phaseBranchName, "--state", "open", "--json", "url")
         )
         result.exitCode == 0 && result.stdout.trim != "[]" && result.stdout.trim.nonEmpty
       case _ => false
@@ -88,16 +82,11 @@ import iw.core.output.*
     sys.exit(1)
 
   if currentBranch == phaseBranchName then
-    CommandHelpers.exitOnError(
-      GitAdapter.checkoutBranch(featureBranch, os.pwd)
-        .left.map(err => s"Failed to checkout '$featureBranch': $err")
-    )
+    CommandHelpers.exitOnError(GitAdapter.checkoutBranch(featureBranch, os.pwd))
 
   CommandHelpers.exitOnError(GitAdapter.fetchAndReset(featureBranch, os.pwd))
 
-  val headSha = CommandHelpers.exitOnError(
-    GitAdapter.getFullHeadSha(os.pwd).left.map(err => s"Failed to get HEAD SHA: $err")
-  )
+  val headSha = CommandHelpers.exitOnError(GitAdapter.getFullHeadSha(os.pwd))
 
   val reviewStatePath = os.pwd / "project-management" / "issues" / issueId.value / "review-state.json"
   if os.exists(reviewStatePath) then

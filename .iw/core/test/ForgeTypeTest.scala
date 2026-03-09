@@ -4,7 +4,7 @@
 package iw.tests
 
 import munit.FunSuite
-import iw.core.model.{ForgeType, GitRemote}
+import iw.core.model.{ForgeType, GitRemote, IssueTrackerType}
 
 class ForgeTypeTest extends FunSuite:
 
@@ -58,3 +58,23 @@ class ForgeTypeTest extends FunSuite:
 
   test("ForgeType.GitLab.installUrl points to GitLab CLI"):
     assertEquals(ForgeType.GitLab.installUrl, "https://gitlab.com/gitlab-org/cli")
+
+  // resolve tests
+
+  test("ForgeType.resolve uses remote when remote is available and parseable"):
+    val remote = Some(GitRemote("https://github.com/org/repo.git"))
+    assertEquals(ForgeType.resolve(remote, IssueTrackerType.GitLab), ForgeType.GitHub)
+
+  test("ForgeType.resolve uses tracker type when no remote"):
+    assertEquals(ForgeType.resolve(None, IssueTrackerType.GitHub), ForgeType.GitHub)
+
+  test("ForgeType.resolve falls back to GitLab when no remote and non-GitHub tracker"):
+    assertEquals(ForgeType.resolve(None, IssueTrackerType.YouTrack), ForgeType.GitLab)
+
+  test("ForgeType.resolve falls back to tracker type when remote URL is unparseable"):
+    val remote = Some(GitRemote("not-a-valid-url"))
+    assertEquals(ForgeType.resolve(remote, IssueTrackerType.GitHub), ForgeType.GitHub)
+
+  test("ForgeType.resolve falls back to GitLab when remote is unparseable and tracker is non-GitHub"):
+    val remote = Some(GitRemote("not-a-valid-url"))
+    assertEquals(ForgeType.resolve(remote, IssueTrackerType.Linear), ForgeType.GitLab)

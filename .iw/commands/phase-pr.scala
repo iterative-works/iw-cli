@@ -18,9 +18,7 @@ import iw.core.output.*
   val bodyArg = PhaseArgs.namedArg(argList, "--body")
   val batchMode = PhaseArgs.hasFlag(argList, "--batch")
 
-  val currentBranch = CommandHelpers.exitOnError(
-    GitAdapter.getCurrentBranch(os.pwd).left.map(err => s"Failed to get current branch: $err")
-  )
+  val currentBranch = CommandHelpers.exitOnError(GitAdapter.getCurrentBranch(os.pwd))
 
   val (featureBranch, phaseNumRaw) = currentBranch match
     case PhaseBranch(fb, pn) => (fb, pn)
@@ -44,11 +42,7 @@ import iw.core.output.*
 
   val remoteOpt = GitAdapter.getRemoteUrl(os.pwd)
 
-  val forgeType = remoteOpt.flatMap(r => ForgeType.fromRemote(r).toOption).getOrElse {
-    config.trackerType match
-      case IssueTrackerType.GitHub => ForgeType.GitHub
-      case _                       => ForgeType.GitLab
-  }
+  val forgeType = ForgeType.resolve(remoteOpt, config.trackerType)
 
   val repository = config.repository.getOrElse {
     remoteOpt.flatMap(r => r.repositoryOwnerAndName.toOption).getOrElse {
@@ -57,10 +51,7 @@ import iw.core.output.*
     }
   }
 
-  CommandHelpers.exitOnError(
-    GitAdapter.push(currentBranch, os.pwd, setUpstream = true)
-      .left.map(err => s"Failed to push branch '$currentBranch': $err")
-  )
+  CommandHelpers.exitOnError(GitAdapter.push(currentBranch, os.pwd, setUpstream = true))
 
   val prBody = bodyArg.getOrElse {
     val fileUrlBase = remoteOpt.flatMap(r => FileUrlBuilder.build(r, currentBranch).toOption)
@@ -70,21 +61,19 @@ import iw.core.output.*
 
   val prUrl = forgeType match
     case ForgeType.GitHub =>
-      CommandHelpers.exitOnError(
-        GitHubClient.createPullRequest(repository, currentBranch, featureBranch, title, prBody)
-          .left.map { err =>
-            Output.error(s"The branch '$currentBranch' was already pushed. You can create the PR manually.")
-            s"Failed to create pull request: $err"
-          }
-      )
+      GitHubClient.createPullRequest(repository, currentBranch, featureBranch, title, prBody) match
+        case Right(url) => url
+        case Left(err) =>
+          Output.error(s"The branch '$currentBranch' was already pushed. You can create the PR manually.")
+          Output.error(s"Failed to create pull request: $err")
+          sys.exit(1)
     case ForgeType.GitLab =>
-      CommandHelpers.exitOnError(
-        GitLabClient.createMergeRequest(repository, currentBranch, featureBranch, title, prBody)
-          .left.map { err =>
-            Output.error(s"The branch '$currentBranch' was already pushed. You can create the MR manually.")
-            s"Failed to create merge request: $err"
-          }
-      )
+      GitLabClient.createMergeRequest(repository, currentBranch, featureBranch, title, prBody) match
+        case Right(url) => url
+        case Left(err) =>
+          Output.error(s"The branch '$currentBranch' was already pushed. You can create the MR manually.")
+          Output.error(s"Failed to create merge request: $err")
+          sys.exit(1)
 
   val reviewStatePath = os.pwd / "project-management" / "issues" / issueId.value / "review-state.json"
 
@@ -101,10 +90,7 @@ import iw.core.output.*
         Output.error(s"PR was created at $prUrl. Run 'iw phase-advance' after merging manually.")
         sys.exit(1)
 
-      CommandHelpers.exitOnError(
-        GitAdapter.checkoutBranch(featureBranch, os.pwd)
-          .left.map(err => s"Failed to checkout '$featureBranch': $err")
-      )
+      CommandHelpers.exitOnError(GitAdapter.checkoutBranch(featureBranch, os.pwd))
 
       CommandHelpers.exitOnError(GitAdapter.fetchAndReset(featureBranch, os.pwd))
 

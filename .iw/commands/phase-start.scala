@@ -17,9 +17,7 @@ import iw.core.output.*
 
   val phaseNumber = CommandHelpers.exitOnError(PhaseNumber.parse(phaseNumberRaw))
 
-  val featureBranch = CommandHelpers.exitOnError(
-    GitAdapter.getCurrentBranch(os.pwd).left.map(err => s"Failed to get current branch: $err")
-  )
+  val featureBranch = CommandHelpers.exitOnError(GitAdapter.getCurrentBranch(os.pwd))
 
   featureBranch match
     case PhaseBranch(_, _) =>
@@ -35,9 +33,7 @@ import iw.core.output.*
 
   CommandHelpers.exitOnError(GitAdapter.createAndCheckoutBranch(branchName, os.pwd))
 
-  val baselineSha = CommandHelpers.exitOnError(
-    GitAdapter.getFullHeadSha(os.pwd).left.map(err => s"Failed to get baseline SHA: $err")
-  )
+  val baselineSha = CommandHelpers.exitOnError(GitAdapter.getFullHeadSha(os.pwd))
 
   val reviewStatePath = os.pwd / "project-management" / "issues" / issueId.value / "review-state.json"
   if os.exists(reviewStatePath) then
