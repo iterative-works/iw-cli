@@ -2,7 +2,7 @@
 
 **Phase:** 3
 **Created:** 2026-03-08
-**Status:** Planned
+**Status:** Complete
 
 ## Decision Summary
 
@@ -35,36 +35,36 @@ Four phase command files have significant code duplication (arg parsing, issue I
 
 ### New shared code
 
-- [ ] [impl] Create `model/ForgeType.scala` — enum GitHub/GitLab with `fromHost(host)` and `fromRemote(remote)`
-- [ ] [test] Create `test/ForgeTypeTest.scala` — github.com→GitHub, gitlab.com→GitLab, gitlab.e-bs.cz→GitLab, unknown→GitLab
-- [ ] [impl] Create `model/PhaseArgs.scala` — `namedArg`, `hasFlag`, `resolveIssueId`, `resolvePhaseNumber`
-- [ ] [test] Create `test/PhaseArgsTest.scala` — test each function with present/absent/fallback cases
-- [ ] [impl] Create `output/CommandHelpers.scala` — `exitOnError[A]`, `exitOnNone[A]`
-- [ ] [impl] Add `GitAdapter.fetchAndReset(featureBranch, dir)` to `adapters/Git.scala`
-- [ ] [test] Add test for `fetchAndReset` in `test/GitTest.scala`
-- [ ] [verify] Run `./iw test unit` — all unit tests pass including new ones
+- [x] [impl] Create `model/ForgeType.scala` — enum GitHub/GitLab with `fromHost(host)` and `fromRemote(remote)`
+- [x] [test] Create `test/ForgeTypeTest.scala` — github.com→GitHub, gitlab.com→GitLab, gitlab.e-bs.cz→GitLab, unknown→GitLab
+- [x] [impl] Create `model/PhaseArgs.scala` — `namedArg`, `hasFlag`, `resolveIssueId`, `resolvePhaseNumber`
+- [x] [test] Create `test/PhaseArgsTest.scala` — test each function with present/absent/fallback cases
+- [x] [impl] Create `output/CommandHelpers.scala` — `exitOnError[A]`, `exitOnNone[A]`
+- [x] [impl] Add `GitAdapter.fetchAndReset(featureBranch, dir)` to `adapters/Git.scala`
+- [x] [test] Add test for `fetchAndReset` in `test/GitTest.scala`
+- [x] [verify] Run `./iw test unit` — all unit tests pass including new ones
 
 ### Command rewrites
 
-- [ ] [impl] Rewrite `phase-start.scala` using PhaseArgs, CommandHelpers
-- [ ] [verify] Run `bats .iw/test/phase-start.bats` — all 7 tests pass
-- [ ] [impl] Rewrite `phase-commit.scala` using PhaseArgs, CommandHelpers
-- [ ] [verify] Run `bats .iw/test/phase-commit.bats` — all 7 tests pass
-- [ ] [impl] Rewrite `phase-pr.scala` using PhaseArgs, CommandHelpers, ForgeType, GitAdapter.fetchAndReset
-- [ ] [verify] Run `bats .iw/test/phase-pr.bats` — all 3 tests pass
-- [ ] [impl] Rewrite `phase-advance.scala` using PhaseArgs, CommandHelpers, ForgeType, GitAdapter.fetchAndReset
-- [ ] [verify] Run `bats .iw/test/phase-advance.bats` — all 2 tests pass
+- [x] [impl] Rewrite `phase-start.scala` using PhaseArgs, CommandHelpers
+- [x] [verify] Run `bats .iw/test/phase-start.bats` — all 7 tests pass
+- [x] [impl] Rewrite `phase-commit.scala` using PhaseArgs, CommandHelpers
+- [x] [verify] Run `bats .iw/test/phase-commit.bats` — all 7 tests pass
+- [x] [impl] Rewrite `phase-pr.scala` using PhaseArgs, CommandHelpers, ForgeType, GitAdapter.fetchAndReset
+- [x] [verify] Run `bats .iw/test/phase-pr.bats` — all 3 tests pass
+- [x] [impl] Rewrite `phase-advance.scala` using PhaseArgs, CommandHelpers, ForgeType, GitAdapter.fetchAndReset
+- [x] [verify] Run `bats .iw/test/phase-advance.bats` — all 2 tests pass
 
 ### Final verification
 
-- [ ] [verify] Run `./iw test` — full test suite passes, no regressions
-- [ ] [verify] Verify all new files have PURPOSE comments
-- [ ] [cleanup] Remove any dead code from command files
+- [x] [verify] Run `./iw test` — full test suite passes, no regressions
+- [x] [verify] Verify all new files have PURPOSE comments
+- [x] [cleanup] Remove any dead code from command files
 
 ## Verification
 
-- [ ] All 19 phase command E2E tests pass unchanged
-- [ ] All existing unit tests pass
-- [ ] New unit tests for ForgeType and PhaseArgs pass
-- [ ] `phase-pr` and `phase-advance` use forge detection from git remote, not tracker type
-- [ ] No regressions in any existing functionality
+- [x] All 19 phase command E2E tests pass unchanged
+- [x] All existing unit tests pass
+- [x] New unit tests for ForgeType and PhaseArgs pass
+- [x] `phase-pr` and `phase-advance` use forge detection from git remote, not tracker type
+- [x] No regressions in any existing functionality
