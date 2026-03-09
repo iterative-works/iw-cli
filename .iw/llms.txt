@@ -30,12 +30,19 @@ Pure domain types with no I/O. Safe to use anywhere.
 - [WorktreeSummary](docs/WorktreeSummary.md): Worktree summary for listing (issue, PR, review state)
 - [WorktreeStatus](docs/WorktreeStatus.md): Detailed worktree status (git, issue, PR, review, progress)
 - [ServerStateCodec](docs/ServerStateCodec.md): Shared JSON serialization for server state types
+- [PhaseBranch](docs/PhaseBranch.md): Phase branch derivation (sub-branch names from feature branch + phase number)
+- [CommitMessage](docs/CommitMessage.md): Structured commit message construction from title and items
+- [PhaseTaskFile](docs/PhaseTaskFile.md): Parsing and rewriting phase task markdown (status, reviewed checkboxes)
+- [PhaseOutput](docs/PhaseOutput.md): JSON output data types for phase lifecycle commands
+- [PhaseArgs](docs/PhaseArgs.md): Argument parsing helpers for phase commands (issue ID, phase number, flags)
+- [ForgeType](docs/ForgeType.md): GitHub vs GitLab detection from git remote URL host
+- [FileUrlBuilder](docs/FileUrlBuilder.md): Browseable file URLs from git remote (GitHub/GitLab blob links)
 
 ## Adapters (I/O Operations)
 
 Adapters for shell commands, file I/O, and external APIs.
 
-- [Git](docs/Git.md): Git operations (getRemoteUrl, getCurrentBranch, hasUncommittedChanges)
+- [Git](docs/Git.md): Git operations (getRemoteUrl, getCurrentBranch, hasUncommittedChanges, createBranch, stageAll, commit, push, fetchAndReset)
 - [GitWorktree](docs/GitWorktree.md): Worktree management (create, remove, check existence)
 - [Process](docs/Process.md): Shell execution (run, runStreaming, commandExists)
 - [CommandRunner](docs/CommandRunner.md): Command execution with stdout/stderr capture
@@ -47,10 +54,11 @@ Adapters for shell commands, file I/O, and external APIs.
 - [ServerClient](docs/ServerClient.md): HTTP client for dashboard server API
 - [ServerConfigRepository](docs/ServerConfigRepository.md): Read/write server config.json
 - [ProcessManager](docs/ProcessManager.md): Manage dashboard server process lifecycle
-- [GitHubClient](docs/GitHubClient.md): GitHub API via gh CLI
+- [GitHubClient](docs/GitHubClient.md): GitHub API via gh CLI (issues, PRs, create/merge)
 - [LinearClient](docs/LinearClient.md): Linear API via GraphQL
-- [GitLabClient](docs/GitLabClient.md): GitLab API via glab CLI
+- [GitLabClient](docs/GitLabClient.md): GitLab API via glab CLI (issues, MRs, create/merge)
 - [YouTrackClient](docs/YouTrackClient.md): YouTrack REST API
+- [ReviewStateAdapter](docs/ReviewStateAdapter.md): Read/merge/validate/write for review-state.json
 
 ## Output (CLI Formatting)
 
@@ -63,6 +71,7 @@ Console output and formatting utilities.
 - [ProjectsFormatter](docs/ProjectsFormatter.md): Format project list for CLI display
 - [WorktreesFormatter](docs/WorktreesFormatter.md): Format worktree list for CLI display
 - [StatusFormatter](docs/StatusFormatter.md): Format detailed worktree status for CLI display
+- [CommandHelpers](docs/CommandHelpers.md): Exit helpers for CLI commands (exitOnError, exitOnNone)
 
 ## Architecture Notes
 
