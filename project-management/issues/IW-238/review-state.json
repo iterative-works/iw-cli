@@ -57,14 +57,14 @@
       "path": "project-management/issues/IW-238/implementation-log.md"
     }
   ],
-  "last_updated": "2026-03-08T20:31:00.717064979Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-03-09T10:23:05.985074461Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 3: Awaiting Review",
-    "type": "warning",
-    "subtext": "Presentation Layer"
+    "text": "Phase 3: Refactoring R1",
+    "type": "progress",
+    "subtext": "Extract shared helpers and fix forge detection"
   },
-  "message": "Phase 3 complete - Presentation Layer",
+  "message": "Refactoring R1 in progress",
   "available_actions": [
     {
       "id": "implement",
@@ -140,6 +140,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "needs_attention": true,

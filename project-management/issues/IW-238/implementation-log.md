@@ -145,3 +145,56 @@ A	.iw/test/phase-start.bats
 ```
 
 ---
+
+### Refactoring R1: Extract shared helpers and fix forge detection (2026-03-09)
+
+**Trigger:** Code review feedback — significant duplication across 4 command files, and forge detection used issue tracker type instead of git remote URL host, breaking YouTrack+GitLab configurations.
+
+**What changed:**
+- `.iw/core/model/ForgeType.scala` — New enum GitHub/GitLab with `fromHost`, `fromRemote` (returns Either), `resolve` (with tracker fallback), `cliTool`, `installUrl`
+- `.iw/core/model/PhaseArgs.scala` — Shared pure arg parsing: `namedArg`, `hasFlag`, `resolveIssueId`, `resolvePhaseNumber`
+- `.iw/core/output/CommandHelpers.scala` — `exitOnError[A]`, `exitOnNone[A]` CLI exit helpers
+- `.iw/core/adapters/Git.scala` — Added `fetchAndReset(branch, dir)` method
+- `.iw/commands/phase-{start,commit,pr,advance}.scala` — Rewritten to use shared helpers
+
+**Before → After:**
+- Duplicated arg parsing (~6 lines × 4 files) → single `PhaseArgs` object
+- Duplicated issue/phase resolution (~12 lines × 4 files) → `resolveIssueId`/`resolvePhaseNumber`
+- `config.trackerType` match for forge detection → `ForgeType.fromRemote` via git remote URL host
+- Inline `git fetch` + `git reset --hard` → `GitAdapter.fetchAndReset`
+- Duplicated forge fallback logic → `ForgeType.resolve(remoteOpt, trackerType)`
+- Hardcoded `"gh"`/`"glab"` strings → `forgeType.cliTool`
+
+**Patterns applied:**
+- Extract Method (shared helpers in proper FCIS layers)
+- Replace Conditional with Polymorphism (ForgeType enum methods)
+- Single Source of Truth (forge CLI tool mapping on enum)
+
+**Testing:**
+- New unit tests: ForgeTypeTest (14 tests), PhaseArgsTest (12 tests), CommandHelpersTest (2 tests), GitTest.fetchAndReset (2 tests)
+- All 19 E2E tests pass unchanged
+- All existing unit tests pass
+
+**Code review:**
+- Iterations: 2
+- Review file: review-refactor-03-R1-20260309-104840.md
+- Iteration 1 fixes: no-op `.left.map`, non-idiomatic `return`, `ForgeType.fromRemote` signature (→ Either), `cliTool`/`installUrl` on enum, error message content assertions
+- Iteration 2 fixes: double-prefixed error messages, `ForgeType.resolve()` extraction, hardcoded CLI tool strings, side effect in `.left.map`
+
+**Files changed:**
+```
+M	.iw/commands/phase-advance.scala
+M	.iw/commands/phase-commit.scala
+M	.iw/commands/phase-pr.scala
+M	.iw/commands/phase-start.scala
+M	.iw/core/adapters/Git.scala
+A	.iw/core/model/ForgeType.scala
+A	.iw/core/model/PhaseArgs.scala
+A	.iw/core/output/CommandHelpers.scala
+A	.iw/core/test/CommandHelpersTest.scala
+A	.iw/core/test/ForgeTypeTest.scala
+M	.iw/core/test/GitTest.scala
+A	.iw/core/test/PhaseArgsTest.scala
+```
+
+---

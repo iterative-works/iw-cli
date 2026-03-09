@@ -113,6 +113,6 @@
 
 ## Refactoring
 
-- [ ] [impl] Refactoring R1: Extract shared helpers and fix forge detection
+- [x] [impl] Refactoring R1: Extract shared helpers and fix forge detection
 
 **Phase Status:** Complete
