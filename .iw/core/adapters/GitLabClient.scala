@@ -1,5 +1,5 @@
-// PURPOSE: GitLab CLI client for issue management via glab CLI
-// PURPOSE: Provides fetchIssue and createIssue for GitLab issue operations
+// PURPOSE: GitLab CLI client for issue and MR management via glab CLI
+// PURPOSE: Provides issue creation, fetching, and MR creation/merge operations
 
 package iw.core.adapters
 
@@ -376,3 +376,110 @@ Check your network connection and try again.""".stripMargin
         CommandRunner.execute("glab", args) match
           case Left(error) => Left(error)
           case Right(output) => parseCreateIssueResponse(output)
+
+  /** Build glab CLI command arguments for creating a merge request.
+    *
+    * @param repository GitLab repository in owner/project format
+    * @param headBranch Branch containing the changes
+    * @param baseBranch Target branch to merge into
+    * @param title MR title
+    * @param body MR description
+    * @return Array of command arguments for glab CLI
+    */
+  def buildCreateMrCommand(
+    repository: String,
+    headBranch: String,
+    baseBranch: String,
+    title: String,
+    body: String
+  ): Array[String] =
+    Array(
+      "mr", "create",
+      "--repo", repository,
+      "--head", headBranch,
+      "--base", baseBranch,
+      "--title", title,
+      "--description", body
+    )
+
+  /** Parse MR URL from glab mr create output.
+    *
+    * Expected format: https://gitlab.com/owner/project/-/merge_requests/42
+    *
+    * @param output URL string from glab CLI (may have trailing newline)
+    * @return Right(MR URL) on success, Left(error message) on failure
+    */
+  def parseCreateMrResponse(output: String): Either[String, String] =
+    val url = output.trim
+    if url.isEmpty then
+      Left("Empty response from glab CLI")
+    else
+      // Match GitLab MR URL pattern: https://<host>/<path>/-/merge_requests/<number>
+      val mrPattern = """https://.+/-/merge_requests/\d+""".r
+      mrPattern.findFirstIn(url) match
+        case Some(mrUrl) => Right(mrUrl)
+        case None => Left(s"Unexpected response format: $url")
+
+  /** Build glab CLI command arguments for merging a merge request.
+    *
+    * @param mrUrl URL of the MR to merge
+    * @return Array of command arguments for glab CLI
+    */
+  def buildMergeMrCommand(mrUrl: String): Array[String] =
+    Array("mr", "merge", mrUrl)
+
+  /** Create a merge request via glab CLI.
+    *
+    * @param repository GitLab repository in owner/project format
+    * @param headBranch Branch containing the changes
+    * @param baseBranch Target branch to merge into
+    * @param title MR title
+    * @param body MR description
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(MR URL) on success, Left(error message) on failure
+    */
+  def createMergeRequest(
+    repository: String,
+    headBranch: String,
+    baseBranch: String,
+    title: String,
+    body: String,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, String] =
+    validateGlabPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GlabPrerequisiteError.GlabNotInstalled) =>
+        Left(formatGlabNotInstalledError())
+      case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
+        Left(formatGlabNotAuthenticatedError())
+      case Left(GlabPrerequisiteError.GlabError(msg)) =>
+        Left(s"glab CLI error: $msg")
+      case Right(_) =>
+        val args = buildCreateMrCommand(repository, headBranch, baseBranch, title, body)
+        execCommand("glab", args) match
+          case Left(error) => Left(error)
+          case Right(output) => parseCreateMrResponse(output)
+
+  /** Merge a merge request via glab CLI.
+    *
+    * @param mrUrl URL of the MR to merge
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(()) on success, Left(error message) on failure
+    */
+  def mergeMergeRequest(
+    mrUrl: String,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, Unit] =
+    validateGlabPrerequisites("", isCommandAvailable, execCommand) match
+      case Left(GlabPrerequisiteError.GlabNotInstalled) => Left(formatGlabNotInstalledError())
+      case Left(GlabPrerequisiteError.GlabNotAuthenticated) => Left(formatGlabNotAuthenticatedError())
+      case Left(GlabPrerequisiteError.GlabError(msg)) => Left(s"glab CLI error: $msg")
+      case Right(_) =>
+        execCommand("glab", buildMergeMrCommand(mrUrl)) match
+          case Left(error) => Left(error)
+          case Right(_) => Right(())
