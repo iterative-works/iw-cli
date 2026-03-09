@@ -28,3 +28,12 @@ object PhaseNumber:
 case class PhaseBranch(featureBranch: String, phaseNumber: PhaseNumber):
   /** Full sub-branch name: "{featureBranch}-phase-{NN}" */
   def branchName: String = s"$featureBranch-phase-${phaseNumber.value}"
+
+object PhaseBranch:
+  private val Pattern = """^(.+)-phase-(\d+)$""".r
+
+  /** Extracts (featureBranch, phaseNumberRaw) from a phase sub-branch name */
+  def unapply(branch: String): Option[(String, String)] =
+    branch match
+      case Pattern(featureBranch, phaseNum) => Some((featureBranch, phaseNum))
+      case _ => None

@@ -39,16 +39,40 @@
     {
       "label": "Phase 2 Context",
       "path": "project-management/issues/IW-238/phase-02-context.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-238/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-238/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-238/phase-03-context.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-238/implementation-log.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-238/implementation-log.md"
+    },
+    {
+      "label": "Refactoring",
+      "path": "project-management/issues/IW-238/refactor-phase-03-R1.md"
     }
   ],
-  "last_updated": "2026-03-08T09:20:25.498002578Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-03-09T15:22:01.374379329Z",
+  "status": "refactoring_complete",
   "display": {
-    "text": "Phase 2: Awaiting Review",
-    "type": "warning",
-    "subtext": "Infrastructure Layer"
+    "text": "Refactoring Complete",
+    "type": "success",
+    "subtext": "Extract shared helpers and fix forge detection"
   },
-  "message": "Phase 2 complete - Infrastructure Layer",
+  "message": "Refactoring R1 complete",
   "available_actions": [
     {
       "id": "implement",
@@ -74,12 +98,22 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1d2f609",
   "phase_checkpoints": {
-    "2": {
-      "context_sha": "context_sha=d5a81aed12d3499e34b40ecb0563e3a891c3b983"
+    "3": {
+      "context_sha": "context_sha=13046b3feb501a7da5b8d796ee0a8aaa05794c9e"
     }
   },
   "badges": [
@@ -102,8 +136,24 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "needs_attention": true,
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/240"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/241"
 }

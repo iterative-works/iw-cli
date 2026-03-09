@@ -280,3 +280,47 @@ class GitTest extends munit.FunSuite, Fixtures:
       assertEquals(fullSha.length, 40)
       assert(shortSha.length < 40, s"Short SHA should be abbreviated: $shortSha")
       assert(fullSha.startsWith(shortSha), s"Full SHA should start with short SHA")
+
+  // ========== fetchAndReset Tests ==========
+
+  gitRepo.test("fetchAndReset updates local branch to match remote after new commits"):
+    repo =>
+      // Create a bare repo as origin
+      val bareDir = os.Path(java.nio.file.Files.createTempDirectory("iw-test-bare-fr"))
+      try
+        Process(Seq("git", "init", "--bare"), bareDir.toIO).!
+        Process(Seq("git", "remote", "set-url", "origin", bareDir.toString), repo.toIO).!
+        val branch = GitAdapter.getCurrentBranch(repo).getOrElse("main")
+        // Push initial commit to bare repo
+        Process(Seq("git", "push", "-u", "origin", branch), repo.toIO).!
+
+        // Clone the bare repo to simulate a second contributor adding a commit
+        val cloneDir = os.Path(java.nio.file.Files.createTempDirectory("iw-test-clone-fr"))
+        try
+          Process(Seq("git", "clone", bareDir.toString, cloneDir.toString)).!
+          Process(Seq("git", "config", "user.email", "test@example.com"), cloneDir.toIO).!
+          Process(Seq("git", "config", "user.name", "Test User"), cloneDir.toIO).!
+          os.write(cloneDir / "remote-change.txt", "remote change")
+          Process(Seq("git", "add", "-A"), cloneDir.toIO).!
+          Process(Seq("git", "commit", "-m", "Remote commit"), cloneDir.toIO).!
+          Process(Seq("git", "push", "origin", branch), cloneDir.toIO).!
+
+          // Now the bare repo has a commit that our local repo doesn't have yet
+          val beforeSha = GitAdapter.getFullHeadSha(repo).toOption.get
+          val remoteSha = Process(Seq("git", "rev-parse", s"origin/$branch"), cloneDir.toIO).!!.trim
+          val result = GitAdapter.fetchAndReset(branch, repo)
+          assert(result.isRight, s"fetchAndReset should succeed: $result")
+          val afterSha = GitAdapter.getFullHeadSha(repo).toOption.get
+          assert(beforeSha != afterSha, "HEAD SHA should change after fetchAndReset")
+          assert(os.exists(repo / "remote-change.txt"), "Remote file should exist after reset")
+          assertEquals(afterSha, remoteSha, "Local HEAD should match remote SHA after fetchAndReset")
+        finally
+          os.remove.all(cloneDir)
+      finally
+        os.remove.all(bareDir)
+
+  gitRepo.test("fetchAndReset returns Left when no remote configured"):
+    repo =>
+      Process(Seq("git", "remote", "remove", "origin"), repo.toIO).!
+      val result = GitAdapter.fetchAndReset("main", repo)
+      assert(result.isLeft, s"Expected Left but got: $result")

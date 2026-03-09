@@ -100,3 +100,19 @@ object GitAdapter:
       Right(result.stdout.trim)
     else
       Left(s"Failed to get full HEAD SHA: ${result.stderr}")
+
+  /** Fetch from origin and reset the current branch to the remote tracking branch.
+    *
+    * Used after a squash-merge to advance the feature branch without spurious conflicts.
+    * `reset --hard` is correct here because origin/{branch} is a superset of local content.
+    */
+  def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit] =
+    val fetchResult = ProcessAdapter.run(Seq("git", "-C", dir.toString, "fetch", "origin"))
+    if fetchResult.exitCode != 0 then
+      Left(s"Failed to fetch from origin: ${fetchResult.stderr}")
+    else
+      val resetResult = ProcessAdapter.run(Seq("git", "-C", dir.toString, "reset", "--hard", s"origin/$branch"))
+      if resetResult.exitCode != 0 then
+        Left(s"Failed to reset to origin/$branch: ${resetResult.stderr}")
+      else
+        Right(())
