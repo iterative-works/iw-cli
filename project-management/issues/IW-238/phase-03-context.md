@@ -413,6 +413,23 @@ E2E tests using BATS in `.iw/test/` directory, following the pattern from `start
 | `.iw/test/phase-pr.bats` | Create | E2E tests for phase-pr |
 | `.iw/test/phase-advance.bats` | Create | E2E tests for phase-advance |
 
+## Refactoring Decisions
+
+### R1: Extract shared helpers and fix forge detection (2026-03-08)
+
+**Trigger:** Code review feedback — significant duplication across 4 command files, and forge detection uses issue tracker type (`config.trackerType`) instead of git remote URL host, breaking YouTrack+GitLab configurations.
+**Decision:** Extract shared code into proper layers and detect forge from git remote host instead of tracker type.
+**Scope:**
+- Files affected: all 4 command files, GitAdapter, new ForgeType/PhaseArgs/CommandHelpers files
+- Components: arg parsing, issue ID resolution, phase number resolution, forge detection, fetch+reset
+- Boundaries: do NOT modify existing domain model APIs (IssueId, PhaseNumber, PhaseBranch) or adapter interfaces
+**Approach:**
+1. Add `ForgeType` enum in model (detect from GitRemote.host, not trackerType)
+2. Add `PhaseArgs` pure helpers in model (namedArg, resolveIssueId, resolvePhaseNumber)
+3. Add `CommandHelpers` in output (exitOnError, exitOnNone)
+4. Add `GitAdapter.fetchAndReset` in adapters
+5. Rewrite all 4 commands to use shared helpers
+
 ## Acceptance Criteria
 
 1. `iw phase-start 2` creates sub-branch, outputs valid JSON, updates review-state

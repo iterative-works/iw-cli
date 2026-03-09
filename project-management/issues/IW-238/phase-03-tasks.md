@@ -111,4 +111,8 @@
 - [x] [int] Verify JSON output is valid JSON (parseable by `jq`)
 - [x] [int] Verify error messages go to stderr (not stdout)
 
+## Refactoring
+
+- [ ] [impl] Refactoring R1: Extract shared helpers and fix forge detection
+
 **Phase Status:** Complete
