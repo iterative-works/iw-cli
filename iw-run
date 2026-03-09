@@ -44,10 +44,10 @@ parse_command_header() {
 
     case "$field" in
         PURPOSE)
-            grep "^// PURPOSE:" "$file" | head -1 | sed 's|^// PURPOSE: *||'
+            grep "^// PURPOSE:" "$file" | head -1 | sed 's|^// PURPOSE: *||' || true
             ;;
         USAGE)
-            grep "^// USAGE:" "$file" | head -1 | sed 's|^// USAGE: *||'
+            grep "^// USAGE:" "$file" | head -1 | sed 's|^// USAGE: *||' || true
             ;;
         ARGS)
             grep "^// ARGS:" "$file" -A 100 | tail -n +2 | grep "^//   " | sed 's|^//   *||' | grep -v "^EXAMPLE:" || true
