@@ -57,6 +57,7 @@ class PhaseArgsTest extends FunSuite:
   test("resolveIssueId returns Left when branch has no extractable issue ID"):
     val result = PhaseArgs.resolveIssueId(None, "no-issue-branch")
     assert(result.isLeft)
+    assert(result.left.exists(_.contains("no-issue-branch")), s"Error should mention branch name, got: $result")
 
   test("resolveIssueId extracts issue ID from branch with description suffix"):
     val result = PhaseArgs.resolveIssueId(None, "IW-238-some-description")
@@ -78,7 +79,10 @@ class PhaseArgsTest extends FunSuite:
   test("resolvePhaseNumber returns Left for invalid phaseNumberArg"):
     val result = PhaseArgs.resolvePhaseNumber(Some("abc"), "02")
     assert(result.isLeft)
+    assert(result.left.exists(_.contains("--phase-number")), s"Error should mention --phase-number, got: $result")
+    assert(result.left.exists(_.contains("abc")), s"Error should mention the invalid value, got: $result")
 
   test("resolvePhaseNumber returns Left when fromBranch string is invalid"):
     val result = PhaseArgs.resolvePhaseNumber(None, "not-a-number")
     assert(result.isLeft)
+    assert(result.left.exists(_.contains("branch")), s"Error should mention branch, got: $result")

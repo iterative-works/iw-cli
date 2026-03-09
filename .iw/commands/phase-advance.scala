@@ -41,23 +41,16 @@ import iw.core.output.*
 
   val remoteOpt = GitAdapter.getRemoteUrl(os.pwd)
 
-  val forgeType = remoteOpt match
-    case Some(remote) => ForgeType.fromRemote(remote)
-    case None =>
-      // Fall back to config tracker type when no remote available
-      config.trackerType match
-        case IssueTrackerType.GitHub => ForgeType.GitHub
-        case _                       => ForgeType.GitLab
+  val forgeType = remoteOpt.flatMap(r => ForgeType.fromRemote(r).toOption).getOrElse {
+    config.trackerType match
+      case IssueTrackerType.GitHub => ForgeType.GitHub
+      case _                       => ForgeType.GitLab
+  }
 
-  val cliTool = forgeType match
-    case ForgeType.GitHub => "gh"
-    case ForgeType.GitLab => "glab"
+  val cliTool = forgeType.cliTool
 
   if !ProcessAdapter.commandExists(cliTool) then
-    val installUrl = forgeType match
-      case ForgeType.GitHub => "https://cli.github.com/"
-      case ForgeType.GitLab => "https://gitlab.com/gitlab-org/cli"
-    Output.error(s"$cliTool CLI is not installed. Install it from $installUrl")
+    Output.error(s"$cliTool CLI is not installed. Install it from ${forgeType.installUrl}")
     sys.exit(1)
 
   val isMerged = forgeType match

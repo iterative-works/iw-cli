@@ -27,18 +27,34 @@ class ForgeTypeTest extends FunSuite:
 
   // fromRemote tests
 
-  test("ForgeType.fromRemote with github.com URL returns GitHub"):
+  test("ForgeType.fromRemote with github.com URL returns Right(GitHub)"):
     val remote = GitRemote("https://github.com/iterative-works/iw-cli.git")
-    assertEquals(ForgeType.fromRemote(remote), ForgeType.GitHub)
+    assertEquals(ForgeType.fromRemote(remote), Right(ForgeType.GitHub))
 
-  test("ForgeType.fromRemote with gitlab.com URL returns GitLab"):
+  test("ForgeType.fromRemote with gitlab.com URL returns Right(GitLab)"):
     val remote = GitRemote("https://gitlab.com/org/project.git")
-    assertEquals(ForgeType.fromRemote(remote), ForgeType.GitLab)
+    assertEquals(ForgeType.fromRemote(remote), Right(ForgeType.GitLab))
 
-  test("ForgeType.fromRemote with self-hosted gitlab URL returns GitLab"):
+  test("ForgeType.fromRemote with self-hosted gitlab URL returns Right(GitLab)"):
     val remote = GitRemote("https://gitlab.e-bs.cz/iterative-works/project.git")
-    assertEquals(ForgeType.fromRemote(remote), ForgeType.GitLab)
+    assertEquals(ForgeType.fromRemote(remote), Right(ForgeType.GitLab))
 
-  test("ForgeType.fromRemote with invalid URL returns GitLab as default"):
+  test("ForgeType.fromRemote with invalid URL returns Left"):
     val remote = GitRemote("not-a-valid-url")
-    assertEquals(ForgeType.fromRemote(remote), ForgeType.GitLab)
+    assert(ForgeType.fromRemote(remote).isLeft)
+
+  // cliTool tests
+
+  test("ForgeType.GitHub.cliTool is 'gh'"):
+    assertEquals(ForgeType.GitHub.cliTool, "gh")
+
+  test("ForgeType.GitLab.cliTool is 'glab'"):
+    assertEquals(ForgeType.GitLab.cliTool, "glab")
+
+  // installUrl tests
+
+  test("ForgeType.GitHub.installUrl points to GitHub CLI"):
+    assertEquals(ForgeType.GitHub.installUrl, "https://cli.github.com/")
+
+  test("ForgeType.GitLab.installUrl points to GitLab CLI"):
+    assertEquals(ForgeType.GitLab.installUrl, "https://gitlab.com/gitlab-org/cli")

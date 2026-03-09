@@ -44,11 +44,11 @@ import iw.core.output.*
 
   val remoteOpt = GitAdapter.getRemoteUrl(os.pwd)
 
-  val forgeType = remoteOpt match
-    case Some(remote) => ForgeType.fromRemote(remote)
-    case None =>
-      Output.error("Cannot determine forge type: no git remote configured")
-      sys.exit(1)
+  val forgeType = remoteOpt.flatMap(r => ForgeType.fromRemote(r).toOption).getOrElse {
+    config.trackerType match
+      case IssueTrackerType.GitHub => ForgeType.GitHub
+      case _                       => ForgeType.GitLab
+  }
 
   val repository = config.repository.getOrElse {
     remoteOpt.flatMap(r => r.repositoryOwnerAndName.toOption).getOrElse {
@@ -92,9 +92,9 @@ import iw.core.output.*
     if batchMode then
       val mergeResult = forgeType match
         case ForgeType.GitHub =>
-          ProcessAdapter.run(Seq("gh", "pr", "merge", "--squash", "--delete-branch", prUrl))
+          ProcessAdapter.run(Seq(forgeType.cliTool, "pr", "merge", "--squash", "--delete-branch", prUrl))
         case ForgeType.GitLab =>
-          ProcessAdapter.run(Seq("glab", "mr", "merge", "--squash", prUrl))
+          ProcessAdapter.run(Seq(forgeType.cliTool, "mr", "merge", "--squash", prUrl))
 
       if mergeResult.exitCode != 0 then
         Output.error(s"Failed to merge PR: ${mergeResult.stderr}")

@@ -109,10 +109,10 @@ object GitAdapter:
   def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit] =
     val fetchResult = ProcessAdapter.run(Seq("git", "-C", dir.toString, "fetch", "origin"))
     if fetchResult.exitCode != 0 then
-      return Left(s"Failed to fetch from origin: ${fetchResult.stderr}")
-
-    val resetResult = ProcessAdapter.run(Seq("git", "-C", dir.toString, "reset", "--hard", s"origin/$branch"))
-    if resetResult.exitCode != 0 then
-      Left(s"Failed to reset to origin/$branch: ${resetResult.stderr}")
+      Left(s"Failed to fetch from origin: ${fetchResult.stderr}")
     else
-      Right(())
+      val resetResult = ProcessAdapter.run(Seq("git", "-C", dir.toString, "reset", "--hard", s"origin/$branch"))
+      if resetResult.exitCode != 0 then
+        Left(s"Failed to reset to origin/$branch: ${resetResult.stderr}")
+      else
+        Right(())

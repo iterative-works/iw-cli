@@ -307,11 +307,13 @@ class GitTest extends munit.FunSuite, Fixtures:
 
           // Now the bare repo has a commit that our local repo doesn't have yet
           val beforeSha = GitAdapter.getFullHeadSha(repo).toOption.get
+          val remoteSha = Process(Seq("git", "rev-parse", s"origin/$branch"), cloneDir.toIO).!!.trim
           val result = GitAdapter.fetchAndReset(branch, repo)
           assert(result.isRight, s"fetchAndReset should succeed: $result")
           val afterSha = GitAdapter.getFullHeadSha(repo).toOption.get
           assert(beforeSha != afterSha, "HEAD SHA should change after fetchAndReset")
           assert(os.exists(repo / "remote-change.txt"), "Remote file should exist after reset")
+          assertEquals(afterSha, remoteSha, "Local HEAD should match remote SHA after fetchAndReset")
         finally
           os.remove.all(cloneDir)
       finally

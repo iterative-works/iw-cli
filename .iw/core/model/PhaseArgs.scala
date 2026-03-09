@@ -21,7 +21,7 @@ object PhaseArgs:
   def resolveIssueId(issueIdArg: Option[String], featureBranch: String): Either[String, IssueId] =
     issueIdArg match
       case Some(rawId) =>
-        IssueId.parse(rawId).left.map(err => err)
+        IssueId.parse(rawId)
       case None =>
         IssueId.fromBranch(featureBranch).left.map(err =>
           s"Cannot determine issue ID from branch '$featureBranch': $err"
@@ -34,7 +34,7 @@ object PhaseArgs:
   def resolvePhaseNumber(phaseNumberArg: Option[String], fromBranch: String): Either[String, PhaseNumber] =
     phaseNumberArg match
       case Some(raw) =>
-        PhaseNumber.parse(raw)
+        PhaseNumber.parse(raw).left.map(err => s"Invalid --phase-number '$raw': $err")
       case None =>
         PhaseNumber.parse(fromBranch).left.map(err =>
           s"Could not parse phase number from branch: $err"

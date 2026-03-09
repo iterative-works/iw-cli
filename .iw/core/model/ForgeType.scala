@@ -1,10 +1,18 @@
 // PURPOSE: Forge type enum for detecting GitHub vs GitLab from git remote URL host
-// PURPOSE: Used by phase commands to dispatch between gh and glab CLI tools
+// PURPOSE: Provides CLI tool names and install URLs for each forge type
 
 package iw.core.model
 
 enum ForgeType:
   case GitHub, GitLab
+
+  def cliTool: String = this match
+    case GitHub => "gh"
+    case GitLab => "glab"
+
+  def installUrl: String = this match
+    case GitHub => "https://cli.github.com/"
+    case GitLab => "https://gitlab.com/gitlab-org/cli"
 
 object ForgeType:
   /** Detect forge type from a hostname. Defaults to GitLab for unknown hosts. */
@@ -12,8 +20,11 @@ object ForgeType:
     if host == "github.com" then GitHub
     else GitLab
 
-  /** Detect forge type from a GitRemote by extracting its host. Defaults to GitLab on failure. */
-  def fromRemote(remote: GitRemote): ForgeType =
+  /** Detect forge type from a GitRemote by extracting its host.
+    *
+    * Returns Left if the remote URL cannot be parsed to extract a host.
+    */
+  def fromRemote(remote: GitRemote): Either[String, ForgeType] =
     remote.host match
-      case Right(host) => fromHost(host)
-      case Left(_)     => GitLab
+      case Right(host) => Right(fromHost(host))
+      case Left(err)   => Left(s"Cannot determine forge type from remote URL: $err")
