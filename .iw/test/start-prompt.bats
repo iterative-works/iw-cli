@@ -92,7 +92,7 @@ teardown() {
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-456)"
 
     # Should contain the claude command
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
     [[ "$pane_content" == *"analyze this code"* ]]
 }
 
@@ -136,7 +136,7 @@ teardown() {
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-111)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
 }
 
 @test "start --prompt handles quotes in prompt text" {
@@ -151,7 +151,7 @@ teardown() {
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-222)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
 }
 
 @test "start --prompt protects against shell metacharacters" {
@@ -167,5 +167,5 @@ teardown() {
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-333)"
     # The literal $(echo should appear in the pane (inside single quotes)
     [[ "$pane_content" == *'$(echo'* ]]
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
 }

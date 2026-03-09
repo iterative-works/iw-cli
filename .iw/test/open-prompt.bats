@@ -91,7 +91,7 @@ teardown() {
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-456)"
 
     # Should contain the claude command
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
     [[ "$pane_content" == *"analyze this feature"* ]]
 }
 
@@ -116,7 +116,7 @@ teardown() {
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-789)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
     [[ "$pane_content" == *"fix the bug"* ]]
 }
 
@@ -158,8 +158,7 @@ teardown() {
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-222 | tr -d '\n')"
-    [[ "$pane_content" == *"claude"* ]]
-    [[ "$pane_content" == *"--prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
     [[ "$pane_content" == *"continue work"* ]]
 }
 
@@ -178,7 +177,7 @@ teardown() {
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-333)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
 }
 
 @test "open --prompt handles quotes in prompt text" {
@@ -196,7 +195,7 @@ teardown() {
     sleep 0.1
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-444)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
 }
 
 @test "open --prompt protects against shell metacharacters" {
@@ -215,5 +214,5 @@ teardown() {
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-555)"
     # The literal $(echo should appear in the pane (inside single quotes)
     [[ "$pane_content" == *'$(echo'* ]]
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions --prompt"* ]]
+    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
 }

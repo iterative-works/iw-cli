@@ -132,7 +132,7 @@ def createWorktreeForIssue(issueId: IssueId, config: ProjectConfiguration, promp
       // Send claude command instead of attaching
       // Use single-quote wrapping for shell safety (protects all metacharacters)
       val shellSafe = "'" + prompt.replace("'", "'\\''") + "'"
-      val claudeCommand = s"claude --dangerously-skip-permissions --prompt $shellSafe"
+      val claudeCommand = s"claude --dangerously-skip-permissions $shellSafe"
       TmuxAdapter.sendKeys(sessionName, claudeCommand) match
         case Left(error) =>
           Output.error(s"Failed to send claude command: $error")
