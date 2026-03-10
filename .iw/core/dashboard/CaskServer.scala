@@ -4,7 +4,7 @@
 package iw.core.dashboard
 
 import iw.core.adapters.{ConfigFileRepository, LinearClient, GitHubClient, YouTrackClient, GitWorktreeAdapter, TmuxAdapter, CommandRunner, ServerClient}
-import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData}
+import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, WorktreePath, IssueTrackerType, ServerState, IssueData, WorktreeStatus}
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ProjectRegistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
 import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
@@ -399,6 +399,29 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       "worktreeCount" -> worktreeCount,
       "startedAt" -> startedAt.toString
     )
+
+  @cask.get("/api/v1/worktrees/:issueId/status")
+  def worktreeStatus(issueId: String): cask.Response[String] =
+    val state = stateService.getState
+
+    state.worktrees.get(issueId) match
+      case None =>
+        val errorJson = ujson.write(ujson.Obj(
+          "code" -> "NOT_FOUND",
+          "message" -> s"Worktree not found for issue $issueId"
+        ))
+        cask.Response(
+          errorJson,
+          statusCode = 404,
+          headers = Seq("Content-Type" -> "application/json")
+        )
+
+      case Some(worktree) =>
+        val status = assembleWorktreeStatus(issueId, worktree, state)
+        cask.Response(
+          upickle.default.write(status),
+          headers = Seq("Content-Type" -> "application/json")
+        )
 
   @cask.put("/api/v1/worktrees/:issueId")
   def registerWorktree(issueId: String, request: cask.Request): cask.Response[ujson.Value] =
@@ -802,6 +825,86 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
               statusCode = statusCode,
               headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
             )
+
+  /** Assemble WorktreeStatus from live filesystem data and cached API data.
+    *
+    * Reads review state and progress directly from the worktree filesystem (cheap).
+    * Uses cached issue and PR data from server state (avoids expensive API calls).
+    * Gets live git status via command execution.
+    *
+    * @param issueId Issue identifier
+    * @param worktree Worktree registration
+    * @param state Current server state with caches
+    * @return Assembled WorktreeStatus
+    */
+  private def assembleWorktreeStatus(
+    issueId: String,
+    worktree: iw.core.model.WorktreeRegistration,
+    state: ServerState
+  ): WorktreeStatus =
+    // Get live git status
+    val gitStatus = DashboardService.fetchGitStatusForWorktree(worktree)
+
+    // Get progress from filesystem (cheap, always fresh)
+    val progress = DashboardService.fetchProgressForWorktree(worktree, state.progressCache)
+
+    // Get review state from filesystem (cheap, always fresh)
+    val reviewState = fetchReviewState(worktree, state.reviewStateCache)
+
+    // Use cached issue/PR data (API calls are expensive)
+    val cachedIssue = state.issueCache.get(issueId)
+    val cachedPR = state.prCache.get(issueId)
+
+    WorktreeStatus(
+      issueId = issueId,
+      path = worktree.path,
+      branchName = gitStatus.map(_.branchName),
+      gitClean = gitStatus.map(_.isClean),
+      issueTitle = cachedIssue.map(_.data.title),
+      issueStatus = cachedIssue.map(_.data.status),
+      issueUrl = cachedIssue.map(_.data.url),
+      prUrl = cachedPR.map(_.pr.url),
+      prState = cachedPR.map(_.pr.stateBadgeText),
+      prNumber = cachedPR.map(_.pr.number),
+      reviewDisplay = reviewState.flatMap(_.display.map(_.text)),
+      reviewBadges = reviewState.flatMap(_.badges.map(_.map(_.label))),
+      needsAttention = reviewState.flatMap(_.needsAttention).getOrElse(false),
+      currentPhase = progress.flatMap(_.currentPhase),
+      totalPhases = progress.map(_.totalPhases),
+      overallProgress = progress.map(_.overallPercentage)
+    )
+
+  /** Fetch review state from worktree filesystem.
+    *
+    * @param wt Worktree registration
+    * @param cache Current review state cache
+    * @return Optional ReviewState if file exists and is valid
+    */
+  private def fetchReviewState(
+    wt: iw.core.model.WorktreeRegistration,
+    cache: Map[String, iw.core.model.CachedReviewState]
+  ): Option[iw.core.model.ReviewState] =
+    val readFile = (path: String) => scala.util.Try {
+      val source = scala.io.Source.fromFile(path)
+      try source.mkString
+      finally source.close()
+    }.toEither.left.map(_.getMessage)
+
+    val getMtime = (path: String) => scala.util.Try {
+      java.nio.file.Files.getLastModifiedTime(
+        java.nio.file.Paths.get(path)
+      ).toMillis
+    }.toEither.left.map(_.getMessage)
+
+    ReviewStateService.fetchReviewState(
+      wt.issueId,
+      wt.path,
+      cache,
+      readFile,
+      getMtime
+    ) match
+      case Right(cached) => Some(cached.state)
+      case Left(_) => None
 
   /** Map domain error to appropriate HTTP status code.
     *
