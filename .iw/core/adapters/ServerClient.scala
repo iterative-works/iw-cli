@@ -27,7 +27,9 @@ object ServerClient:
       case Left(_) => ServerConfig.default
 
   private def getServerPort(): Int =
-    getServerConfig().port
+    Option(System.getenv("IW_SERVER_PORT"))
+      .flatMap(s => scala.util.Try(s.toInt).toOption)
+      .getOrElse(getServerConfig().port)
 
   /**
    * Checks if the server is healthy.
