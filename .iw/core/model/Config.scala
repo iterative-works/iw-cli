@@ -102,6 +102,9 @@ case class GitRemote(url: String):
         else
           Right(path)
 
+  def extractRepositoryPath: Either[String, String] =
+    repositoryOwnerAndName.orElse(extractGitLabRepository)
+
 enum IssueTrackerType:
   case Linear, YouTrack, GitHub, GitLab
 
@@ -194,20 +197,14 @@ object ConfigSerializer:
       case IssueTrackerType.GitLab => Constants.TrackerTypeValues.GitLab
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
-    val baseUrlLine = config.youtrackBaseUrl.map(url => s"""\n  baseUrl = "$url"""").getOrElse("")
 
-    // For GitHub and GitLab, use repository and teamPrefix instead of team
-    val trackerDetails = config.trackerType match
-      case IssueTrackerType.GitHub =>
-        val repoLine = config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
-        val prefixLine = config.teamPrefix.map(p => s"""\n  teamPrefix = "$p"""").getOrElse("")
-        s"$repoLine$prefixLine"
-      case IssueTrackerType.GitLab =>
-        val repoLine = config.repository.map(repo => s"""repository = "$repo"""").getOrElse("")
-        val prefixLine = config.teamPrefix.map(p => s"""\n  teamPrefix = "$p"""").getOrElse("")
-        s"$repoLine$prefixLine$baseUrlLine"
-      case _ =>
-        s"team = ${config.team}$baseUrlLine"
+    val trackerFields = Seq(
+      config.repository.map(repo => s"""repository = "$repo""""),
+      if config.team.nonEmpty then Some(s"team = ${config.team}") else None,
+      config.teamPrefix.map(p => s"""teamPrefix = "$p""""),
+      config.youtrackBaseUrl.map(url => s"""baseUrl = "$url"""")
+    ).flatten
+    val trackerDetails = trackerFields.mkString("\n  ")
 
     s"""tracker {
        |  type = $trackerTypeStr
@@ -232,50 +229,48 @@ object ConfigSerializer:
         case other => Left(s"Unknown tracker type: $other")
 
       trackerTypeEither.flatMap { trackerType =>
-        // For GitHub and GitLab, read repository and teamPrefix; for others, read team
-        val trackerDetailsEither: Either[String, (String, Option[String], Option[String])] = trackerType match
-          case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
-            val trackerName = if trackerType == IssueTrackerType.GitHub then "GitHub" else "GitLab"
-            if !config.hasPath(Constants.ConfigKeys.TrackerRepository) then
-              Left(s"repository required for $trackerName tracker")
+        // Read all fields optionally — commands that need them fail at use-time
+        val team = if config.hasPath(Constants.ConfigKeys.TrackerTeam) then
+          config.getString(Constants.ConfigKeys.TrackerTeam)
+        else ""
+
+        val repositoryEither: Either[String, Option[String]] =
+          if config.hasPath(Constants.ConfigKeys.TrackerRepository) then
+            val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
+            if !repo.contains('/') || repo.split('/').exists(_.isEmpty) then
+              Left("repository must be in owner/repo format")
             else
-              val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
-              // Validate repository format: owner/repo or owner/group/repo for GitLab
-              if !repo.contains('/') || repo.split('/').exists(_.isEmpty) then
-                Left("repository must be in owner/repo format")
-              // Require and validate teamPrefix for GitHub and GitLab
-              else if !config.hasPath(Constants.ConfigKeys.TrackerTeamPrefix) then
-                Left(s"teamPrefix required for $trackerName tracker")
-              else
-                val prefix = config.getString(Constants.ConfigKeys.TrackerTeamPrefix)
-                TeamPrefixValidator.validate(prefix).map(validPrefix =>
-                  ("", Some(repo), Some(validPrefix))
-                )
-          case _ =>
-            val t = config.getString(Constants.ConfigKeys.TrackerTeam)
-            Right((t, None, None))
-
-        trackerDetailsEither.map { case (team, repository, teamPrefix) =>
-          val projectName = config.getString(Constants.ConfigKeys.ProjectName)
-
-          // Read version, default to "latest" if not present
-          val version = if config.hasPath(Constants.ConfigKeys.Version) then
-            Some(config.getString(Constants.ConfigKeys.Version))
+              Right(Some(repo))
           else
-            Some("latest")
+            Right(None)
 
-          // Read YouTrack base URL if present
-          val youtrackBaseUrl = if config.hasPath(Constants.ConfigKeys.TrackerBaseUrl) then
-            Some(config.getString(Constants.ConfigKeys.TrackerBaseUrl))
+        val teamPrefixEither: Either[String, Option[String]] =
+          if config.hasPath(Constants.ConfigKeys.TrackerTeamPrefix) then
+            val prefix = config.getString(Constants.ConfigKeys.TrackerTeamPrefix)
+            TeamPrefixValidator.validate(prefix).map(Some(_))
           else
-            None
+            Right(None)
 
-          ProjectConfiguration(
-            tracker = TrackerConfig(trackerType, team, repository, teamPrefix, youtrackBaseUrl),
-            project = ProjectConfig(projectName),
-            version = version
-          )
-        }
+        val projectName = config.getString(Constants.ConfigKeys.ProjectName)
+
+        val version = if config.hasPath(Constants.ConfigKeys.Version) then
+          Some(config.getString(Constants.ConfigKeys.Version))
+        else
+          Some("latest")
+
+        val youtrackBaseUrl = if config.hasPath(Constants.ConfigKeys.TrackerBaseUrl) then
+          Some(config.getString(Constants.ConfigKeys.TrackerBaseUrl))
+        else
+          None
+
+        for
+          repository <- repositoryEither
+          teamPrefix <- teamPrefixEither
+        yield ProjectConfiguration(
+          tracker = TrackerConfig(trackerType, team, repository, teamPrefix, youtrackBaseUrl),
+          project = ProjectConfig(projectName),
+          version = version
+        )
       }
     catch
       case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")

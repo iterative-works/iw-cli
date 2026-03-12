@@ -140,7 +140,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.teamPrefix, original.teamPrefix)
     assertEquals(roundTripped.projectName, original.projectName)
 
-  test("ConfigSerializer fails when GitHub config missing repository"):
+  test("ConfigSerializer succeeds when GitHub config missing repository"):
     val hocon = """
       tracker {
         type = github
@@ -150,8 +150,11 @@ class ConfigTest extends munit.FunSuite:
       }
     """
     val result = ConfigSerializer.fromHocon(hocon)
-    assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("repository required for GitHub tracker"))
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitHub)
+    assertEquals(config.repository, None)
+    assertEquals(config.teamPrefix, None)
 
   test("ConfigSerializer fails when GitHub repository has invalid format"):
     val hocon = """
@@ -271,7 +274,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(config.repository, Some("iterative-works/iw-cli"))
     assertEquals(config.teamPrefix, Some("IWCLI"))
 
-  test("ConfigSerializer requires team prefix for GitHub tracker"):
+  test("ConfigSerializer succeeds when GitHub config missing teamPrefix"):
     val hocon = """
       tracker {
         type = github
@@ -282,8 +285,11 @@ class ConfigTest extends munit.FunSuite:
       }
     """
     val result = ConfigSerializer.fromHocon(hocon)
-    assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("teamPrefix required for GitHub tracker"))
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitHub)
+    assertEquals(config.repository, Some("iterative-works/iw-cli"))
+    assertEquals(config.teamPrefix, None)
 
   test("ConfigSerializer validates team prefix format - rejects lowercase"):
     val hocon = """
@@ -640,7 +646,7 @@ class ConfigTest extends munit.FunSuite:
     val config = result.getOrElse(fail("Expected Right"))
     assertEquals(config.repository, Some("group/subgroup/project"))
 
-  test("ConfigSerializer requires repository for GitLab tracker"):
+  test("ConfigSerializer succeeds when GitLab config missing repository"):
     val hocon = """
       tracker {
         type = gitlab
@@ -651,10 +657,13 @@ class ConfigTest extends munit.FunSuite:
       }
     """
     val result = ConfigSerializer.fromHocon(hocon)
-    assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("repository required for GitLab tracker"))
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitLab)
+    assertEquals(config.repository, None)
+    assertEquals(config.teamPrefix, Some("PROJ"))
 
-  test("ConfigSerializer requires teamPrefix for GitLab tracker"):
+  test("ConfigSerializer succeeds when GitLab config missing teamPrefix"):
     val hocon = """
       tracker {
         type = gitlab
@@ -665,8 +674,11 @@ class ConfigTest extends munit.FunSuite:
       }
     """
     val result = ConfigSerializer.fromHocon(hocon)
-    assert(result.isLeft)
-    assert(result.left.getOrElse("").contains("teamPrefix required for GitLab tracker"))
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.GitLab)
+    assertEquals(config.repository, Some("owner/project"))
+    assertEquals(config.teamPrefix, None)
 
   test("ConfigSerializer validates GitLab repository format"):
     val hocon = """
@@ -778,3 +790,72 @@ class ConfigTest extends munit.FunSuite:
       projectName = "test"
     )
     assertEquals(config.teamIdentifier, "TEST")
+
+  // ========== extractRepositoryPath Tests ==========
+
+  test("extractRepositoryPath succeeds for GitHub HTTPS URL"):
+    val remote = GitRemote("https://github.com/iterative-works/iw-cli.git")
+    assertEquals(remote.extractRepositoryPath, Right("iterative-works/iw-cli"))
+
+  test("extractRepositoryPath succeeds for GitHub SSH URL"):
+    val remote = GitRemote("git@github.com:iterative-works/iw-cli.git")
+    assertEquals(remote.extractRepositoryPath, Right("iterative-works/iw-cli"))
+
+  test("extractRepositoryPath succeeds for GitLab HTTPS URL"):
+    val remote = GitRemote("https://gitlab.com/owner/repo.git")
+    assertEquals(remote.extractRepositoryPath, Right("owner/repo"))
+
+  test("extractRepositoryPath succeeds for GitLab SSH URL"):
+    val remote = GitRemote("git@gitlab.com:owner/repo.git")
+    assertEquals(remote.extractRepositoryPath, Right("owner/repo"))
+
+  test("extractRepositoryPath succeeds for self-hosted GitLab"):
+    val remote = GitRemote("https://gitlab.e-bs.cz/iterative-works/kanon.git")
+    assertEquals(remote.extractRepositoryPath, Right("iterative-works/kanon"))
+
+  test("extractRepositoryPath succeeds for GitLab nested groups"):
+    val remote = GitRemote("https://gitlab.com/group/subgroup/project.git")
+    assertEquals(remote.extractRepositoryPath, Right("group/subgroup/project"))
+
+  test("extractRepositoryPath fails for non-GitHub non-GitLab URL"):
+    val remote = GitRemote("https://bitbucket.org/owner/repo.git")
+    assert(remote.extractRepositoryPath.isLeft)
+
+  // ========== YouTrack with optional repository ==========
+
+  test("ConfigSerializer deserializes YouTrack config with optional repository"):
+    val hocon = """
+      tracker {
+        type = youtrack
+        team = TEST
+        repository = "iterative-works/kanon"
+        baseUrl = "https://youtrack.example.com"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.YouTrack)
+    assertEquals(config.team, "TEST")
+    assertEquals(config.repository, Some("iterative-works/kanon"))
+    assertEquals(config.youtrackBaseUrl, Some("https://youtrack.example.com"))
+
+  test("ConfigSerializer round-trip for YouTrack config with repository"):
+    val original = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.YouTrack,
+      team = "TEST",
+      projectName = "test-project",
+      repository = Some("iterative-works/kanon"),
+      youtrackBaseUrl = Some("https://youtrack.example.com")
+    )
+    val hocon = ConfigSerializer.toHocon(original)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.trackerType, original.trackerType)
+    assertEquals(roundTripped.team, original.team)
+    assertEquals(roundTripped.repository, original.repository)
+    assertEquals(roundTripped.youtrackBaseUrl, original.youtrackBaseUrl)

@@ -45,7 +45,7 @@ import iw.core.output.*
   val forgeType = ForgeType.resolve(remoteOpt, config.trackerType)
 
   val repository = config.repository.getOrElse {
-    remoteOpt.flatMap(r => r.repositoryOwnerAndName.toOption).getOrElse {
+    remoteOpt.flatMap(r => r.extractRepositoryPath.toOption).getOrElse {
       Output.error("Cannot determine repository. Set 'tracker.repository' in .iw/config.conf")
       sys.exit(1)
     }

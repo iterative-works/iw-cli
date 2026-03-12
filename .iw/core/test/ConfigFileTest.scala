@@ -135,7 +135,7 @@ class ConfigFileTest extends munit.FunSuite, Fixtures:
     val Left(errorMsg) = result: @unchecked
     assert(errorMsg.contains("Failed to parse config"))
 
-  test("ConfigSerializer returns Left with meaningful message for missing tracker team"):
+  test("ConfigSerializer succeeds with empty team when tracker team is missing"):
     val hocon = """
       tracker {
         type = linear
@@ -147,9 +147,9 @@ class ConfigFileTest extends munit.FunSuite, Fixtures:
     """
 
     val result = ConfigSerializer.fromHocon(hocon)
-    assert(result.isLeft)
-    val Left(errorMsg) = result: @unchecked
-    assert(errorMsg.contains("Failed to parse config"))
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.team, "")
 
   test("ConfigSerializer returns Left with meaningful message for missing project name"):
     val hocon = """
