@@ -18,8 +18,9 @@ RELEASE_PACKAGE_DIR="$RELEASE_DIR/iw-cli-$VERSION"
 rm -rf "$RELEASE_PACKAGE_DIR"
 mkdir -p "$RELEASE_PACKAGE_DIR"/{commands,core,scripts}
 
-# Copy iw-run launcher
+# Copy iw-run launcher and bootstrap script
 cp "$PROJECT_ROOT/iw-run" "$RELEASE_PACKAGE_DIR/"
+cp "$PROJECT_ROOT/iw-bootstrap" "$RELEASE_PACKAGE_DIR/"
 
 # Copy all command files
 cp "$PROJECT_ROOT/.iw/commands"/*.scala "$RELEASE_PACKAGE_DIR/commands/"
