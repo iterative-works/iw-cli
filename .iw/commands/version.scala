@@ -7,7 +7,7 @@
 
 import iw.core.output.Output
 
-val iwVersion = "0.2.0"
+val iwVersion = "0.3.0"
 val iwScalaVersion = "3.3.1"
 
 @main def version(args: String*): Unit =
