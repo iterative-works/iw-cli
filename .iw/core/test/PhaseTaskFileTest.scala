@@ -93,3 +93,57 @@ class PhaseTaskFileTest extends FunSuite:
       "- [ ] [impl] [ ] [reviewed] Not done yet\n" +
       "- [x] [test] [x] [reviewed] Test task\n"
     )
+
+  // findUncheckedImplTasks tests
+
+  test("findUncheckedImplTasks returns empty list when all impl tasks are checked"):
+    val content =
+      "- [x] [impl] [x] [reviewed] Task one\n" +
+      "- [x] [impl] Task two\n" +
+      "- [x] [test] [x] [reviewed] Test task\n"
+    assertEquals(PhaseTaskFile.findUncheckedImplTasks(content), Nil)
+
+  test("findUncheckedImplTasks finds unchecked impl tasks with reviewed marker"):
+    val content =
+      "- [x] [impl] [x] [reviewed] Done task\n" +
+      "- [ ] [impl] [ ] [reviewed] Not done task\n"
+    assertEquals(
+      PhaseTaskFile.findUncheckedImplTasks(content),
+      List("- [ ] [impl] [ ] [reviewed] Not done task")
+    )
+
+  test("findUncheckedImplTasks finds unchecked impl tasks without reviewed marker"):
+    val content =
+      "- [x] [impl] Done task\n" +
+      "- [ ] [impl] Not done task\n"
+    assertEquals(
+      PhaseTaskFile.findUncheckedImplTasks(content),
+      List("- [ ] [impl] Not done task")
+    )
+
+  test("findUncheckedImplTasks ignores unchecked non-impl tasks"):
+    val content =
+      "- [ ] [test] Unchecked test\n" +
+      "- [ ] [setup] Unchecked setup\n" +
+      "- [ ] [int] Unchecked integration\n"
+    assertEquals(PhaseTaskFile.findUncheckedImplTasks(content), Nil)
+
+  test("findUncheckedImplTasks finds multiple unchecked impl tasks"):
+    val content =
+      "- [ ] [impl] [ ] [reviewed] First unchecked\n" +
+      "- [x] [impl] [x] [reviewed] Done\n" +
+      "- [ ] [impl] [ ] [reviewed] Second unchecked\n"
+    assertEquals(
+      PhaseTaskFile.findUncheckedImplTasks(content),
+      List(
+        "- [ ] [impl] [ ] [reviewed] First unchecked",
+        "- [ ] [impl] [ ] [reviewed] Second unchecked"
+      )
+    )
+
+  test("findUncheckedImplTasks returns empty list for content with no task lines"):
+    val content = "# Phase 1\n\nSome description.\n\n**Phase Status:** Not Started\n"
+    assertEquals(PhaseTaskFile.findUncheckedImplTasks(content), Nil)
+
+  test("findUncheckedImplTasks returns empty list for empty content"):
+    assertEquals(PhaseTaskFile.findUncheckedImplTasks(""), Nil)

@@ -37,6 +37,18 @@ object PhaseTaskFile:
   private val ReviewablePattern =
     """^(- \[x\] \[[^\]]+\]) \[ \] \[reviewed\](.*)$""".r
 
+  // Matches lines where primary checkbox is unchecked and tag is [impl]
+  private val UncheckedImplPattern =
+    """^- \[ \] \[impl\].*$""".r
+
+  /** Find all unchecked [impl] task lines.
+    *
+    * @param content Full markdown file content
+    * @return List of lines with unchecked [impl] tasks
+    */
+  def findUncheckedImplTasks(content: String): List[String] =
+    content.split("\n", -1).filter(UncheckedImplPattern.matches).toList
+
   /** Mark all checked tasks as [reviewed] where a [reviewed] marker exists.
     *
     * For lines matching `- [x] [tag] [ ] [reviewed]`,
