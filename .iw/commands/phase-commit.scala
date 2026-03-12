@@ -35,6 +35,20 @@ import iw.core.output.*
     PhaseArgs.resolvePhaseNumber(PhaseArgs.namedArg(argList, "--phase-number"), phaseNumRaw)
   )
 
+  val taskFilePath = os.pwd / "project-management" / "issues" / issueId.value / s"phase-${phaseNumber.value}-tasks.md"
+  if os.exists(taskFilePath) then
+    val taskContent = os.read(taskFilePath)
+    val unchecked = PhaseTaskFile.findUncheckedImplTasks(taskContent)
+    if unchecked.nonEmpty then
+      Output.error("Cannot commit phase with unchecked tasks.")
+      Output.error("")
+      Output.error("The following tasks are not marked as implemented:")
+      unchecked.foreach(line => Output.error(s"  $line"))
+      Output.error("")
+      Output.error(s"If these tasks have been implemented, check them off in phase-${phaseNumber.value}-tasks.md and retry.")
+      Output.error("If they have NOT been implemented, complete them before committing.")
+      sys.exit(1)
+
   CommandHelpers.exitOnError(GitAdapter.stageAll(os.pwd))
 
   val message = CommitMessage.build(title, items)
@@ -45,7 +59,6 @@ import iw.core.output.*
     case Left(_)      => 0
     case Right(files) => files.length
 
-  val taskFilePath = os.pwd / "project-management" / "issues" / issueId.value / s"phase-${phaseNumber.value}-tasks.md"
   if os.exists(taskFilePath) then
     val content = os.read(taskFilePath)
     val afterComplete = PhaseTaskFile.markComplete(content)
