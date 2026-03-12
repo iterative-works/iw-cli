@@ -1,19 +1,16 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw status command
-# PURPOSE: Tests detailed worktree status display with state.json and git data
+# PURPOSE: Tests error handling and argument parsing for server-backed status queries
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 
 setup() {
-    # Disable dashboard server communication during tests
-    export IW_SERVER_DISABLED=1
-
     # Create a temporary directory for each test
     TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"
 
-    # Override HOME to control state.json location
+    # Override HOME to isolate server config
     export HOME="$TEST_DIR"
     mkdir -p "$HOME/.local/share/iw/server"
 
@@ -45,75 +42,37 @@ teardown() {
     rm -rf "$TEST_DIR"
 }
 
-create_state_with_worktree() {
-    local worktree_path="$TEST_DIR"
-
-    # Create state.json with a worktree pointing to current directory
-    cat > "$HOME/.local/share/iw/server/state.json" << EOF
-{
-  "worktrees": {
-    "TEST-123": {
-      "issueId": "TEST-123",
-      "path": "$worktree_path",
-      "trackerType": "linear",
-      "team": "TEST",
-      "registeredAt": "2024-01-01T00:00:00Z",
-      "lastSeenAt": "2024-01-01T00:00:00Z"
-    }
-  },
-  "issueCache": {},
-  "progressCache": {},
-  "prCache": {},
-  "reviewStateCache": {}
-}
-EOF
-}
-
-@test "status with explicit issue ID shows status" {
-    create_state_with_worktree
+@test "status when server not running shows helpful error" {
+    # Point to a port where no server is running
+    export IW_SERVER_PORT=19876
 
     run "$PROJECT_ROOT/iw" status TEST-123
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ "TEST-123" ]]
-}
-
-@test "status --json outputs valid JSON object" {
-    create_state_with_worktree
-
-    run "$PROJECT_ROOT/iw" status --json TEST-123
-    [ "$status" -eq 0 ]
-
-    # Verify it's valid JSON by piping through jq
-    echo "$output" | jq . > /dev/null
-    # Verify it's an object, not an array
-    [ "$(echo "$output" | jq 'type')" = '"object"' ]
-}
-
-@test "status for nonexistent issue ID exits with error" {
-    run "$PROJECT_ROOT/iw" status NONEXISTENT-99
     [ "$status" -eq 1 ]
-    [[ "$output" =~ "not found" ]]
+    [[ "$output" =~ "server" ]] || [[ "$output" =~ "Server" ]]
 }
 
-@test "status --json contains expected fields" {
-    create_state_with_worktree
-
-    run "$PROJECT_ROOT/iw" status --json TEST-123
-    [ "$status" -eq 0 ]
-
-    # Check for required fields
-    echo "$output" | jq '.issueId' > /dev/null
-    echo "$output" | jq '.path' > /dev/null
-    echo "$output" | jq '.needsAttention' > /dev/null
+@test "status with server disabled shows error" {
+    export IW_SERVER_DISABLED=1
+    run "$PROJECT_ROOT/iw" status TEST-123
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "disabled" ]] || [[ "$output" =~ "Server" ]]
 }
 
-@test "status without args infers issue from branch" {
-    create_state_with_worktree
+@test "status without args and not on issue branch shows error" {
+    export IW_SERVER_DISABLED=1
+    # On 'main' branch — can't infer issue ID
+    run "$PROJECT_ROOT/iw" status
+    [ "$status" -eq 1 ]
+}
 
-    # Create and checkout a branch with issue ID
+@test "status without args infers issue from branch name" {
+    # Create and checkout an issue branch
     git checkout -b TEST-123 -q 2>/dev/null
 
+    # Server not running, but issue ID resolution from branch should work
+    # (error will be about server, not about issue ID parsing)
     run "$PROJECT_ROOT/iw" status
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ "TEST-123" ]]
+    [ "$status" -eq 1 ]
+    # Should NOT show "Usage:" — it successfully parsed the issue ID
+    [[ ! "$output" =~ "Usage:" ]]
 }

@@ -3,7 +3,7 @@
 
 package iw.core.adapters
 
-import iw.core.model.ServerConfig
+import iw.core.model.{ServerConfig, WorktreeStatus}
 import sttp.client4.quick.*
 import sttp.model.StatusCode
 import scala.util.{Try, Success, Failure}
@@ -27,7 +27,9 @@ object ServerClient:
       case Left(_) => ServerConfig.default
 
   private def getServerPort(): Int =
-    getServerConfig().port
+    Option(System.getenv("IW_SERVER_PORT"))
+      .flatMap(s => scala.util.Try(s.toInt).toOption)
+      .getOrElse(getServerConfig().port)
 
   /**
    * Checks if the server is healthy.
@@ -244,3 +246,40 @@ object ServerClient:
 
       catch
         case e: Exception => Left(s"Failed to unregister worktree: ${e.getMessage}")
+
+  /**
+   * Fetches detailed worktree status from the server.
+   *
+   * Queries the server for live git state, filesystem-based review/progress data,
+   * and cached issue/PR data. Does not auto-start the server — if the server is
+   * not running, returns a helpful error message.
+   *
+   * @param issueId The issue identifier (e.g., "IWLE-123")
+   * @return Right(WorktreeStatus) on success, Left(error message) on failure
+   */
+  def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
+    if isServerDisabled then Left("Server communication is disabled")
+    else
+      val port = getServerPort()
+      try
+        val response = quickRequest
+          .get(uri"http://localhost:$port/api/v1/worktrees/$issueId/status")
+          .send()
+
+        response.code match
+          case StatusCode.Ok =>
+            Try(upickle.default.read[WorktreeStatus](response.body)) match
+              case Success(status) => Right(status)
+              case Failure(e) => Left(s"Failed to parse status response: ${e.getMessage}")
+          case StatusCode.NotFound =>
+            val msg = Try(ujson.read(response.body)("message").str).getOrElse("Worktree not found")
+            Left(msg)
+          case _ =>
+            val errorMsg = Try(ujson.read(response.body)("message").str).getOrElse(response.body)
+            Left(s"Server returned ${response.code.code}: $errorMsg")
+
+      catch
+        case e: java.net.ConnectException =>
+          Left("Dashboard server is not running. Start it with: iw server start")
+        case e: Exception =>
+          Left(s"Failed to connect to server: ${e.getMessage}")
