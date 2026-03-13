@@ -7,7 +7,7 @@
 
 import iw.core.output.Output
 
-val iwVersion = "0.3.2"
+val iwVersion = "0.3.3"
 
 @main def version(args: String*): Unit =
   val verbose = args.contains("--verbose")
