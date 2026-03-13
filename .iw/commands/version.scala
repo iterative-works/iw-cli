@@ -8,7 +8,6 @@
 import iw.core.output.Output
 
 val iwVersion = "0.3.2"
-val iwScalaVersion = "3.3.1"
 
 @main def version(args: String*): Unit =
   val verbose = args.contains("--verbose")
@@ -16,7 +15,6 @@ val iwScalaVersion = "3.3.1"
   if verbose then
     Output.section("iw-cli Version Information")
     Output.keyValue("Version", iwVersion)
-    Output.keyValue("Scala", iwScalaVersion)
     Output.keyValue("OS", System.getProperty("os.name"))
     Output.keyValue("Architecture", System.getProperty("os.arch"))
     Output.keyValue("Java", System.getProperty("java.version"))
