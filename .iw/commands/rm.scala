@@ -60,7 +60,7 @@ def removeWorktree(issueId: IssueId, force: Boolean, config: ProjectConfiguratio
         sys.exit(1)
 
       // Check for uncommitted changes
-      if !force then
+      val forceRemove = if !force then
         GitAdapter.hasUncommittedChanges(targetPath) match
           case Left(error) =>
             Output.error(s"Failed to check for uncommitted changes: $error")
@@ -70,8 +70,11 @@ def removeWorktree(issueId: IssueId, force: Boolean, config: ProjectConfiguratio
             if !Prompt.confirm("Continue with removal?", default = false) then
               Output.info("Removal cancelled")
               sys.exit(0)
+            true
           case Right(false) =>
-            // No uncommitted changes, proceed
+            false
+      else
+        true
 
       // Kill tmux session if it exists
       if TmuxAdapter.sessionExists(sessionName) then
@@ -85,7 +88,7 @@ def removeWorktree(issueId: IssueId, force: Boolean, config: ProjectConfiguratio
 
       // Remove worktree
       Output.info(s"Removing worktree '${worktreePath.directoryName}'...")
-      GitWorktreeAdapter.removeWorktree(targetPath, currentDir, force = force) match
+      GitWorktreeAdapter.removeWorktree(targetPath, currentDir, force = forceRemove) match
         case Left(error) =>
           Output.error(s"Failed to remove worktree: $error")
           sys.exit(1)
