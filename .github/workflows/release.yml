@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:21
+          apps: scala-cli
+      - uses: coursier/cache-action@v6
+
+      - name: Install E2E test dependencies
+        run: |
+          sudo apt-get install -y tmux jq
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+
+      - name: Run all tests
+        run: ./iw test
+        timeout-minutes: 20
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            # workflow_dispatch: use latest tag
+            VERSION="$(git describe --tags --abbrev=0 | sed 's/^v//')"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build release tarball
+        run: .iw/scripts/package-release.sh "${{ steps.version.outputs.version }}"
+
+      - name: Upload to versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # Check if release already exists (may have been created manually with notes)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "release/iw-cli-${VERSION}.tar.gz" --clobber
+          else
+            gh release create "$TAG" "release/iw-cli-${VERSION}.tar.gz" --generate-notes
+          fi
+
+      - name: Update vlatest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Force-move the vlatest tag to this commit
+          git tag -f vlatest
+          git push origin vlatest --force
+
+          # Prepare latest tarball (iw-bootstrap expects iw-cli-latest.tar.gz under vlatest)
+          cp "release/iw-cli-${VERSION}.tar.gz" release/iw-cli-latest.tar.gz
+
+          # Upload to vlatest release
+          if gh release view vlatest > /dev/null 2>&1; then
+            gh release upload vlatest release/iw-cli-latest.tar.gz --clobber
+            gh release upload vlatest iw-bootstrap --clobber
+          else
+            gh release create vlatest release/iw-cli-latest.tar.gz iw-bootstrap \
+              --title "Latest Release" \
+              --notes "Rolling release tracking the latest version (currently v${VERSION})."
+          fi
