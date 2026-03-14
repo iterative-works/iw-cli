@@ -51,3 +51,26 @@ M	.iw/test/review-state.bats
 ```
 
 ---
+
+## Phase 3: `validate --help` fails with misleading error (2026-03-14)
+
+**Root cause:** No `--help`/`-h` guard in `validate.scala`. The `--help` flag was filtered out by `args.filterNot(_.startsWith("--"))`, leaving `filePaths` empty, which triggered a misleading "No file path provided" error (exit 1).
+
+**Fix applied:**
+- `.iw/commands/review-state/validate.scala` — Added early `--help`/`-h` guard before any argument processing, plus `showHelp()` function mirroring the header comments. Same pattern as Phases 1-2.
+
+**Regression tests added:**
+- 3 E2E tests in `.iw/test/review-state.bats`: `--help` exits 0 with usage, `-h` exits 0 with usage, `--help` does not read files (with nonexistent path)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260314-170133.md
+- Result: Pass (0 critical, 4 warnings — 2 pre-existing, 1 consistent with prior phases, 1 fixed during review)
+
+**Files changed:**
+```
+M	.iw/commands/review-state/validate.scala
+M	.iw/test/review-state.bats
+```
+
+---

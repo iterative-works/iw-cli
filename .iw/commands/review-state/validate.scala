@@ -12,6 +12,13 @@ import iw.core.model.*
 import iw.core.output.*
 
 @main def validate(args: String*): Unit =
+  val argList = args.toList
+
+  // Handle --help / -h flag
+  if argList.contains("--help") || argList.contains("-h") then
+    showHelp()
+    sys.exit(0)
+
   val useStdin = args.contains("--stdin")
   val filePaths = args.filterNot(_.startsWith("--"))
 
@@ -46,3 +53,18 @@ import iw.core.output.*
       Output.warning(warning)
     }
     sys.exit(1)
+
+private def showHelp(): Unit =
+  println("Validate a review-state.json file against the formal schema")
+  println()
+  println("Usage:")
+  println("  iw review-state validate <file-path>")
+  println("  iw review-state validate --stdin")
+  println()
+  println("Arguments:")
+  println("  file-path  Path to the review-state.json file to validate")
+  println("  --stdin    Read JSON from standard input instead of a file")
+  println()
+  println("Examples:")
+  println("  iw review-state validate project-management/issues/IW-42/review-state.json")
+  println("  cat review-state.json | iw review-state validate --stdin")

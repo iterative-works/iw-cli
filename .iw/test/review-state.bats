@@ -464,3 +464,28 @@ assert d['issue_id'] == 'IW-42'
     [ "$status" -eq 0 ]
     [ ! -f "$TEST_TMPDIR/should-not-exist.json" ]
 }
+
+# ============================================================================
+# VALIDATE --HELP TESTS
+# ============================================================================
+
+@test "review-state validate --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state validate --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"file-path"* ]]
+    [[ "$output" == *"--stdin"* ]]
+}
+
+@test "review-state validate -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state validate -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"file-path"* ]]
+    [[ "$output" == *"--stdin"* ]]
+}
+
+@test "review-state validate --help does not read any files" {
+    run "$PROJECT_ROOT/iw" review-state validate --help "/tmp/does-not-exist-$RANDOM.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"file-path"* ]]
+    [[ "$output" == *"--stdin"* ]]
+}
