@@ -217,7 +217,7 @@ EOF
     [[ "$output" != *"Invalid issue ID format"* ]]
 }
 
-@test "issue with GitHub tracker without team prefix accepts numeric input (backward compat)" {
+@test "issue with GitHub tracker without team prefix rejects numeric input with helpful error" {
     # Setup: create config for GitHub without team prefix
     mkdir -p .iw
     cat > .iw/config.conf <<EOF
@@ -236,11 +236,11 @@ EOF
     git add README.md
     git commit -m "Initial commit"
 
-    # Run with numeric issue ID (should accept as-is for backward compatibility)
+    # Numeric input without a team prefix should be rejected
     run "$PROJECT_ROOT/iw" issue 51
 
-    # Should fail due to gh prerequisites, but we verify the issue ID was parsed correctly
     [ "$status" -eq 1 ]
-    # The error should be about gh, not about invalid issue ID format
-    [[ "$output" != *"Invalid issue ID format"* ]]
+    [[ "$output" == *"Invalid issue ID format"* ]]
+    # Error should guide user to configure team prefix
+    [[ "$output" == *"team prefix"* ]]
 }
