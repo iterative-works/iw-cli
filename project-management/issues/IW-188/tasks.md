@@ -6,7 +6,7 @@
 
 ## Phase Index
 
-- [ ] Phase 1: Worktree detail page with complete context (Est: 8-12h) → `phase-01-context.md`
+- [x] Phase 1: Worktree detail page with complete context (Est: 8-12h) → `phase-01-context.md`
 - [ ] Phase 2: Breadcrumb navigation with project context (Est: 2-3h) → `phase-02-context.md`
 - [ ] Phase 3: Handle unknown worktree gracefully (Est: 2-3h) → `phase-03-context.md`
 - [ ] Phase 4: Artifact links to artifact detail view (Est: 2-3h) → `phase-04-context.md`

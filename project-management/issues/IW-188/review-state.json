@@ -33,11 +33,11 @@
       "path": "project-management/issues/IW-188/review-packet-phase-01.md"
     }
   ],
-  "last_updated": "2026-03-14T20:12:46.868675269Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-03-14T20:13:58Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 1: Awaiting Review",
-    "type": "info",
+    "text": "Phase 1: Merged",
+    "type": "success",
     "subtext": "Worktree detail page with complete context"
   },
   "badges": [
@@ -50,7 +50,7 @@
       "type": "info"
     }
   ],
-  "message": "Phase 1 implementation complete - PR #266 created",
+  "message": "Phase 1 merged by batch-implement",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -78,7 +78,7 @@
       "skill": "external-link"
     }
   ],
-  "git_sha": "541469b",
+  "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
   "needs_attention": true,
   "phase_checkpoints": {
     "1": {
