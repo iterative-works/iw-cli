@@ -11,22 +11,34 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-202/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-202/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-202/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-03-14T12:41:40.105064604Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-03-14T12:54:19.213861763Z",
+  "status": "implementing",
   "display": {
-    "text": "Tasks Ready",
-    "type": "success",
-    "subtext": "4 phases identified"
+    "text": "Phase 01: Implementing",
+    "type": "progress",
+    "subtext": "update --help mutates state instead of showing help"
   },
   "badges": [
     {
       "label": "Medium",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Task breakdown complete. Ready to begin investigation.",
+  "message": "Phase 01 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -44,5 +56,10 @@
       "skill": "dx-fix"
     }
   ],
-  "git_sha": "6780cd3"
+  "git_sha": "6780cd3",
+  "phase_checkpoints": {
+    "1": {
+      "context_sha": "context_sha=88406ca542cae7e73a332c8b960b7c206bb48d97"
+    }
+  }
 }
