@@ -127,7 +127,7 @@ Scénář: Aktualizace po změně stavu
 **Complexity:** Straightforward
 
 **Technical Feasibility:**
-The existing card-level HTMX refresh pattern (`GET /worktrees/:issueId/card` with `hx-trigger="every 30s"`) already handles all data fetching and HTML regeneration. For the detail page, the simplest approach is to have the content section poll a dedicated endpoint (e.g., `GET /worktrees/:issueId/detail-content`) that returns just the content fragment (not the full page shell). Alternatively, the existing `/worktrees/:issueId/card` endpoint could be reused if the detail view content section uses a card-compatible structure. The key decision is whether to create a separate content refresh endpoint or reuse the existing card endpoint.
+The existing card-level HTMX refresh pattern (`GET /worktrees/:issueId/card` with `hx-trigger="every 30s"`) already handles all data fetching and HTML regeneration. The detail page content section polls a dedicated fragment endpoint (`GET /worktrees/:issueId/detail-content`) that returns just the content fragment (not the full page shell). This is consistent with how the card refresh endpoint works — fragment-only responses for HTMX swap.
 
 **Acceptance:**
 - Detail page content refreshes automatically every 30 seconds
@@ -313,55 +313,25 @@ Currently `WorktreeCardRenderer.renderCard` renders the issue ID as a link to th
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions
 
-### CLARIFY: Auto-refresh approach for detail page
+### RESOLVED: Auto-refresh approach for detail page
 
-The detail page needs auto-refresh. There are two approaches:
+**Decision:** Dedicated fragment endpoint (`GET /worktrees/:issueId/detail-content`).
 
-**Questions to answer:**
-1. Should the detail page content section poll a dedicated fragment endpoint, or can we reuse the existing card endpoint?
-2. If a dedicated endpoint, should it return the same HTML structure as the full page content, or a simplified version?
+The content section of the detail page has `hx-get` pointing to this endpoint, which returns just the inner content (no breadcrumb, no page shell). Clean separation, consistent with how card refresh already works (card endpoint returns fragment, not full page).
 
-**Options:**
-- **Option A: Dedicated fragment endpoint** (`GET /worktrees/:issueId/detail-content`). The content section of the detail page has `hx-get` pointing to this endpoint, which returns just the inner content (no breadcrumb, no page shell). Pros: clean separation, can optimize the fragment independently. Cons: new endpoint to maintain, duplicated rendering logic.
-- **Option B: Reuse card endpoint** (`GET /worktrees/:issueId/card`). The detail page embeds the card HTML inside a wrapper and lets the existing card refresh mechanism work. Pros: no new endpoint, reuses existing data fetching. Cons: card layout may not match detail page layout; would need the detail page to use the card's HTML structure.
-- **Option C: Full page reload via HTMX** (`hx-get="/worktrees/:issueId"` with `hx-select` to extract content). The page polls itself and HTMX selects only the content div. Pros: simplest, no new endpoint. Cons: full page render on each poll is wasteful; may cause flicker.
+### RESOLVED: Workflow actions display (#47)
 
-**Impact:** Determines whether we need a new endpoint in CaskServer and a separate render method in WorktreeDetailView.
+**Decision:** Defer entirely to #47.
 
----
+The detail page does not render `available_actions`. When #47 is implemented, it adds action buttons to the detail page. Keeps scope clean, no dead UI.
 
-### CLARIFY: Workflow actions display (#47)
+### RESOLVED: Card renderer changes for detail page links (Story 6)
 
-The review-state.json schema includes an `available_actions` field with `(id, label, skill)` tuples. Issue #47 proposes workflow-defined actions on the dashboard. The worktree detail page is the natural home for these action buttons.
+**Decision:** Card title links to detail page, issue ID badge keeps tracker link.
 
-**Questions to answer:**
-1. Should we include action button rendering in this issue, or defer to #47?
-2. If included, what happens when an action button is clicked? (There's no execution infrastructure yet.)
-
-**Options:**
-- **Option A: Defer entirely to #47**. The detail page does not render `available_actions`. When #47 is implemented, it adds action buttons to the detail page. Pros: clean scope, no dead UI. Cons: misses the natural integration point.
-- **Option B: Render action buttons as disabled/informational**. Show what actions are available but don't make them functional. Pros: shows the data is there, useful for workflow visibility. Cons: confusing UX with non-functional buttons.
-- **Option C: Render action labels as read-only text**. Show available actions as a list of labels (no buttons). Pros: informational without implying interactivity. Cons: still needs removal/update when #47 lands.
-
-**Impact:** Affects whether `ReviewState` Scala model needs to parse `available_actions`, and whether `WorktreeDetailView` renders an actions section.
-
----
-
-### CLARIFY: Card renderer changes for detail page links (Story 6)
-
-Currently the issue ID on cards links to the external tracker URL. Changing it to link to the detail page changes existing behavior.
-
-**Questions to answer:**
-1. Should the card title link to the worktree detail page?
-2. Where should the external tracker link move to?
-3. Should this change apply to all card contexts, or only project-page cards?
-
-**Options:**
-- **Option A: Card title links to detail page, issue ID badge links to tracker**. The `h3` title becomes `<a href="/worktrees/:issueId">` and the issue ID below keeps its tracker link. Pros: natural -- clicking the card goes deeper in navigation, issue ID still goes to tracker. Cons: two different link behaviors on the same card.
-- **Option B: Entire card header area links to detail page, add separate tracker icon**. Pros: clear primary action. Cons: more layout changes.
-- **Option C: Defer card linking to a separate issue**. Keep cards as-is for now. Users navigate to detail page via URL only. Pros: no changes to shared renderer. Cons: no discoverability of the detail page.
+The `h3` title becomes `<a href="/worktrees/:issueId">` and the issue ID below keeps its external tracker link. Natural navigation — clicking the card title goes deeper in the hierarchy, issue ID still goes to tracker.
 
 **Impact:** Affects `WorktreeCardRenderer` which is shared across all card display contexts.
 
@@ -383,8 +353,8 @@ Currently the issue ID on cards links to the external tracker URL. Changing it t
 
 **Reasoning:**
 - Story 1 is the largest because it introduces a new page with a new route, view, and full-page layout. However, all data fetching infrastructure exists -- the work is primarily in presentation layout.
-- Story 3 has moderate uncertainty depending on the auto-refresh approach (CLARIFY #1). A dedicated fragment endpoint adds more work than reusing the card endpoint.
-- Story 6 depends on the card linking decision (CLARIFY #3) which could range from trivial (add a link wrapper) to moderate (restructure card header).
+- Story 3 uses a dedicated fragment endpoint, which adds a new route but keeps the architecture clean and consistent with existing patterns.
+- Story 6 adds a link wrapper to the card title (h3) while keeping the issue ID badge linked to the tracker — a small, focused change.
 - All data models and fetching services are already implemented, reducing integration risk.
 - The `PageLayout` shared component is already extracted (from IW-206), so no prerequisite extraction work is needed.
 
@@ -506,9 +476,8 @@ None -- no new environment variables or config file changes.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** All CLARIFYs Resolved
 
 **Next Steps:**
-1. Resolve CLARIFY markers with stakeholders
-2. Run **ag-create-tasks** with the issue ID
-3. Run **ag-implement** for iterative story implementation
+1. Run **ag-create-tasks** with the issue ID
+2. Run **ag-implement** for iterative story implementation
