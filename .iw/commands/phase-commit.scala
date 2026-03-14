@@ -49,6 +49,13 @@ import iw.core.output.*
       Output.error("If they have NOT been implemented, complete them before committing.")
       sys.exit(1)
 
+  // Mark task file complete/reviewed before staging so it's included in the commit
+  if os.exists(taskFilePath) then
+    val content = os.read(taskFilePath)
+    val afterComplete = PhaseTaskFile.markComplete(content)
+    val afterReviewed = PhaseTaskFile.markReviewed(afterComplete)
+    os.write.over(taskFilePath, afterReviewed)
+
   CommandHelpers.exitOnError(GitAdapter.stageAll(os.pwd))
 
   val message = CommitMessage.build(title, items)
@@ -58,12 +65,6 @@ import iw.core.output.*
   val filesCommitted = GitAdapter.diffNameOnly(s"${commitSha}^", os.pwd) match
     case Left(_)      => 0
     case Right(files) => files.length
-
-  if os.exists(taskFilePath) then
-    val content = os.read(taskFilePath)
-    val afterComplete = PhaseTaskFile.markComplete(content)
-    val afterReviewed = PhaseTaskFile.markReviewed(afterComplete)
-    os.write.over(taskFilePath, afterReviewed)
 
   println(PhaseOutput.CommitOutput(
     issueId = issueId.value,
