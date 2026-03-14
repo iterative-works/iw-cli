@@ -3,18 +3,18 @@
 **Issue:** IW-202
 **Created:** 2026-03-14
 **Severity:** Medium
-**Status:** 1/4 phases complete (25%)
+**Status:** 2/4 phases complete (50%)
 
 ## Phase Index
 
 - [x] Phase 1: `update --help` mutates state instead of showing help (Est: 1-2h) → `phase-01-context.md`
-- [ ] Phase 2: `write --help` fails with misleading error (Est: 1-2h) → `phase-02-context.md`
+- [x] Phase 2: `write --help` fails with misleading error (Est: 1-2h) → `phase-02-context.md`
 - [ ] Phase 3: `validate --help` fails with misleading error (Est: 0.5-1h) → `phase-03-context.md`
 - [ ] Phase 4: `review-state --help` reports "Unknown subcommand" (Est: 0.5-1h) → `phase-04-context.md`
 
 ## Progress Tracker
 
-**Completed:** 1/4 phases
+**Completed:** 2/4 phases
 **Estimated Total:** 3-6 hours
 **Time Spent:** 0 hours
 
