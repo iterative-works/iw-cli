@@ -438,3 +438,29 @@ assert d['issue_id'] == 'IW-42'
     after="$(cat "$TEST_TMPDIR/state.json")"
     [ "$before" = "$after" ]
 }
+
+# ============================================================================
+# WRITE --HELP TESTS
+# ============================================================================
+
+@test "review-state write --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state write --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+    [[ "$output" == *"--from-stdin"* ]]
+}
+
+@test "review-state write -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state write -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+    [[ "$output" == *"--from-stdin"* ]]
+}
+
+@test "review-state write --help does not write any files" {
+    run "$PROJECT_ROOT/iw" review-state write --help --output "$TEST_TMPDIR/should-not-exist.json"
+    [ "$status" -eq 0 ]
+    [ ! -f "$TEST_TMPDIR/should-not-exist.json" ]
+}
