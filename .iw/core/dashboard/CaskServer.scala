@@ -25,12 +25,12 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       // State loaded successfully
       ()
 
+  private def resolveEffectiveSshHost(sshHost: Option[String]): String =
+    sshHost.getOrElse(java.net.InetAddress.getLocalHost().getHostName())
+
   @cask.get("/")
   def dashboard(sshHost: Option[String] = None): cask.Response[String] =
-    // Resolve effective SSH host: use query param or default to server hostname
-    val effectiveSshHost = sshHost.getOrElse(
-      java.net.InetAddress.getLocalHost().getHostName()
-    )
+    val effectiveSshHost = resolveEffectiveSshHost(sshHost)
 
     // Get current state (read-only)
     val state = stateService.getState
@@ -63,12 +63,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.get("/projects/:projectName")
   def projectDetails(projectName: String, sshHost: Option[String] = None): cask.Response[String] =
-    // Resolve effective SSH host: use query param or default to server hostname
-    val effectiveSshHost = sshHost.getOrElse(
-      java.net.InetAddress.getLocalHost().getHostName()
-    )
-
-    // Get current state (read-only)
+    val effectiveSshHost = resolveEffectiveSshHost(sshHost)
     val state = stateService.getState
 
     // Get all registered worktrees
@@ -147,17 +142,11 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.get("/worktrees/:issueId")
   def worktreeDetail(issueId: String, sshHost: Option[String] = None): cask.Response[String] =
-    // Resolve effective SSH host: use query param or default to server hostname
-    val effectiveSshHost = sshHost.getOrElse(
-      java.net.InetAddress.getLocalHost().getHostName()
-    )
-
-    // Get current state (read-only)
+    val effectiveSshHost = resolveEffectiveSshHost(sshHost)
     val state = stateService.getState
 
     state.worktrees.get(issueId) match
       case None =>
-        // Worktree not found - return styled 404 page
         val bodyContent = WorktreeDetailView.renderNotFound(issueId)
         val html = PageLayout.render(
           title = s"$issueId - Not Found",
@@ -176,6 +165,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         val progress = DashboardService.fetchProgressForWorktree(worktree, state.progressCache)
         val gitStatus = DashboardService.fetchGitStatusForWorktree(worktree)
         val prData = DashboardService.fetchPRForWorktreeCachedOnly(worktree, state.prCache, now)
+        // Review state from cache is always valid (errors are not cached)
         val reviewStateResult = state.reviewStateCache.get(issueId).map(cached => Right(cached.state))
         val projectName = iw.core.dashboard.domain.MainProject.deriveMainProjectPath(worktree.path)
           .map(path => os.Path(path).last)
