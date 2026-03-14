@@ -1031,3 +1031,72 @@ class CaskServerTest extends FunSuite:
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  // Worktree detail page tests (IW-188 Phase 1)
+
+  test("GET /worktrees/:issueId returns 200 with HTML for known worktree"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a worktree
+      val registerRequest = ujson.Obj(
+        "path" -> "/test/projects/iw-cli-IW-188",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Request the worktree detail page
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      assert(
+        response.headers.exists { h =>
+          h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
+        },
+        "Response should have text/html content type"
+      )
+      val html = response.body
+      assert(html.contains("IW-188"), "Response body should contain the issue ID")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/NONEXISTENT returns 404 with error page"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/NONEXISTENT-999")
+        .send()
+
+      assertEquals(response.code.code, 404)
+      assert(
+        response.headers.exists { h =>
+          h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
+        },
+        "Response should have text/html content type"
+      )
+      val html = response.body
+      assert(html.contains("NONEXISTENT-999"), "Response body should contain the requested issue ID")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))

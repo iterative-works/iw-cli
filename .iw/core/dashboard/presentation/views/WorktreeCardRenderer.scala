@@ -259,7 +259,7 @@ object WorktreeCardRenderer:
     * @param reviewStateResult Optional review state result
     * @return Scalatags Frag
     */
-  private def renderReviewArtifacts(
+  def renderReviewArtifacts(
     issueId: String,
     reviewStateResult: Option[Either[String, ReviewState]]
   ): Frag =

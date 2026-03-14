@@ -8,7 +8,7 @@ import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, Worktr
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ProjectRegistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
 import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
-import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, PageLayout}
+import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, WorktreeDetailView, PageLayout}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant, devMode: Boolean = false) extends cask.MainRoutes:
@@ -136,6 +136,64 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         // Wrap in PageLayout
         val html = PageLayout.render(
           title = s"$projectName - iw Dashboard",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+
+        cask.Response(
+          data = html,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+  @cask.get("/worktrees/:issueId")
+  def worktreeDetail(issueId: String, sshHost: Option[String] = None): cask.Response[String] =
+    // Resolve effective SSH host: use query param or default to server hostname
+    val effectiveSshHost = sshHost.getOrElse(
+      java.net.InetAddress.getLocalHost().getHostName()
+    )
+
+    // Get current state (read-only)
+    val state = stateService.getState
+
+    state.worktrees.get(issueId) match
+      case None =>
+        // Worktree not found - return styled 404 page
+        val bodyContent = WorktreeDetailView.renderNotFound(issueId)
+        val html = PageLayout.render(
+          title = s"$issueId - Not Found",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+        cask.Response(
+          data = html,
+          statusCode = 404,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(worktree) =>
+        val now = Instant.now()
+        val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(worktree, state.issueCache, now)
+        val progress = DashboardService.fetchProgressForWorktree(worktree, state.progressCache)
+        val gitStatus = DashboardService.fetchGitStatusForWorktree(worktree)
+        val prData = DashboardService.fetchPRForWorktreeCachedOnly(worktree, state.prCache, now)
+        val reviewStateResult = state.reviewStateCache.get(issueId).map(cached => Right(cached.state))
+        val projectName = iw.core.dashboard.domain.MainProject.deriveMainProjectPath(worktree.path)
+          .map(path => os.Path(path).last)
+
+        val bodyContent = WorktreeDetailView.render(
+          worktree = worktree,
+          issueData = issueData,
+          progress = progress,
+          gitStatus = gitStatus,
+          prData = prData,
+          reviewStateResult = reviewStateResult,
+          projectName = projectName,
+          now = now,
+          sshHost = effectiveSshHost
+        )
+
+        val html = PageLayout.render(
+          title = s"$issueId - iw Dashboard",
           bodyContent = bodyContent,
           devMode = devMode
         )
