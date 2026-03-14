@@ -63,7 +63,7 @@ This is Iteration 1 from the analysis (Stories 1, 2, and 5 combined): the core d
 
 **Start here to understand the tests:**
 
-4. `WorktreeDetailViewTest.scala` — 18 unit tests covering all rendering combinations. No server required.
+4. `WorktreeDetailViewTest.scala` — 22 unit tests covering all rendering combinations including error paths and cache indicators. No server required. Uses `renderDefault` helper for concise test bodies.
 
 5. `CaskServerTest.scala` — Two new integration tests at the bottom (lines 1037–1102): one for a known worktree returning 200, one for an unknown worktree returning 404.
 
@@ -146,7 +146,7 @@ flowchart LR
 
 ## Test Summary
 
-### Unit tests — `WorktreeDetailViewTest.scala` (18 tests)
+### Unit tests — `WorktreeDetailViewTest.scala` (22 tests)
 
 | Test | What it verifies |
 |------|-----------------|
@@ -163,22 +163,25 @@ flowchart LR
 | render includes progress bar for workflow progress | `progress-bar` and task counts present |
 | render includes review artifacts when review state is present | `Review Artifacts` heading and artifact label present |
 | render omits review artifacts section when review state is absent | `review-artifacts` CSS class absent |
+| render shows review error when review state result is a Left | `review-error` CSS class and `Review Artifacts` heading present |
 | render includes Zed editor link with correct URL | Full `zed://ssh/...` URL present |
 | render shows breadcrumb with project name when derivable | Three-level breadcrumb with project link |
 | render shows breadcrumb without project name when not derivable | Two-level breadcrumb, `Projects` and issue ID only |
 | render shows skeleton state when issue data is absent | `Loading...` shown, issue title absent |
 | render shows git status in skeleton state when available | Branch name present in skeleton state |
+| render shows cache indicator when data is from cache | `cache-indicator` CSS class present |
+| render shows stale indicator when data is stale | `stale-indicator` CSS class present |
 | renderNotFound includes the issue ID | Issue ID in not-found page |
 | renderNotFound includes link back to overview | `href="/"` present |
-| renderNotFound includes breadcrumb or Projects link | `Projects` or `breadcrumb` present |
-| renderNotFound mentions not found | "Not Found", "not found", or "not registered" present |
+| renderNotFound includes breadcrumb | `Projects` and `breadcrumb` present |
+| renderNotFound shows not found heading and explanation | "Worktree Not Found" and "not registered" present |
 
 ### Integration tests — `CaskServerTest.scala` (2 new tests)
 
 | Test | What it verifies |
 |------|-----------------|
-| GET /worktrees/:issueId returns 200 with HTML for known worktree | 200 status, `text/html` content type, issue ID in body |
-| GET /worktrees/NONEXISTENT returns 404 with error page | 404 status, `text/html` content type, issue ID in body |
+| GET /worktrees/:issueId returns 200 with HTML for known worktree | 200 status, `text/html` content type, issue ID in body, skeleton state markers |
+| GET /worktrees/NONEXISTENT returns 404 with error page | 404 status, `text/html` content type, issue ID in body, not-found message, styled view container |
 
 ### Regression tests (existing, unchanged)
 
