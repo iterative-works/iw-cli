@@ -405,3 +405,36 @@ assert d['issue_id'] == 'IW-42'
     [ "$status" -eq 0 ]
     [[ "$output" == *"valid"* ]]
 }
+
+# ============================================================================
+# UPDATE --HELP TESTS
+# ============================================================================
+
+@test "review-state update --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state update --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+}
+
+@test "review-state update -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state update -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+}
+
+@test "review-state update --help does not modify review-state.json" {
+    # Create initial state file
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$TEST_TMPDIR/state.json"
+    local before
+    before="$(cat "$TEST_TMPDIR/state.json")"
+
+    run "$PROJECT_ROOT/iw" review-state update --help --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    # File must be identical after --help
+    local after
+    after="$(cat "$TEST_TMPDIR/state.json")"
+    [ "$before" = "$after" ]
+}
