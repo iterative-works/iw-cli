@@ -1071,6 +1071,8 @@ class CaskServerTest extends FunSuite:
       // Without cached issue data, skeleton state is rendered
       assert(html.contains("Loading") || html.contains("skeleton"),
         "Without cached issue data, should render skeleton state")
+      assert(html.contains("breadcrumb"), "Response should contain breadcrumb navigation")
+      assert(html.contains("Projects"), "Breadcrumb should contain Projects link")
 
     finally
       val stateFile = Paths.get(statePath)
@@ -1101,6 +1103,8 @@ class CaskServerTest extends FunSuite:
       assert(html.contains("not registered") || html.contains("Not Found"),
         "Response body should contain a not-found message")
       assert(html.contains("worktree-detail"), "Response should render the styled 404 view, not a raw error")
+      assert(html.contains("breadcrumb"), "404 response should contain breadcrumb navigation")
+      assert(html.contains("Projects"), "404 breadcrumb should contain Projects link")
 
     finally
       val stateFile = Paths.get(statePath)

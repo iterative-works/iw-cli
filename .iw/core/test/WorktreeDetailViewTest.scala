@@ -177,6 +177,7 @@ class WorktreeDetailViewTest extends FunSuite:
     assert(html.contains("IW-188"), "Should contain issue ID in breadcrumb")
     assert(html.contains("Projects"), "Should have Projects in breadcrumb")
     assert(html.contains("href=\"/\""), "Should link to root")
+    assert(html.contains("href=\"/projects/iw-cli\""), "Should link project name to project page")
 
   test("render shows breadcrumb without project name when not derivable"):
     val html = renderDefault()
@@ -184,6 +185,13 @@ class WorktreeDetailViewTest extends FunSuite:
     assert(html.contains("Projects"), "Should have Projects in breadcrumb")
     assert(html.contains("IW-188"), "Should contain issue ID in breadcrumb")
     assert(html.contains("href=\"/\""), "Should link to root")
+    assert(!html.contains("href=\"/projects/"), "Should not link to any project when project is unknown")
+
+  test("breadcrumb issueId is not a link"):
+    val html = renderDefault(projectName = Some("iw-cli"))
+
+    assert(html.contains("IW-188"), "Issue ID should appear in breadcrumb")
+    assert(!html.contains("href=\"/worktrees/IW-188\""), "Issue ID in breadcrumb should not be a link (current page)")
 
   test("render shows skeleton state when issue data is absent"):
     val html = renderDefault(issueData = None)
@@ -222,6 +230,7 @@ class WorktreeDetailViewTest extends FunSuite:
 
     assert(html.contains("Projects"), "Should include Projects in breadcrumb")
     assert(html.contains("breadcrumb"), "Should have breadcrumb class")
+    assert(html.contains("href=\"/\""), "Not-found breadcrumb should link to root")
 
   test("renderNotFound shows not found heading and explanation"):
     val html = WorktreeDetailView.renderNotFound("IW-999").render

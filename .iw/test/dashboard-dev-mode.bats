@@ -124,3 +124,54 @@ teardown() {
     # Cleanup
     rm -f /tmp/test-output.txt
 }
+
+@test "GET /worktrees/:issueId returns breadcrumb navigation" {
+    # Start server with --dev, capture output (includes dynamic port)
+    "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    SERVER_PID=$!
+
+    # Extract port from server output (line like "  - Port: 12345")
+    PORT=""
+    for i in $(seq 1 20); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
+
+    # Verify we found the port
+    [ -n "$PORT" ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Could not determine server port"; return 1; }
+
+    # Wait for server health endpoint to respond
+    READY=0
+    for i in $(seq 1 20); do
+        sleep 0.5
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            READY=1
+            break
+        fi
+    done
+
+    [ "$READY" -eq 1 ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Server did not start in time"; return 1; }
+
+    # Register a worktree via the API and verify it succeeded
+    REG_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://localhost:$PORT/api/v1/worktrees/TEST-1" \
+        -H "Content-Type: application/json" \
+        -d '{"path":"/tmp/test-project-TEST-1","trackerType":"github","team":"test-org/test-project"}')
+    [[ "$REG_STATUS" == "200" || "$REG_STATUS" == "201" ]] || {
+        kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt
+        echo "Worktree registration failed with status $REG_STATUS"; return 1
+    }
+
+    # Fetch the worktree detail page
+    RESPONSE=$(curl -s "http://localhost:$PORT/worktrees/TEST-1")
+
+    # Kill server
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    rm -f /tmp/test-output.txt
+
+    # Assert breadcrumb is present
+    [[ "$RESPONSE" == *"breadcrumb"* ]]
+    [[ "$RESPONSE" == *"Projects"* ]]
+    [[ "$RESPONSE" == *"TEST-1"* ]]
+}
