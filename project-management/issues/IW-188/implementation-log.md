@@ -77,3 +77,44 @@ Test-only phase — breadcrumb rendering was fully implemented in Phase 1. This 
 - 25 unit tests in `WorktreeDetailViewTest` (+1 new)
 - 4 integration test assertions in `CaskServerTest` (+2 new assertions)
 - 1 new E2E test in `dashboard-dev-mode.bats`
+
+---
+
+## Phase 3: Handle unknown worktree gracefully
+
+**Date:** 2026-03-14
+**Branch:** IW-188-phase-03
+**Status:** Complete
+
+### What was implemented
+
+Test-only phase — the not-found handling was fully implemented in Phase 1 (`renderNotFound` view, 404 route in CaskServer). This phase closed coverage gaps identified in the gap analysis.
+
+### Unit test additions (`WorktreeDetailViewTest.scala`)
+
+- "renderNotFound escapes special characters in issue ID" — passes `<script>alert(1)</script>`, verifies Scalatags auto-escaping produces `&lt;script&gt;` with no raw `<script>` tag
+- "renderNotFound with empty issue ID" — verifies graceful rendering for empty string input
+- "renderNotFound includes 'Back to Projects Overview' link text" — verifies link text, not just `href`
+- "renderNotFound does not contain worktree data section CSS classes" — verifies `git-status`, `pr-link`, `progress-bar`, `phase-info`, `zed-link` are absent
+
+### Integration test additions (`CaskServerTest.scala`)
+
+- "GET /worktrees/%3Cscript%3E (URL-encoded) returns 404 with HTML-escaped content" — sends XSS payload in URL path, verifies escaped output and no raw HTML injection
+
+### E2E test additions (`dashboard-dev-mode.bats`)
+
+- "GET /worktrees/NONEXISTENT-999 returns not-found page" — starts dev server, hits unknown worktree URL, asserts 404 status, "not registered" content, back link, and issue ID presence
+
+### Code review findings addressed
+
+- Renamed integration test to include the route path for clarity
+- Removed redundant inline comment about URL encoding
+- Added positive assertion for escaped content (not just negative check for raw HTML)
+- Pinned BATS assertion to exact "not registered" phrase instead of `||` fallback
+- Changed BATS temp file from fixed `/tmp/test-response.txt` to per-test `$TEST_DIR/test-response.txt`
+
+### Test coverage
+
+- 29 unit tests in `WorktreeDetailViewTest` (+4 new)
+- 5 integration tests in `CaskServerTest` (+1 new)
+- 7 E2E tests in `dashboard-dev-mode.bats` (+1 new)

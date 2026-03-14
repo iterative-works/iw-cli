@@ -39,14 +39,22 @@
     {
       "label": "Phase 2 Tasks",
       "path": "project-management/issues/IW-188/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-188/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-188/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-03-14T21:48:32.013261230Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-03-14T21:55:11.229319309Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 2: Awaiting Review",
-    "type": "info",
-    "subtext": "Breadcrumb navigation with project context"
+    "text": "Phase 03: Implementing",
+    "type": "progress",
+    "subtext": "Handle unknown worktree gracefully"
   },
   "badges": [
     {
@@ -60,9 +68,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 2 PR created - awaiting review",
+  "message": "Phase 03 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -98,13 +110,18 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
   "needs_attention": true,
   "phase_checkpoints": {
-    "2": {
-      "context_sha": "context_sha=1bc1708352d35741a87ebc2a7c7ec99c23568b20"
+    "3": {
+      "context_sha": "context_sha=55f3020453d56441f00a512a51c1657fb272a281"
     }
   },
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/268"
