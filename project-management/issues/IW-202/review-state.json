@@ -2,6 +2,26 @@
   "version": 2,
   "issue_id": "IW-202",
   "artifacts": [],
-  "last_updated": "2026-03-14T16:10:50.444492588Z",
-  "git_sha": "e9c0f28"
+  "last_updated": "2026-03-14T16:25:44.445122596Z",
+  "git_sha": "e9c0f28",
+  "status": "awaiting_review",
+  "needs_attention": true,
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/264",
+  "display": {
+    "text": "Phase 02: Awaiting Review",
+    "type": "warning"
+  },
+  "badges": [
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    }
+  ],
+  "available_actions": [
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    }
+  ]
 }
