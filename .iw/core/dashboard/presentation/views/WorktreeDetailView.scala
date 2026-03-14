@@ -168,12 +168,12 @@ object WorktreeDetailView:
         )
       },
       // Workflow progress section
-      progress.flatMap(_.currentPhaseInfo).map { phaseInfo =>
+      progress.flatMap(p => p.currentPhaseInfo.map(info => (p, info))).map { case (prog, phaseInfo) =>
         div(
           cls := "phase-info",
           span(
             cls := "phase-label",
-            s"Phase ${phaseInfo.phaseNumber}/${progress.get.totalPhases}: ${phaseInfo.phaseName}"
+            s"Phase ${phaseInfo.phaseNumber}/${prog.totalPhases}: ${phaseInfo.phaseName}"
           ),
           div(
             cls := "progress-container",

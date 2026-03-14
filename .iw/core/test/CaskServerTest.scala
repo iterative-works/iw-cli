@@ -1032,7 +1032,7 @@ class CaskServerTest extends FunSuite:
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
-  // Worktree detail page tests (IW-188 Phase 1)
+  // Worktree detail page route tests
 
   test("GET /worktrees/:issueId returns 200 with HTML for known worktree"):
     val statePath = createTempStatePath()
@@ -1067,6 +1067,7 @@ class CaskServerTest extends FunSuite:
       )
       val html = response.body
       assert(html.contains("IW-188"), "Response body should contain the issue ID")
+      assert(html.contains("worktree-detail"), "Response should render the detail view container")
 
     finally
       val stateFile = Paths.get(statePath)

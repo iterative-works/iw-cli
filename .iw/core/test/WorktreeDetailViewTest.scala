@@ -79,8 +79,7 @@ class WorktreeDetailViewTest extends FunSuite:
       sshHost = "localhost"
     ).render
 
-    assert(html.contains("Add worktree detail page"), "Should contain issue title")
-    assert(html.contains("<h1") || html.contains("h1"), "Should have h1 heading")
+    assert(html.contains("<h1>Add worktree detail page</h1>"), "Should contain issue title in h1 heading")
 
   test("render includes issue status badge"):
     val html = WorktreeDetailView.render(
@@ -96,7 +95,7 @@ class WorktreeDetailViewTest extends FunSuite:
     ).render
 
     assert(html.contains("In Progress"), "Should contain issue status")
-    assert(html.contains("status-badge") || html.contains("status"), "Should have status badge")
+    assert(html.contains("status-badge"), "Should have status badge class")
 
   test("render includes assignee when present"):
     val html = WorktreeDetailView.render(
@@ -142,8 +141,7 @@ class WorktreeDetailViewTest extends FunSuite:
       sshHost = "localhost"
     ).render
 
-    assert(html.contains("IW-188"), "Should contain branch name")
-    assert(html.contains("Branch") || html.contains("branch"), "Should label the branch")
+    assert(html.contains("Branch: IW-188"), "Should contain labeled branch name")
 
   test("render includes clean indicator for clean git status"):
     val html = WorktreeDetailView.render(
@@ -188,7 +186,7 @@ class WorktreeDetailViewTest extends FunSuite:
       sshHost = "localhost"
     ).render
 
-    assert(html.contains("PR #42") || html.contains("42"), "Should contain PR number")
+    assert(html.contains("PR #42"), "Should contain PR number")
     assert(html.contains("https://github.com/iterative-works/iw-cli/pull/42"), "Should contain PR URL")
 
   test("render omits PR section when PR data is absent"):
@@ -219,8 +217,8 @@ class WorktreeDetailViewTest extends FunSuite:
       sshHost = "localhost"
     ).render
 
-    assert(html.contains("Implementation") || html.contains("Phase"), "Should show current phase name")
-    assert(html.contains("phase-info") || html.contains("progress"), "Should have progress section")
+    assert(html.contains("Implementation"), "Should show current phase name")
+    assert(html.contains("phase-info"), "Should have phase-info section")
 
   test("render includes progress bar for workflow progress"):
     val html = WorktreeDetailView.render(
@@ -235,8 +233,8 @@ class WorktreeDetailViewTest extends FunSuite:
       sshHost = "localhost"
     ).render
 
-    assert(html.contains("progress-bar") || html.contains("progress"), "Should have progress bar")
-    assert(html.contains("4/10") || html.contains("tasks"), "Should show task counts")
+    assert(html.contains("progress-bar"), "Should have progress-bar element")
+    assert(html.contains("4/10 tasks"), "Should show task counts")
 
   test("render includes review artifacts when review state is present"):
     val html = WorktreeDetailView.render(
@@ -251,7 +249,7 @@ class WorktreeDetailViewTest extends FunSuite:
       sshHost = "localhost"
     ).render
 
-    assert(html.contains("Review Artifacts") || html.contains("artifact"), "Should show review artifacts")
+    assert(html.contains("Review Artifacts"), "Should show review artifacts section")
     assert(html.contains("Analysis"), "Should show artifact name")
 
   test("render omits review artifacts section when review state is absent"):
