@@ -41,11 +41,11 @@
       "path": "project-management/issues/IW-188/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-03-14T20:20:39.079833892Z",
-  "status": "implementing",
+  "last_updated": "2026-03-14T21:48:32.013261230Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 02: Implementing",
-    "type": "progress",
+    "text": "Phase 2: Awaiting Review",
+    "type": "info",
     "subtext": "Breadcrumb navigation with project context"
   },
   "badges": [
@@ -62,7 +62,7 @@
       "type": "info"
     }
   ],
-  "message": "Phase 02 implementation started",
+  "message": "Phase 2 PR created - awaiting review",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -93,6 +93,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
@@ -102,5 +107,5 @@
       "context_sha": "context_sha=1bc1708352d35741a87ebc2a7c7ec99c23568b20"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/266"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/268"
 }
