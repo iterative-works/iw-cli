@@ -195,25 +195,13 @@ subcommand: --help").
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Scope of fix for this issue
+### Resolved: Scope of fix for this issue
 
-The issue title specifically mentions `review-state update --help`. Defects 2-4 (write, validate, dispatcher) exhibit the same missing `--help` pattern. Fixing all four together is more consistent but broadens the scope beyond what the issue strictly requests.
+All four defects will be fixed under IW-202. The per-command pattern (no shared utility) will be followed, consistent with how other commands handle --help.
 
-**Questions to answer:**
-1. Should all four defects be fixed under IW-202, or should separate issues be filed for write, validate, and the dispatcher?
-2. Is there an appetite for extracting a shared `--help` handling utility to avoid repeating the pattern in every command? (Current codebase repeats it per-command, so consistency suggests keeping it per-command.)
+### Resolved: Help text content source
 
-**Impact on investigation:** Determines whether this is 1 task or 4. The fix per defect is trivial either way.
-
-### CLARIFY: Help text content source
-
-The USAGE/ARGS comments at the top of each file (e.g., `update.scala` lines 3-38) contain comprehensive flag documentation. Should the `showHelp()` function content be derived from these comments, or should there be a different/richer format?
-
-**Questions to answer:**
-1. Should help text match the header comment format, or follow the `dashboard.scala` style with section headers and examples?
-2. Should the header comments be considered the source of truth, with `showHelp()` mirroring them?
-
-**Impact on investigation:** Affects implementation time slightly (formatting effort), but does not change the fix approach.
+Help text will use the simple format matching the header comments already in each file. The header comments are the source of truth, with `showHelp()` mirroring them.
 
 ---
 
