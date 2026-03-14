@@ -28,10 +28,43 @@ import iw.core.output.*
 @main def write(args: String*): Unit =
   val argList = args.toList
 
+  // Handle --help / -h flag
+  if argList.contains("--help") || argList.contains("-h") then
+    showHelp()
+    sys.exit(0)
+
   if argList.contains("--from-stdin") then
     handleStdin(argList)
   else
     handleFlags(argList)
+
+private def showHelp(): Unit =
+  println("Write a validated review-state.json file from CLI flags or stdin")
+  println()
+  println("Usage:")
+  println("  iw review-state write [options]")
+  println("  iw review-state write --from-stdin --output <path>")
+  println()
+  println("Options:")
+  println("  --status <value>                          Optional machine-readable status identifier")
+  println("  --display-text <value>                    Primary display text for status badge")
+  println("  --display-subtext <value>                 Optional secondary display text")
+  println("  --display-type <value>                    Display type: info, success, warning, error, progress")
+  println("  --badge <label:type>                      Repeatable contextual badge (label:type)")
+  println("  --task-list <label:path>                  Repeatable task list reference (label:path)")
+  println("  --needs-attention                         Flag indicating workflow needs human input")
+  println("  --message <value>                         Prominent notification message")
+  println("  --artifact <label:path[=category]>        Repeatable artifact with optional category")
+  println("  --action <id:label:skill>                 Repeatable action (id:label:skill)")
+  println("  --pr-url <value>                          PR URL string")
+  println("  --checkpoint <phase:sha>                  Repeatable phase checkpoint (phase:sha)")
+  println("  --output <path>                           Output file path")
+  println("  --from-stdin                              Read full JSON from stdin")
+  println("  --issue-id <value>                        Issue ID override (auto-inferred from branch)")
+  println("  --version <value>                         Version number (default: 2)")
+  println()
+  println("Example:")
+  println("  iw review-state write --display-text \"Implementing\" --display-type progress --output review-state.json")
 
 private def handleStdin(argList: List[String]): Unit =
   val json = scala.io.Source.stdin.mkString

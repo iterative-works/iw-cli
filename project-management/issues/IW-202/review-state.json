@@ -1,65 +1,7 @@
 {
   "version": 2,
   "issue_id": "IW-202",
-  "artifacts": [
-    {
-      "label": "Analysis",
-      "path": "project-management/issues/IW-202/analysis.md",
-      "category": "input"
-    },
-    {
-      "label": "Tasks",
-      "path": "project-management/issues/IW-202/tasks.md",
-      "category": "output"
-    },
-    {
-      "label": "Phase 1 Context",
-      "path": "project-management/issues/IW-202/phase-01-context.md"
-    },
-    {
-      "label": "Phase 1 Tasks",
-      "path": "project-management/issues/IW-202/phase-01-tasks.md"
-    }
-  ],
-  "last_updated": "2026-03-14T12:54:19.213861763Z",
-  "status": "implementing",
-  "display": {
-    "text": "Phase 01: Implementing",
-    "type": "progress",
-    "subtext": "update --help mutates state instead of showing help"
-  },
-  "badges": [
-    {
-      "label": "Medium",
-      "type": "info"
-    },
-    {
-      "label": "In Progress",
-      "type": "info"
-    }
-  ],
-  "message": "Phase 01 implementation started",
-  "available_actions": [
-    {
-      "id": "create-tasks",
-      "label": "Generate Tasks",
-      "skill": "dx-create-tasks"
-    },
-    {
-      "id": "fix",
-      "label": "Start Investigation",
-      "skill": "dx-fix"
-    },
-    {
-      "id": "implement",
-      "label": "Start Investigation",
-      "skill": "dx-fix"
-    }
-  ],
-  "git_sha": "6780cd3",
-  "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=88406ca542cae7e73a332c8b960b7c206bb48d97"
-    }
-  }
+  "artifacts": [],
+  "last_updated": "2026-03-14T16:10:50.444492588Z",
+  "git_sha": "e9c0f28"
 }
