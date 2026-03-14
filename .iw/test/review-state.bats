@@ -489,3 +489,23 @@ assert d['issue_id'] == 'IW-42'
     [[ "$output" == *"file-path"* ]]
     [[ "$output" == *"--stdin"* ]]
 }
+
+# ============================================================================
+# DISPATCHER --HELP TESTS
+# ============================================================================
+
+@test "review-state --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"validate"* ]]
+    [[ "$output" == *"write"* ]]
+    [[ "$output" == *"update"* ]]
+}
+
+@test "review-state -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"validate"* ]]
+    [[ "$output" == *"write"* ]]
+    [[ "$output" == *"update"* ]]
+}

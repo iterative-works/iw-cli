@@ -74,3 +74,26 @@ M	.iw/test/review-state.bats
 ```
 
 ---
+
+## Phase 4: `review-state --help` reports "Unknown subcommand" (2026-03-14)
+
+**Root cause:** No `--help`/`-h` case in the dispatcher's `match` expression in `review-state.scala`. The `--help` argument was treated as a subcommand name, falling through to the wildcard default which printed "Unknown subcommand: --help" (exit 1).
+
+**Fix applied:**
+- `.iw/commands/review-state.scala` — Added `case "--help" | "-h"` branch in the match expression, plus extracted usage text into a `showHelp()` function called from both the `--help` case (exit 0) and the `args.isEmpty` case (exit 1).
+
+**Regression tests added:**
+- 2 E2E tests in `.iw/test/review-state.bats`: `--help` exits 0 with subcommand names, `-h` exits 0 with subcommand names
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-04-20260314-203620.md
+- Result: Pass (0 critical, 6 warnings — 2 pre-existing, 4 consistent with prior phases)
+
+**Files changed:**
+```
+M	.iw/commands/review-state.scala
+M	.iw/test/review-state.bats
+```
+
+---
