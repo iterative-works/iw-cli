@@ -9,22 +9,34 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-202/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-202/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-202/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-03-14T16:31:30.872427234Z",
+  "last_updated": "2026-03-14T19:30:33.303149209Z",
   "git_sha": "e9c0f28",
   "status": "implementing",
   "needs_attention": true,
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/264",
   "display": {
-    "text": "Phase 03: Implementing",
+    "text": "Phase 04: Implementing",
     "type": "progress",
-    "subtext": "validate --help fails with misleading error"
+    "subtext": "review-state --help reports Unknown subcommand"
   },
   "badges": [
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     },
     {
       "label": "In Progress",
@@ -41,12 +53,17 @@
       "id": "implement",
       "label": "Continue",
       "skill": "dx-fix"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "dx-fix"
     }
   ],
-  "message": "Phase 03 implementation started",
+  "message": "Phase 04 implementation started",
   "phase_checkpoints": {
-    "3": {
-      "context_sha": "context_sha=fdac3f22ff93f9bf2003f2a78b4ef11ab9c79942"
+    "4": {
+      "context_sha": "context_sha=127ea556977e9596c8df26aeab3764df73794443"
     }
   }
 }

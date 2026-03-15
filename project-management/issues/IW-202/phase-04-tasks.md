@@ -2,7 +2,8 @@
 
 ## Investigation-Fix Cycle
 
-- [ ] [impl] [ ] [reviewed] Write failing test reproducing the defect
-- [ ] [impl] [ ] [reviewed] Investigate root cause (test hypotheses from analysis)
-- [ ] [impl] [ ] [reviewed] Implement fix (minimal, targeted change)
-- [ ] [impl] [ ] [reviewed] Verify fix passes and no regressions
+- [x] [impl] [x] [reviewed] Write failing test reproducing the defect
+- [x] [impl] [x] [reviewed] Investigate root cause (test hypotheses from analysis)
+- [x] [impl] [x] [reviewed] Implement fix (minimal, targeted change)
+- [x] [impl] [x] [reviewed] Verify fix passes and no regressions
+**Phase Status:** Complete
