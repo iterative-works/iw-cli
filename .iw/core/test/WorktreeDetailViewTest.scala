@@ -298,3 +298,67 @@ class WorktreeDetailViewTest extends FunSuite:
     val html = renderDefault(reviewStateResult = Some(Right(reviewStateWithNoArtifacts)))
 
     assert(!html.contains("artifact-list"), "Should not show artifact list when artifacts are empty")
+
+  // HTMX auto-refresh tests
+
+  test("render output contains hx-get attribute for detail content polling"):
+    val html = renderDefault()
+
+    assert(html.contains("hx-get=\"/worktrees/IW-188/detail-content\""), "Should contain hx-get attribute pointing to detail content endpoint")
+
+  test("render output contains hx-trigger attribute with 30s polling interval"):
+    val html = renderDefault()
+
+    assert(html.contains("hx-trigger=\"every 30s, refresh from:body\""), "Should contain hx-trigger with 30s interval and body refresh")
+
+  test("render output contains hx-swap innerHTML attribute"):
+    val html = renderDefault()
+
+    assert(html.contains("hx-swap=\"innerHTML\""), "Should contain hx-swap=innerHTML to replace only the content inside div")
+
+  test("renderContent returns content without breadcrumb"):
+    val html = WorktreeDetailView.renderContent(
+      worktree = sampleWorktree,
+      issueData = Some((sampleIssueData, false, false)),
+      progress = None,
+      gitStatus = None,
+      prData = None,
+      reviewStateResult = None,
+      now = now,
+      sshHost = "localhost"
+    ).render
+
+    assert(!html.contains("breadcrumb"), "renderContent should not include breadcrumb navigation")
+    assert(!html.contains("<nav"), "renderContent should not include nav element")
+
+  test("renderContent returns content with data sections"):
+    val html = WorktreeDetailView.renderContent(
+      worktree = sampleWorktree,
+      issueData = Some((sampleIssueData, false, false)),
+      progress = Some(sampleProgress),
+      gitStatus = Some(sampleGitStatus),
+      prData = Some(samplePR),
+      reviewStateResult = None,
+      now = now,
+      sshHost = "localhost"
+    ).render
+
+    assert(html.contains("Add worktree detail page"), "Should contain issue title")
+    assert(html.contains("git-status"), "Should contain git-status section")
+    assert(html.contains("phase-info"), "Should contain phase-info section")
+    assert(html.contains("pr-link"), "Should contain pr-link section")
+
+  test("renderContent returns skeleton when issue data is None"):
+    val html = WorktreeDetailView.renderContent(
+      worktree = sampleWorktree,
+      issueData = None,
+      progress = None,
+      gitStatus = None,
+      prData = None,
+      reviewStateResult = None,
+      now = now,
+      sshHost = "localhost"
+    ).render
+
+    assert(html.contains("skeleton"), "Should contain skeleton class in loading state")
+    assert(html.contains("Loading"), "Should show Loading text in skeleton state")

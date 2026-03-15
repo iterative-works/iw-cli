@@ -37,12 +37,45 @@ object WorktreeDetailView:
     div(
       cls := "worktree-detail",
       renderBreadcrumb(worktree.issueId, projectName),
-      issueData match
-        case None =>
-          renderSkeleton(worktree, gitStatus, now)
-        case Some((data, fromCache, isStale)) =>
-          renderFull(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now, sshHost)
+      div(
+        cls := "worktree-detail-content",
+        attr("hx-get") := s"/worktrees/${worktree.issueId}/detail-content",
+        attr("hx-trigger") := "every 30s, refresh from:body",
+        attr("hx-swap") := "innerHTML",
+        renderContent(worktree, issueData, progress, gitStatus, prData, reviewStateResult, now, sshHost)
+      )
     )
+
+  /** Render only the content section of the worktree detail page, without breadcrumb or page shell.
+    *
+    * Used by the HTMX polling endpoint to return refreshed content that replaces the
+    * inner HTML of the content wrapper div on the full page.
+    *
+    * @param worktree Worktree registration
+    * @param issueData Optional issue data with cache flag and stale flag; None = skeleton state
+    * @param progress Optional workflow progress
+    * @param gitStatus Optional git status
+    * @param prData Optional PR data
+    * @param reviewStateResult Optional review state (Left = error message, Right = valid state)
+    * @param now Current timestamp for relative time formatting
+    * @param sshHost SSH hostname for Zed editor links
+    * @return Scalatags Frag for the content section only
+    */
+  def renderContent(
+    worktree: WorktreeRegistration,
+    issueData: Option[(IssueData, Boolean, Boolean)],
+    progress: Option[WorkflowProgress],
+    gitStatus: Option[GitStatus],
+    prData: Option[PullRequestData],
+    reviewStateResult: Option[Either[String, ReviewState]],
+    now: Instant,
+    sshHost: String
+  ): Frag =
+    issueData match
+      case None =>
+        renderSkeleton(worktree, gitStatus, now)
+      case Some((data, fromCache, isStale)) =>
+        renderFull(worktree, data, fromCache, isStale, progress, gitStatus, prData, reviewStateResult, now, sshHost)
 
   /** Render a not-found page for an unknown worktree issue ID.
     *
@@ -93,8 +126,7 @@ object WorktreeDetailView:
     gitStatus: Option[GitStatus],
     now: Instant
   ): Frag =
-    div(
-      cls := "worktree-detail-content skeleton",
+    frag(
       h1(cls := "skeleton-title", "Loading..."),
       p(cls := "issue-id", span(worktree.issueId)),
       // Git status section (may be available before issue data)
@@ -126,8 +158,7 @@ object WorktreeDetailView:
     now: Instant,
     sshHost: String
   ): Frag =
-    div(
-      cls := "worktree-detail-content",
+    frag(
       // Header: issue title and issue ID link
       h1(data.title),
       p(

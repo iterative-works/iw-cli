@@ -308,6 +308,92 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
         )
 
+  @cask.get("/worktrees/:issueId/detail-content")
+  def worktreeDetailContent(issueId: String, sshHost: Option[String] = None): cask.Response[String] =
+    val state = stateService.getState
+
+    state.worktrees.get(issueId) match
+      case None =>
+        cask.Response(
+          data = "",
+          statusCode = 404
+        )
+
+      case Some(worktree) =>
+        val configPath = os.Path(worktree.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+        val config = ConfigFileRepository.read(configPath)
+
+        val fetchFn = buildFetchFunction(worktree.trackerType, config)
+        val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
+
+        val fetchPRFn = () =>
+          val execCommand = (command: String, args: Array[String]) =>
+            CommandRunner.execute(command, args, Some(worktree.path))
+          val detectTool = (toolName: String) =>
+            CommandRunner.isCommandAvailable(toolName)
+          PullRequestCacheService.fetchPR(
+            worktree.path,
+            state.prCache,
+            issueId,
+            Instant.now(),
+            execCommand,
+            detectTool
+          )
+
+        val now = Instant.now()
+        val effectiveSshHost = resolveEffectiveSshHost(sshHost)
+        val result = WorktreeCardService.renderCard(
+          issueId,
+          state.worktrees,
+          state.issueCache,
+          state.progressCache,
+          state.prCache,
+          state.reviewStateCache,
+          refreshThrottle,
+          now,
+          effectiveSshHost,
+          fetchFn,
+          urlBuilder,
+          fetchPRFn
+        )
+
+        result.fetchedIssue.foreach { cachedIssue =>
+          stateService.updateIssueCache(issueId)(_ => Some(cachedIssue))
+        }
+        result.fetchedProgress.foreach { cachedProgress =>
+          stateService.updateProgressCache(issueId)(_ => Some(cachedProgress))
+        }
+        result.fetchedPR.foreach { cachedPR =>
+          stateService.updatePRCache(issueId)(_ => Some(cachedPR))
+        }
+        result.fetchedReviewState.foreach { cachedReviewState =>
+          stateService.updateReviewStateCache(issueId)(_ => Some(cachedReviewState))
+        }
+
+        // Re-read state after cache writes so renderContent sees fresh data
+        val updatedState = stateService.getState
+        val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(worktree, updatedState.issueCache, now)
+        val progress = DashboardService.fetchProgressForWorktree(worktree, updatedState.progressCache)
+        val gitStatus = DashboardService.fetchGitStatusForWorktree(worktree)
+        val prData = DashboardService.fetchPRForWorktreeCachedOnly(worktree, updatedState.prCache, now)
+        val reviewStateResult = updatedState.reviewStateCache.get(issueId).map(cached => Right(cached.state))
+
+        val fragment = WorktreeDetailView.renderContent(
+          worktree = worktree,
+          issueData = issueData,
+          progress = progress,
+          gitStatus = gitStatus,
+          prData = prData,
+          reviewStateResult = reviewStateResult,
+          now = now,
+          sshHost = effectiveSshHost
+        ).render
+
+        cask.Response(
+          data = fragment,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
   @cask.get("/api/worktrees/:issueId/refresh")
   def refreshWorktree(issueId: String): ujson.Value =
     val now = Instant.now()
