@@ -1187,7 +1187,7 @@ class CaskServerTest extends FunSuite:
           .sorted(java.util.Comparator.reverseOrder())
           .forEach(Files.delete)
 
-  // Phase 5: Detail content fragment endpoint tests
+  // Detail content fragment endpoint tests
 
   test("GET /worktrees/:issueId/detail-content returns 200 with HTML fragment for registered worktree"):
     val statePath = createTempStatePath()
@@ -1217,6 +1217,10 @@ class CaskServerTest extends FunSuite:
           h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
         },
         "Response should have text/html content type"
+      )
+      assert(
+        response.body.contains("IW-188"),
+        "Response body should contain the issue ID"
       )
 
     finally

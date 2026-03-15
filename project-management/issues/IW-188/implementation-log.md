@@ -174,3 +174,71 @@ M  .iw/core/test/CaskServerTest.scala
 M  .iw/core/test/WorktreeDetailViewTest.scala
 M  .iw/test/dashboard-dev-mode.bats
 ```
+
+---
+
+## Phase 5: HTMX auto-refresh for worktree detail content
+
+**Date:** 2026-03-15
+**Branch:** IW-188-phase-05
+**Status:** Complete
+
+### What was implemented
+
+- Extracted `renderContent` public method from `WorktreeDetailView` that returns just the content section (dispatches to `renderFull`/`renderSkeleton`) without breadcrumb or page shell
+- Refactored `render` to wrap `renderContent` output in a content div with HTMX polling attributes: `hx-get="/worktrees/:issueId/detail-content"`, `hx-trigger="every 30s, refresh from:body"`, `hx-swap="innerHTML"`
+- Added `GET /worktrees/:issueId/detail-content` fragment endpoint in `CaskServer` that fetches fresh data (same pattern as card endpoint) and returns the content HTML fragment
+- Fragment endpoint returns 404 with empty body for unknown worktrees
+
+### Unit test additions (`WorktreeDetailViewTest.scala`)
+
+- "render output contains hx-get attribute for detail content polling"
+- "render output contains hx-trigger attribute with 30s polling interval"
+- "render output contains hx-swap innerHTML attribute"
+- "renderContent returns content without breadcrumb"
+- "renderContent returns content with data sections"
+- "renderContent returns skeleton when issue data is None"
+
+### Integration test additions (`CaskServerTest.scala`)
+
+- "GET /worktrees/:issueId/detail-content returns 200 with HTML fragment for registered worktree"
+- "GET /worktrees/:issueId/detail-content returns fragment without html or head tags"
+- "GET /worktrees/:issueId/detail-content returns fragment without breadcrumb"
+- "GET /worktrees/:issueId/detail-content returns 404 for unknown worktree"
+
+### E2E test additions (`dashboard-dev-mode.bats`)
+
+- "GET /worktrees/:issueId/detail-content returns HTML fragment"
+- "GET /worktrees/:issueId contains HTMX polling attributes"
+- "GET /worktrees/NONEXISTENT-999/detail-content returns 404"
+
+### Code review findings addressed
+
+- Removed temporal "Phase 5:" prefix from test section comments
+- Removed redundant inline comments from `worktreeDetailContent` endpoint (kept non-obvious design decision comment)
+- Added positive content assertion (issue ID) to fragment integration test
+- Changed BATS tests from hardcoded `/tmp/test-output.txt` to `$TEST_DIR/test-output.txt`
+- Made HTMX attribute E2E assertion more specific (checks full endpoint URL)
+
+### Deferred items (pre-existing patterns, out of scope)
+
+- Duplicated orchestration logic between card and detail-content endpoints (extract shared helper)
+- `Instant.now()` inside lambda closure (pre-existing card endpoint pattern)
+- `Option[(IssueData, Boolean, Boolean)]` tuple type (pre-existing, noted in Phase 1)
+- Extract shared BATS `start_dev_server` helper (pre-existing duplication)
+
+### Test coverage
+
+- 38 unit tests in `WorktreeDetailViewTest` (+6 new)
+- 10 integration tests in `CaskServerTest` (+4 new)
+- 11 E2E tests in `dashboard-dev-mode.bats` (+3 new)
+
+### Files changed
+
+```
+M  .iw/core/dashboard/CaskServer.scala
+M  .iw/core/dashboard/presentation/views/WorktreeDetailView.scala
+M  .iw/core/test/CaskServerTest.scala
+M  .iw/core/test/WorktreeDetailViewTest.scala
+M  .iw/test/dashboard-dev-mode.bats
+```

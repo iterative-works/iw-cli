@@ -299,7 +299,7 @@ class WorktreeDetailViewTest extends FunSuite:
 
     assert(!html.contains("artifact-list"), "Should not show artifact list when artifacts are empty")
 
-  // Phase 5: HTMX auto-refresh tests
+  // HTMX auto-refresh tests
 
   test("render output contains hx-get attribute for detail content polling"):
     val html = renderDefault()

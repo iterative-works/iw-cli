@@ -320,15 +320,12 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         )
 
       case Some(worktree) =>
-        // Load project configuration from worktree's path
         val configPath = os.Path(worktree.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
         val config = ConfigFileRepository.read(configPath)
 
-        // Build fetch function based on tracker type (same pattern as card endpoint)
         val fetchFn = buildFetchFunction(worktree.trackerType, config)
         val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
 
-        // Build PR fetch function using CommandRunner
         val fetchPRFn = () =>
           val execCommand = (command: String, args: Array[String]) =>
             CommandRunner.execute(command, args, Some(worktree.path))
@@ -343,7 +340,6 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
             detectTool
           )
 
-        // Fetch fresh data using card service (handles throttling, caching, fallback)
         val now = Instant.now()
         val effectiveSshHost = resolveEffectiveSshHost(sshHost)
         val result = WorktreeCardService.renderCard(
@@ -361,7 +357,6 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           fetchPRFn
         )
 
-        // Update all caches with freshly fetched data
         result.fetchedIssue.foreach { cachedIssue =>
           stateService.updateIssueCache(issueId)(_ => Some(cachedIssue))
         }
@@ -375,7 +370,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
           stateService.updateReviewStateCache(issueId)(_ => Some(cachedReviewState))
         }
 
-        // Read updated state to get the freshly fetched data for rendering
+        // Re-read state after cache writes so renderContent sees fresh data
         val updatedState = stateService.getState
         val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(worktree, updatedState.issueCache, now)
         val progress = DashboardService.fetchProgressForWorktree(worktree, updatedState.progressCache)

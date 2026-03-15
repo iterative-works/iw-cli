@@ -48,3 +48,4 @@
 - [x] [integration] Add E2E test: "GET /worktrees/:issueId contains HTMX polling attributes" — start dev server, register a worktree, hit `/worktrees/:issueId`, assert response contains `hx-get=`, `hx-trigger=`, `hx-swap=`
 - [x] [integration] Add E2E test: "GET /worktrees/NONEXISTENT-999/detail-content returns 404" — hit the detail-content endpoint for a non-existent worktree, assert 404 status
 - [x] [integration] Run full test suite (`./iw test`) to confirm all tests pass
+**Phase Status:** Complete
