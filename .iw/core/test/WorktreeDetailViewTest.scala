@@ -263,3 +263,38 @@ class WorktreeDetailViewTest extends FunSuite:
     assert(!html.contains("progress-bar"), "Not-found page should not have progress bar")
     assert(!html.contains("phase-info"), "Not-found page should not have phase info")
     assert(!html.contains("zed-link"), "Not-found page should not have Zed editor link")
+
+  test("render shows artifact links with correct href pattern"):
+    val html = renderDefault(reviewStateResult = Some(Right(sampleReviewState)))
+
+    assert(
+      html.contains("href=\"/worktrees/IW-188/artifacts?path=project-management/issues/IW-188/analysis.md\""),
+      "Artifact link should use /worktrees/:issueId/artifacts?path=... pattern"
+    )
+    assert(html.contains("Analysis"), "Artifact label should be present")
+
+  test("render shows multiple artifacts as individual links"):
+    val reviewStateWithMultipleArtifacts = sampleReviewState.copy(
+      artifacts = List(
+        ReviewArtifact("Analysis", "project-management/issues/IW-188/analysis.md"),
+        ReviewArtifact("Design", "project-management/issues/IW-188/design.md")
+      )
+    )
+    val html = renderDefault(reviewStateResult = Some(Right(reviewStateWithMultipleArtifacts)))
+
+    assert(html.contains("Analysis"), "First artifact label should be present")
+    assert(html.contains("Design"), "Second artifact label should be present")
+    assert(
+      html.contains("href=\"/worktrees/IW-188/artifacts?path=project-management/issues/IW-188/analysis.md\""),
+      "First artifact link should be present"
+    )
+    assert(
+      html.contains("href=\"/worktrees/IW-188/artifacts?path=project-management/issues/IW-188/design.md\""),
+      "Second artifact link should be present"
+    )
+
+  test("render does not show artifact section when artifact list is empty"):
+    val reviewStateWithNoArtifacts = sampleReviewState.copy(artifacts = List.empty)
+    val html = renderDefault(reviewStateResult = Some(Right(reviewStateWithNoArtifacts)))
+
+    assert(!html.contains("artifact-list"), "Should not show artifact list when artifacts are empty")

@@ -47,14 +47,22 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-188/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-188/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-188/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-03-14T21:55:11.229319309Z",
+  "last_updated": "2026-03-15T07:33:50.915857338Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 03: Implementing",
+    "text": "Phase 04: Implementing",
     "type": "progress",
-    "subtext": "Handle unknown worktree gracefully"
+    "subtext": "Artifact links to artifact detail view"
   },
   "badges": [
     {
@@ -72,9 +80,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 03 implementation started",
+  "message": "Phase 04 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -115,13 +127,18 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
   "needs_attention": true,
   "phase_checkpoints": {
-    "3": {
-      "context_sha": "context_sha=55f3020453d56441f00a512a51c1657fb272a281"
+    "4": {
+      "context_sha": "context_sha=ac6892a603a31f55aedb3d669d245521ae3ff24e"
     }
   },
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/268"

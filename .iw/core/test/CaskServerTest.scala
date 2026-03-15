@@ -1141,3 +1141,48 @@ class CaskServerTest extends FunSuite:
   // sshHost threading for worktree detail is tested in WorktreeDetailViewTest (unit)
   // because the integration test renders skeleton state (no cached issue data),
   // which doesn't include the Zed editor link where sshHost appears.
+
+  test("GET /worktrees/:issueId/artifacts returns page with back link to worktree detail"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    val tmpWorktreeDir = Files.createTempDirectory("iw-artifact-test").toAbsolutePath.toString
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val artifactContent = "# Test Artifact\n\nSome content here."
+      val artifactFile = Paths.get(tmpWorktreeDir, "test-artifact.md")
+      Files.writeString(artifactFile, artifactContent)
+
+      val registerRequest = ujson.Obj(
+        "path" -> tmpWorktreeDir,
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188/artifacts?path=test-artifact.md")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      val html = response.body
+      assert(html.contains("Test Artifact"), "Artifact content should be rendered in the page")
+      assert(html.contains("Some content here"), "Artifact body content should appear in response")
+      assert(html.contains("href=\"/worktrees/IW-188\""), "Artifact page back link should point to worktree detail page")
+      assert(html.contains("Back to Worktree"), "Back link text should say 'Back to Worktree'")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+      val worktreeDir = Paths.get(tmpWorktreeDir)
+      if Files.exists(worktreeDir) then
+        Files.walk(worktreeDir)
+          .sorted(java.util.Comparator.reverseOrder())
+          .forEach(Files.delete)

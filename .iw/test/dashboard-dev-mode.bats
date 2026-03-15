@@ -225,3 +225,69 @@ teardown() {
     [[ "$RESPONSE" == *"Projects"* ]]
     [[ "$RESPONSE" == *"TEST-1"* ]]
 }
+
+@test "artifact link from worktree detail page loads artifact content" {
+    # Create a temp worktree directory with an artifact file
+    WORKTREE_DIR=$(mktemp -d)
+    echo "# Test Artifact" > "$WORKTREE_DIR/analysis.md"
+
+    # Start server with --dev, capture output (includes dynamic port)
+    "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    SERVER_PID=$!
+
+    # Extract port from server output
+    PORT=""
+    for i in $(seq 1 20); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
+
+    # Verify we found the port
+    [ -n "$PORT" ] || { kill "$SERVER_PID" 2>/dev/null; rm -rf "$WORKTREE_DIR"; rm -f /tmp/test-output.txt; echo "Could not determine server port"; return 1; }
+
+    # Wait for server health endpoint to respond
+    READY=0
+    for i in $(seq 1 20); do
+        sleep 0.5
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            READY=1
+            break
+        fi
+    done
+
+    [ "$READY" -eq 1 ] || { kill "$SERVER_PID" 2>/dev/null; rm -rf "$WORKTREE_DIR"; rm -f /tmp/test-output.txt; echo "Server did not start in time"; return 1; }
+
+    # Register a worktree pointing at our temp directory
+    REG_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://localhost:$PORT/api/v1/worktrees/TEST-ART" \
+        -H "Content-Type: application/json" \
+        -d "{\"path\":\"$WORKTREE_DIR\",\"trackerType\":\"github\",\"team\":\"test-org/test-project\"}")
+    [[ "$REG_STATUS" == "200" || "$REG_STATUS" == "201" ]] || {
+        kill "$SERVER_PID" 2>/dev/null; rm -rf "$WORKTREE_DIR"; rm -f /tmp/test-output.txt
+        echo "Worktree registration failed with status $REG_STATUS"; return 1
+    }
+
+    # Fetch the artifact page, capturing both body and status code in a single request
+    ARTIFACT_RESPONSE=$(curl -s -w "\n%{http_code}" \
+        "http://localhost:$PORT/worktrees/TEST-ART/artifacts?path=analysis.md")
+    ARTIFACT_STATUS=$(echo "$ARTIFACT_RESPONSE" | tail -1)
+    ARTIFACT_BODY=$(echo "$ARTIFACT_RESPONSE" | sed '$d')
+
+    # Kill server and cleanup
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    rm -rf "$WORKTREE_DIR"
+    rm -f /tmp/test-output.txt
+
+    # Assert artifact page loaded successfully
+    [ "$ARTIFACT_STATUS" -eq 200 ]
+
+    # Assert artifact content is present
+    [[ "$ARTIFACT_BODY" == *"Test Artifact"* ]]
+
+    # Assert back link points to worktree detail page, not root
+    [[ "$ARTIFACT_BODY" == *'href="/worktrees/TEST-ART"'* ]]
+
+    # Assert back link text says "Back to Worktree"
+    [[ "$ARTIFACT_BODY" == *"Back to Worktree"* ]]
+}

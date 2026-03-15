@@ -48,15 +48,15 @@ class ArtifactViewTest extends munit.FunSuite:
     assert(html.contains("TEST-123"))
     assert(html.contains("class=\"issue-id\""))
 
-  test("render back link points to dashboard"):
+  test("render back link points to worktree detail page"):
     val html = ArtifactView.render(
       artifactLabel = "analysis.md",
       renderedHtml = "<p>Content</p>",
       issueId = "TEST-123"
     )
 
-    assert(html.contains("href=\"/\""))
-    assert(html.contains("Back to Dashboard"))
+    assert(html.contains("href=\"/worktrees/TEST-123\""))
+    assert(html.contains("Back to Worktree"))
 
   test("render includes rendered HTML in content div"):
     val renderedContent = "<h1>Heading</h1><p>Paragraph</p>"
@@ -93,14 +93,14 @@ class ArtifactViewTest extends munit.FunSuite:
     assert(html.contains("Artifact Not Found"))
     assert(html.contains("Artifact not found"))
 
-  test("renderError includes back link to dashboard"):
+  test("renderError includes back link to worktree detail page"):
     val html = ArtifactView.renderError(
       issueId = "TEST-123",
       errorMessage = "File error"
     )
 
-    assert(html.contains("href=\"/\""))
-    assert(html.contains("Back to Dashboard"))
+    assert(html.contains("href=\"/worktrees/TEST-123\""))
+    assert(html.contains("Back to Worktree"))
 
   test("renderError displays error message"):
     val html = ArtifactView.renderError(
@@ -117,7 +117,7 @@ class ArtifactViewTest extends munit.FunSuite:
       errorMessage = "Error"
     )
 
-    assert(html.contains("Return to dashboard"))
+    assert(html.contains("Return to worktree"))
 
   test("render handles special characters in labels"):
     val html = ArtifactView.render(
