@@ -226,6 +226,156 @@ teardown() {
     [[ "$RESPONSE" == *"TEST-1"* ]]
 }
 
+@test "GET /worktrees/:issueId/detail-content returns HTML fragment" {
+    # Start server with --dev, capture output (includes dynamic port)
+    "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    SERVER_PID=$!
+
+    # Extract port from server output (line like "  - Port: 12345")
+    PORT=""
+    for i in $(seq 1 20); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
+
+    # Verify we found the port
+    [ -n "$PORT" ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Could not determine server port"; return 1; }
+
+    # Wait for server health endpoint to respond
+    READY=0
+    for i in $(seq 1 20); do
+        sleep 0.5
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            READY=1
+            break
+        fi
+    done
+
+    [ "$READY" -eq 1 ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Server did not start in time"; return 1; }
+
+    # Register a worktree via the API
+    REG_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://localhost:$PORT/api/v1/worktrees/TEST-FRAG" \
+        -H "Content-Type: application/json" \
+        -d '{"path":"/tmp/test-project-TEST-FRAG","trackerType":"github","team":"test-org/test-project"}')
+    [[ "$REG_STATUS" == "200" || "$REG_STATUS" == "201" ]] || {
+        kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt
+        echo "Worktree registration failed with status $REG_STATUS"; return 1
+    }
+
+    # Fetch the detail-content fragment
+    RESPONSE=$(curl -s -w "\n%{http_code}" "http://localhost:$PORT/worktrees/TEST-FRAG/detail-content")
+    HTTP_STATUS=$(echo "$RESPONSE" | tail -1)
+    BODY=$(echo "$RESPONSE" | sed '$d')
+
+    # Kill server
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    rm -f /tmp/test-output.txt
+
+    # Assert 200 status code
+    [ "$HTTP_STATUS" -eq 200 ]
+
+    # Assert response is a fragment (no html or head tags)
+    [[ "$BODY" != *"<html"* ]]
+    [[ "$BODY" != *"<head"* ]]
+
+    # Assert response contains content section
+    [[ "$BODY" == *"worktree-detail-content"* ]] || [[ "$BODY" == *"skeleton"* ]] || [[ "$BODY" == *"Loading"* ]]
+}
+
+@test "GET /worktrees/:issueId contains HTMX polling attributes" {
+    # Start server with --dev, capture output (includes dynamic port)
+    "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    SERVER_PID=$!
+
+    # Extract port from server output (line like "  - Port: 12345")
+    PORT=""
+    for i in $(seq 1 20); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
+
+    # Verify we found the port
+    [ -n "$PORT" ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Could not determine server port"; return 1; }
+
+    # Wait for server health endpoint to respond
+    READY=0
+    for i in $(seq 1 20); do
+        sleep 0.5
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            READY=1
+            break
+        fi
+    done
+
+    [ "$READY" -eq 1 ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Server did not start in time"; return 1; }
+
+    # Register a worktree via the API
+    REG_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "http://localhost:$PORT/api/v1/worktrees/TEST-HTMX" \
+        -H "Content-Type: application/json" \
+        -d '{"path":"/tmp/test-project-TEST-HTMX","trackerType":"github","team":"test-org/test-project"}')
+    [[ "$REG_STATUS" == "200" || "$REG_STATUS" == "201" ]] || {
+        kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt
+        echo "Worktree registration failed with status $REG_STATUS"; return 1
+    }
+
+    # Fetch the worktree detail page
+    RESPONSE=$(curl -s "http://localhost:$PORT/worktrees/TEST-HTMX")
+
+    # Kill server
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    rm -f /tmp/test-output.txt
+
+    # Assert HTMX polling attributes are present
+    [[ "$RESPONSE" == *"hx-get="* ]]
+    [[ "$RESPONSE" == *"hx-trigger="* ]]
+    [[ "$RESPONSE" == *"hx-swap="* ]]
+    [[ "$RESPONSE" == *"detail-content"* ]]
+}
+
+@test "GET /worktrees/NONEXISTENT-999/detail-content returns 404" {
+    # Start server with --dev, capture output (includes dynamic port)
+    "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    SERVER_PID=$!
+
+    # Extract port from server output (line like "  - Port: 12345")
+    PORT=""
+    for i in $(seq 1 20); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
+
+    # Verify we found the port
+    [ -n "$PORT" ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Could not determine server port"; return 1; }
+
+    # Wait for server health endpoint to respond
+    READY=0
+    for i in $(seq 1 20); do
+        sleep 0.5
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            READY=1
+            break
+        fi
+    done
+
+    [ "$READY" -eq 1 ] || { kill "$SERVER_PID" 2>/dev/null; rm -f /tmp/test-output.txt; echo "Server did not start in time"; return 1; }
+
+    # Hit the detail-content endpoint for a non-existent worktree
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/worktrees/NONEXISTENT-999/detail-content")
+
+    # Kill server
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    rm -f /tmp/test-output.txt
+
+    # Assert 404 status code
+    [ "$HTTP_STATUS" -eq 404 ]
+}
+
 @test "artifact link from worktree detail page loads artifact content" {
     # Create a temp worktree directory with an artifact file
     WORKTREE_DIR=$(mktemp -d)
