@@ -32,7 +32,25 @@ else
     exit 1
 fi
 
-# Step 2: Run unit tests and command compilation (E2E deferred to CI)
+# Step 2: Check scalafix rules
+echo -e "${YELLOW}Checking scalafix rules...${NC}"
+if scalafix --check --scala-version 3.3.7 --files .iw/core/ --files .iw/commands/ 2>&1; then
+    echo -e "${GREEN}Scalafix check passed.${NC}"
+else
+    echo ""
+    echo -e "${RED}┌──────────────────────────────────────────────┐${NC}"
+    echo -e "${RED}│  PUSH BLOCKED: Scalafix violations found      │${NC}"
+    echo -e "${RED}├──────────────────────────────────────────────┤${NC}"
+    echo -e "${RED}│  Fix: scalafix --scala-version 3.3.7          │${NC}"
+    echo -e "${RED}│       --files .iw/core/ --files .iw/commands/ │${NC}"
+    echo -e "${RED}│                                               │${NC}"
+    echo -e "${RED}│  Bypass: git push --no-verify                 │${NC}"
+    echo -e "${RED}│          (not recommended)                    │${NC}"
+    echo -e "${RED}└──────────────────────────────────────────────┘${NC}"
+    exit 1
+fi
+
+# Step 3: Run unit tests and command compilation (E2E deferred to CI)
 echo -e "${YELLOW}Running unit tests and command compilation...${NC}"
 if ./iw test unit && ./iw test compile; then
     echo -e "${GREEN}Unit tests and compilation passed.${NC}"

@@ -405,3 +405,107 @@ assert d['issue_id'] == 'IW-42'
     [ "$status" -eq 0 ]
     [[ "$output" == *"valid"* ]]
 }
+
+# ============================================================================
+# UPDATE --HELP TESTS
+# ============================================================================
+
+@test "review-state update --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state update --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+}
+
+@test "review-state update -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state update -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+}
+
+@test "review-state update --help does not modify review-state.json" {
+    # Create initial state file
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$TEST_TMPDIR/state.json"
+    local before
+    before="$(cat "$TEST_TMPDIR/state.json")"
+
+    run "$PROJECT_ROOT/iw" review-state update --help --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    # File must be identical after --help
+    local after
+    after="$(cat "$TEST_TMPDIR/state.json")"
+    [ "$before" = "$after" ]
+}
+
+# ============================================================================
+# WRITE --HELP TESTS
+# ============================================================================
+
+@test "review-state write --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state write --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+    [[ "$output" == *"--from-stdin"* ]]
+}
+
+@test "review-state write -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state write -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--status"* ]]
+    [[ "$output" == *"--display-text"* ]]
+    [[ "$output" == *"--from-stdin"* ]]
+}
+
+@test "review-state write --help does not write any files" {
+    run "$PROJECT_ROOT/iw" review-state write --help --output "$TEST_TMPDIR/should-not-exist.json"
+    [ "$status" -eq 0 ]
+    [ ! -f "$TEST_TMPDIR/should-not-exist.json" ]
+}
+
+# ============================================================================
+# VALIDATE --HELP TESTS
+# ============================================================================
+
+@test "review-state validate --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state validate --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"file-path"* ]]
+    [[ "$output" == *"--stdin"* ]]
+}
+
+@test "review-state validate -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state validate -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"file-path"* ]]
+    [[ "$output" == *"--stdin"* ]]
+}
+
+@test "review-state validate --help does not read any files" {
+    run "$PROJECT_ROOT/iw" review-state validate --help "/tmp/does-not-exist-$RANDOM.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"file-path"* ]]
+    [[ "$output" == *"--stdin"* ]]
+}
+
+# ============================================================================
+# DISPATCHER --HELP TESTS
+# ============================================================================
+
+@test "review-state --help exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"validate"* ]]
+    [[ "$output" == *"write"* ]]
+    [[ "$output" == *"update"* ]]
+}
+
+@test "review-state -h exits 0 with usage" {
+    run "$PROJECT_ROOT/iw" review-state -h
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"validate"* ]]
+    [[ "$output" == *"write"* ]]
+    [[ "$output" == *"update"* ]]
+}

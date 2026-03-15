@@ -44,6 +44,11 @@ import iw.core.output.*
 @main def update(args: String*): Unit =
   val argList = args.toList
 
+  // Handle --help / -h flag
+  if argList.contains("--help") || argList.contains("-h") then
+    showHelp()
+    sys.exit(0)
+
   // Determine input path
   val issueId = extractFlag(argList, "--issue-id") match
     case Some(id) => id
@@ -183,6 +188,50 @@ import iw.core.output.*
   // Write back to same location
   os.write.over(inputPath, mergedJson)
   Output.success(s"Review state updated at $inputPath")
+
+private def showHelp(): Unit =
+  println("Update an existing review-state.json file with partial changes")
+  println()
+  println("Usage:")
+  println("  iw review-state update [options]")
+  println()
+  println("Options:")
+  println("  --status <value>                     Optional machine-readable status identifier")
+  println("  --display-text <value>               Primary display text for status badge")
+  println("  --display-subtext <value>            Optional secondary display text")
+  println("  --display-type <value>               Display type: info, success, warning, error, progress")
+  println("  --badge <label:type>                 Repeatable contextual badge (label:type)")
+  println("  --append-badge <label:type>          Append badge to existing badges")
+  println("  --clear-badges                       Remove all badges")
+  println("  --task-list <label:path>             Repeatable task list reference (label:path)")
+  println("  --append-task-list <label:path>      Append task list to existing")
+  println("  --clear-task-lists                   Remove all task lists")
+  println("  --needs-attention                    Flag indicating workflow needs human input")
+  println("  --message <value>                    Prominent notification message")
+  println("  --artifact <label:path[=category]>   Repeatable artifact with optional category")
+  println("  --append-artifact <label:path[=category]>  Append artifact to existing")
+  println("  --clear-artifacts                    Remove all artifacts")
+  println("  --action <id:label:skill>            Repeatable action (id:label:skill)")
+  println("  --append-action <id:label:skill>     Append action to existing")
+  println("  --clear-actions                      Remove all actions")
+  println("  --pr-url <value>                     PR URL string")
+  println("  --checkpoint <phase:sha>             Repeatable phase checkpoint (phase:sha)")
+  println("  --append-checkpoint <phase:sha>      Append checkpoint to existing")
+  println("  --clear-checkpoints                  Remove all checkpoints")
+  println("  --git-sha <value>                    Override git SHA")
+  println("  --input <path>                       Input file path (default: auto-detect from issue_id)")
+  println("  --clear-status                       Remove status field")
+  println("  --clear-message                      Remove message field")
+  println("  --clear-pr-url                       Remove pr_url field")
+  println("  --clear-display                      Remove display field")
+  println("  --clear-display-subtext              Remove display.subtext field")
+  println("  --clear-needs-attention              Remove needs_attention field")
+  println("  --issue-id <value>                   Issue ID override (auto-inferred from branch)")
+  println()
+  println("Examples:")
+  println("  iw review-state update --display-text \"Implementing\"")
+  println("  iw review-state update --append-artifact \"Tasks:phase-02-tasks.md\"")
+  println("  iw review-state update --clear-message")
 
 private def extractFlag(args: List[String], flag: String): Option[String] =
   val idx = args.indexOf(flag)

@@ -15,17 +15,16 @@ import scala.util.Try
 @main def `review-state`(args: String*): Unit =
   if args.isEmpty then
     Output.error("No subcommand provided")
-    Output.info("Usage: iw review-state <subcommand> [args...]")
-    Output.info("Available subcommands:")
-    Output.info("  validate <path>    Validate review-state.json file")
-    Output.info("  write [options]    Create new review-state.json from scratch")
-    Output.info("  update [options]   Update existing review-state.json")
+    showHelp()
     sys.exit(1)
 
   val subcommand = args.head
   val subcommandArgs = args.tail
 
   subcommand match
+    case "--help" | "-h" =>
+      showHelp()
+      sys.exit(0)
     case "validate" =>
       runSubcommand("validate", subcommandArgs)
     case "write" =>
@@ -36,6 +35,13 @@ import scala.util.Try
       Output.error(s"Unknown subcommand: $subcommand")
       Output.info("Available subcommands: validate, write, update")
       sys.exit(1)
+
+private def showHelp(): Unit =
+  Output.info("Usage: iw review-state <subcommand> [args...]")
+  Output.info("Available subcommands:")
+  Output.info("  validate <path>    Validate review-state.json file")
+  Output.info("  write [options]    Create new review-state.json from scratch")
+  Output.info("  update [options]   Update existing review-state.json")
 
 private def runSubcommand(name: String, args: Seq[String]): Unit =
   // Get the commands and core directories from environment (set by iw bootstrap script)
