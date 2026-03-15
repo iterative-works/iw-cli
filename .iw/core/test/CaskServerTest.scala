@@ -1112,6 +1112,32 @@ class CaskServerTest extends FunSuite:
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
 
+  test("GET /worktrees/%3Cscript%3E (URL-encoded) returns 404 with HTML-escaped content"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/%3Cscript%3Ealert(1)%3C%2Fscript%3E")
+        .send()
+
+      assertEquals(response.code.code, 404)
+      val html = response.body
+      assert(!html.contains("<script>alert"), "Response should not contain unescaped script tag")
+      assert(html.contains("&lt;script&gt;") || html.contains("%3Cscript%3E"),
+        "Response should contain the escaped form of the issue ID")
+      assert(html.contains("not registered"),
+        "Response should contain a not-found message")
+      assert(html.contains("worktree-detail"), "Response should render the styled 404 view")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
   // sshHost threading for worktree detail is tested in WorktreeDetailViewTest (unit)
   // because the integration test renders skeleton state (no cached issue data),
   // which doesn't include the Zed editor link where sshHost appears.

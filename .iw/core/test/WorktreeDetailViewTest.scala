@@ -237,3 +237,29 @@ class WorktreeDetailViewTest extends FunSuite:
 
     assert(html.contains("Worktree Not Found"), "Should render the not-found heading")
     assert(html.contains("not registered"), "Should explain the worktree is not registered")
+
+  test("renderNotFound escapes special characters in issue ID"):
+    val html = WorktreeDetailView.renderNotFound("<script>alert(1)</script>").render
+
+    assert(!html.contains("<script>"), "Should HTML-escape special characters in issue ID")
+    assert(html.contains("&lt;script&gt;"), "Should contain escaped version of the issue ID")
+
+  test("renderNotFound with empty issue ID still renders heading and back link"):
+    val html = WorktreeDetailView.renderNotFound("").render
+
+    assert(html.contains("Worktree Not Found"), "Should still show not-found heading for empty ID")
+    assert(html.contains("href=\"/\""), "Should still link back to overview")
+
+  test("renderNotFound includes 'Back to Projects Overview' link text"):
+    val html = WorktreeDetailView.renderNotFound("IW-999").render
+
+    assert(html.contains("Back to Projects Overview"), "Should include link text for overview navigation")
+
+  test("renderNotFound does not contain worktree data section CSS classes"):
+    val html = WorktreeDetailView.renderNotFound("IW-999").render
+
+    assert(!html.contains("git-status"), "Not-found page should not have git status section")
+    assert(!html.contains("pr-link"), "Not-found page should not have PR section")
+    assert(!html.contains("progress-bar"), "Not-found page should not have progress bar")
+    assert(!html.contains("phase-info"), "Not-found page should not have phase info")
+    assert(!html.contains("zed-link"), "Not-found page should not have Zed editor link")
