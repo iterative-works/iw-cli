@@ -8,7 +8,7 @@ import iw.core.model.{Constants, ProjectConfiguration, IssueId, ApiToken, Worktr
 import iw.core.dashboard.{ServerStateService, DashboardService, WorktreeRegistrationService, WorktreeUnregistrationService, ProjectRegistrationService, ArtifactService, IssueSearchService, WorktreeCardService, RefreshThrottle, WorktreeListSync, CardRenderResult}
 import iw.core.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
-import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, PageLayout}
+import iw.core.dashboard.presentation.views.{ArtifactView, CreateWorktreeModal, SearchResultsView, CreationSuccessView, CreationErrorView, ProjectDetailsView, WorktreeDetailView, PageLayout}
 import java.time.Instant
 
 class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: Instant, devMode: Boolean = false) extends cask.MainRoutes:
@@ -25,12 +25,12 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
       // State loaded successfully
       ()
 
+  private def resolveEffectiveSshHost(sshHost: Option[String]): String =
+    sshHost.getOrElse(java.net.InetAddress.getLocalHost().getHostName())
+
   @cask.get("/")
   def dashboard(sshHost: Option[String] = None): cask.Response[String] =
-    // Resolve effective SSH host: use query param or default to server hostname
-    val effectiveSshHost = sshHost.getOrElse(
-      java.net.InetAddress.getLocalHost().getHostName()
-    )
+    val effectiveSshHost = resolveEffectiveSshHost(sshHost)
 
     // Get current state (read-only)
     val state = stateService.getState
@@ -63,12 +63,7 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.get("/projects/:projectName")
   def projectDetails(projectName: String, sshHost: Option[String] = None): cask.Response[String] =
-    // Resolve effective SSH host: use query param or default to server hostname
-    val effectiveSshHost = sshHost.getOrElse(
-      java.net.InetAddress.getLocalHost().getHostName()
-    )
-
-    // Get current state (read-only)
+    val effectiveSshHost = resolveEffectiveSshHost(sshHost)
     val state = stateService.getState
 
     // Get all registered worktrees
@@ -136,6 +131,59 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
         // Wrap in PageLayout
         val html = PageLayout.render(
           title = s"$projectName - iw Dashboard",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+
+        cask.Response(
+          data = html,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+  @cask.get("/worktrees/:issueId")
+  def worktreeDetail(issueId: String, sshHost: Option[String] = None): cask.Response[String] =
+    val effectiveSshHost = resolveEffectiveSshHost(sshHost)
+    val state = stateService.getState
+
+    state.worktrees.get(issueId) match
+      case None =>
+        val bodyContent = WorktreeDetailView.renderNotFound(issueId)
+        val html = PageLayout.render(
+          title = s"$issueId - Not Found",
+          bodyContent = bodyContent,
+          devMode = devMode
+        )
+        cask.Response(
+          data = html,
+          statusCode = 404,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+      case Some(worktree) =>
+        val now = Instant.now()
+        val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(worktree, state.issueCache, now)
+        val progress = DashboardService.fetchProgressForWorktree(worktree, state.progressCache)
+        val gitStatus = DashboardService.fetchGitStatusForWorktree(worktree)
+        val prData = DashboardService.fetchPRForWorktreeCachedOnly(worktree, state.prCache, now)
+        // Review state from cache is always valid (errors are not cached)
+        val reviewStateResult = state.reviewStateCache.get(issueId).map(cached => Right(cached.state))
+        val projectName = iw.core.dashboard.domain.MainProject.deriveMainProjectPath(worktree.path)
+          .map(path => os.Path(path).last)
+
+        val bodyContent = WorktreeDetailView.render(
+          worktree = worktree,
+          issueData = issueData,
+          progress = progress,
+          gitStatus = gitStatus,
+          prData = prData,
+          reviewStateResult = reviewStateResult,
+          projectName = projectName,
+          now = now,
+          sshHost = effectiveSshHost
+        )
+
+        val html = PageLayout.render(
+          title = s"$issueId - iw Dashboard",
           bodyContent = bodyContent,
           devMode = devMode
         )
@@ -257,6 +305,92 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
         cask.Response(
           data = result.html,
+          headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
+        )
+
+  @cask.get("/worktrees/:issueId/detail-content")
+  def worktreeDetailContent(issueId: String, sshHost: Option[String] = None): cask.Response[String] =
+    val state = stateService.getState
+
+    state.worktrees.get(issueId) match
+      case None =>
+        cask.Response(
+          data = "",
+          statusCode = 404
+        )
+
+      case Some(worktree) =>
+        val configPath = os.Path(worktree.path) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+        val config = ConfigFileRepository.read(configPath)
+
+        val fetchFn = buildFetchFunction(worktree.trackerType, config)
+        val urlBuilder = buildUrlBuilder(worktree.trackerType, config)
+
+        val fetchPRFn = () =>
+          val execCommand = (command: String, args: Array[String]) =>
+            CommandRunner.execute(command, args, Some(worktree.path))
+          val detectTool = (toolName: String) =>
+            CommandRunner.isCommandAvailable(toolName)
+          PullRequestCacheService.fetchPR(
+            worktree.path,
+            state.prCache,
+            issueId,
+            Instant.now(),
+            execCommand,
+            detectTool
+          )
+
+        val now = Instant.now()
+        val effectiveSshHost = resolveEffectiveSshHost(sshHost)
+        val result = WorktreeCardService.renderCard(
+          issueId,
+          state.worktrees,
+          state.issueCache,
+          state.progressCache,
+          state.prCache,
+          state.reviewStateCache,
+          refreshThrottle,
+          now,
+          effectiveSshHost,
+          fetchFn,
+          urlBuilder,
+          fetchPRFn
+        )
+
+        result.fetchedIssue.foreach { cachedIssue =>
+          stateService.updateIssueCache(issueId)(_ => Some(cachedIssue))
+        }
+        result.fetchedProgress.foreach { cachedProgress =>
+          stateService.updateProgressCache(issueId)(_ => Some(cachedProgress))
+        }
+        result.fetchedPR.foreach { cachedPR =>
+          stateService.updatePRCache(issueId)(_ => Some(cachedPR))
+        }
+        result.fetchedReviewState.foreach { cachedReviewState =>
+          stateService.updateReviewStateCache(issueId)(_ => Some(cachedReviewState))
+        }
+
+        // Re-read state after cache writes so renderContent sees fresh data
+        val updatedState = stateService.getState
+        val issueData = DashboardService.fetchIssueForWorktreeCachedOnly(worktree, updatedState.issueCache, now)
+        val progress = DashboardService.fetchProgressForWorktree(worktree, updatedState.progressCache)
+        val gitStatus = DashboardService.fetchGitStatusForWorktree(worktree)
+        val prData = DashboardService.fetchPRForWorktreeCachedOnly(worktree, updatedState.prCache, now)
+        val reviewStateResult = updatedState.reviewStateCache.get(issueId).map(cached => Right(cached.state))
+
+        val fragment = WorktreeDetailView.renderContent(
+          worktree = worktree,
+          issueData = issueData,
+          progress = progress,
+          gitStatus = gitStatus,
+          prData = prData,
+          reviewStateResult = reviewStateResult,
+          now = now,
+          sshHost = effectiveSshHost
+        ).render
+
+        cask.Response(
+          data = fragment,
           headers = Seq("Content-Type" -> "text/html; charset=UTF-8")
         )
 

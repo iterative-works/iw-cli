@@ -1031,3 +1031,327 @@ class CaskServerTest extends FunSuite:
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  // Worktree detail page route tests
+
+  test("GET /worktrees/:issueId returns 200 with HTML for known worktree"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      // Register a worktree
+      val registerRequest = ujson.Obj(
+        "path" -> "/test/projects/iw-cli-IW-188",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Request the worktree detail page
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      assert(
+        response.headers.exists { h =>
+          h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
+        },
+        "Response should have text/html content type"
+      )
+      val html = response.body
+      assert(html.contains("IW-188"), "Response body should contain the issue ID")
+      assert(html.contains("worktree-detail"), "Response should render the detail view container")
+      // Without cached issue data, skeleton state is rendered
+      assert(html.contains("Loading") || html.contains("skeleton"),
+        "Without cached issue data, should render skeleton state")
+      assert(html.contains("breadcrumb"), "Response should contain breadcrumb navigation")
+      assert(html.contains("Projects"), "Breadcrumb should contain Projects link")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/NONEXISTENT returns 404 with error page"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/NONEXISTENT-999")
+        .send()
+
+      assertEquals(response.code.code, 404)
+      assert(
+        response.headers.exists { h =>
+          h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
+        },
+        "Response should have text/html content type"
+      )
+      val html = response.body
+      assert(html.contains("NONEXISTENT-999"), "Response body should contain the requested issue ID")
+      assert(html.contains("not registered") || html.contains("Not Found"),
+        "Response body should contain a not-found message")
+      assert(html.contains("worktree-detail"), "Response should render the styled 404 view, not a raw error")
+      assert(html.contains("breadcrumb"), "404 response should contain breadcrumb navigation")
+      assert(html.contains("Projects"), "404 breadcrumb should contain Projects link")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/%3Cscript%3E (URL-encoded) returns 404 with HTML-escaped content"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/%3Cscript%3Ealert(1)%3C%2Fscript%3E")
+        .send()
+
+      assertEquals(response.code.code, 404)
+      val html = response.body
+      assert(!html.contains("<script>alert"), "Response should not contain unescaped script tag")
+      assert(html.contains("&lt;script&gt;") || html.contains("%3Cscript%3E"),
+        "Response should contain the escaped form of the issue ID")
+      assert(html.contains("not registered"),
+        "Response should contain a not-found message")
+      assert(html.contains("worktree-detail"), "Response should render the styled 404 view")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  // sshHost threading for worktree detail is tested in WorktreeDetailViewTest (unit)
+  // because the integration test renders skeleton state (no cached issue data),
+  // which doesn't include the Zed editor link where sshHost appears.
+
+  test("GET /worktrees/:issueId/artifacts returns page with back link to worktree detail"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+    val tmpWorktreeDir = Files.createTempDirectory("iw-artifact-test").toAbsolutePath.toString
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val artifactContent = "# Test Artifact\n\nSome content here."
+      val artifactFile = Paths.get(tmpWorktreeDir, "test-artifact.md")
+      Files.writeString(artifactFile, artifactContent)
+
+      val registerRequest = ujson.Obj(
+        "path" -> tmpWorktreeDir,
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188/artifacts?path=test-artifact.md")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      val html = response.body
+      assert(html.contains("Test Artifact"), "Artifact content should be rendered in the page")
+      assert(html.contains("Some content here"), "Artifact body content should appear in response")
+      assert(html.contains("href=\"/worktrees/IW-188\""), "Artifact page back link should point to worktree detail page")
+      assert(html.contains("Back to Worktree"), "Back link text should say 'Back to Worktree'")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+      val worktreeDir = Paths.get(tmpWorktreeDir)
+      if Files.exists(worktreeDir) then
+        Files.walk(worktreeDir)
+          .sorted(java.util.Comparator.reverseOrder())
+          .forEach(Files.delete)
+
+  // Detail content fragment endpoint tests
+
+  test("GET /worktrees/:issueId/detail-content returns 200 with HTML fragment for registered worktree"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val registerRequest = ujson.Obj(
+        "path" -> "/tmp/test-worktree-IW-188",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188/detail-content")
+        .send()
+
+      assertEquals(response.code.code, 200)
+      assert(
+        response.headers.exists { h =>
+          h.name.equalsIgnoreCase("content-type") && h.value.contains("text/html")
+        },
+        "Response should have text/html content type"
+      )
+      assert(
+        response.body.contains("IW-188"),
+        "Response body should contain the issue ID"
+      )
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/:issueId/detail-content returns fragment without html or head tags"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val registerRequest = ujson.Obj(
+        "path" -> "/tmp/test-worktree-IW-188",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188/detail-content")
+        .send()
+
+      val html = response.body
+      assert(!html.contains("<html"), "Fragment response should not contain <html tag")
+      assert(!html.contains("<head"), "Fragment response should not contain <head tag")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/:issueId/detail-content returns fragment without breadcrumb"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val registerRequest = ujson.Obj(
+        "path" -> "/tmp/test-worktree-IW-188",
+        "trackerType" -> "github",
+        "team" -> "iterative-works/iw-cli"
+      )
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/IW-188")
+        .body(ujson.write(registerRequest))
+        .header("Content-Type", "application/json")
+        .send()
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/IW-188/detail-content")
+        .send()
+
+      val html = response.body
+      assert(!html.contains("breadcrumb"), "Fragment response should not contain breadcrumb navigation")
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/:issueId/detail-content returns 404 for unknown worktree"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      val serverThread = startTestServer(statePath, port)
+
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/NONEXISTENT-999/detail-content")
+        .send()
+
+      assertEquals(response.code.code, 404)
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/:issueId/card response contains detail page link and tracker section"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      startTestServer(statePath, port)
+
+      // Register a worktree
+      val requestBody = ujson.Obj(
+        "path" -> "/test/path/worktree",
+        "trackerType" -> "Linear",
+        "team" -> "TEST"
+      )
+
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/TEST-CARD")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Fetch the card endpoint
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/TEST-CARD/card")
+        .send()
+
+      val html = response.body
+
+      // Card should contain link to detail page
+      assert(
+        html.contains("""href="/worktrees/TEST-CARD""""),
+        s"Card response should contain detail page link, got: ${html.take(500)}"
+      )
+
+      // Card should also contain tracker link in issue-id section
+      assert(
+        html.contains("issue-id"),
+        s"Card should contain issue-id section, got: ${html.take(500)}"
+      )
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
