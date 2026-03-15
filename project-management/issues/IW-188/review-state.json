@@ -65,11 +65,11 @@
       "path": "project-management/issues/IW-188/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-03-15T11:12:12.410192789Z",
-  "status": "implementing",
+  "last_updated": "2026-03-15T15:18:54.840816891Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 05: Implementing",
-    "type": "progress",
+    "text": "Phase 5: Merged",
+    "type": "success",
     "subtext": "HTMX auto-refresh for worktree detail content"
   },
   "badges": [
@@ -96,9 +96,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "message": "Phase 05 implementation started",
+  "message": "Phase 5 merged",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -149,6 +153,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
@@ -158,5 +167,5 @@
       "context_sha": "context_sha=b790b1a2472943b086ec85449413834a052d9c51"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/268"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/273"
 }
