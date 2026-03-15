@@ -18,14 +18,11 @@ object PhaseTaskFile:
     */
   def markComplete(content: String): String =
     val lines = content.split("\n", -1)
-    var found = false
-    val updated = lines.map { line =>
-      if PhaseStatusPattern.matches(line) then
-        found = true
-        "**Phase Status:** Complete"
-      else line
-    }
-    if found then updated.mkString("\n")
+    if lines.exists(PhaseStatusPattern.matches) then
+      lines.map { line =>
+        if PhaseStatusPattern.matches(line) then "**Phase Status:** Complete"
+        else line
+      }.mkString("\n")
     else
       val trimmed = content.stripTrailing()
       trimmed + "\n**Phase Status:** Complete\n"
