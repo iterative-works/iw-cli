@@ -73,11 +73,11 @@
       "path": "project-management/issues/IW-188/phase-06-tasks.md"
     }
   ],
-  "last_updated": "2026-03-15T16:27:48.034263990Z",
-  "status": "implementing",
+  "last_updated": "2026-03-15T18:00:51.201835821Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 06: Implementing",
-    "type": "progress",
+    "text": "Phase 6: Merged",
+    "type": "success",
     "subtext": "Worktree cards on project page link to detail page"
   },
   "badges": [
@@ -112,9 +112,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "message": "Phase 06 implementation started",
+  "message": "Phase 6 merged",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -175,6 +179,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
@@ -184,5 +193,5 @@
       "context_sha": "context_sha=8d90942dac50c3fae8d5d23e6cf5bf075cee8f5a"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/273"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/276"
 }
