@@ -1,0 +1,82 @@
+{
+  "version": 2,
+  "issue_id": "IW-202",
+  "artifacts": [
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-202/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-202/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-202/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-202/phase-04-tasks.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-202/implementation-log.md"
+    },
+    {
+      "label": "Release Notes",
+      "path": "project-management/issues/IW-202/release-notes.md"
+    }
+  ],
+  "last_updated": "2026-03-15T07:56:01.076169093Z",
+  "git_sha": "e9c0f28",
+  "status": "all_complete",
+  "needs_attention": true,
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/270",
+  "display": {
+    "text": "Ready for Final Review",
+    "type": "success",
+    "subtext": "review-state --help reports Unknown subcommand"
+  },
+  "badges": [
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ],
+  "available_actions": [
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "dx-fix"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "dx-fix"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    }
+  ],
+  "message": "All phases complete - final PR created",
+  "phase_checkpoints": {
+    "4": {
+      "context_sha": "context_sha=127ea556977e9596c8df26aeab3764df73794443"
+    }
+  }
+}
