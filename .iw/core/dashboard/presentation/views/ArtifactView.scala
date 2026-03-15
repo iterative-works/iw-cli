@@ -31,8 +31,8 @@ object ArtifactView:
             cls := "header",
             a(
               cls := "back-link",
-              href := "/",
-              "← Back to Dashboard"
+              href := s"/worktrees/$issueId",
+              "← Back to Worktree"
             ),
             h1(artifactLabel),
             p(cls := "issue-id", issueId)
@@ -100,13 +100,13 @@ object ArtifactView:
           cls := "container",
           div(
             cls := "header",
-            a(cls := "back-link", href := "/", "← Back to Dashboard"),
+            a(cls := "back-link", href := s"/worktrees/$issueId", "← Back to Worktree"),
             h1("Artifact Not Found")
           ),
           div(
             cls := "content",
             p(s"Unable to load artifact: $errorMessage"),
-            p(a(href := "/", "Return to dashboard"))
+            p(a(href := s"/worktrees/$issueId", "Return to worktree"))
           )
         )
       )

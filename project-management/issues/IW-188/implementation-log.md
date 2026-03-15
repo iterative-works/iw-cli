@@ -118,3 +118,59 @@ Test-only phase — the not-found handling was fully implemented in Phase 1 (`re
 - 29 unit tests in `WorktreeDetailViewTest` (+4 new)
 - 5 integration tests in `CaskServerTest` (+1 new)
 - 7 E2E tests in `dashboard-dev-mode.bats` (+1 new)
+
+---
+
+## Phase 4: Artifact links to artifact detail view
+
+**Date:** 2026-03-15
+**Branch:** IW-188-phase-04
+**Status:** Complete
+
+### What was implemented
+
+- Fixed `ArtifactView.render` back link: changed from `/` (dashboard root) to `/worktrees/$issueId` (worktree detail page)
+- Fixed `ArtifactView.renderError` back links (both header and content): same change, updated link text to "Back to Worktree" / "Return to worktree"
+- No signature changes needed — `issueId` was already a parameter of both methods
+
+### Unit test updates (`ArtifactViewTest.scala`)
+
+- Updated "render back link points to worktree detail page" — asserts `href="/worktrees/TEST-123"` and "Back to Worktree"
+- Updated "renderError includes back link to worktree detail page" — same pattern
+- Updated "renderError includes return link" — asserts "Return to worktree"
+
+### Unit test additions (`WorktreeDetailViewTest.scala`)
+
+- "render shows artifact links with correct href pattern" — verifies `/worktrees/IW-188/artifacts?path=...` URL in rendered HTML
+- "render shows multiple artifacts as individual links" — verifies 2+ artifacts render with individual labels and links
+- "render does not show artifact section when artifact list is empty" — verifies no `artifact-list` class for empty artifacts
+
+### Integration test additions (`CaskServerTest.scala`)
+
+- "GET /worktrees/:issueId/artifacts returns page with back link to worktree detail" — registers worktree, creates artifact file, hits endpoint, asserts back link to `/worktrees/IW-188` and rendered content
+
+### E2E test additions (`dashboard-dev-mode.bats`)
+
+- "artifact link from worktree detail page loads artifact content" — starts dev server, registers worktree with temp directory containing `analysis.md`, fetches artifact page, verifies content and back link to `/worktrees/TEST-ART`
+
+### Code review findings addressed
+
+- Combined double curl call in BATS test into single request (captured body and status together)
+- Added artifact content assertions to integration test (was only checking back link)
+- Removed obvious section comments from integration test
+
+### Test coverage
+
+- 32 unit tests in `WorktreeDetailViewTest` (+3 new)
+- 6 integration tests in `CaskServerTest` (+1 new)
+- 8 E2E tests in `dashboard-dev-mode.bats` (+1 new)
+
+### Files changed
+
+```
+M  .iw/core/dashboard/presentation/views/ArtifactView.scala
+M  .iw/core/test/ArtifactViewTest.scala
+M  .iw/core/test/CaskServerTest.scala
+M  .iw/core/test/WorktreeDetailViewTest.scala
+M  .iw/test/dashboard-dev-mode.bats
+```
