@@ -242,3 +242,47 @@ M  .iw/core/test/CaskServerTest.scala
 M  .iw/core/test/WorktreeDetailViewTest.scala
 M  .iw/test/dashboard-dev-mode.bats
 ```
+
+---
+
+## Phase 6: Worktree cards on project page link to detail page
+
+**Date:** 2026-03-15
+**Branch:** IW-188-phase-06
+**Status:** Complete
+
+### What was implemented
+
+- Modified `WorktreeCardRenderer.renderCard` to wrap the `h3` title in `a(href := s"/worktrees/${worktree.issueId}")` — card titles now link to the worktree detail page
+- Modified `WorktreeCardRenderer.renderSkeletonCard` with the same link pattern for skeleton state cards
+- Issue ID badge (`p.issue-id > a`) remains linked to the external tracker URL — no change
+
+### Code review findings addressed
+
+- Removed duplicate third BATS test that overlapped with the first
+- Merged two overlapping CaskServerTest integration tests into one that asserts both detail link and tracker section
+- Added structural test for skeleton card h3 link pattern (analogous to renderCard structural test)
+- Changed BATS tests to use `$TEST_DIR/test-output.txt` instead of hard-coded `/tmp/test-output.txt`
+- Removed unused `val serverThread` binding in integration test
+
+### Deferred items (pre-existing patterns, out of scope)
+
+- Issue ID validation at registration boundary (pre-existing, no server-side format validation)
+- URL sanitization for `data.url` and `pr.url` (pre-existing, Scalatags handles HTML escaping)
+- BATS server startup boilerplate duplication (pre-existing across all dashboard tests)
+- Redundant subset unit tests kept (first two renderCard tests are subsets of the combined test, but improve failure diagnostics)
+
+### Test coverage
+
+- 7 unit tests in new `WorktreeCardRendererTest` (new file)
+- 11 integration tests in `CaskServerTest` (+1 new)
+- 12 E2E tests in `dashboard-dev-mode.bats` (+2 new)
+
+### Files changed
+
+```
+M  .iw/core/dashboard/presentation/views/WorktreeCardRenderer.scala
+A  .iw/core/test/WorktreeCardRendererTest.scala
+M  .iw/core/test/CaskServerTest.scala
+M  .iw/test/dashboard-dev-mode.bats
+```

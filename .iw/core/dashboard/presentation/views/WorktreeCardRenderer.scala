@@ -91,8 +91,8 @@ object WorktreeCardRenderer:
       attr("hx-swap") := htmxConfig.swap,
       attr("hx-disinherit") := "hx-vals",  // Attempt to prevent inheriting parent's hx-vals (HTMX bug #1119 may prevent this)
       htmxConfig.oobSwap.map(oob => attr("hx-swap-oob") := oob),
-      // Issue title
-      h3(data.title),
+      // Issue title links to worktree detail page
+      h3(a(href := s"/worktrees/${worktree.issueId}", data.title)),
       // Issue ID as clickable link
       p(
         cls := "issue-id",
@@ -229,8 +229,8 @@ object WorktreeCardRenderer:
       attr("hx-swap") := htmxConfig.swap,
       attr("hx-disinherit") := "hx-vals",  // Attempt to prevent inheriting parent's hx-vals (HTMX bug #1119 may prevent this)
       htmxConfig.oobSwap.map(oob => attr("hx-swap-oob") := oob),
-      // Issue ID as non-clickable placeholder
-      h3(cls := "skeleton-title", "Loading..."),
+      // Skeleton title links to worktree detail page
+      h3(cls := "skeleton-title", a(href := s"/worktrees/${worktree.issueId}", "Loading...")),
       p(
         cls := "issue-id",
         span(worktree.issueId)

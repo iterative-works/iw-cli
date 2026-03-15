@@ -1310,3 +1310,48 @@ class CaskServerTest extends FunSuite:
       if Files.exists(stateFile) then Files.delete(stateFile)
       val parentDir = stateFile.getParent
       Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
+
+  test("GET /worktrees/:issueId/card response contains detail page link and tracker section"):
+    val statePath = createTempStatePath()
+    val port = findAvailablePort()
+
+    try
+      startTestServer(statePath, port)
+
+      // Register a worktree
+      val requestBody = ujson.Obj(
+        "path" -> "/test/path/worktree",
+        "trackerType" -> "Linear",
+        "team" -> "TEST"
+      )
+
+      quickRequest
+        .put(uri"http://localhost:$port/api/v1/worktrees/TEST-CARD")
+        .body(ujson.write(requestBody))
+        .header("Content-Type", "application/json")
+        .send()
+
+      // Fetch the card endpoint
+      val response = quickRequest
+        .get(uri"http://localhost:$port/worktrees/TEST-CARD/card")
+        .send()
+
+      val html = response.body
+
+      // Card should contain link to detail page
+      assert(
+        html.contains("""href="/worktrees/TEST-CARD""""),
+        s"Card response should contain detail page link, got: ${html.take(500)}"
+      )
+
+      // Card should also contain tracker link in issue-id section
+      assert(
+        html.contains("issue-id"),
+        s"Card should contain issue-id section, got: ${html.take(500)}"
+      )
+
+    finally
+      val stateFile = Paths.get(statePath)
+      if Files.exists(stateFile) then Files.delete(stateFile)
+      val parentDir = stateFile.getParent
+      Option(parentDir).filter(Files.exists(_)).foreach(Files.delete(_))
