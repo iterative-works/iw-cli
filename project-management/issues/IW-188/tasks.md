@@ -2,7 +2,7 @@
 
 **Issue:** IW-188
 **Created:** 2026-03-14
-**Status:** 4/6 phases complete (67%)
+**Status:** 6/6 phases complete (100%)
 
 ## Phase Index
 
@@ -11,11 +11,11 @@
 - [x] Phase 3: Handle unknown worktree gracefully (Est: 2-3h) → `phase-03-context.md`
 - [x] Phase 4: Artifact links to artifact detail view (Est: 2-3h) → `phase-04-context.md`
 - [x] Phase 5: HTMX auto-refresh for worktree detail content (Est: 4-6h) → `phase-05-context.md`
-- [ ] Phase 6: Worktree cards on project page link to detail page (Est: 3-4h) → `phase-06-context.md`
+- [x] Phase 6: Worktree cards on project page link to detail page (Est: 3-4h) → `phase-06-context.md`
 
 ## Progress Tracker
 
-**Completed:** 5/6 phases
+**Completed:** 6/6 phases
 **Estimated Total:** 21-31 hours
 **Time Spent:** 0 hours
 
