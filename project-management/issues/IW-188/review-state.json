@@ -71,12 +71,20 @@
     {
       "label": "Phase 6 Tasks",
       "path": "project-management/issues/IW-188/phase-06-tasks.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-188/implementation-log.md"
+    },
+    {
+      "label": "Release Notes",
+      "path": "project-management/issues/IW-188/release-notes.md"
     }
   ],
-  "last_updated": "2026-03-15T18:00:51.201835821Z",
-  "status": "phase_merged",
+  "last_updated": "2026-03-15T18:08:58.407722834Z",
+  "status": "all_complete",
   "display": {
-    "text": "Phase 6: Merged",
+    "text": "Ready for Final Review",
     "type": "success",
     "subtext": "Worktree cards on project page link to detail page"
   },
@@ -118,7 +126,7 @@
       "type": "warning"
     }
   ],
-  "message": "Phase 6 merged",
+  "message": "All phases complete - final PR created",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -184,6 +192,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "b5113f5bd8a8de6373de3048c3def515d4ece9fd",
@@ -193,5 +206,5 @@
       "context_sha": "context_sha=8d90942dac50c3fae8d5d23e6cf5bf075cee8f5a"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/276"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/277"
 }
