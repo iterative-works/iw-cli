@@ -46,6 +46,8 @@ class ReviewStateValidatorTest extends munit.FunSuite:
       "pr_url": "https://github.com/iterative-works/iw-cli/pull/99",
       "git_sha": "abc1234",
       "message": "Phase 3 review complete",
+      "activity": "working",
+      "workflow_type": "agile",
       "phase_checkpoints": {
         "1": {"context_sha": "7bd547909953d9414b4cd6049a411beb6258ba2b"},
         "2": {"context_sha": "d485a987e378d8193e6a211955e1709725178f00"},
@@ -657,3 +659,114 @@ class ReviewStateValidatorTest extends munit.FunSuite:
     assert(!result.isValid)
     val errors = result.errors.filter(_.field == "needs_attention")
     assert(errors.nonEmpty, s"Expected error for non-boolean needs_attention")
+
+  // --- activity field validation ---
+
+  test("activity 'working' passes validation"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "activity": "working"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(result.isValid, s"activity 'working' should be valid: ${result.errors}")
+
+  test("activity 'waiting' passes validation"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "activity": "waiting"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(result.isValid, s"activity 'waiting' should be valid: ${result.errors}")
+
+  test("activity 'idle' returns enum error"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "activity": "idle"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(!result.isValid)
+    val errors = result.errors.filter(_.field == "activity")
+    assert(errors.nonEmpty, s"Expected enum error for activity 'idle': ${result.errors}")
+
+  test("activity as integer returns type error"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "activity": 42
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(!result.isValid)
+    val errors = result.errors.filter(_.field == "activity")
+    assert(errors.nonEmpty, s"Expected type error for activity integer: ${result.errors}")
+
+  // --- workflow_type field validation ---
+
+  test("workflow_type 'agile' passes validation"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "workflow_type": "agile"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(result.isValid, s"workflow_type 'agile' should be valid: ${result.errors}")
+
+  test("workflow_type 'waterfall' passes validation"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "workflow_type": "waterfall"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(result.isValid, s"workflow_type 'waterfall' should be valid: ${result.errors}")
+
+  test("workflow_type 'diagnostic' passes validation"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "workflow_type": "diagnostic"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(result.isValid, s"workflow_type 'diagnostic' should be valid: ${result.errors}")
+
+  test("workflow_type 'kanban' returns enum error"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "workflow_type": "kanban"
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(!result.isValid)
+    val errors = result.errors.filter(_.field == "workflow_type")
+    assert(errors.nonEmpty, s"Expected enum error for workflow_type 'kanban': ${result.errors}")
+
+  test("workflow_type as boolean returns type error"):
+    val json = """{
+      "version": 1,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-28T12:00:00Z",
+      "workflow_type": true
+    }"""
+    val result = ReviewStateValidator.validate(json)
+    assert(!result.isValid)
+    val errors = result.errors.filter(_.field == "workflow_type")
+    assert(errors.nonEmpty, s"Expected type error for workflow_type boolean: ${result.errors}")

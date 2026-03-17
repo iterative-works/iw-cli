@@ -18,8 +18,8 @@ object ReviewStateValidator:
 
   private val AllowedRootProperties: Set[String] = Set(
     "version", "issue_id", "status", "display", "badges", "task_lists",
-    "needs_attention", "message", "artifacts", "available_actions",
-    "last_updated", "pr_url", "git_sha", "phase_checkpoints"
+    "needs_attention", "message", "activity", "workflow_type", "artifacts",
+    "available_actions", "last_updated", "pr_url", "git_sha", "phase_checkpoints"
   )
 
   private val RequiredFields: List[String] = List(
@@ -29,6 +29,10 @@ object ReviewStateValidator:
   private val ValidDisplayTypes: Set[String] = Set(
     "info", "success", "warning", "error", "progress"
   )
+
+  private val ValidActivityValues: Set[String] = Set("working", "waiting")
+
+  private val ValidWorkflowTypes: Set[String] = Set("agile", "waterfall", "diagnostic")
 
   def validate(json: String): ValidationResult =
     val errors = ListBuffer.empty[ValidationError]
@@ -198,6 +202,26 @@ object ReviewStateValidator:
     obj.get("message").foreach { v =>
       if !v.strOpt.isDefined then
         errors += ValidationError("message", "Field 'message' must be a string")
+    }
+
+    // activity: enum string ("working" | "waiting")
+    obj.get("activity").foreach { v =>
+      if !v.strOpt.isDefined then
+        errors += ValidationError("activity", "Field 'activity' must be a string")
+      else
+        val activityValue = v.str
+        if !ValidActivityValues.contains(activityValue) then
+          errors += ValidationError("activity", s"Field 'activity' must be one of: ${ValidActivityValues.mkString(", ")}")
+    }
+
+    // workflow_type: enum string ("agile" | "waterfall" | "diagnostic")
+    obj.get("workflow_type").foreach { v =>
+      if !v.strOpt.isDefined then
+        errors += ValidationError("workflow_type", "Field 'workflow_type' must be a string")
+      else
+        val workflowTypeValue = v.str
+        if !ValidWorkflowTypes.contains(workflowTypeValue) then
+          errors += ValidationError("workflow_type", s"Field 'workflow_type' must be one of: ${ValidWorkflowTypes.mkString(", ")}")
     }
 
     // phase_checkpoints: object with values containing context_sha
