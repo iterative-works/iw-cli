@@ -11,16 +11,24 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-274/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-274/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-274/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-03-17T12:21:29.578624679Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-03-17T15:04:08.208043426Z",
+  "status": "implementing",
   "display": {
-    "text": "Tasks Ready",
-    "type": "success",
-    "subtext": "6 phases identified"
+    "text": "Phase 01: Implementing",
+    "type": "progress",
+    "subtext": "Schema and Validator"
   },
-  "message": "Task breakdown complete. Ready to begin implementation.",
+  "message": "Phase 01 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -36,8 +44,24 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "55111be",
-  "needs_attention": true
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "1": {
+      "context_sha": "context_sha=a6168de7e5da4efee4204047783630e3c019d2a7"
+    }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
