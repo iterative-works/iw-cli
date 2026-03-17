@@ -19,7 +19,7 @@ The `./iw worktrees --json` output cannot distinguish worktrees with actively ru
 4. Merge Layer          — ReviewStateUpdater.scala, ReviewStateBuilder.scala (pure logic)
 5. CLI/Adapter Layer    — review-state/write.scala, review-state/update.scala, worktrees.scala
 6. Output Layer         — WorktreesFormatter.scala (CLI formatting)
-7. Skill Layer          — Claude Code workflow skills (triage, analysis, phase transitions)
+7. Documentation Layer  — llms.txt, review-state schema skill reference
 ```
 
 Dependencies flow inward: CLI → Adapters → Model. Schema is the source of truth.
@@ -158,14 +158,11 @@ case class WorktreeSummary(
 **Renamed:** `reviewDisplay` → `workflowDisplay`
 **Added:** `activity`, `workflowType`, `currentPhase`, `totalPhases`, `completedTasks`, `totalTasks`, `issueUrl`, `prUrl`, `registeredAt`, `lastActivityAt`
 
-### CLARIFY: Issue URL Construction
+### Issue URL Source
 
-How should `issueUrl` be constructed? Options:
-1. Store it in ReviewState (workflow writes it)
-2. Derive from `trackerType` + `team` + `issueId` in WorktreeRegistration (pure function)
-3. Read from issueCache if the tracker API returns it
+`issueUrl` is read from `issueCache` → `IssueData.url`. This field is already populated by all tracker clients (GitHub, Linear, GitLab, YouTrack) when fetching issues. The same pattern is used by `CaskServer.scala` to populate `WorktreeStatus.issueUrl`. No new derivation logic needed.
 
-Option 2 seems cleanest — no extra storage, derivable from existing data. But we'd need tracker-specific URL patterns (GitHub: `https://github.com/{org}/{repo}/issues/{num}`, Linear: `https://linear.app/{team}/issue/{id}`).
+Similarly, `prUrl` is read from `prCache` → `PullRequestData.url` (or from `reviewStateCache` → `pr_url` field).
 
 ### Estimate
 
@@ -247,7 +244,7 @@ Update `WorktreeSummary` construction to populate new fields from `ServerState` 
 - `activity` and `workflowType` from `reviewStateCache`
 - Progress fields from `progressCache`
 - `prUrl` from `reviewStateCache` (already stored there)
-- `issueUrl` from derivation or cache
+- `issueUrl` from `issueCache` (`IssueData.url`)
 - Timestamps from `WorktreeRegistration`
 
 ### Estimate
@@ -277,22 +274,33 @@ Keep compact — this is a CLI table.
 
 ---
 
-## Layer 7: Skill Updates (Out of Scope for Code Changes)
+## Layer 7: Documentation — `llms.txt` and Schema Skill
 
-The issue mentions updating workflow skills to set `activity` and `workflow_type` at transition points. These are `.claude/skills/` files (prompt templates), not Scala code. They should be updated after the schema/model/CLI work is complete.
+### Changes
 
-Affected skills and their transition points:
-- `triage-issue`: write initial review-state with `activity: "working"`, `workflow_type`
-- `ag/wf/dx-create-analysis`: `activity: "working"` during analysis
-- Analysis with CLARIFY markers: `activity: "waiting"`
-- `ag/wf/dx-create-tasks`: `activity: "working"`
-- `phase-start`: `activity: "working"`
-- `phase-pr` (non-batch): `activity: "waiting"`
-- `phase-advance / auto-merge`: `activity: "working"`
+#### 7a. `.iw/llms.txt`
 
-### CLARIFY: Skill Update Scope
+Update the llms.txt to document the new `activity` and `workflow_type` fields on `ReviewState`, the redesigned `WorktreeSummary` fields, and any new doc references.
 
-Should skill updates be part of this issue or deferred? They're prompt template changes, not code changes. The CLI/schema work is prerequisite regardless.
+Affected doc entries:
+- `WorkflowTypes` section (ReviewState gains `activity`, `workflowType`)
+- `WorktreeSummary` section (new fields: activity, workflowType, progress, URLs, timestamps; renamed: reviewDisplay → workflowDisplay)
+
+#### 7b. `.claude/skills/iterative-works/review-state-schema/` (if exists)
+
+Update the review-state schema skill reference to include the new fields.
+
+### Estimate
+
+- Optimistic: 0.25h
+- Most likely: 0.5h
+- Pessimistic: 0.75h
+
+---
+
+## Out of Scope: Skill Updates
+
+Workflow skill updates (setting `activity` and `workflow_type` at transition points in triage, analysis, phase commands) will be done separately. The CLI/schema work in this issue is prerequisite.
 
 ---
 
@@ -341,7 +349,7 @@ Should skill updates be part of this issue or deferred? They're prompt template 
 6. **WorktreeSummary Redesign** (Layer 2b) — redesign the model
 7. **Worktrees Command** (Layer 5c) — populate new WorktreeSummary from caches
 8. **Formatter** (Layer 6) — update human output
-9. **Skill Updates** (Layer 7) — update workflow prompt templates
+9. **Documentation** (Layer 7) — update llms.txt and schema skill reference
 
 Layers 1-5b can be done incrementally with tests at each step. Layer 2b (WorktreeSummary redesign) is the largest change and should be done after the schema/model foundation is stable.
 
@@ -357,6 +365,5 @@ Layers 1-5b can be done incrementally with tests at each step. Layer 2b (Worktre
 | 4. Builder/Updater | 0.5h | 1h | 1.5h |
 | 5. CLI Commands | 1h | 2h | 3h |
 | 6. Formatter | 0.5h | 1h | 1.5h |
-| **Total (code)** | **4h** | **7.75h** | **11.5h** |
-| 7. Skills (prompts) | 1h | 2h | 3h |
-| **Total (all)** | **5h** | **9.75h** | **14.5h** |
+| 7. Documentation | 0.25h | 0.5h | 0.75h |
+| **Total** | **4.25h** | **8.25h** | **12.25h** |
