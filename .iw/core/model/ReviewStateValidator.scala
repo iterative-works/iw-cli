@@ -211,7 +211,7 @@ object ReviewStateValidator:
       else
         val activityValue = v.str
         if !ValidActivityValues.contains(activityValue) then
-          errors += ValidationError("activity", s"Field 'activity' must be one of: ${ValidActivityValues.mkString(", ")}")
+          errors += ValidationError("activity", s"Field 'activity' must be one of: ${ValidActivityValues.toSeq.sorted.mkString(", ")}")
     }
 
     // workflow_type: enum string ("agile" | "waterfall" | "diagnostic")
@@ -221,7 +221,7 @@ object ReviewStateValidator:
       else
         val workflowTypeValue = v.str
         if !ValidWorkflowTypes.contains(workflowTypeValue) then
-          errors += ValidationError("workflow_type", s"Field 'workflow_type' must be one of: ${ValidWorkflowTypes.mkString(", ")}")
+          errors += ValidationError("workflow_type", s"Field 'workflow_type' must be one of: ${ValidWorkflowTypes.toSeq.sorted.mkString(", ")}")
     }
 
     // phase_checkpoints: object with values containing context_sha
