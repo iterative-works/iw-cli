@@ -71,3 +71,35 @@ M	.iw/core/test/ServerStateCodecTest.scala
 ```
 
 ---
+
+## Phase 3: Builder and Updater — new field support (2026-03-18)
+
+**Layer:** Merge Logic
+
+**What was built:**
+- `.iw/core/model/ReviewStateBuilder.scala` — Added `activity` and `workflowType` to `BuildInput`; added JSON writing for both fields in `build()` using snake_case key `workflow_type`
+- `.iw/core/model/ReviewStateUpdater.scala` — Added `activity`, `workflowType`, `clearActivity`, `clearWorkflowType` to `UpdateInput`; added merge logic following the existing `status`/`message` clear-wins pattern
+- `.iw/core/test/ReviewStateBuilderTest.scala` — 6 new tests for individual field values + combined; updated 3 existing tests (all fields, validator pass, optional omit)
+- `.iw/core/test/ReviewStateUpdaterTest.scala` — 9 new tests for set/replace/clear/clear-wins/preservation; updated validator pass test
+
+**Dependencies on other layers:**
+- Phase 1: Validator enforces enum constraints on built/merged JSON
+- Phase 2: `ReviewState` carries the new fields
+
+**Testing:**
+- Unit tests: 15 new tests added (all passing, 1928 total)
+- E2E tests: All passing (no regressions)
+
+**Code review:**
+- Iterations: 1
+- No critical issues; warnings about pre-existing patterns (tuple types, duplicated clear logic) noted for future refactoring
+
+**Files changed:**
+```
+M	.iw/core/model/ReviewStateBuilder.scala
+M	.iw/core/model/ReviewStateUpdater.scala
+M	.iw/core/test/ReviewStateBuilderTest.scala
+M	.iw/core/test/ReviewStateUpdaterTest.scala
+```
+
+---
