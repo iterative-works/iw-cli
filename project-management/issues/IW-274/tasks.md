@@ -2,7 +2,7 @@
 
 **Issue:** IW-274
 **Created:** 2026-03-17
-**Status:** 5/6 phases complete (83%)
+**Status:** 6/6 phases complete (100%)
 
 ## Phase Index
 
@@ -11,11 +11,11 @@
 - [x] Phase 3: Builder and Updater — new field support (Est: 0.5-1.5h) → `phase-03-context.md`
 - [x] Phase 4: CLI Commands — write/update flags (Est: 1-2h) → `phase-04-context.md`
 - [x] Phase 5: WorktreeSummary redesign, worktrees command, and formatter (Est: 2-4h) → `phase-05-context.md`
-- [ ] Phase 6: Documentation — llms.txt and schema skill (Est: 0.25-0.75h) → `phase-06-context.md`
+- [x] Phase 6: Documentation — llms.txt and schema skill (Est: 0.25-0.75h) → `phase-06-context.md`
 
 ## Progress Tracker
 
-**Completed:** 5/6 phases
+**Completed:** 6/6 phases
 **Estimated Total:** 5.75-12.75 hours
 **Time Spent:** 0 hours
 

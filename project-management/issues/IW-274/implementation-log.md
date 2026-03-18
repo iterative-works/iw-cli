@@ -173,3 +173,29 @@ M	.iw/test/worktrees.bats
 ```
 
 ---
+
+## Phase 6: Documentation — llms.txt and module docs (2026-03-18)
+
+**Layer:** Documentation
+
+**What was built:**
+- `.iw/docs/WorkflowTypes.md` — Updated `ReviewState` API section with all current fields (`display`, `badges`, `taskLists`, `needsAttention`, `message`, `artifacts`, `activity`, `workflowType`); added `Display`, `Badge`, `TaskList` type documentation; updated module description
+- `.iw/docs/WorktreeSummary.md` — Created new doc file for redesigned `WorktreeSummary` with all 17 fields, data source table, and usage examples
+- `.iw/llms.txt` — Updated `WorkflowTypes` entry to list all types including new ones; updated `WorktreeSummary` entry to describe all field groups (identity, URLs, activity, progress, timestamps)
+
+**Dependencies on other layers:**
+- Phase 2: `ReviewState` field additions documented
+- Phase 5: `WorktreeSummary` redesign documented
+
+**Testing:**
+- Documentation-only phase, no code changes
+- Cross-checked all documented types against source files
+
+**Files changed:**
+```
+M	.iw/docs/WorkflowTypes.md
+A	.iw/docs/WorktreeSummary.md
+M	.iw/llms.txt
+```
+
+---
