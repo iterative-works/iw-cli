@@ -39,18 +39,38 @@ import iw.core.output.*
     val issueId = wt.issueId
     val issueTitle = state.issueCache.get(issueId).map(_.data.title)
     val issueStatus = state.issueCache.get(issueId).map(_.data.status)
+    val issueUrl = state.issueCache.get(issueId).map(_.data.url)
+    val prUrl = state.prCache.get(issueId).map(_.pr.url)
     val prState = state.prCache.get(issueId).map(_.pr.stateBadgeText)
-    val reviewDisplay = state.reviewStateCache.get(issueId).flatMap(_.state.display.map(_.text))
+    val activity = state.reviewStateCache.get(issueId).flatMap(_.state.activity)
+    val workflowType = state.reviewStateCache.get(issueId).flatMap(_.state.workflowType)
+    val workflowDisplay = state.reviewStateCache.get(issueId).flatMap(_.state.display.map(_.text))
     val needsAttention = state.reviewStateCache.get(issueId).flatMap(_.state.needsAttention).getOrElse(false)
+    val currentPhase = state.progressCache.get(issueId).flatMap(_.progress.currentPhase)
+    val totalPhases = state.progressCache.get(issueId).map(_.progress.totalPhases)
+    val completedTasks = state.progressCache.get(issueId).map(_.progress.overallCompleted)
+    val totalTasks = state.progressCache.get(issueId).map(_.progress.overallTotal)
+    val registeredAt = Some(wt.registeredAt.toString)
+    val lastActivityAt = Some(wt.lastSeenAt.toString)
 
     WorktreeSummary(
       issueId = issueId,
       path = wt.path,
       issueTitle = issueTitle,
       issueStatus = issueStatus,
+      issueUrl = issueUrl,
+      prUrl = prUrl,
       prState = prState,
-      reviewDisplay = reviewDisplay,
-      needsAttention = needsAttention
+      activity = activity,
+      workflowType = workflowType,
+      workflowDisplay = workflowDisplay,
+      needsAttention = needsAttention,
+      currentPhase = currentPhase,
+      totalPhases = totalPhases,
+      completedTasks = completedTasks,
+      totalTasks = totalTasks,
+      registeredAt = registeredAt,
+      lastActivityAt = lastActivityAt
     )
   }.sortBy(_.issueId)
 
