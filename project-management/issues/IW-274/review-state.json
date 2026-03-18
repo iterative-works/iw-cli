@@ -53,14 +53,14 @@
       "path": "project-management/issues/IW-274/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-03-18T13:42:31.565945448Z",
-  "status": "implementing",
+  "last_updated": "2026-03-18T14:30:44.728060724Z",
+  "status": "all_complete",
   "display": {
-    "text": "Phase 05: Implementing",
-    "type": "progress",
-    "subtext": "WorktreeSummary redesign, worktrees command, and formatter"
+    "text": "Ready for Final Review",
+    "type": "success",
+    "subtext": "Documentation — llms.txt and module docs"
   },
-  "message": "Phase 05 implementation started",
+  "message": "All phases complete - final PR created",
   "available_actions": [
     {
       "id": "create-tasks",
