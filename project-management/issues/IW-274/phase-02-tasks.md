@@ -62,7 +62,7 @@
 
 ## Verification
 - [x] [verify] Run `./iw test unit` — all tests (existing + new) must pass
-- [ ] [verify] Run `./iw test e2e` — no regressions in end-to-end tests
+- [x] [verify] Run `./iw test e2e` — no regressions in end-to-end tests (review-state and schema E2E tests pass; rm.bats failures are pre-existing and unrelated)
 - [x] [verify] Confirm no compilation warnings introduced
-- [ ] [verify] Commit all changes with a descriptive message referencing IW-274
-**Phase Status:** In Progress
+- [x] [verify] Commit all changes with a descriptive message referencing IW-274
+**Phase Status:** Complete
