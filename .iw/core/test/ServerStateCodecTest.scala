@@ -332,7 +332,7 @@ class ServerStateCodecTest extends FunSuite:
     assertEquals(parsed.state.activity, Some("working"))
     assertEquals(parsed.state.workflowType, Some("agile"))
 
-  test("ReviewState with activity and workflowType absent roundtrips correctly (backward compat)"):
+  test("ReviewState with activity and workflowType absent roundtrips correctly"):
     val reviewArtifact = ReviewArtifact(label = "Artifact", path = "/path/to/artifact")
     val reviewState = ReviewState(
       display = None,
