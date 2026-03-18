@@ -35,16 +35,32 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-274/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-274/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-274/phase-04-tasks.md"
+    },
+    {
+      "label": "Phase 5 Context",
+      "path": "project-management/issues/IW-274/phase-05-context.md"
+    },
+    {
+      "label": "Phase 5 Tasks",
+      "path": "project-management/issues/IW-274/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-03-18T09:42:56.000136861Z",
+  "last_updated": "2026-03-18T13:42:31.565945448Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 03: Implementing",
+    "text": "Phase 05: Implementing",
     "type": "progress",
-    "subtext": "Builder and Updater — new field support"
+    "subtext": "WorktreeSummary redesign, worktrees command, and formatter"
   },
-  "message": "Phase 03 implementation started",
+  "message": "Phase 05 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -75,16 +91,34 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "55111be",
   "needs_attention": true,
   "phase_checkpoints": {
-    "3": {
-      "context_sha": "context_sha=c593003e2a489df6214d0c36d3e847f6f954d5a5"
+    "5": {
+      "context_sha": "context_sha=57ea9974616e0029c4ea5607e08442980f05d487"
     }
   },
   "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
     {
       "label": "In Progress",
       "type": "info"

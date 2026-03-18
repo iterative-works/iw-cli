@@ -237,13 +237,23 @@ class ServerStateCodecTest extends FunSuite:
       path = "/home/user/projects/iw-cli-IW-123",
       issueTitle = None,
       issueStatus = None,
+      issueUrl = None,
+      prUrl = None,
       prState = None,
-      reviewDisplay = None,
-      needsAttention = false
+      activity = None,
+      workflowType = None,
+      workflowDisplay = None,
+      needsAttention = false,
+      currentPhase = None,
+      totalPhases = None,
+      completedTasks = None,
+      totalTasks = None,
+      registeredAt = None,
+      lastActivityAt = None
     )
 
-    val json = write(summary)
-    val parsed = read[WorktreeSummary](json)
+    val json = upickle.default.write[WorktreeSummary](summary)
+    val parsed = upickle.default.read[WorktreeSummary](json)
 
     assertEquals(parsed, summary)
 
@@ -253,13 +263,23 @@ class ServerStateCodecTest extends FunSuite:
       path = "/home/user/projects/iw-cli-IW-123",
       issueTitle = Some("Test Issue"),
       issueStatus = Some("In Progress"),
+      issueUrl = Some("https://linear.app/team/issue/IW-123"),
+      prUrl = Some("https://github.com/org/repo/pull/42"),
       prState = Some("Open"),
-      reviewDisplay = Some("2 approvals"),
-      needsAttention = true
+      activity = Some("working"),
+      workflowType = Some("waterfall"),
+      workflowDisplay = Some("2 approvals"),
+      needsAttention = true,
+      currentPhase = Some(2),
+      totalPhases = Some(4),
+      completedTasks = Some(5),
+      totalTasks = Some(12),
+      registeredAt = Some("2024-01-01T00:00:00Z"),
+      lastActivityAt = Some("2024-01-02T00:00:00Z")
     )
 
-    val json = write(summary)
-    val parsed = read[WorktreeSummary](json)
+    val json = upickle.default.write[WorktreeSummary](summary)
+    val parsed = upickle.default.read[WorktreeSummary](json)
 
     assertEquals(parsed, summary)
 
