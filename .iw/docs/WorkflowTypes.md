@@ -1,6 +1,6 @@
 # WorkflowTypes
 
-> Domain models for agile workflow progress tracking.
+> Domain models for workflow progress tracking and review state.
 
 ## Import
 
@@ -19,14 +19,46 @@ case class ReviewArtifact(
 )
 ```
 
+### Display
+
+```scala
+case class Display(
+  text: String,           // Primary status label shown in badge
+  subtext: Option[String],// Optional secondary information
+  displayType: String     // Category: info, success, warning, error, progress
+)
+```
+
+### Badge
+
+```scala
+case class Badge(
+  label: String,     // Short text shown on the badge
+  badgeType: String  // Color category: info, success, warning, error, progress
+)
+```
+
+### TaskList
+
+```scala
+case class TaskList(
+  label: String,  // Human-readable name for the task list
+  path: String    // Relative path from project root to the markdown file
+)
+```
+
 ### ReviewState
 
 ```scala
 case class ReviewState(
-  status: Option[String],          // e.g., "awaiting_review", "in_review"
-  phase: Option[Int],              // Phase number associated with review
-  message: Option[String],         // Status message
-  artifacts: List[ReviewArtifact]  // Available artifacts for review
+  display: Option[Display],          // Workflow-controlled presentation instructions
+  badges: Option[List[Badge]],       // Contextual badges
+  taskLists: Option[List[TaskList]], // Task list file references
+  needsAttention: Option[Boolean],   // Flag indicating workflow needs human input
+  message: Option[String],           // Prominent notification for the user
+  artifacts: List[ReviewArtifact],   // Artifacts available for review
+  activity: Option[String],          // "working" | "waiting" — scheduling signal
+  workflowType: Option[String]       // "agile" | "waterfall" | "diagnostic"
 )
 ```
 
