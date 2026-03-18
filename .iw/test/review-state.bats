@@ -509,3 +509,200 @@ assert d['issue_id'] == 'IW-42'
     [[ "$output" == *"write"* ]]
     [[ "$output" == *"update"* ]]
 }
+
+# ============================================================================
+# WRITE --activity / --workflow-type FLAG TESTS
+# ============================================================================
+
+@test "review-state write: --activity flag writes activity field" {
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --activity working \
+        --output "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['activity'] == 'working', f\"expected 'working', got {d.get('activity')}\"
+"
+}
+
+@test "review-state write: --workflow-type flag writes workflow_type field" {
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --workflow-type agile \
+        --output "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['workflow_type'] == 'agile', f\"expected 'agile', got {d.get('workflow_type')}\"
+"
+}
+
+@test "review-state write: --activity and --workflow-type together produces valid JSON" {
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --activity waiting \
+        --workflow-type diagnostic \
+        --output "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['activity'] == 'waiting'
+assert d['workflow_type'] == 'diagnostic'
+"
+
+    run "$PROJECT_ROOT/iw" review-state validate "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+}
+
+@test "review-state write: invalid --activity value fails validation" {
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --activity invalid \
+        --output "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"activity"* ]]
+}
+
+@test "review-state write: invalid --workflow-type value fails validation" {
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --workflow-type invalid \
+        --output "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"workflow_type"* ]]
+}
+
+@test "review-state write --help shows activity and workflow-type flags" {
+    run "$PROJECT_ROOT/iw" review-state write --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--activity"* ]]
+    [[ "$output" == *"--workflow-type"* ]]
+}
+
+# ============================================================================
+# UPDATE --activity / --workflow-type FLAG TESTS
+# ============================================================================
+
+@test "review-state update: --activity flag sets activity field" {
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --activity working \
+        --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['activity'] == 'working', f\"expected 'working', got {d.get('activity')}\"
+"
+}
+
+@test "review-state update: --workflow-type flag sets workflow_type field" {
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --workflow-type waterfall \
+        --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['workflow_type'] == 'waterfall', f\"expected 'waterfall', got {d.get('workflow_type')}\"
+"
+}
+
+@test "review-state update: --clear-activity removes activity field" {
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z","activity":"working"}' > "$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --clear-activity \
+        --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'activity' not in d, f\"expected 'activity' absent, found {d.get('activity')}\"
+"
+}
+
+@test "review-state update: --clear-workflow-type removes workflow_type field" {
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z","workflow_type":"agile"}' > "$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --clear-workflow-type \
+        --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert 'workflow_type' not in d, f\"expected 'workflow_type' absent, found {d.get('workflow_type')}\"
+"
+}
+
+@test "review-state update: activity and workflow_type preserved when not updated" {
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z","activity":"waiting","workflow_type":"waterfall"}' > "$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --message "test" \
+        --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 0 ]
+
+    local json
+    json="$(cat "$TEST_TMPDIR/state.json")"
+    echo "$json" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['activity'] == 'waiting'
+assert d['workflow_type'] == 'waterfall'
+"
+}
+
+@test "review-state update: invalid --activity value fails validation" {
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --activity bogus \
+        --input "$TEST_TMPDIR/state.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"activity"* ]]
+}
+
+@test "review-state update --help shows activity and workflow-type flags" {
+    run "$PROJECT_ROOT/iw" review-state update --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--activity"* ]]
+    [[ "$output" == *"--clear-activity"* ]]
+    [[ "$output" == *"--workflow-type"* ]]
+    [[ "$output" == *"--clear-workflow-type"* ]]
+}

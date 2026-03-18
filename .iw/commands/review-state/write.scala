@@ -14,6 +14,8 @@
 //   --artifact <label:path[=category]>  Repeatable artifact with optional category
 //   --action <id:label:skill>  Repeatable action (id:label:skill)
 //   --pr-url <value>           PR URL string
+//   --activity <value>         Activity state: working, waiting
+//   --workflow-type <value>    Workflow type: agile, waterfall, diagnostic
 //   --checkpoint <phase:sha>   Repeatable phase checkpoint (phase:sha)
 //   --output <path>            Output file path
 //   --from-stdin               Read full JSON from stdin
@@ -57,6 +59,8 @@ private def showHelp(): Unit =
   println("  --artifact <label:path[=category]>        Repeatable artifact with optional category")
   println("  --action <id:label:skill>                 Repeatable action (id:label:skill)")
   println("  --pr-url <value>                          PR URL string")
+  println("  --activity <value>                        Activity state: working, waiting")
+  println("  --workflow-type <value>                   Workflow type: agile, waterfall, diagnostic")
   println("  --checkpoint <phase:sha>                  Repeatable phase checkpoint (phase:sha)")
   println("  --output <path>                           Output file path")
   println("  --from-stdin                              Read full JSON from stdin")
@@ -136,6 +140,8 @@ private def handleFlags(argList: List[String]): Unit =
   val needsAttention = if argList.contains("--needs-attention") then Some(true) else None
   val message = extractFlag(argList, "--message")
   val prUrl = extractFlag(argList, "--pr-url")
+  val activity = extractFlag(argList, "--activity")
+  val workflowType = extractFlag(argList, "--workflow-type")
 
   val artifacts = extractRepeatedFlag(argList, "--artifact").map { raw =>
     // Format: label:path or label:path=category
@@ -184,7 +190,9 @@ private def handleFlags(argList: List[String]): Unit =
     actions = actions,
     prUrl = prUrl,
     gitSha = gitSha,
-    phaseCheckpoints = phaseCheckpoints
+    phaseCheckpoints = phaseCheckpoints,
+    activity = activity,
+    workflowType = workflowType
   )
 
   val json = ReviewStateBuilder.build(input)
