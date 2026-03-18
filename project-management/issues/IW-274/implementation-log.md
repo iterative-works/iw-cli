@@ -103,3 +103,73 @@ M	.iw/core/test/ReviewStateUpdaterTest.scala
 ```
 
 ---
+
+## Phase 4: CLI Commands — write/update flags (2026-03-18)
+
+**Layer:** CLI/Adapter
+
+**What was built:**
+- `.iw/commands/review-state/write.scala` — Added `--activity` and `--workflow-type` flags to the write command, with help text and validation
+- `.iw/commands/review-state/update.scala` — Added `--activity`, `--workflow-type`, `--clear-activity`, `--clear-workflow-type` flags to the update command
+- `.iw/test/review-state.bats` — 13 new E2E tests covering write/update with new flags, validation, clear operations, preservation
+
+**Dependencies on other layers:**
+- Phase 3: `BuildInput` and `UpdateInput` accept the new fields
+
+**Testing:**
+- E2E tests: 13 tests added (all passing)
+
+**Code review:**
+- Iterations: 1
+- No critical issues
+
+**Files changed:**
+```
+M	.iw/commands/review-state/update.scala
+M	.iw/commands/review-state/write.scala
+M	.iw/test/review-state.bats
+```
+
+---
+
+## Phase 5: WorktreeSummary redesign, worktrees command, and formatter (2026-03-18)
+
+**Layer:** Domain Model + CLI/Adapter + Output
+
+**What was built:**
+- `.iw/core/model/WorktreeSummary.scala` — Redesigned with 10 new fields: `issueUrl`, `prUrl`, `activity`, `workflowType`, `workflowDisplay` (renamed from `reviewDisplay`), `currentPhase`, `totalPhases`, `completedTasks`, `totalTasks`, `registeredAt`, `lastActivityAt`
+- `.iw/commands/worktrees.scala` — Populates all new fields from `reviewStateCache`, `issueCache`, `prCache`, `progressCache`, and `WorktreeRegistration` timestamps; hoisted repeated cache lookups into local variables
+- `.iw/core/output/WorktreesFormatter.scala` — Displays `▶`/`⏸` activity indicators, `AG`/`WF`/`DX` workflow type abbreviations, and `Phase N/M` + `N/M tasks` progress
+- `.iw/core/test/WorktreesFormatterTest.scala` — Updated 8 existing tests via `minimalWorktree` helper; added 9 new tests covering activity, workflow type, progress, combined fields, and graceful degradation
+- `.iw/core/test/ServerStateCodecTest.scala` — Updated 2 `WorktreeSummary` roundtrip tests for new constructor
+- `.iw/test/worktrees.bats` — 4 new E2E tests verifying `workflowDisplay`, `activity`/`workflowType`, progress fields, and URL/timestamp fields in JSON output
+
+**Key decisions:**
+- `workflowDisplay` is populated for JSON consumers but not rendered in human-readable formatter (activity + type abbreviation replaces it)
+- Timestamps stored as `Option[String]` per analysis design for JSON serialization consistency
+- Stringly-typed `activity`/`workflowType` matches `ReviewState` design; enum migration deferred to separate issue
+
+**Dependencies on other layers:**
+- Phase 2: `ReviewState` fields `activity` and `workflowType`
+- Phase 4: CLI flags for E2E testing
+
+**Testing:**
+- Unit tests: 9 new tests added, 8 existing updated (all passing, 1937 total)
+- E2E tests: 4 new tests added (all passing)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-05-20260318-150834.md
+- Fixed: Removed implementation source references from comments, fixed BATS test name with temporal framing, fixed fragile `=~` pattern, hoisted repeated cache lookups
+
+**Files changed:**
+```
+M	.iw/commands/worktrees.scala
+M	.iw/core/model/WorktreeSummary.scala
+M	.iw/core/output/WorktreesFormatter.scala
+M	.iw/core/test/ServerStateCodecTest.scala
+M	.iw/core/test/WorktreesFormatterTest.scala
+M	.iw/test/worktrees.bats
+```
+
+---

@@ -29,25 +29,25 @@ case class WorktreeSummary(
   // Identity
   issueId: String,
   path: String,
-  // Issue metadata (from issueCache)
+  // Issue metadata
   issueTitle: Option[String],
   issueStatus: Option[String],
   // URLs
   issueUrl: Option[String],
   prUrl: Option[String],
-  // PR state (from prCache)
+  // PR state
   prState: Option[String],
-  // Workflow state (from reviewStateCache)
+  // Workflow state
   activity: Option[String],
   workflowType: Option[String],
   workflowDisplay: Option[String],
   needsAttention: Boolean,
-  // Progress (from progressCache)
+  // Progress
   currentPhase: Option[Int],
   totalPhases: Option[Int],
   completedTasks: Option[Int],
   totalTasks: Option[Int],
-  // Timestamps (from WorktreeRegistration)
+  // Timestamps
   registeredAt: Option[String],
   lastActivityAt: Option[String]
 ) derives ReadWriter

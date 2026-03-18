@@ -127,7 +127,7 @@ EOF
     echo "$output" | jq '.[0].needsAttention' > /dev/null
 }
 
-@test "worktrees --json includes workflowDisplay field (renamed from reviewDisplay)" {
+@test "worktrees --json includes workflowDisplay field" {
     # Create state with a review state that has display text
     cat > "$HOME/.local/share/iw/server/state.json" << EOF
 {
@@ -163,7 +163,7 @@ EOF
     run "$PROJECT_ROOT/iw" worktrees --json --all
     [ "$status" -eq 0 ]
 
-    # Verify workflowDisplay field exists (renamed from reviewDisplay)
+    # Verify workflowDisplay field exists
     result=$(echo "$output" | jq '.[0] | has("workflowDisplay")')
     [ "$result" = "true" ]
 
@@ -328,8 +328,8 @@ EOF
 
     # Verify timestamp fields are present (from WorktreeRegistration)
     registeredAt=$(echo "$output" | jq -r '.[0].registeredAt')
-    [[ "$registeredAt" =~ "2024-03-01" ]]
+    [[ "$registeredAt" == *"2024-03-01"* ]]
 
     lastActivityAt=$(echo "$output" | jq -r '.[0].lastActivityAt')
-    [[ "$lastActivityAt" =~ "2024-03-15" ]]
+    [[ "$lastActivityAt" == *"2024-03-15"* ]]
 }

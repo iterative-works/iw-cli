@@ -53,14 +53,14 @@
       "path": "project-management/issues/IW-274/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-03-18T13:41:47.112788730Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-03-18T13:42:31.565945448Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 5: Tasks Ready",
-    "type": "success",
+    "text": "Phase 05: Implementing",
+    "type": "progress",
     "subtext": "WorktreeSummary redesign, worktrees command, and formatter"
   },
-  "message": "Phase 5 tasks ready",
+  "message": "Phase 05 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -111,6 +111,10 @@
     }
   },
   "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
     {
       "label": "In Progress",
       "type": "info"
