@@ -43,5 +43,5 @@
 ## Verification
 - [x] [verify] Run `bats .iw/test/review-state.bats` — all tests (existing + new) must pass
 - [x] [verify] Run `./iw test unit` — no regressions in unit tests
-- [ ] [verify] Run `./iw test e2e` — no regressions in all E2E tests
-- [ ] [verify] Commit all changes with a descriptive message referencing IW-274
+- [x] [verify] Run `./iw test e2e` — no regressions in all E2E tests
+- [x] [verify] Commit all changes with a descriptive message referencing IW-274
