@@ -58,5 +58,5 @@
 
 ## Verification
 - [x] [verify] Run `./iw test unit` — all tests (existing + new) must pass
-- [ ] [verify] Run `./iw test e2e` — no regressions in end-to-end tests
-- [ ] [verify] Commit all changes with a descriptive message referencing IW-274
+- [x] [verify] Run `./iw test e2e` — no regressions in end-to-end tests
+- [x] [verify] Commit all changes with a descriptive message referencing IW-274
