@@ -56,6 +56,8 @@ case class TaskList(
   * @param needsAttention Optional flag indicating workflow needs human input
   * @param message Optional prominent notification for the user
   * @param artifacts List of artifacts available for review (required field)
+  * @param activity Optional current activity state ("working" | "waiting")
+  * @param workflowType Optional workflow methodology ("agile" | "waterfall" | "diagnostic")
   */
 case class ReviewState(
   display: Option[Display],
@@ -63,5 +65,7 @@ case class ReviewState(
   taskLists: Option[List[TaskList]],
   needsAttention: Option[Boolean],
   message: Option[String],
-  artifacts: List[ReviewArtifact]
+  artifacts: List[ReviewArtifact],
+  activity: Option[String] = None,
+  workflowType: Option[String] = None
 )

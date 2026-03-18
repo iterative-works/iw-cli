@@ -312,3 +312,41 @@ class ServerStateCodecTest extends FunSuite:
     val parsed = read[WorktreeStatus](json)
 
     assertEquals(parsed, status)
+
+  test("ReviewState with activity and workflowType roundtrips through macroRW codec"):
+    val reviewArtifact = ReviewArtifact(label = "Artifact", path = "/path/to/artifact")
+    val reviewState = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(reviewArtifact),
+      activity = Some("working"),
+      workflowType = Some("agile")
+    )
+
+    val json = write(CachedReviewState(reviewState, Map.empty))
+    val parsed = read[CachedReviewState](json)
+
+    assertEquals(parsed.state.activity, Some("working"))
+    assertEquals(parsed.state.workflowType, Some("agile"))
+
+  test("ReviewState with activity and workflowType absent roundtrips correctly (backward compat)"):
+    val reviewArtifact = ReviewArtifact(label = "Artifact", path = "/path/to/artifact")
+    val reviewState = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(reviewArtifact),
+      activity = None,
+      workflowType = None
+    )
+
+    val json = write(CachedReviewState(reviewState, Map.empty))
+    val parsed = read[CachedReviewState](json)
+
+    assertEquals(parsed.state.activity, None)
+    assertEquals(parsed.state.workflowType, None)

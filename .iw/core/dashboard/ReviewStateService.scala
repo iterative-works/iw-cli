@@ -30,6 +30,8 @@ object ReviewStateService:
     *   ],
     *   "needs_attention": false,      // optional
     *   "message": "Ready",            // optional
+    *   "activity": "working",         // optional ("working" | "waiting")
+    *   "workflow_type": "agile",      // optional ("agile" | "waterfall" | "diagnostic")
     *   "artifacts": [                 // required
     *     {"label": "Analysis", "path": "project-management/issues/46/analysis.md"}
     *   ]
@@ -81,6 +83,8 @@ object ReviewStateService:
           state.taskLists.foreach(tl => obj("task_lists") = writeJs(tl))
           state.needsAttention.foreach(na => obj("needs_attention") = ujson.Bool(na))
           state.message.foreach(m => obj("message") = ujson.Str(m))
+          state.activity.foreach(a => obj("activity") = ujson.Str(a))
+          state.workflowType.foreach(wt => obj("workflow_type") = ujson.Str(wt))
           obj
         },
         jsValue => {
@@ -101,8 +105,16 @@ object ReviewStateService:
             case ujson.Str(s) => Some(s)
             case _ => None
           }
+          val activity = obj.get("activity").flatMap {
+            case ujson.Str(s) => Some(s)
+            case _ => None
+          }
+          val workflowType = obj.get("workflow_type").flatMap {
+            case ujson.Str(s) => Some(s)
+            case _ => None
+          }
 
-          ReviewState(display, badges, taskLists, needsAttention, message, artifacts)
+          ReviewState(display, badges, taskLists, needsAttention, message, artifacts, activity, workflowType)
         }
       )
 
@@ -110,6 +122,82 @@ object ReviewStateService:
       Right(parsed)
     catch
       case e: Exception => Left(s"Failed to parse review state JSON: ${e.getMessage}")
+
+  /** Serialize review state to JSON string using the disk format (snake_case keys).
+    *
+    * @param state ReviewState to serialize
+    * @return JSON string representation
+    */
+  def writeReviewStateJson(state: ReviewState): String =
+    import upickle.default.*
+
+    given ReadWriter[ReviewArtifact] = macroRW[ReviewArtifact]
+    given ReadWriter[Badge] = readwriter[ujson.Value].bimap[Badge](
+      badge => ujson.Obj("label" -> ujson.Str(badge.label), "type" -> ujson.Str(badge.badgeType)),
+      jsValue => {
+        val obj = jsValue.obj
+        Badge(obj("label").str, obj("type").str)
+      }
+    )
+    given ReadWriter[TaskList] = macroRW[TaskList]
+
+    given ReadWriter[Display] = readwriter[ujson.Value].bimap[Display](
+      display => {
+        val obj = ujson.Obj(
+          "text" -> ujson.Str(display.text),
+          "type" -> ujson.Str(display.displayType)
+        )
+        display.subtext.foreach(st => obj("subtext") = ujson.Str(st))
+        obj
+      },
+      jsValue => {
+        val obj = jsValue.obj
+        val text = obj("text").str
+        val displayType = obj("type").str
+        val subtext = obj.get("subtext").map(_.str)
+        Display(text, subtext, displayType)
+      }
+    )
+
+    given ReadWriter[ReviewState] = readwriter[ujson.Value].bimap[ReviewState](
+      state => {
+        val obj = ujson.Obj("artifacts" -> writeJs(state.artifacts))
+        state.display.foreach(d => obj("display") = writeJs(d))
+        state.badges.foreach(b => obj("badges") = writeJs(b))
+        state.taskLists.foreach(tl => obj("task_lists") = writeJs(tl))
+        state.needsAttention.foreach(na => obj("needs_attention") = ujson.Bool(na))
+        state.message.foreach(m => obj("message") = ujson.Str(m))
+        state.activity.foreach(a => obj("activity") = ujson.Str(a))
+        state.workflowType.foreach(wt => obj("workflow_type") = ujson.Str(wt))
+        obj
+      },
+      jsValue => {
+        val obj = jsValue.obj
+        val artifacts = read[List[ReviewArtifact]](obj("artifacts"))
+        val display = obj.get("display").map(read[Display](_))
+        val badges = obj.get("badges").map(read[List[Badge]](_))
+        val taskLists = obj.get("task_lists").map(read[List[TaskList]](_))
+        val needsAttention = obj.get("needs_attention").flatMap {
+          case ujson.Bool(b) => Some(b)
+          case _ => None
+        }
+        val message = obj.get("message").flatMap {
+          case ujson.Str(s) => Some(s)
+          case _ => None
+        }
+        val activity = obj.get("activity").flatMap {
+          case ujson.Str(s) => Some(s)
+          case _ => None
+        }
+        val workflowType = obj.get("workflow_type").flatMap {
+          case ujson.Str(s) => Some(s)
+          case _ => None
+        }
+        ReviewState(display, badges, taskLists, needsAttention, message, artifacts, activity, workflowType)
+      }
+    )
+
+    write[ReviewState](state)
 
   /** Fetch review state with cache support.
     *
