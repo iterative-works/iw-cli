@@ -19,7 +19,9 @@ object ReviewStateBuilder:
     actions: List[(String, String, String)] = Nil,
     prUrl: Option[String] = None,
     gitSha: Option[String] = None,
-    phaseCheckpoints: Map[String, String] = Map.empty
+    phaseCheckpoints: Map[String, String] = Map.empty,
+    activity: Option[String] = None,
+    workflowType: Option[String] = None
   )
 
   def build(input: BuildInput): String =
@@ -57,6 +59,8 @@ object ReviewStateBuilder:
 
     input.needsAttention.foreach(v => obj("needs_attention") = ujson.Bool(v))
     input.message.foreach(v => obj("message") = ujson.Str(v))
+    input.activity.foreach(v => obj("activity") = ujson.Str(v))
+    input.workflowType.foreach(v => obj("workflow_type") = ujson.Str(v))
 
     if input.actions.nonEmpty then
       obj("available_actions") = ujson.Arr(input.actions.map { case (id, label, skill) =>

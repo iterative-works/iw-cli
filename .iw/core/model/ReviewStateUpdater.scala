@@ -12,6 +12,8 @@ object ReviewStateUpdater:
     needsAttention: Option[Boolean] = None,
     prUrl: Option[String] = None,
     gitSha: Option[String] = None,
+    activity: Option[String] = None,
+    workflowType: Option[String] = None,
 
     // Display object fields (merge individual properties)
     displayText: Option[String] = None,
@@ -40,7 +42,9 @@ object ReviewStateUpdater:
     clearMessage: Boolean = false,
     clearNeedsAttention: Boolean = false,
     clearPrUrl: Boolean = false,
-    clearDisplay: Boolean = false
+    clearDisplay: Boolean = false,
+    clearActivity: Boolean = false,
+    clearWorkflowType: Boolean = false
   )
 
   enum ArrayMergeMode:
@@ -90,6 +94,18 @@ object ReviewStateUpdater:
       else existing("pr_url") = ujson.Str(v)
     }
     if update.clearPrUrl && update.prUrl.isEmpty then existing.obj.remove("pr_url")
+
+    update.activity.foreach { v =>
+      if update.clearActivity then existing.obj.remove("activity")
+      else existing("activity") = ujson.Str(v)
+    }
+    if update.clearActivity && update.activity.isEmpty then existing.obj.remove("activity")
+
+    update.workflowType.foreach { v =>
+      if update.clearWorkflowType then existing.obj.remove("workflow_type")
+      else existing("workflow_type") = ujson.Str(v)
+    }
+    if update.clearWorkflowType && update.workflowType.isEmpty then existing.obj.remove("workflow_type")
 
     update.gitSha.foreach(v => existing("git_sha") = ujson.Str(v))
 

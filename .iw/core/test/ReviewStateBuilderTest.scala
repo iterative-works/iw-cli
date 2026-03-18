@@ -37,7 +37,9 @@ class ReviewStateBuilderTest extends munit.FunSuite:
       gitSha = Some("abc1234"),
       message = Some("Phase 3 review complete"),
       phaseCheckpoints = Map("1" -> "sha1", "2" -> "sha2"),
-      actions = List(("implement", "Start Implementation", "iterative-works:ag-implement"))
+      actions = List(("implement", "Start Implementation", "iterative-works:ag-implement")),
+      activity = Some("working"),
+      workflowType = Some("agile")
     )
     val json = ReviewStateBuilder.build(input)
     val parsed = ujson.read(json)
@@ -61,6 +63,8 @@ class ReviewStateBuilderTest extends munit.FunSuite:
     assertEquals(parsed("available_actions")(0)("id").str, "implement")
     assertEquals(parsed("available_actions")(0)("label").str, "Start Implementation")
     assertEquals(parsed("available_actions")(0)("skill").str, "iterative-works:ag-implement")
+    assertEquals(parsed("activity").str, "working")
+    assertEquals(parsed("workflow_type").str, "agile")
 
   // --- Multiple artifacts ---
 
@@ -133,11 +137,81 @@ class ReviewStateBuilderTest extends munit.FunSuite:
       gitSha = Some("abc1234"),
       message = Some("Working on phase 2"),
       phaseCheckpoints = Map("1" -> "sha123"),
-      actions = List(("continue", "Continue", "ag-implement"))
+      actions = List(("continue", "Continue", "ag-implement")),
+      activity = Some("working"),
+      workflowType = Some("agile")
     )
     val json = ReviewStateBuilder.build(input)
     val result = ReviewStateValidator.validate(json)
     assert(result.isValid, s"Built JSON should be valid but got errors: ${result.errors}")
+
+  // --- Activity field ---
+
+  test("build with activity working writes activity field"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      activity = Some("working")
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    assertEquals(parsed("activity").str, "working")
+
+  test("build with activity waiting writes activity field"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      activity = Some("waiting")
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    assertEquals(parsed("activity").str, "waiting")
+
+  // --- WorkflowType field ---
+
+  test("build with workflowType agile writes workflow_type field"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      workflowType = Some("agile")
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    assertEquals(parsed("workflow_type").str, "agile")
+
+  test("build with workflowType waterfall writes workflow_type field"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      workflowType = Some("waterfall")
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    assertEquals(parsed("workflow_type").str, "waterfall")
+
+  test("build with workflowType diagnostic writes workflow_type field"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      workflowType = Some("diagnostic")
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    assertEquals(parsed("workflow_type").str, "diagnostic")
+
+  // --- Combined activity and workflowType ---
+
+  test("build with both activity and workflowType produces valid JSON with both keys"):
+    val input = ReviewStateBuilder.BuildInput(
+      issueId = "IW-1",
+      lastUpdated = "2026-01-28T12:00:00Z",
+      activity = Some("working"),
+      workflowType = Some("agile")
+    )
+    val json = ReviewStateBuilder.build(input)
+    val parsed = ujson.read(json)
+    assertEquals(parsed("activity").str, "working")
+    assertEquals(parsed("workflow_type").str, "agile")
 
   // --- Optional fields omitted when not provided ---
 
@@ -158,3 +232,5 @@ class ReviewStateBuilderTest extends munit.FunSuite:
     assert(!parsed.obj.contains("message"), "message should be omitted")
     assert(!parsed.obj.contains("phase_checkpoints"), "phase_checkpoints should be omitted")
     assert(!parsed.obj.contains("available_actions"), "available_actions should be omitted")
+    assert(!parsed.obj.contains("activity"), "activity should be omitted")
+    assert(!parsed.obj.contains("workflow_type"), "workflow_type should be omitted")
