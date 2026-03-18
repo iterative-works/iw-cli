@@ -19,16 +19,24 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-274/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-274/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-274/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-03-17T15:04:08.208043426Z",
+  "last_updated": "2026-03-18T08:50:22.844188991Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 01: Implementing",
+    "text": "Phase 02: Implementing",
     "type": "progress",
-    "subtext": "Schema and Validator"
+    "subtext": "Domain Model — ReviewState fields and codec"
   },
-  "message": "Phase 01 implementation started",
+  "message": "Phase 02 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -49,16 +57,25 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "55111be",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=a6168de7e5da4efee4204047783630e3c019d2a7"
+    "2": {
+      "context_sha": "context_sha=08c76e9a8e6351ed5b3129c7001c2cf916da4f87"
     }
   },
   "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
     {
       "label": "In Progress",
       "type": "info"

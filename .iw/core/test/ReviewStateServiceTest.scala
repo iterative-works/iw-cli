@@ -396,3 +396,139 @@ class ReviewStateServiceTest extends munit.FunSuite:
     // Verify mtime was captured
     assert(returned.filesMtime.contains(reviewStatePath))
     assertEquals(returned.filesMtime(reviewStatePath), 1500L)
+
+  // activity and workflow_type field parsing tests
+
+  test("parseReviewStateJson parses activity and workflow_type when both present"):
+    val json = """{
+      "artifacts": [{"label": "Test", "path": "test.md"}],
+      "activity": "working",
+      "workflow_type": "agile"
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.activity, Some("working"))
+    assertEquals(state.workflowType, Some("agile"))
+
+  test("parseReviewStateJson returns activity=None and workflowType=None when neither field present"):
+    val json = """{
+      "artifacts": [{"label": "Test", "path": "test.md"}]
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.activity, None)
+    assertEquals(state.workflowType, None)
+
+  test("parseReviewStateJson parses only activity when workflow_type absent"):
+    val json = """{
+      "artifacts": [{"label": "Test", "path": "test.md"}],
+      "activity": "waiting"
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.activity, Some("waiting"))
+    assertEquals(state.workflowType, None)
+
+  test("parseReviewStateJson parses only workflow_type when activity absent"):
+    val json = """{
+      "artifacts": [{"label": "Test", "path": "test.md"}],
+      "workflow_type": "diagnostic"
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.activity, None)
+    assertEquals(state.workflowType, Some("diagnostic"))
+
+  test("parseReviewStateJson treats non-string activity value as None"):
+    val json = """{
+      "artifacts": [{"label": "Test", "path": "test.md"}],
+      "activity": 42
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.activity, None)
+
+  test("parseReviewStateJson treats non-string workflow_type value as None"):
+    val json = """{
+      "artifacts": [{"label": "Test", "path": "test.md"}],
+      "workflow_type": true
+    }"""
+
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+
+    val state = result.toOption.get
+    assertEquals(state.workflowType, None)
+
+  test("writeReviewStateJson includes activity field in output"):
+    val state = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Test", "test.md")),
+      activity = Some("waiting"),
+      workflowType = None
+    )
+
+    // Verify JSON shape contains the expected key
+    val json = ReviewStateService.writeReviewStateJson(state)
+    assert(json.contains("\"activity\""), s"JSON should contain 'activity' key: $json")
+
+    // Round-trip: write then read back
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+    assertEquals(result.toOption.get.activity, Some("waiting"))
+
+  test("writeReviewStateJson includes workflow_type field in output"):
+    val state = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Test", "test.md")),
+      activity = None,
+      workflowType = Some("waterfall")
+    )
+
+    // Verify JSON shape contains the expected key
+    val json = ReviewStateService.writeReviewStateJson(state)
+    assert(json.contains("\"workflow_type\""), s"JSON should contain 'workflow_type' key: $json")
+
+    // Round-trip: write then read back
+    val result = ReviewStateService.parseReviewStateJson(json)
+    assert(result.isRight, s"Expected Right but got: $result")
+    assertEquals(result.toOption.get.workflowType, Some("waterfall"))
+
+  test("writeReviewStateJson omits activity and workflow_type when None"):
+    val state = ReviewState(
+      display = None,
+      badges = None,
+      taskLists = None,
+      needsAttention = None,
+      message = None,
+      artifacts = List(ReviewArtifact("Test", "test.md")),
+      activity = None,
+      workflowType = None
+    )
+
+    val json = ReviewStateService.writeReviewStateJson(state)
+    assert(!json.contains("\"activity\""), s"JSON should not contain 'activity' key: $json")
+    assert(!json.contains("\"workflow_type\""), s"JSON should not contain 'workflow_type' key: $json")

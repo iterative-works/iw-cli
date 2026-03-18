@@ -35,3 +35,39 @@ M	schemas/review-state.schema.json
 ```
 
 ---
+
+## Phase 2: Domain Model — ReviewState fields and codec (2026-03-18)
+
+**Layer:** Domain Model
+
+**What was built:**
+- `.iw/core/model/ReviewState.scala` — Added `activity: Option[String] = None` and `workflowType: Option[String] = None` fields to `ReviewState` case class with ScalaDoc
+- `.iw/core/dashboard/ReviewStateService.scala` — Updated custom `bimap` codec to read/write `activity` and `workflow_type` (snake_case) from review-state.json; added `writeReviewStateJson` method; extracted shared codec definitions into private `Codecs` object to eliminate duplication
+- `.iw/core/test/ServerStateCodecTest.scala` — 2 new tests for `macroRW` roundtrip (fields populated and absent)
+- `.iw/core/test/ReviewStateServiceTest.scala` — 9 new tests covering parse/write for both fields (presence, absence, non-string graceful handling, JSON shape verification)
+
+**Key decisions:**
+- Used default values (`= None`) on new fields so existing construction sites compile without changes
+- `ServerStateCodec.macroRW[ReviewState]` needed no changes — macro derivation picks up new fields automatically
+- Kept `Option[String]` (not enums) per analysis design; enums noted for future consideration
+
+**Dependencies on other layers:**
+- Phase 1: Schema and validator define the enum constraints
+
+**Testing:**
+- Unit tests: 11 new tests added (all passing, 1913 total)
+- E2E tests: All passing (no regressions)
+
+**Code review:**
+- Iterations: 1 (with fixes)
+- Findings fixed: Extracted duplicated codec `given` definitions into shared `Codecs` object; renamed misleading test names; removed temporal "backward compat" framing; removed unused import; added JSON shape assertions to write tests
+
+**Files changed:**
+```
+M	.iw/core/dashboard/ReviewStateService.scala
+M	.iw/core/model/ReviewState.scala
+M	.iw/core/test/ReviewStateServiceTest.scala
+M	.iw/core/test/ServerStateCodecTest.scala
+```
+
+---
