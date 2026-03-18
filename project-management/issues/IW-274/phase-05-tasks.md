@@ -51,4 +51,4 @@
 - [x] [verify] Run `./iw test unit` — all tests pass (existing + new), no regressions
 - [x] [verify] Run `./iw test e2e` — all tests pass (existing + new), no regressions
 - [x] [verify] Run `scala-cli compile --scalac-option -Werror .iw/core/` — no compilation warnings
-- [ ] [verify] Commit all changes with descriptive message referencing IW-274
+- [x] [verify] Commit all changes with descriptive message referencing IW-274
