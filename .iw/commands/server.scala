@@ -92,8 +92,9 @@ def startServer(): Unit =
     val addresses = config.hosts.map(host => s"$host:${config.port}").mkString(", ")
     println(s"Server started on $addresses")
   else
+    val logPath = ProcessManager.serverLogPath(statePath)
     System.err.println(s"Server process started (PID: $pid) but health check failed")
-    System.err.println(s"Check logs for errors")
+    System.err.println(s"Check logs: $logPath")
     sys.exit(1)
 
 def stopServer(): Unit =

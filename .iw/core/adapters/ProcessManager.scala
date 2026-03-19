@@ -87,6 +87,11 @@ object ProcessManager:
    * Spawn server process in background
    * Returns the PID of the spawned process
    */
+  /** Log file path, co-located with the state file */
+  def serverLogPath(statePath: String): String =
+    val stateOsPath = os.Path(statePath)
+    (stateOsPath / os.up / "server.log").toString
+
   def spawnServerProcess(statePath: String, port: Int, hosts: Seq[String]): Either[String, Long] =
     Try {
       // Use scala-cli to run the server-daemon script with core library
@@ -107,12 +112,10 @@ object ProcessManager:
         coreFiles ++
         Seq("--main-class", "iw.core.dashboard.ServerDaemon", "--", statePath, port.toString, hostsArg)
 
+      val logFile = new java.io.File(serverLogPath(statePath))
       val processBuilder = new ProcessBuilder(command: _*)
-
-      // Redirect output to avoid blocking
-      // TODO: Consider logging to a file instead of discarding
-      processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD)
-      processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD)
+      processBuilder.redirectOutput(ProcessBuilder.Redirect.to(logFile))
+      processBuilder.redirectErrorStream(true)
 
       val process = processBuilder.start()
       val pid = process.pid()
