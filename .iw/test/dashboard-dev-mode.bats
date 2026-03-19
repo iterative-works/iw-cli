@@ -32,15 +32,23 @@ teardown() {
 
 @test "dev mode creates temp directory" {
     # Start server with --dev in background, capture output
-    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 60 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
-    # Wait a bit for server to start and print output
-    sleep 5
+    # Wait for server to start (poll for Port line in output, which appears after dev mode setup)
+    PORT=""
+    for i in $(seq 1 40); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
 
     # Kill the server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
+
+    # Verify we got the port (server started successfully)
+    [ -n "$PORT" ] || { cat /tmp/test-output.txt; echo "Server did not produce Port output"; rm -f /tmp/test-output.txt; return 1; }
 
     # Read captured output
     OUTPUT=$(cat /tmp/test-output.txt)
@@ -56,15 +64,22 @@ teardown() {
 
 @test "dev mode creates state.json in temp directory" {
     # Start server with --dev, capture output to file
-    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 60 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
-    # Wait for initialization
-    sleep 5
+    # Wait for server to start (poll for Port line in output)
+    PORT=""
+    for i in $(seq 1 40); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
 
     # Kill server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
+
+    [ -n "$PORT" ] || { cat /tmp/test-output.txt; echo "Server did not produce Port output"; rm -f /tmp/test-output.txt; return 1; }
 
     # Extract temp directory from output
     TEMP_DIR=$(grep -o "/tmp/iw-dev-[0-9]*" /tmp/test-output.txt | head -1)
@@ -81,15 +96,22 @@ teardown() {
 
 @test "dev mode creates config.json in temp directory" {
     # Start server with --dev, capture output to file
-    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 60 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
-    # Wait for initialization
-    sleep 5
+    # Wait for server to start (poll for Port line in output)
+    PORT=""
+    for i in $(seq 1 40); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
 
     # Kill server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
+
+    [ -n "$PORT" ] || { cat /tmp/test-output.txt; echo "Server did not produce Port output"; rm -f /tmp/test-output.txt; return 1; }
 
     # Extract temp directory from output
     TEMP_DIR=$(grep -o "/tmp/iw-dev-[0-9]*" /tmp/test-output.txt | head -1)
@@ -104,15 +126,22 @@ teardown() {
 
 @test "dev mode enables sample data by default" {
     # Start server with --dev, capture output
-    timeout 10 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
+    timeout 60 "$PROJECT_ROOT/iw" dashboard --dev > /tmp/test-output.txt 2>&1 &
     PID=$!
 
-    # Wait for initialization
-    sleep 5
+    # Wait for server to start (poll for Port line in output)
+    PORT=""
+    for i in $(seq 1 40); do
+        sleep 0.5
+        PORT=$(grep -o "Port: [0-9]*" /tmp/test-output.txt 2>/dev/null | grep -o "[0-9]*" | head -1)
+        [ -n "$PORT" ] && break
+    done
 
     # Kill server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
+
+    [ -n "$PORT" ] || { cat /tmp/test-output.txt; echo "Server did not produce Port output"; rm -f /tmp/test-output.txt; return 1; }
 
     # Read captured output
     OUTPUT=$(cat /tmp/test-output.txt)
