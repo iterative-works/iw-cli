@@ -25,3 +25,4 @@
 - [x] [integration] Run `./iw test unit` and verify all tests pass (especially `MarkdownTaskParserTest` and `WorkflowProgressServiceTest`)
 - [x] [integration] Run `./iw test e2e` and verify no downstream breakage
 - [x] [integration] Commit all changes in a single commit
+**Phase Status:** Complete
