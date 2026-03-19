@@ -26,6 +26,10 @@
 //   --clear-checkpoints        Remove all checkpoints
 //   --git-sha <value>          Override git SHA
 //   --input <path>             Input file path (default: auto-detect from issue_id)
+//   --activity <value>         Activity state: working, waiting
+//   --clear-activity           Remove activity field
+//   --workflow-type <value>    Workflow type: agile, waterfall, diagnostic
+//   --clear-workflow-type      Remove workflow_type field
 //   --clear-status             Remove status field
 //   --clear-message            Remove message field
 //   --clear-pr-url             Remove pr_url field
@@ -93,6 +97,12 @@ import iw.core.output.*
   val prUrl = extractFlag(argList, "--pr-url")
   val clearPrUrl = argList.contains("--clear-pr-url")
 
+  val activity = extractFlag(argList, "--activity")
+  val clearActivity = argList.contains("--clear-activity")
+
+  val workflowType = extractFlag(argList, "--workflow-type")
+  val clearWorkflowType = argList.contains("--clear-workflow-type")
+
   val gitSha = extractFlag(argList, "--git-sha")
 
   // Parse array fields with mode detection
@@ -149,6 +159,8 @@ import iw.core.output.*
     message = message,
     needsAttention = needsAttention,
     prUrl = prUrl,
+    activity = activity,
+    workflowType = workflowType,
     gitSha = gitSha,
     displayText = displayText,
     displaySubtext = displaySubtext,
@@ -168,7 +180,9 @@ import iw.core.output.*
     clearMessage = clearMessage,
     clearNeedsAttention = clearNeedsAttention,
     clearPrUrl = clearPrUrl,
-    clearDisplay = clearDisplay
+    clearDisplay = clearDisplay,
+    clearActivity = clearActivity,
+    clearWorkflowType = clearWorkflowType
   )
 
   // Merge updates
@@ -220,6 +234,10 @@ private def showHelp(): Unit =
   println("  --clear-checkpoints                  Remove all checkpoints")
   println("  --git-sha <value>                    Override git SHA")
   println("  --input <path>                       Input file path (default: auto-detect from issue_id)")
+  println("  --activity <value>                   Activity state: working, waiting")
+  println("  --clear-activity                     Remove activity field")
+  println("  --workflow-type <value>              Workflow type: agile, waterfall, diagnostic")
+  println("  --clear-workflow-type                Remove workflow_type field")
   println("  --clear-status                       Remove status field")
   println("  --clear-message                      Remove message field")
   println("  --clear-pr-url                       Remove pr_url field")

@@ -160,6 +160,129 @@ class ReviewStateUpdaterTest extends munit.FunSuite:
     assertEquals(parsed("version").num.toInt, 2)
     assertEquals(parsed("issue_id").str, "IW-42")
 
+  // --- Activity merge ---
+
+  test("merge sets activity when provided"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(activity = Some("working"))
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assertEquals(parsed("activity").str, "working")
+
+  test("merge replaces existing activity"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "activity": "working"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(activity = Some("waiting"))
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assertEquals(parsed("activity").str, "waiting")
+
+  test("merge removes activity when clearActivity is true"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "activity": "working"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(clearActivity = true)
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assert(!parsed.obj.contains("activity"), "activity should be removed")
+
+  test("merge clear wins over activity value when both provided"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "activity": "working"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(activity = Some("waiting"), clearActivity = true)
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assert(!parsed.obj.contains("activity"), "activity should be removed when clear wins")
+
+  // --- WorkflowType merge ---
+
+  test("merge sets workflow_type when workflowType provided"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(workflowType = Some("agile"))
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assertEquals(parsed("workflow_type").str, "agile")
+
+  test("merge replaces existing workflow_type"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "workflow_type": "agile"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(workflowType = Some("waterfall"))
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assertEquals(parsed("workflow_type").str, "waterfall")
+
+  test("merge removes workflow_type when clearWorkflowType is true"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "workflow_type": "agile"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(clearWorkflowType = true)
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assert(!parsed.obj.contains("workflow_type"), "workflow_type should be removed")
+
+  test("merge clear wins over workflowType value when both provided"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "workflow_type": "agile"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(workflowType = Some("waterfall"), clearWorkflowType = true)
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assert(!parsed.obj.contains("workflow_type"), "workflow_type should be removed when clear wins")
+
+  // --- Preservation ---
+
+  test("existing activity and workflow_type preserved when not mentioned in update"):
+    val existing = """{
+      "version": 2,
+      "issue_id": "IW-1",
+      "artifacts": [],
+      "last_updated": "2026-01-01T12:00:00Z",
+      "activity": "working",
+      "workflow_type": "agile"
+    }"""
+    val input = ReviewStateUpdater.UpdateInput(displayText = Some("Updated"))
+    val result = ReviewStateUpdater.merge(existing, input)
+    val parsed = ujson.read(result)
+    assertEquals(parsed("activity").str, "working")
+    assertEquals(parsed("workflow_type").str, "agile")
+
   test("merged result passes ReviewStateValidator"):
     val existing = """{
       "version": 2,
@@ -169,7 +292,9 @@ class ReviewStateUpdaterTest extends munit.FunSuite:
     }"""
     val input = ReviewStateUpdater.UpdateInput(
       displayText = Some("Testing"),
-      displayType = Some("info")
+      displayType = Some("info"),
+      activity = Some("working"),
+      workflowType = Some("agile")
     )
     val result = ReviewStateUpdater.merge(existing, input)
 

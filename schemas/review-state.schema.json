@@ -18,7 +18,7 @@
     },
     "status": {
       "type": "string",
-      "description": "Machine-readable workflow state identifier for workflow tools. NOT used by dashboard for display - that's what 'display' is for. Examples: implementing, awaiting_review, phase_merged, all_complete. Optional - workflow internal use only."
+      "description": "Machine-readable workflow state identifier. Known values: triage, analyzing, analysis_ready, creating_tasks, tasks_ready, context_ready, implementing, awaiting_review, review_failed, phase_merged, all_complete. Free-form string — unlisted values are accepted."
     },
     "display": {
       "description": "Workflow-controlled presentation instructions. The dashboard renders exactly what it's told without interpretation. If absent, no status badge is shown.",
@@ -45,6 +45,16 @@
     "message": {
       "type": "string",
       "description": "Prominent notification for the user. This is NOT status metadata - it's an important communication that should catch the user's eye. Examples: 'Please review the options in analysis.md and provide direction', 'Build failed - check CI logs'."
+    },
+    "activity": {
+      "type": "string",
+      "enum": ["working", "waiting"],
+      "description": "Binary scheduling signal. 'working' = agent actively processing. 'waiting' = blocked on human action. Absent means activity unknown."
+    },
+    "workflow_type": {
+      "type": "string",
+      "enum": ["agile", "waterfall", "diagnostic"],
+      "description": "Which workflow is running. Used by external tooling for scheduling and filtering. Absent means workflow type unknown."
     },
     "artifacts": {
       "type": "array",

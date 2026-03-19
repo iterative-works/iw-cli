@@ -23,11 +23,11 @@ Pure domain types with no I/O. Safe to use anywhere.
 - [WorktreeTypes](docs/WorktreeTypes.md): WorktreePath, WorktreeRegistration, WorktreePriority
 - [ApiToken](docs/ApiToken.md): Secure API token wrapper with masked toString
 - [GitStatus](docs/GitStatus.md): Git repository status (branch, clean/dirty)
-- [WorkflowTypes](docs/WorkflowTypes.md): ReviewState, PhaseInfo, WorkflowProgress, PullRequestData
+- [WorkflowTypes](docs/WorkflowTypes.md): ReviewState (with activity, workflowType), Display, Badge, TaskList, PhaseInfo, WorkflowProgress, PullRequestData
 - [ServerTypes](docs/ServerTypes.md): ServerConfig, ServerStatus, ServerState, CacheConfig, DeletionSafety
 - [ProjectPath](docs/ProjectPath.md): Pure derivation of main project path from worktree path
 - [ProjectSummary](docs/ProjectSummary.md): Project metadata for listing (name, path, tracker, worktree count)
-- [WorktreeSummary](docs/WorktreeSummary.md): Worktree summary for listing (issue, PR, review state)
+- [WorktreeSummary](docs/WorktreeSummary.md): Worktree summary for listing (identity, issue metadata, URLs, PR state, activity, workflowType, progress, timestamps)
 - [WorktreeStatus](docs/WorktreeStatus.md): Detailed worktree status (git, issue, PR, review, progress)
 - [ServerStateCodec](docs/ServerStateCodec.md): Shared JSON serialization for server state types
 - [PhaseBranch](docs/PhaseBranch.md): Phase branch derivation (sub-branch names from feature branch + phase number)
