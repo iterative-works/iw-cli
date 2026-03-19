@@ -1,12 +1,11 @@
-// PURPOSE: Unit tests for MarkdownTaskParser application service
+// PURPOSE: Unit tests for MarkdownTaskParser model object
 // PURPOSE: Tests checkbox counting and phase name extraction from markdown
 
 package iw.core.application
 
 import munit.FunSuite
-import iw.core.model.Issue
-import iw.core.dashboard.MarkdownTaskParser
-import iw.core.dashboard.PhaseIndexEntry
+import iw.core.model.MarkdownTaskParser
+import iw.core.model.PhaseIndexEntry
 
 class MarkdownTaskParserTest extends FunSuite:
 
