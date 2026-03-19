@@ -70,3 +70,39 @@ A  .iw/core/test/BatchImplementTest.scala
 ```
 
 ---
+
+## Phase 3: batch-implement command script (2026-03-19)
+
+**Layer:** Presentation (command script)
+
+**What was built:**
+- `batch-implement.scala` command — orchestrates unattended phase-by-phase implementation via claude CLI
+  - Argument parsing: issue ID (positional/auto-detect from branch), workflow code (positional/auto-detect from review-state.json), model, max-turns, max-retries, max-budget-usd
+  - Pre-flight checks: tasks.md, claude CLI, forge CLI (gh/glab), clean working tree
+  - Phase loop: finds next unchecked phase, invokes `claude -p` via ProcessAdapter.runStreaming
+  - Outcome handling via BatchImplement.decideOutcome: MergePR (merge via forge CLI, advance branch), MarkDone (mark tasks.md), Recover (resume session with targeted prompt), Fail (exit)
+  - Recovery loop with configurable max retries
+  - Completion flow: invokes claude for final PR/release notes after all phases done
+  - Session logging to batch-implement.log
+  - Commits any uncommitted changes claude leaves behind
+
+**Dependencies on other layers:**
+- Phase 2: `BatchImplement` pure decision functions (decideOutcome, nextPhase, resolveWorkflowCode, markPhaseComplete)
+- Phase 1: `MarkdownTaskParser.parsePhaseIndex` for reading tasks.md
+- Existing adapters: ProcessAdapter, GitAdapter, ReviewStateAdapter, ConfigFileRepository, ForgeType
+
+**Testing:**
+- Unit tests: 0 new (decision logic tested in Phase 2)
+- E2E tests: 9 BATS tests (4 pre-flight validation, 1 forge CLI, 4 argument parsing/auto-detection)
+
+**Code review:**
+- Iterations: 1
+- Findings: Fixed PR URL validation (security), removed untrusted status from recovery prompt (prompt injection), added gh stub to tests, improved test assertions, extracted timeout constant, renamed parameter.
+
+**Files changed:**
+```
+A  .iw/commands/batch-implement.scala
+A  .iw/test/batch-implement.bats
+```
+
+---
