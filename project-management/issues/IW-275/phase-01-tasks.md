@@ -23,5 +23,5 @@
 
 - [x] [integration] Run `scala-cli compile --scalac-option -Werror .iw/core/` and verify no errors or warnings
 - [x] [integration] Run `./iw test unit` and verify all tests pass (especially `MarkdownTaskParserTest` and `WorkflowProgressServiceTest`)
-- [ ] [integration] Run `./iw test e2e` and verify no downstream breakage
-- [ ] [integration] Commit all changes in a single commit
+- [x] [integration] Run `./iw test e2e` and verify no downstream breakage
+- [x] [integration] Commit all changes in a single commit
