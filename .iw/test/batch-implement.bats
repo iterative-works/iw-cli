@@ -76,6 +76,14 @@ exit 0
 STUB
     chmod +x "$STUB_DIR/claude"
 
+    cat > "$STUB_DIR/gh" << 'STUB'
+#!/usr/bin/env bash
+# Stub gh: record args and succeed
+echo "$@" >> "$STUB_DIR/gh-calls.txt"
+exit 0
+STUB
+    chmod +x "$STUB_DIR/gh"
+
     # Put stub dir first in PATH
     export PATH="$STUB_DIR:$PATH"
 }
@@ -136,31 +144,59 @@ teardown() {
     [[ "$output" == *"issue"* ]] || [[ "$output" == *"ISSUE"* ]] || [[ "$output" == *"ID"* ]]
 }
 
-# --- Argument parsing tests ---
+@test "batch-implement exits non-zero with error about forge CLI when gh is not on PATH" {
+    rm -f "$STUB_DIR/gh"
 
-@test "batch-implement uses issue ID from positional arg" {
-    # Provide IW-275 as positional arg; the claude stub records its args
+    if command -v gh &>/dev/null; then
+        skip "real gh CLI is installed; cannot test missing-forge error path"
+    fi
+
     run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
 
-    # The command should have invoked claude with IW-275
-    [ -f "$STUB_DIR/claude-calls.txt" ]
-    grep -q "IW-275" "$STUB_DIR/claude-calls.txt"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"gh"* ]] || [[ "$output" == *"CLI"* ]]
 }
 
-@test "batch-implement uses workflow code from positional arg" {
-    # Provide wf as workflow code; claude stub records its args
+# --- Argument parsing tests ---
+
+@test "batch-implement uses issue ID from positional arg in claude prompt" {
     run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
 
-    # The command should have invoked claude with a wf-implement prompt
     [ -f "$STUB_DIR/claude-calls.txt" ]
-    grep -q "wf" "$STUB_DIR/claude-calls.txt"
+    grep -q "IW-275 --phase" "$STUB_DIR/claude-calls.txt"
+}
+
+@test "batch-implement uses workflow code from positional arg in claude prompt" {
+    # Use ag instead of wf to differentiate from auto-detection
+    cat > project-management/issues/IW-275/review-state.json << 'EOF'
+{
+  "status": "implementing",
+  "workflow_type": "agile",
+  "displayText": "Implementing",
+  "displayType": "info"
+}
+EOF
+    git add -A 2>/dev/null
+    git commit -q -m "Update review-state" 2>/dev/null || true
+
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 ag
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "iterative-works:ag-implement" "$STUB_DIR/claude-calls.txt"
 }
 
 @test "batch-implement auto-detects issue ID from branch name IW-275" {
-    # We are already on branch IW-275; don't provide a positional issue ID
+    # Don't provide a positional issue ID; branch name is IW-275
     run "$PROJECT_ROOT/iw" batch-implement wf
 
-    # Command should succeed (claude stub exits 0) and record IW-275
     [ -f "$STUB_DIR/claude-calls.txt" ]
-    grep -q "IW-275" "$STUB_DIR/claude-calls.txt"
+    grep -q "IW-275 --phase" "$STUB_DIR/claude-calls.txt"
+}
+
+@test "batch-implement auto-detects workflow code from review-state.json" {
+    # review-state.json has "workflow_type": "waterfall" → should resolve to "wf"
+    run "$PROJECT_ROOT/iw" batch-implement IW-275
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "iterative-works:wf-implement" "$STUB_DIR/claude-calls.txt"
 }

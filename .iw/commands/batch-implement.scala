@@ -105,6 +105,8 @@ import java.time.format.DateTimeFormatter
 
   // --- Logging setup ---
 
+  val claudeTimeoutMs = 30 * 60 * 1000 // 30-minute per-phase limit
+
   val logPath = issueDir / "batch-implement.log"
   val logWriter = new BufferedWriter(new FileWriter(logPath.toIO, true))
 
@@ -165,14 +167,14 @@ import java.time.format.DateTimeFormatter
         "Refactoring is complete. Verify all tests pass, then create a PR with iw phase-pr."
       case "review_failed" =>
         "The review failed. Address the feedback, fix all issues, and re-create the PR with iw phase-pr."
-      case other =>
-        s"The current status is '$other'. Continue the implementation workflow and complete this phase."
+      case _ =>
+        "Check current state and complete remaining steps in the implementation workflow."
 
   // --- Helper: build claude command ---
 
-  def claudeCmd(promptParts: String, extraFlags: List[String] = Nil): Seq[String] =
+  def claudeCmd(prompt: String, extraFlags: List[String] = Nil): Seq[String] =
     val base = List(
-      "claude", "-p", promptParts,
+      "claude", "-p", prompt,
       "--model", model,
       "--max-turns", maxTurns.toString
     )
@@ -204,13 +206,20 @@ import java.time.format.DateTimeFormatter
         logWriter.close()
         sys.exit(1)
       case Some(prUrl) =>
+        if !prUrl.startsWith("https://") || prUrl.contains(" ") then
+          log(s"[phase $phaseNum] Error: pr_url in review-state.json is not a valid URL: $prUrl")
+          logWriter.close()
+          sys.exit(1)
         log(s"[phase $phaseNum] Merging PR: $prUrl")
         val mergeCmd = forgeType match
           case ForgeType.GitHub =>
             Seq("gh", "pr", "merge", "--merge", prUrl)
           case ForgeType.GitLab =>
-            // Extract MR ID from the URL for glab
             val mrId = prUrl.split("/").last
+            if mrId.isEmpty || !mrId.forall(_.isDigit) then
+              log(s"[phase $phaseNum] Error: cannot extract numeric MR ID from pr_url: $prUrl")
+              logWriter.close()
+              sys.exit(1)
             Seq("glab", "mr", "merge", mrId, "--yes")
         val mergeResult = ProcessAdapter.run(mergeCmd)
         if mergeResult.exitCode != 0 then
@@ -252,7 +261,7 @@ import java.time.format.DateTimeFormatter
         log(s"[phase $phaseNum] Starting implementation via claude...")
         val prompt = s"/iterative-works:$workflowCode-implement ${issueId.value} --phase $phaseNum"
         log(s"[phase $phaseNum] Invoking: claude -p \"$prompt\"")
-        val claudeExitCode = ProcessAdapter.runStreaming(claudeCmd(prompt), 30 * 60 * 1000)
+        val claudeExitCode = ProcessAdapter.runStreaming(claudeCmd(prompt), claudeTimeoutMs)
         if claudeExitCode != 0 then
           log(s"[phase $phaseNum] claude exited with code $claudeExitCode (entering recovery)")
 
@@ -318,7 +327,7 @@ import java.time.format.DateTimeFormatter
   log("All phases done. Running completion flow (final PR / release notes)...")
   val completionPrompt = s"/iterative-works:$workflowCode-implement ${issueId.value}"
   log(s"Invoking: claude -p \"$completionPrompt\"")
-  val completionExitCode = ProcessAdapter.runStreaming(claudeCmd(completionPrompt), 30 * 60 * 1000)
+  val completionExitCode = ProcessAdapter.runStreaming(claudeCmd(completionPrompt), claudeTimeoutMs)
   log(s"Completion flow finished with exit code $completionExitCode")
   logWriter.close()
 
