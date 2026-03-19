@@ -3,7 +3,7 @@
 
 package iw.core.dashboard
 
-import iw.core.model.{PhaseInfo, WorkflowProgress, CachedProgress}
+import iw.core.model.{PhaseInfo, WorkflowProgress, CachedProgress, MarkdownTaskParser, TaskCount, PhaseIndexEntry}
 import iw.core.model.Issue
 
 /** Application service for workflow progress tracking.

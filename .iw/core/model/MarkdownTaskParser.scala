@@ -1,7 +1,7 @@
 // PURPOSE: Pure functions for parsing markdown task files
 // PURPOSE: Extracts checkbox tasks and phase names from agile workflow files
 
-package iw.core.dashboard
+package iw.core.model
 
 /** Task count result from parsing markdown.
   *
