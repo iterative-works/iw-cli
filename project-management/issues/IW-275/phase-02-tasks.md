@@ -68,5 +68,5 @@
 
 - [x] [verify] Run `scala-cli compile --scalac-option -Werror .iw/core/` and verify no errors or warnings
 - [x] [verify] Run `./iw test unit` and verify all tests pass (including new `BatchImplementTest`)
-- [ ] [verify] Run `./iw test e2e` and verify no downstream breakage
-- [ ] [verify] Commit all changes
+- [x] [verify] Run `./iw test e2e` and verify no downstream breakage
+- [x] [verify] Commit all changes
