@@ -65,25 +65,23 @@ This is consistent with all other iw commands. No separate application layer is 
 **Components:**
 - No new adapter files needed — existing adapters cover all I/O operations
 - Existing adapters to reuse:
-  - `ProcessAdapter.run()` — for running `claude -p` with JSON output
-  - `ProcessAdapter.runStreaming()` — alternative for claude invocation (stdout visible)
+  - `ProcessAdapter.runStreaming()` — for running `claude -p` with real-time output
   - `ProcessAdapter.commandExists()` — pre-flight checks for `claude`, `gh`/`glab`
   - `GitAdapter.getCurrentBranch()` — auto-detect issue ID
   - `GitAdapter.hasUncommittedChanges()` — clean working tree check
-  - `GitAdapter.fetchAndReset()` — advance feature branch after squash merge
+  - `GitAdapter.fetchAndReset()` — advance feature branch after merge
   - `GitAdapter.checkoutBranch()` — switch to feature branch after merge
   - `GitAdapter.stageAll()` + `GitAdapter.commit()` — commit uncommitted changes
-  - `GitHubClient.mergePullRequest()` — merge GitHub PRs
-  - `GitLabClient.mergeMergeRequest()` — merge GitLab MRs
+  - `GitHubClient.mergePullRequest()` — merge GitHub PRs (regular merge)
+  - `GitLabClient.mergeMergeRequest()` — merge GitLab MRs (regular merge)
   - `ReviewStateAdapter.read()` — read review-state.json
   - `ReviewStateAdapter.update()` — update review-state.json
   - `ConfigFileRepository.read()` — read project config
 
 **Responsibilities:**
-- All I/O is handled by existing adapters
-- One addition may be needed: the shell script uses `gh pr merge --squash --delete-branch` but `GitHubClient.buildMergePrCommand` uses `--merge` (not `--squash`). See CLARIFY below.
+- All I/O is handled by existing adapters — no new adapter methods needed
 
-**Estimated Effort:** 1-2 hours (mostly for any merge command adjustments)
+**Estimated Effort:** 0.5-1 hours (just wiring existing adapters)
 **Complexity:** Straightforward — reusing existing code
 
 ---
@@ -115,7 +113,7 @@ This is consistent with all other iw commands. No separate application layer is 
 
 - **FCIS (Functional Core, Imperative Shell):** Pure decision logic in `model/BatchImplement`, all I/O in the command script using existing adapters
 - **Either-based error handling:** Consistent with existing commands, using `CommandHelpers.exitOnError` for fatal errors
-- **Direct `ProcessAdapter.run` for claude invocation:** Rather than introducing a Claude-specific adapter, use `ProcessAdapter.run` with the appropriate command args (consistent with how other tools are invoked)
+- **`ProcessAdapter.runStreaming` for claude invocation:** Stream output for real-time visibility rather than capturing JSON. Use exit code for success/failure detection.
 
 ### Technology Choices
 
@@ -127,109 +125,55 @@ This is consistent with all other iw commands. No separate application layer is 
 
 - `model/BatchImplement` is called by `batch-implement.scala` for all decisions
 - `batch-implement.scala` calls `MarkdownTaskParser.parsePhaseIndex` to find phases (requires CLARIFY resolution)
-- `batch-implement.scala` calls `GitHubClient`/`GitLabClient` for PR merging based on `ForgeType`
+- `batch-implement.scala` calls `GitHubClient`/`GitLabClient` for PR merging (regular merge) based on `ForgeType`
 - `batch-implement.scala` calls `ReviewStateAdapter` for reading/updating state
-- `batch-implement.scala` calls `ProcessAdapter.run` for claude CLI invocation
+- `batch-implement.scala` calls `ProcessAdapter.runStreaming` for claude CLI invocation
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: MarkdownTaskParser Location
+### RESOLVED: MarkdownTaskParser Location
 
-`MarkdownTaskParser` is in `dashboard/` package. The `parsePhaseIndex` function is pure (takes `Seq[String]`, returns `List[PhaseIndexEntry]`), but commands should NOT import from `dashboard/`.
-
-**Questions to answer:**
-1. Should we move `parsePhaseIndex` (and `PhaseIndexEntry`) to `model/`?
-2. If we move it, should we also move `parseTasks` and `extractPhaseName` (also pure)?
-3. Or should we extract just `parsePhaseIndex` and `PhaseIndexEntry` and leave the rest?
-
-**Options:**
-- **Option A: Move `MarkdownTaskParser` entirely to `model/`**: Clean separation, all pure functions in `model/`. Dashboard code would import from `model/` instead. Requires updating all dashboard imports. Pros: architecturally correct, one-time cleanup. Cons: touches many files in dashboard.
-- **Option B: Extract only `parsePhaseIndex` + `PhaseIndexEntry` to a new `model/` file**: Minimal change, duplicates the type/function boundary. Pros: small diff. Cons: splits related parsing logic across packages.
-- **Option C: Accept the `dashboard/` import in this command**: Pragmatic, no refactoring. Pros: zero risk, fastest. Cons: violates the stated architectural rule.
-
-**Impact:** Affects import structure of the new command and potentially dashboard code.
-
-**Recommendation:** Option A. `MarkdownTaskParser` is entirely pure functions — it has no business in `dashboard/`. Moving it is a small, safe refactoring that fixes an existing architectural violation.
+**Decision:** Move entire `MarkdownTaskParser` to `model/`. It is purely pure functions with no I/O — it belongs in `model/`, not `dashboard/`. Dashboard code will import from `model/` instead. Update all dashboard imports in the same commit.
 
 ---
 
-### CLARIFY: Squash Merge vs Regular Merge
+### RESOLVED: Merge Strategy for Phase Branches
 
-The shell script uses `gh pr merge --squash --delete-branch` and `glab mr merge --squash --remove-source-branch --yes`. The existing `GitHubClient.buildMergePrCommand` uses `--merge` (regular merge), not `--squash`.
+**Decision:** Use regular merge (not squash) for phase→feature branch merges. Reuse existing `GitHubClient.mergePullRequest` and `GitLabClient.mergeMergeRequest` as-is.
 
-**Questions to answer:**
-1. Should batch-implement always squash-merge (matching the shell script)?
-2. Should the existing `GitHubClient.mergePullRequest` be updated to support squash, or should batch-implement build its own merge command?
-3. Is the `--delete-branch` / `--remove-source-branch` flag important (phase branches should be cleaned up)?
+**Rationale:** Squash merge on phase branches was the root cause of two complications in the shell script: (1) needing `git reset --hard` after merge because histories diverge, and (2) handling remote branch deletion fallback. Regular merge eliminates both problems — histories converge naturally, no force-reset needed. Squash merge is appropriate later when merging the feature branch into `main`.
 
-**Options:**
-- **Option A: Add squash+delete-branch flags to existing merge methods**: Changes the behavior of existing merge methods, which may be used elsewhere. Risky unless parameterized.
-- **Option B: Add new squash-merge methods to GitHubClient/GitLabClient**: Keeps existing merge behavior unchanged, adds new methods. More code but safer.
-- **Option C: Build merge command directly in batch-implement**: Bypass the client methods, build `ProcessAdapter.run(Seq("gh", "pr", "merge", ...))` directly. Pragmatic but duplicates pattern.
-
-**Impact:** Affects PR merge behavior and phase branch cleanup.
-
-**Recommendation:** Option B. Add `squashMergePullRequest` to `GitHubClient` and `squashMergeMergeRequest` to `GitLabClient`. The existing regular merge methods are used by other workflows and should not be changed.
+This also resolves the "Remote Branch Deletion" concern — with regular merge, the remote branch is not deleted and `GitAdapter.fetchAndReset` works normally. No new adapter methods needed.
 
 ---
 
-### CLARIFY: Claude CLI Invocation Strategy
+### RESOLVED: Claude CLI Invocation Strategy
 
-The shell script captures claude's JSON output and parses it for diagnostics (turns, cost, error). It also uses `--session-id` and `--resume` for recovery.
+**Decision:** Stream output via `ProcessAdapter.runStreaming`. No JSON output parsing, no cost/turn tracking for now.
 
-**Questions to answer:**
-1. Should we capture JSON output (via `ProcessAdapter.run`) or stream output (via `ProcessAdapter.runStreaming`)?
-2. The JSON output parsing is purely for logging — is it worth the complexity?
-3. Should we use `--dangerously-skip-permissions` like the shell script, or make it configurable?
-
-**Options:**
-- **Option A: Capture JSON output, parse diagnostics**: Full parity with shell script. Requires `ProcessAdapter.run` with large output buffer and long timeout. Provides cost/turn tracking.
-- **Option B: Stream output, skip diagnostics**: Simpler, user sees claude's output in real time. Loses cost/turn tracking but gains visibility. Uses `ProcessAdapter.runStreaming`.
-- **Option C: Stream output + capture to log file**: Best of both — real-time visibility and a log record. More complex but closest to shell script behavior (which uses `2>/dev/null` to suppress stderr anyway).
-
-**Impact:** Affects user experience during long-running phases and ability to track costs.
-
-**Recommendation:** Option A for now. The JSON output with cost tracking is valuable for batch runs. The command already logs to a file, so real-time visibility is secondary. The timeout needs to be generous (30+ minutes per phase).
-
----
-
-### CLARIFY: Remote Branch Deletion After Squash Merge
-
-The shell script handles the case where the remote feature branch is deleted after squash merge (GitLab's `--remove-source-branch` behavior). It falls back to resetting to the base branch. The existing `GitAdapter.fetchAndReset` assumes the remote branch still exists.
-
-**Questions to answer:**
-1. Does `GitAdapter.fetchAndReset` fail gracefully when the remote branch doesn't exist?
-2. Should we add a `remoteBranchExists` check to `GitAdapter`?
-3. What base branch should we fall back to? The shell script reads it from review-state or defaults to `main`.
-
-**Options:**
-- **Option A: Check if remote branch exists before fetchAndReset, fall back to base branch**: Matches shell script behavior exactly. Requires adding a `remoteBranchExists` method to `GitAdapter`.
-- **Option B: Always use fetchAndReset, handle its error by falling back**: Simpler, but error message parsing is fragile.
-
-**Impact:** Determines whether batch-implement can handle GitLab's source branch deletion behavior.
-
-**Recommendation:** Option A. Add a simple `remoteBranchExists` check to `GitAdapter` (one `git ls-remote` call).
+**Rationale:** When phases take 10-30 minutes, real-time visibility is more valuable than cost tracking. `runStreaming` is simpler (no large output buffers, no JSON parsing). Cost tracking can be added later if needed. Success/failure is determined by exit code.
 
 ---
 
 ## Total Estimates
 
 **Per-Layer Breakdown:**
-- Domain Layer: 3-5 hours
+- Domain Layer: 3-5 hours (pure decision functions + MarkdownTaskParser move)
 - Application Layer: 0 hours (N/A)
-- Infrastructure Layer: 1-2 hours
-- Presentation Layer: 6-10 hours
+- Infrastructure Layer: 0.5-1 hours (wiring existing adapters only)
+- Presentation Layer: 5-8 hours (command script, simplified by CLARIFY resolutions)
 
-**Total Range:** 10 - 17 hours
+**Total Range:** 8.5 - 14 hours
 
-**Confidence:** Medium
+**Confidence:** Medium-High
 
 **Reasoning:**
 - The shell script already defines the exact behavior, reducing design uncertainty
-- Most I/O operations reuse existing adapters, reducing infrastructure risk
-- The phase loop and recovery logic has many branches that need careful testing
-- CLARIFY items (especially squash merge and MarkdownTaskParser location) could add or remove scope
-- Claude CLI invocation with long timeouts may surface unexpected issues in testing
+- All CLARIFY items are resolved — scope is well-defined
+- Regular merge (not squash) eliminates branch-state complexity
+- Streaming output (not JSON capture) simplifies claude invocation
+- No new adapter methods needed — all I/O reuses existing code
+- The phase loop and recovery logic still has many branches that need careful testing
 
 ## Testing Strategy
 
@@ -244,8 +188,7 @@ The shell script handles the case where the remote feature branch is deleted aft
 - Unit: Tasks.md phase completion — marks correct phase, handles edge cases (already checked, missing phase)
 
 **Infrastructure Layer:**
-- Unit: Squash merge command building — correct flags for GitHub and GitLab
-- Unit: `remoteBranchExists` — if added per CLARIFY resolution
+- No new adapter methods needed — existing adapters have full test coverage
 
 **Presentation Layer (Command Script):**
 - E2E: Happy path — mock claude output with a script that writes review-state.json correctly, verify phases are processed in order
@@ -280,12 +223,12 @@ Remove the command file. The shell script is not affected.
 
 ### Prerequisites
 - IW-274 (activity + workflow_type fields) — already merged
-- Decision on CLARIFY items (especially MarkdownTaskParser location)
+- All CLARIFY items resolved
 
 ### Layer Dependencies
-- Domain layer must be implemented first (pure decision functions)
-- Infrastructure changes (squash merge methods, remoteBranchExists) can be done in parallel with domain
-- Command script depends on both domain and infrastructure layers
+- Domain layer must be implemented first (MarkdownTaskParser move + pure decision functions)
+- Infrastructure layer is minimal — no new methods, just verification
+- Command script depends on domain layer being complete
 - Tests can be written alongside each layer
 
 ### External Blockers
@@ -296,17 +239,12 @@ Remove the command file. The shell script is not affected.
 ### Risk 1: Claude CLI timeout behavior
 **Likelihood:** Medium
 **Impact:** Medium
-**Mitigation:** Use generous timeout (30+ minutes). If `ProcessAdapter.run` timeout is hit, treat it as a phase failure and enter recovery loop. Test with shorter timeouts first.
+**Mitigation:** Use generous timeout (30+ minutes) for `ProcessAdapter.runStreaming`. If timeout is hit, treat it as a phase failure and enter recovery loop. Test with shorter timeouts first.
 
-### Risk 2: Phase branch state after squash merge is complex
-**Likelihood:** Medium
-**Impact:** High
-**Mitigation:** The shell script's fetch+reset logic is battle-tested. Port it faithfully, including the remote-branch-deleted fallback. Add explicit E2E test for this scenario.
-
-### Risk 3: MarkdownTaskParser move breaks dashboard
+### Risk 2: MarkdownTaskParser move breaks dashboard
 **Likelihood:** Low
 **Impact:** Medium
-**Mitigation:** If moving MarkdownTaskParser to `model/`, update all dashboard imports in the same commit. Run full test suite before and after.
+**Mitigation:** Update all dashboard imports in the same commit. Run full test suite before and after.
 
 ---
 
@@ -314,15 +252,14 @@ Remove the command file. The shell script is not affected.
 
 **Recommended Layer Order:**
 
-1. **Infrastructure Layer** — Add squash merge methods to `GitHubClient`/`GitLabClient`, add `remoteBranchExists` to `GitAdapter`. Small, self-contained changes with their own tests.
-2. **Domain Layer** — Create `model/BatchImplement.scala` with pure decision functions + move `MarkdownTaskParser` to `model/` if decided. Full unit test coverage.
+1. **Domain Layer** — Move `MarkdownTaskParser` to `model/` (refactoring). Create `model/BatchImplement.scala` with pure decision functions. Full unit test coverage.
+2. **Infrastructure Layer** — Minimal wiring only, no new adapter methods. Verify existing adapters cover all needs.
 3. **Presentation Layer** — Create `.iw/commands/batch-implement.scala` orchestration script. E2E tests.
 
 **Ordering Rationale:**
-- Infrastructure changes are small and independent — good to get them in first
-- Domain layer depends on the MarkdownTaskParser CLARIFY decision but not on infrastructure
-- Command script depends on both other layers
-- Infrastructure and domain layers can be parallelized
+- Domain layer first: MarkdownTaskParser move is a prerequisite, and pure decision functions are independently testable
+- Infrastructure is minimal (no new methods), mostly validation that existing adapters suffice
+- Command script depends on domain layer being complete
 
 ## Documentation Requirements
 
@@ -332,9 +269,8 @@ Remove the command file. The shell script is not affected.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** All CLARIFYs Resolved
 
 **Next Steps:**
-1. Resolve CLARIFY markers — especially MarkdownTaskParser location and squash merge approach
-2. Run **wf-create-tasks** with issue ID IW-275
-3. Run **wf-implement** for layer-by-layer implementation
+1. Run **wf-create-tasks** with issue ID IW-275
+2. Run **wf-implement** for layer-by-layer implementation
