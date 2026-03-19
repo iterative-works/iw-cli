@@ -109,10 +109,8 @@ class BatchImplementTest extends FunSuite:
   test("resolveWorkflowCode waterfall returns Right(wf)"):
     assertEquals(BatchImplement.resolveWorkflowCode(Some("waterfall")), Right("wf"))
 
-  test("resolveWorkflowCode diagnostic returns Left (not batch-implementable)"):
-    BatchImplement.resolveWorkflowCode(Some("diagnostic")) match
-      case Left(_) => () // expected
-      case Right(v) => fail(s"Expected Left but got Right($v)")
+  test("resolveWorkflowCode diagnostic returns Right(dx)"):
+    assertEquals(BatchImplement.resolveWorkflowCode(Some("diagnostic")), Right("dx"))
 
   test("resolveWorkflowCode None returns Left"):
     BatchImplement.resolveWorkflowCode(None) match

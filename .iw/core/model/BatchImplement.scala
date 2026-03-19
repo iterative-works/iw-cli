@@ -53,13 +53,13 @@ object BatchImplement:
   /** Map a workflow type string to its short code for use in iw commands.
     *
     * @param workflowType Workflow type from project config
-    * @return Right with short code ("ag" or "wf"), or Left with reason if not batch-implementable
+    * @return Right with short code ("ag", "wf", or "dx"), or Left if unrecognized or missing
     */
   def resolveWorkflowCode(workflowType: Option[String]): Either[String, String] =
     workflowType match
       case Some("agile")      => Right("ag")
       case Some("waterfall")  => Right("wf")
-      case Some("diagnostic") => Left("Workflow type 'diagnostic' is not batch-implementable")
+      case Some("diagnostic") => Right("dx")
       case Some(other)        => Left(s"Unrecognized workflow type: '$other'")
       case None               => Left("No workflow type configured")
 
