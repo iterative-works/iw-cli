@@ -19,16 +19,24 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-275/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-275/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-275/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-03-19T17:11:36.581776888Z",
-  "status": "phase_merged",
+  "last_updated": "2026-03-19T17:21:16.885234079Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 1: Merged",
-    "type": "success",
-    "subtext": "Move MarkdownTaskParser to model"
+    "text": "Phase 02: Implementing",
+    "type": "progress",
+    "subtext": "Batch implementation decision logic"
   },
-  "message": "Phase 1 merged - ready for Phase 2",
+  "message": "Phase 02 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -54,13 +62,18 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "a7f3394",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=d5168b9ab2af8adb9c830bfcad189c6edfca3ab6"
+    "2": {
+      "context_sha": "context_sha=a2a289ff3cb7bdcddd9fe0c9405d2026d5a0bfa5"
     }
   },
   "badges": [
@@ -71,6 +84,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/285"

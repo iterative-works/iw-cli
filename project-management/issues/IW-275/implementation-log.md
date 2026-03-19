@@ -35,3 +35,38 @@ M  .iw/core/test/WorkflowProgressServiceTest.scala
 ```
 
 ---
+
+## Phase 2: Batch implementation decision logic (2026-03-19)
+
+**Layer:** Domain (pure model)
+
+**What was built:**
+- `PhaseOutcome` enum — ADT representing possible outcomes after phase execution (MergePR, MarkDone, Recover, Fail)
+- `BatchImplement` object — 5 pure decision functions for the batch-implement loop:
+  - `decideOutcome`: maps review-state status string to PhaseOutcome
+  - `isTerminal`: derived from decideOutcome, checks if status is final
+  - `nextPhase`: finds first unchecked phase from PhaseIndexEntry list
+  - `resolveWorkflowCode`: maps workflow type ("agile"/"waterfall") to short code ("ag"/"wf")
+  - `markPhaseComplete`: regex-based checkbox replacement in tasks.md content
+
+**Dependencies on other layers:**
+- Uses `PhaseIndexEntry` from Phase 1's relocated `MarkdownTaskParser`
+- No I/O, no imports from adapters/output/dashboard
+
+**Testing:**
+- Unit tests: 30 new tests covering all functions and edge cases
+- Integration tests: 0 new (pure functions, no integration needed)
+- E2E tests: all pass (no downstream impact)
+
+**Code review:**
+- Iterations: 1
+- Findings: Fixed 2 warnings — removed early `return` statements (refactored to expression-oriented style), derived `isTerminal` from `decideOutcome` to eliminate knowledge duplication. Updated Scaladoc.
+- Review file: review-phase-02-20260319-184835.md
+
+**Files changed:**
+```
+A  .iw/core/model/BatchImplement.scala
+A  .iw/core/test/BatchImplementTest.scala
+```
+
+---
