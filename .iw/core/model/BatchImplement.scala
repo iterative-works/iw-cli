@@ -10,10 +10,10 @@ enum PhaseOutcome:
   case Recover(prompt: String)
   case Fail(reason: String)
 
-/** Pure decision logic for the batch-implement loop.
+/** Decision logic for the batch-implement loop.
   *
-  * All functions take primitive types (String, Option[String]) or model types
-  * and return decisions without performing any I/O.
+  * Given workflow state, determines the next action (merge, recover, or fail)
+  * without performing any I/O.
   */
 object BatchImplement:
 
@@ -40,7 +40,7 @@ object BatchImplement:
     * @return true for terminal statuses, false otherwise
     */
   def isTerminal(status: String): Boolean =
-    status == "all_complete" || status == "phase_merged"
+    decideOutcome(status) == PhaseOutcome.MarkDone
 
   /** Return the phase number of the first unchecked phase, or None if all are complete.
     *
@@ -72,19 +72,11 @@ object BatchImplement:
   def markPhaseComplete(tasksContent: String, phaseNumber: Int): Either[String, String] =
     val uncheckedPattern = s"^(\\s*-\\s+)\\[ \\](\\s+Phase\\s+$phaseNumber:)".r
     val alreadyCheckedPattern = s"^\\s*-\\s+\\[[xX]\\]\\s+Phase\\s+$phaseNumber:".r
-
     val lines = tasksContent.split("\n", -1).toList
 
-    val hasAlreadyChecked = lines.exists(alreadyCheckedPattern.findFirstIn(_).isDefined)
-    if hasAlreadyChecked then
-      return Left(s"Phase $phaseNumber is already marked complete")
-
-    val hasUnchecked = lines.exists(uncheckedPattern.findFirstIn(_).isDefined)
-    if !hasUnchecked then
-      return Left(s"Phase $phaseNumber not found in tasks content")
-
-    val updatedLines = lines.map { line =>
-      uncheckedPattern.replaceFirstIn(line, "$1[x]$2")
-    }
-
-    Right(updatedLines.mkString("\n"))
+    if lines.exists(alreadyCheckedPattern.findFirstIn(_).isDefined) then
+      Left(s"Phase $phaseNumber is already marked complete")
+    else if !lines.exists(uncheckedPattern.findFirstIn(_).isDefined) then
+      Left(s"Phase $phaseNumber not found in tasks content")
+    else
+      Right(lines.map(uncheckedPattern.replaceFirstIn(_, "$1[x]$2")).mkString("\n"))
