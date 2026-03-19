@@ -22,39 +22,20 @@ class BatchImplementTest extends FunSuite:
   test("decideOutcome all_complete returns MarkDone"):
     assertEquals(BatchImplement.decideOutcome("all_complete"), MarkDone)
 
-  test("decideOutcome context_ready returns Recover with prompt mentioning context"):
-    BatchImplement.decideOutcome("context_ready") match
-      case Recover(prompt) => assert(prompt.toLowerCase.contains("context"), s"Expected 'context' in prompt but got: $prompt")
-      case other => fail(s"Expected Recover but got $other")
+  test("decideOutcome context_ready returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("context_ready"), Recover)
 
-  test("decideOutcome tasks_ready returns Recover with prompt mentioning tasks"):
-    BatchImplement.decideOutcome("tasks_ready") match
-      case Recover(prompt) => assert(prompt.toLowerCase.contains("task"), s"Expected 'task' in prompt but got: $prompt")
-      case other => fail(s"Expected Recover but got $other")
+  test("decideOutcome tasks_ready returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("tasks_ready"), Recover)
 
-  test("decideOutcome implementing returns Recover with prompt mentioning implementation"):
-    BatchImplement.decideOutcome("implementing") match
-      case Recover(prompt) => assert(
-        prompt.toLowerCase.contains("implement"),
-        s"Expected 'implement' in prompt but got: $prompt"
-      )
-      case other => fail(s"Expected Recover but got $other")
+  test("decideOutcome implementing returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("implementing"), Recover)
 
-  test("decideOutcome refactoring_complete returns Recover with prompt mentioning refactoring"):
-    BatchImplement.decideOutcome("refactoring_complete") match
-      case Recover(prompt) => assert(
-        prompt.toLowerCase.contains("refactor"),
-        s"Expected 'refactor' in prompt but got: $prompt"
-      )
-      case other => fail(s"Expected Recover but got $other")
+  test("decideOutcome refactoring_complete returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("refactoring_complete"), Recover)
 
-  test("decideOutcome review_failed returns Recover with prompt mentioning review"):
-    BatchImplement.decideOutcome("review_failed") match
-      case Recover(prompt) => assert(
-        prompt.toLowerCase.contains("review"),
-        s"Expected 'review' in prompt but got: $prompt"
-      )
-      case other => fail(s"Expected Recover but got $other")
+  test("decideOutcome review_failed returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("review_failed"), Recover)
 
   test("decideOutcome bogus_status returns Fail with descriptive reason"):
     BatchImplement.decideOutcome("bogus_status") match

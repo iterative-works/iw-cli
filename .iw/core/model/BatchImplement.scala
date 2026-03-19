@@ -7,7 +7,7 @@ package iw.core.model
 enum PhaseOutcome:
   case MergePR
   case MarkDone
-  case Recover(prompt: String)
+  case Recover
   case Fail(reason: String)
 
 /** Decision logic for the batch-implement loop.
@@ -27,11 +27,11 @@ object BatchImplement:
       case "awaiting_review"      => PhaseOutcome.MergePR
       case "phase_merged"         => PhaseOutcome.MarkDone
       case "all_complete"         => PhaseOutcome.MarkDone
-      case "context_ready"        => PhaseOutcome.Recover("Phase context is ready — re-run implementation")
-      case "tasks_ready"          => PhaseOutcome.Recover("Phase tasks are ready — re-run implementation")
-      case "implementing"         => PhaseOutcome.Recover("Implementation was interrupted — re-run implementation")
-      case "refactoring_complete" => PhaseOutcome.Recover("Refactoring is complete — re-run implementation")
-      case "review_failed"        => PhaseOutcome.Recover("Code review failed — re-run implementation addressing review feedback")
+      case "context_ready"        => PhaseOutcome.Recover
+      case "tasks_ready"          => PhaseOutcome.Recover
+      case "implementing"         => PhaseOutcome.Recover
+      case "refactoring_complete" => PhaseOutcome.Recover
+      case "review_failed"        => PhaseOutcome.Recover
       case other                  => PhaseOutcome.Fail(s"Unknown status: '$other'")
 
   /** Return true if the status means the batch loop should stop.
