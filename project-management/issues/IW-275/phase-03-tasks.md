@@ -67,4 +67,4 @@
 - [x] [verify] Run `scala-cli compile --scalac-option -Werror .iw/core/` and confirm no regressions in core
 - [x] [verify] Run `./iw test unit` and confirm all existing unit tests still pass
 - [x] [verify] Run `./iw test e2e` and confirm all E2E tests pass including the new `batch-implement.bats`
-- [ ] [verify] Commit all changes
+- [x] [verify] Commit all changes
