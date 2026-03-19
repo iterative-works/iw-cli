@@ -247,16 +247,52 @@ import java.time.format.DateTimeFormatter
 
         markAndCommitPhase(phaseNum)
 
-  // --- Phase loop ---
+  // --- Recovery loop (tail-recursive) ---
 
-  var continueLoop = true
-  while continueLoop do
+  def attemptRecovery(phaseNum: Int, attemptsLeft: Int, status: String): Unit =
+    if attemptsLeft <= 0 then
+      log(s"[phase $phaseNum] Exhausted $maxRetries recovery attempts; still in status '$status'")
+      log(s"[phase $phaseNum] Resolve the issue manually and re-run batch-implement.")
+      logWriter.close()
+      sys.exit(1)
+    else
+      log(s"[phase $phaseNum] Recovery attempt ${maxRetries - attemptsLeft + 1}/$maxRetries (status: $status)")
+      val recoverExitCode = ProcessAdapter.runStreaming(
+        claudeCmd(recoveryPromptFor(status), List("--resume")),
+        claudeTimeoutMs
+      )
+      if recoverExitCode != 0 then
+        log(s"[phase $phaseNum] claude recovery exited with code $recoverExitCode")
+      commitLeftovers(phaseNum)
+      val newStatus = readStatus()
+      log(s"[phase $phaseNum] Status after recovery: $newStatus")
+      handleOutcome(phaseNum, newStatus, attemptsLeft - 1)
+
+  // --- Outcome handler ---
+
+  def handleOutcome(phaseNum: Int, status: String, recoveryAttemptsLeft: Int): Unit =
+    BatchImplement.decideOutcome(status) match
+      case PhaseOutcome.MergePR =>
+        handleMergePR(phaseNum)
+      case PhaseOutcome.MarkDone =>
+        log(s"[phase $phaseNum] Phase already merged; marking done.")
+        markAndCommitPhase(phaseNum)
+      case PhaseOutcome.Fail(reason) =>
+        log(s"[phase $phaseNum] Fatal: $reason")
+        logWriter.close()
+        sys.exit(1)
+      case PhaseOutcome.Recover =>
+        attemptRecovery(phaseNum, recoveryAttemptsLeft, status)
+
+  // --- Phase loop (tail-recursive) ---
+
+  @scala.annotation.tailrec
+  def runPhases(): Unit =
     val tasksContent = os.read(tasksPath)
     val phases = MarkdownTaskParser.parsePhaseIndex(tasksContent.split("\n", -1).toSeq)
     BatchImplement.nextPhase(phases) match
       case None =>
         log("All phases complete.")
-        continueLoop = false
       case Some(phaseNum) =>
         log(s"[phase $phaseNum] Starting implementation via claude...")
         val prompt = s"/iterative-works:$workflowCode-implement ${issueId.value} --phase $phaseNum"
@@ -270,57 +306,10 @@ import java.time.format.DateTimeFormatter
         val status = readStatus()
         log(s"[phase $phaseNum] review-state status: $status")
 
-        val outcome = BatchImplement.decideOutcome(status)
-        outcome match
-          case PhaseOutcome.MergePR =>
-            handleMergePR(phaseNum)
-          case PhaseOutcome.MarkDone =>
-            log(s"[phase $phaseNum] Phase already merged; marking done.")
-            markAndCommitPhase(phaseNum)
-          case PhaseOutcome.Fail(reason) =>
-            log(s"[phase $phaseNum] Fatal: $reason")
-            logWriter.close()
-            sys.exit(1)
-          case PhaseOutcome.Recover =>
-            // Enter recovery loop
-            var recoveryAttempt = 0
-            var recovered = false
-            var currentStatus = status
-            while recoveryAttempt < maxRetries && !recovered do
-              recoveryAttempt += 1
-              log(s"[phase $phaseNum] Recovery attempt $recoveryAttempt/$maxRetries (status: $currentStatus)")
-              val recoveryPrompt = recoveryPromptFor(currentStatus)
-              val recoverExitCode = ProcessAdapter.runStreaming(
-                claudeCmd(recoveryPrompt, List("--resume")),
-                30 * 60 * 1000
-              )
-              if recoverExitCode != 0 then
-                log(s"[phase $phaseNum] claude recovery exited with code $recoverExitCode")
-              commitLeftovers(phaseNum)
-              currentStatus = readStatus()
-              log(s"[phase $phaseNum] Status after recovery: $currentStatus")
-              BatchImplement.decideOutcome(currentStatus) match
-                case PhaseOutcome.MergePR =>
-                  handleMergePR(phaseNum)
-                  recovered = true
-                case PhaseOutcome.MarkDone =>
-                  log(s"[phase $phaseNum] Phase merged during recovery; marking done.")
-                  markAndCommitPhase(phaseNum)
-                  recovered = true
-                case PhaseOutcome.Fail(reason) =>
-                  log(s"[phase $phaseNum] Fatal during recovery: $reason")
-                  logWriter.close()
-                  sys.exit(1)
-                case PhaseOutcome.Recover =>
-                  () // Will retry if attempts remain
-            end while
+        handleOutcome(phaseNum, status, maxRetries)
+        runPhases()
 
-            if !recovered then
-              log(s"[phase $phaseNum] Exhausted $maxRetries recovery attempts; still in status '$currentStatus'")
-              log(s"[phase $phaseNum] Resolve the issue manually and re-run batch-implement.")
-              logWriter.close()
-              sys.exit(1)
-  end while
+  runPhases()
 
   // --- Completion flow ---
 
