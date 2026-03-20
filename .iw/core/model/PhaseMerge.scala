@@ -1,5 +1,5 @@
 // PURPOSE: Pure decision functions for phase-merge CI check evaluation
-// PURPOSE: Given CI check statuses, determines verdict (pass/fail/pending) without I/O
+// PURPOSE: Given CI check statuses and PR URLs, determines verdict and extracts PR numbers without I/O
 
 package iw.core.model
 
@@ -84,3 +84,20 @@ object PhaseMerge:
       s"- ${check.name}: ${check.status}$urlPart"
     }
     s"The following CI checks failed:\n${lines.mkString("\n")}"
+
+  private val githubPrPattern = """https://github\.com/.+/pull/(\d+)""".r
+  private val gitlabMrPattern = """https://.+/-/merge_requests/(\d+)""".r
+
+  /** Extract the PR or MR number from a GitHub or GitLab URL.
+    *
+    * @param url A GitHub PR URL or GitLab MR URL (leading/trailing whitespace is stripped)
+    * @return Right(number) on success, Left(errorMessage) for empty, blank, or unrecognised input
+    */
+  def extractPrNumber(url: String): Either[String, Int] =
+    val trimmed = url.trim
+    if trimmed.isEmpty then Left("URL must not be blank")
+    else
+      trimmed match
+        case githubPrPattern(n) => Right(n.toInt)
+        case gitlabMrPattern(n) => Right(n.toInt)
+        case _                  => Left(s"Unrecognised PR/MR URL: $trimmed")
