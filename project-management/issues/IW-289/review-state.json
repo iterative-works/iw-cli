@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "issue_id": "IW-289",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-289/analysis.md",
+      "category": "input"
+    }
+  ],
+  "last_updated": "2026-03-20T16:47:03.252824552Z",
+  "status": "analysis_ready",
+  "display": {
+    "text": "Analysis Ready",
+    "type": "success",
+    "subtext": "7 stories across 3 iterations"
+  },
+  "badges": [
+    {
+      "label": "Feature",
+      "type": "info"
+    }
+  ],
+  "message": "Analysis complete - ready for task generation",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "ag-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    }
+  ],
+  "git_sha": "8740892"
+}
