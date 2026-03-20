@@ -7,12 +7,12 @@
 ## Phase Index
 
 - [x] Phase 1: Move MarkdownTaskParser to model (Est: 1-2h) → `phase-01-context.md`
-- [ ] Phase 2: Batch implementation decision logic (Est: 3-5h) → `phase-02-context.md`
+- [x] Phase 2: Batch implementation decision logic (Est: 3-5h) → `phase-02-context.md`
 - [ ] Phase 3: batch-implement command script (Est: 5-8h) → `phase-03-context.md`
 
 ## Progress Tracker
 
-**Completed:** 1/3 phases
+**Completed:** 2/3 phases
 **Estimated Total:** 9-15 hours
 **Time Spent:** 0 hours
 

@@ -1,0 +1,202 @@
+#!/usr/bin/env bats
+# PURPOSE: End-to-end tests for iw batch-implement command
+# PURPOSE: Tests argument validation and pre-flight checks (full batch run requires real GitHub)
+
+# Get the project root directory (parent of .iw)
+PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
+
+setup() {
+    # Disable dashboard server communication during tests
+    export IW_SERVER_DISABLED=1
+
+    TEST_DIR="$(mktemp -d)"
+    cd "$TEST_DIR"
+
+    # Create a git repo
+    git init -q 2>/dev/null
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    echo "initial" > README.md
+    git add README.md 2>/dev/null
+    git commit -q -m "Initial commit" 2>/dev/null
+
+    # Create feature branch matching IW-275 pattern
+    git checkout -q -b IW-275
+
+    # Initialize iw config
+    mkdir -p .iw
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = github
+  repository = "test-org/test-repo"
+  teamPrefix = "IW"
+}
+EOF
+
+    # Commit config so the tree is clean
+    git add -A 2>/dev/null
+    git commit -q -m "Add config" 2>/dev/null || true
+
+    # Create project-management issue directory with tasks.md and review-state.json
+    mkdir -p project-management/issues/IW-275
+    cat > project-management/issues/IW-275/tasks.md << 'EOF'
+# Tasks
+
+## Phase Index
+
+- [ ] Phase 1: First phase
+- [ ] Phase 2: Second phase
+EOF
+
+    cat > project-management/issues/IW-275/review-state.json << 'EOF'
+{
+  "status": "implementing",
+  "workflow_type": "waterfall",
+  "displayText": "Implementing",
+  "displayType": "info"
+}
+EOF
+
+    git add -A 2>/dev/null
+    git commit -q -m "Add issue files" 2>/dev/null || true
+
+    # Create a stub claude script that records its arguments
+    STUB_DIR="$(mktemp -d)"
+    export STUB_DIR
+
+    cat > "$STUB_DIR/claude" << 'STUB'
+#!/usr/bin/env bash
+# Stub claude: record args and succeed
+echo "$@" >> "$STUB_DIR/claude-calls.txt"
+exit 0
+STUB
+    chmod +x "$STUB_DIR/claude"
+
+    cat > "$STUB_DIR/gh" << 'STUB'
+#!/usr/bin/env bash
+# Stub gh: record args and succeed
+echo "$@" >> "$STUB_DIR/gh-calls.txt"
+exit 0
+STUB
+    chmod +x "$STUB_DIR/gh"
+
+    # Put stub dir first in PATH
+    export PATH="$STUB_DIR:$PATH"
+}
+
+teardown() {
+    cd /
+    rm -rf "$TEST_DIR"
+    rm -rf "$STUB_DIR" 2>/dev/null || true
+}
+
+# --- Pre-flight validation tests ---
+
+@test "batch-implement exits non-zero with error about tasks.md when it is missing" {
+    rm -f project-management/issues/IW-275/tasks.md
+    git add -A 2>/dev/null
+    git commit -q -m "Remove tasks.md" 2>/dev/null || true
+
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"tasks.md"* ]]
+}
+
+@test "batch-implement exits non-zero with error about claude when claude is not on PATH" {
+    # Remove the stub claude so commandExists("claude") returns false
+    rm -f "$STUB_DIR/claude"
+
+    # This test only works when no real claude is installed; skip otherwise
+    if command -v claude &>/dev/null; then
+        skip "real claude CLI is installed; cannot test missing-claude error path"
+    fi
+
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"claude"* ]]
+}
+
+@test "batch-implement exits non-zero with error about commit or stash when working tree is dirty" {
+    # Create an uncommitted file after the last commit
+    echo "dirty" > dirty-file.txt
+
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"commit"* ]] || [[ "$output" == *"stash"* ]]
+}
+
+@test "batch-implement exits non-zero with usage hint when no issue ID on CLI and branch has none" {
+    # Check out a branch with no issue ID pattern
+    git checkout -q -b no-issue-branch
+
+    # Remove any positional args
+    run "$PROJECT_ROOT/iw" batch-implement wf
+
+    [ "$status" -ne 0 ]
+    # Should mention how to provide an issue ID
+    [[ "$output" == *"issue"* ]] || [[ "$output" == *"ISSUE"* ]] || [[ "$output" == *"ID"* ]]
+}
+
+@test "batch-implement exits non-zero with error about forge CLI when gh is not on PATH" {
+    rm -f "$STUB_DIR/gh"
+
+    if command -v gh &>/dev/null; then
+        skip "real gh CLI is installed; cannot test missing-forge error path"
+    fi
+
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"gh"* ]] || [[ "$output" == *"CLI"* ]]
+}
+
+# --- Argument parsing tests ---
+
+@test "batch-implement uses issue ID from positional arg in claude prompt" {
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "IW-275 --phase" "$STUB_DIR/claude-calls.txt"
+}
+
+@test "batch-implement uses workflow code from positional arg in claude prompt" {
+    # Use ag instead of wf to differentiate from auto-detection
+    cat > project-management/issues/IW-275/review-state.json << 'EOF'
+{
+  "status": "implementing",
+  "workflow_type": "agile",
+  "displayText": "Implementing",
+  "displayType": "info"
+}
+EOF
+    git add -A 2>/dev/null
+    git commit -q -m "Update review-state" 2>/dev/null || true
+
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 ag
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "iterative-works:ag-implement" "$STUB_DIR/claude-calls.txt"
+}
+
+@test "batch-implement auto-detects issue ID from branch name IW-275" {
+    # Don't provide a positional issue ID; branch name is IW-275
+    run "$PROJECT_ROOT/iw" batch-implement wf
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "IW-275 --phase" "$STUB_DIR/claude-calls.txt"
+}
+
+@test "batch-implement auto-detects workflow code from review-state.json" {
+    # review-state.json has "workflow_type": "waterfall" → should resolve to "wf"
+    run "$PROJECT_ROOT/iw" batch-implement IW-275
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "iterative-works:wf-implement" "$STUB_DIR/claude-calls.txt"
+}
