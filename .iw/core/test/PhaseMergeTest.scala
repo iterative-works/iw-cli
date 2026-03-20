@@ -208,3 +208,66 @@ class PhaseMergeTest extends FunSuite:
 
   test("buildRecoveryPrompt empty list returns header with no check lines"):
     assertEquals(PhaseMerge.buildRecoveryPrompt(Nil), "The following CI checks failed:\n")
+
+  // extractPrNumber — GitHub URLs
+
+  test("extractPrNumber extracts number from standard GitHub PR URL"):
+    assertEquals(PhaseMerge.extractPrNumber("https://github.com/owner/repo/pull/42"), Right(42))
+
+  test("extractPrNumber extracts number from real GitHub org PR URL"):
+    assertEquals(
+      PhaseMerge.extractPrNumber("https://github.com/iterative-works/iw-cli/pull/290"),
+      Right(290)
+    )
+
+  // extractPrNumber — GitLab URLs
+
+  test("extractPrNumber extracts number from standard GitLab MR URL"):
+    assertEquals(
+      PhaseMerge.extractPrNumber("https://gitlab.com/group/project/-/merge_requests/15"),
+      Right(15)
+    )
+
+  test("extractPrNumber extracts number from self-hosted GitLab MR URL"):
+    assertEquals(
+      PhaseMerge.extractPrNumber("https://git.company.com/team/project/-/merge_requests/7"),
+      Right(7)
+    )
+
+  test("extractPrNumber extracts number from nested GitLab group MR URL"):
+    assertEquals(
+      PhaseMerge.extractPrNumber("https://gitlab.com/group/sub/project/-/merge_requests/99"),
+      Right(99)
+    )
+
+  // extractPrNumber — whitespace handling
+
+  test("extractPrNumber handles URL with trailing whitespace"):
+    assertEquals(
+      PhaseMerge.extractPrNumber("https://github.com/owner/repo/pull/42  "),
+      Right(42)
+    )
+
+  // extractPrNumber — error cases
+
+  test("extractPrNumber returns Left for empty string"):
+    PhaseMerge.extractPrNumber("") match
+      case Left(_)  => () // expected
+      case Right(n) => fail(s"Expected Left but got Right($n)")
+
+  test("extractPrNumber returns Left for whitespace-only string"):
+    PhaseMerge.extractPrNumber("   ") match
+      case Left(_)  => () // expected
+      case Right(n) => fail(s"Expected Left but got Right($n)")
+
+  test("extractPrNumber returns Left with input in message for non-URL string"):
+    val input = "not-a-url"
+    PhaseMerge.extractPrNumber(input) match
+      case Left(msg) => assert(msg.contains(input), s"Expected input in error message: $msg")
+      case Right(n)  => fail(s"Expected Left but got Right($n)")
+
+  test("extractPrNumber returns Left for Bitbucket URL"):
+    val input = "https://bitbucket.org/owner/repo/pull-requests/42"
+    PhaseMerge.extractPrNumber(input) match
+      case Left(msg) => assert(msg.contains(input), s"Expected input in error message: $msg")
+      case Right(n)  => fail(s"Expected Left but got Right($n)")
