@@ -85,6 +85,44 @@ object PhaseMerge:
     }
     s"The following CI checks failed:\n${lines.mkString("\n")}"
 
+  /** Parse JSON output of `gh pr checks --json name,state,link,bucket` into CI check results.
+    *
+    * State mapping:
+    * - "SUCCESS"   → CICheckStatus.Passed
+    * - "FAILURE"   → CICheckStatus.Failed
+    * - "PENDING"   → CICheckStatus.Pending
+    * - "CANCELLED" → CICheckStatus.Cancelled
+    * - anything else → CICheckStatus.Unknown
+    *
+    * An empty `link` field maps to `url = None`; a non-empty link maps to `url = Some(link)`.
+    *
+    * @param json Raw JSON string from `gh pr checks --json name,state,link,bucket`
+    * @return Right(checks) on success, Left(errorMessage) on parse failure
+    */
+  def parseGhChecksJson(json: String): Either[String, List[CICheckResult]] =
+    try
+      import ujson.*
+      val parsed = read(json)
+      val arr =
+        try parsed.arr
+        catch case _: Exception => return Left(s"Expected a JSON array but got: ${parsed.getClass.getSimpleName}")
+      val checks = arr.toList.map { item =>
+        val name = item("name").str
+        val state = item("state").str
+        val link = item("link").str
+        val status = state match
+          case "SUCCESS"   => CICheckStatus.Passed
+          case "FAILURE"   => CICheckStatus.Failed
+          case "PENDING"   => CICheckStatus.Pending
+          case "CANCELLED" => CICheckStatus.Cancelled
+          case _           => CICheckStatus.Unknown
+        val url = if link.isEmpty then None else Some(link)
+        CICheckResult(name, status, url)
+      }
+      Right(checks)
+    catch
+      case e: Exception => Left(s"Failed to parse gh checks JSON: ${e.getMessage}")
+
   private val githubPrPattern = """https://github\.com/.+/pull/(\d+)""".r
   private val gitlabMrPattern = """https://.+/-/merge_requests/(\d+)""".r
 
