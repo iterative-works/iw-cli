@@ -19,14 +19,22 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-289/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-289/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-289/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-03-20T19:43:05.538451383Z",
+  "last_updated": "2026-03-20T20:28:52.516637184Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 01: Implementing",
+    "text": "Phase 02: Implementing",
     "type": "progress",
-    "subtext": "Pure decision logic for CI check results"
+    "subtext": "PR number extraction from review-state"
   },
   "badges": [
     {
@@ -36,9 +44,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 01 implementation started",
+  "message": "Phase 02 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -59,13 +71,18 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "8740892",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=349c0b790ab69d933c62a6ab1b99e0d2033dca0e"
+    "2": {
+      "context_sha": "context_sha=3e154a0f0f3ee316f926e052cd6d3c3086f92fa0"
     }
   }
 }
