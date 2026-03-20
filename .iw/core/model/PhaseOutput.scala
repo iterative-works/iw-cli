@@ -1,5 +1,5 @@
 // PURPOSE: Data types for JSON output of phase lifecycle commands
-// PURPOSE: StartOutput, CommitOutput, PrOutput, and AdvanceOutput serialize to pretty-printed JSON
+// PURPOSE: StartOutput, CommitOutput, PrOutput, MergeOutput, and AdvanceOutput serialize to pretty-printed JSON
 
 package iw.core.model
 

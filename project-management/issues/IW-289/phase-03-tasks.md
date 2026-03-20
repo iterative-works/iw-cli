@@ -95,3 +95,4 @@
 - [x] [verify] Core compiles clean with `-Werror`
 - [x] [verify] No I/O imports in `PhaseMerge.scala` model (pure parsing uses `ujson` which is data-only)
 - [x] [verify] Existing phase-pr and batch-implement tests still pass
+**Phase Status:** Complete

@@ -27,14 +27,22 @@
     {
       "label": "Phase 2 Tasks",
       "path": "project-management/issues/IW-289/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-289/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-289/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-03-20T20:28:52.516637184Z",
+  "last_updated": "2026-03-20T21:27:40.778285778Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 02: Implementing",
+    "text": "Phase 03: Implementing",
     "type": "progress",
-    "subtext": "PR number extraction from review-state"
+    "subtext": "GitHub CI polling and auto-merge"
   },
   "badges": [
     {
@@ -48,9 +56,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 02 implementation started",
+  "message": "Phase 03 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -76,13 +88,18 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "8740892",
   "needs_attention": true,
   "phase_checkpoints": {
-    "2": {
-      "context_sha": "context_sha=3e154a0f0f3ee316f926e052cd6d3c3086f92fa0"
+    "3": {
+      "context_sha": "context_sha=6e829cd38ba7de0ba01ed0a5cade322229a5bedd"
     }
   }
 }
