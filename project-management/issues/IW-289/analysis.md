@@ -322,75 +322,37 @@ Scenar: PR URL chybi
 - Modified `batch-implement.scala` — replace `handleMergePR` with subprocess call to `iw phase-merge`
 - Modified `phase-pr` invocation — drop `--batch` flag in batch-implement flow
 
-## Technical Risks & Uncertainties
+## Technical Decisions
 
-### CLARIFY: GitHub checks vs status API differences
+### RESOLVED: CI status API scope
 
-GitHub has two overlapping systems: "checks" (Check Runs via GitHub Actions) and "commit statuses" (older API, used by external CI like Jenkins). `gh pr checks` may not capture both.
+**Decision:** Use `gh pr checks --json` for GitHub and `glab` equivalents for GitLab. No support for external CI systems (Jenkins, CircleCI commit status API).
 
-**Questions to answer:**
-1. Do all target projects use GitHub Actions, or do some use external CI (Jenkins, CircleCI)?
-2. Does `gh pr checks` include commit statuses, or only check runs?
-3. Should we use `gh pr checks --json` or `gh api` for more complete status?
-
-**Options:**
-- **Option A**: Use `gh pr checks --json` only — simpler, covers GitHub Actions. External CI not supported.
-- **Option B**: Use `gh api` to query both checks and statuses — complete but more complex parsing.
-- **Option C**: Start with Option A, add Option B later if needed.
-
-**Impact:** Determines whether phase-merge works with all CI systems or only GitHub Actions.
+**Rationale:** All target projects use GitHub Actions or GitLab CI natively. No need for the complexity of the older commit status API.
 
 ---
 
-### CLARIFY: Merge strategy (squash vs merge commit)
+### RESOLVED: Merge strategy
 
-The issue says "squash merge" but `batch-implement.scala` currently uses `--merge` (merge commit). `phase-pr --batch` uses `--squash --delete-branch`.
+**Decision:** Phase PRs use merge commit + delete branch (`--merge --delete-branch`). The final PR (feature → main) may use squash.
 
-**Questions to answer:**
-1. Should phase-merge always squash, always merge, or make it configurable?
-2. Should the phase sub-branch be deleted after merge?
-
-**Options:**
-- **Option A**: Always squash + delete branch (matches phase-pr --batch behavior)
-- **Option B**: Configurable `--merge-strategy` flag
-- **Option C**: Match whatever batch-implement currently does (merge commit)
-
-**Impact:** Affects git history cleanliness and branch cleanup.
+**Rationale:** Squash merge on phase PRs rewrites history, forcing resets on the feature branch when advancing. Merge commits allow simple pull/fast-forward. Branch cleanup keeps things tidy. Note: `phase-pr --batch` currently uses `--squash` which is inconsistent — should be fixed in Story 6.
 
 ---
 
-### CLARIFY: Where to run the agent for CI fixes
+### RESOLVED: Branch state during CI fixes
 
-When CI fails, `phase-merge` needs to invoke `claude` to fix the issue. But the current branch may have been switched back to the feature branch after PR creation.
+**Decision:** `phase-merge` must be run while on the phase sub-branch. It switches to the feature branch only after successful merge.
 
-**Questions to answer:**
-1. Should `phase-merge` be run while still on the phase sub-branch?
-2. Or should it handle checking out the phase branch if needed?
-3. Does `batch-implement` need to change its branch management around the `phase-merge` call?
-
-**Options:**
-- **Option A**: Require `phase-merge` to be run on the phase sub-branch (simplest)
-- **Option B**: `phase-merge` auto-checks out the phase branch from `pr_url` metadata
-- **Option C**: `phase-merge` operates from the feature branch and pushes to the phase branch
-
-**Impact:** Determines command prerequisites and batch-implement integration complexity.
+**Rationale:** Simplest approach. `phase-pr` already leaves you on the phase sub-branch, so `phase-merge` naturally follows. Agent CI fixes commit and push to the same branch.
 
 ---
 
-### CLARIFY: PRs with no CI checks configured
+### RESOLVED: PRs with no CI checks configured
 
-Some repositories might not have any CI configured. `gh pr checks` would return empty.
+**Decision:** No checks = immediate merge (graceful degradation).
 
-**Questions to answer:**
-1. Should phase-merge treat "no checks" as pass and merge immediately?
-2. Or should it warn and require a flag like `--allow-no-checks`?
-
-**Options:**
-- **Option A**: No checks = immediate merge (graceful degradation)
-- **Option B**: No checks = error (force users to configure CI or use `--allow-no-checks`)
-- **Option C**: No checks = warn but proceed with merge
-
-**Impact:** User experience for projects without CI.
+**Rationale:** If someone runs `phase-merge` on a repo with no CI, they know what they're doing. No need for ceremony or extra flags.
 
 ## Total Estimates
 
