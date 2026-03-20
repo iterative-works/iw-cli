@@ -45,7 +45,7 @@
       "path": "project-management/issues/IW-275/release-notes.md"
     }
   ],
-  "last_updated": "2026-03-20T14:55:48.994445506Z",
+  "last_updated": "2026-03-20T14:57:44.450112665Z",
   "status": "all_complete",
   "display": {
     "text": "Ready for Final Review",
@@ -93,6 +93,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "a7f3394",
@@ -124,5 +129,5 @@
       "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/287"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/288"
 }
