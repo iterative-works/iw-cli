@@ -196,3 +196,15 @@ class PhaseMergeTest extends FunSuite:
     val prompt = PhaseMerge.buildRecoveryPrompt(checks)
     assert(prompt.nonEmpty, "Expected non-empty prompt")
     assert(prompt.contains("test"), s"Expected check name in: $prompt")
+
+  test("buildRecoveryPrompt formats each line as '- name: status (url)'"):
+    val checks = List(
+      CICheckResult("build", Failed, Some("https://ci.example.com/1")),
+      CICheckResult("lint", Cancelled, None)
+    )
+    val expected =
+      "The following CI checks failed:\n- build: Failed (https://ci.example.com/1)\n- lint: Cancelled"
+    assertEquals(PhaseMerge.buildRecoveryPrompt(checks), expected)
+
+  test("buildRecoveryPrompt empty list returns header with no check lines"):
+    assertEquals(PhaseMerge.buildRecoveryPrompt(Nil), "The following CI checks failed:\n")
