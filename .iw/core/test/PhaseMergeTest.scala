@@ -248,26 +248,28 @@ class PhaseMergeTest extends FunSuite:
       Right(42)
     )
 
+  test("extractPrNumber handles URL with leading whitespace"):
+    assertEquals(
+      PhaseMerge.extractPrNumber("  https://github.com/owner/repo/pull/42"),
+      Right(42)
+    )
+
   // extractPrNumber — error cases
 
   test("extractPrNumber returns Left for empty string"):
-    PhaseMerge.extractPrNumber("") match
-      case Left(_)  => () // expected
-      case Right(n) => fail(s"Expected Left but got Right($n)")
+    assertEquals(PhaseMerge.extractPrNumber(""), Left("URL must not be blank"))
 
   test("extractPrNumber returns Left for whitespace-only string"):
-    PhaseMerge.extractPrNumber("   ") match
-      case Left(_)  => () // expected
-      case Right(n) => fail(s"Expected Left but got Right($n)")
+    assertEquals(PhaseMerge.extractPrNumber("   "), Left("URL must not be blank"))
 
   test("extractPrNumber returns Left with input in message for non-URL string"):
     val input = "not-a-url"
-    PhaseMerge.extractPrNumber(input) match
-      case Left(msg) => assert(msg.contains(input), s"Expected input in error message: $msg")
-      case Right(n)  => fail(s"Expected Left but got Right($n)")
+    val result = PhaseMerge.extractPrNumber(input)
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains(input)))
 
   test("extractPrNumber returns Left for Bitbucket URL"):
     val input = "https://bitbucket.org/owner/repo/pull-requests/42"
-    PhaseMerge.extractPrNumber(input) match
-      case Left(msg) => assert(msg.contains(input), s"Expected input in error message: $msg")
-      case Right(n)  => fail(s"Expected Left but got Right($n)")
+    val result = PhaseMerge.extractPrNumber(input)
+    assert(result.isLeft)
+    assert(result.left.exists(_.contains(input)))
