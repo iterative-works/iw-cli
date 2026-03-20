@@ -6,14 +6,19 @@
       "label": "Analysis",
       "path": "project-management/issues/IW-289/analysis.md",
       "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-289/tasks.md",
+      "category": "output"
     }
   ],
-  "last_updated": "2026-03-20T16:47:03.252824552Z",
-  "status": "analysis_ready",
+  "last_updated": "2026-03-20T19:34:05.811416125Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Analysis Ready",
+    "text": "Tasks Ready",
     "type": "success",
-    "subtext": "7 stories across 3 iterations"
+    "subtext": "7 phases identified"
   },
   "badges": [
     {
@@ -21,7 +26,7 @@
       "type": "info"
     }
   ],
-  "message": "Analysis complete - ready for task generation",
+  "message": "Task breakdown complete. Ready to begin implementation.",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -32,7 +37,13 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
     }
   ],
-  "git_sha": "8740892"
+  "git_sha": "8740892",
+  "needs_attention": true
 }
