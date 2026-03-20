@@ -44,3 +44,4 @@
 - [x] [verify] Compile with `-Werror`: `scala-cli compile --scalac-option -Werror .iw/core/`
 - [x] [verify] Run unit tests: `./iw test unit`
 - [x] [verify] Confirm no I/O imports in `PhaseMerge.scala` (no `scala.sys.process`, `java.io`, `adapters.*`)
+**Phase Status:** Complete

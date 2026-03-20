@@ -11,6 +11,10 @@ enum CICheckStatus:
   case Cancelled
   case Unknown
 
+  /** True for statuses that represent a terminal failure (Failed, Cancelled). */
+  def isTerminalFailure: Boolean =
+    this == Failed || this == Cancelled
+
 /** A single CI check result with its name, status, and optional details URL. */
 case class CICheckResult(
     name: String,
@@ -24,6 +28,7 @@ enum CIVerdict:
   case SomeFailed(failedChecks: List[CICheckResult])
   case StillRunning
   case NoChecksFound
+  /** Set by the polling loop caller when CI does not finish within the timeout. */
   case TimedOut
 
 /** Configuration for the phase-merge CI polling loop. */
@@ -51,16 +56,15 @@ object PhaseMerge:
     * @return CIVerdict describing the overall CI state
     */
   def evaluateChecks(checks: List[CICheckResult]): CIVerdict =
-    if checks.isEmpty then CIVerdict.NoChecksFound
-    else
-      val failed = checks.filter(c =>
-        c.status == CICheckStatus.Failed || c.status == CICheckStatus.Cancelled
-      )
-      if failed.nonEmpty then CIVerdict.SomeFailed(failed)
-      else if checks.exists(_.status == CICheckStatus.Pending) then CIVerdict.StillRunning
-      else CIVerdict.AllPassed
+    checks match
+      case Nil => CIVerdict.NoChecksFound
+      case _ =>
+        val (failures, rest) = checks.partition(_.status.isTerminalFailure)
+        if failures.nonEmpty then CIVerdict.SomeFailed(failures)
+        else if rest.exists(_.status == CICheckStatus.Pending) then CIVerdict.StillRunning
+        else CIVerdict.AllPassed
 
-  /** Return true if another polling attempt should be made.
+  /** Determine whether another recovery attempt should be made.
     *
     * @param attempt Zero-based attempt index (0 = first attempt)
     * @param config  Merge configuration carrying the max retries limit
