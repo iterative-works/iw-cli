@@ -126,16 +126,16 @@ EOF
     mkdir -p "$TEST_DIR/mock-bin"
     cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
 #!/usr/bin/env bash
-# Mock gh CLI for testing
-if [[ "$*" == *"auth status"* ]]; then
+echo "$1 $2" >> "$TEST_DIR/gh-calls.log"
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
     echo "Logged in to github.com"
     exit 0
 fi
-if [[ "$*" == *"pr checks"* ]]; then
-    echo '[{"bucket":"pass","link":"https://ci.example.com/1","name":"test","state":"SUCCESS"}]'
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+    echo '[{"link":"https://ci.example.com/1","name":"test","state":"SUCCESS"}]'
     exit 0
 fi
-if [[ "$*" == *"pr merge"* ]]; then
+if [[ "$1" == "pr" && "$2" == "merge" ]]; then
     exit 0
 fi
 echo "Unexpected gh call: $*" >&2
@@ -155,30 +155,35 @@ GHEOF
     # Verify JSON output contains expected fields
     [[ "$output" == *"TEST-100"* ]]
     [[ "$output" == *"phase_merged"* ]] || [[ "$output" == *"featureBranch"* ]]
+
+    # Verify mock gh was actually called
+    [ -f "$TEST_DIR/gh-calls.log" ]
 }
 
 @test "phase-merge with failing CI checks exits non-zero and reports failed checks" {
-    # Create review state with pr_url
+    # Create review state with pr_url and required artifacts field
     mkdir -p "project-management/issues/TEST-100"
     cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
 {
   "version": 2,
   "issue_id": "TEST-100",
   "status": "awaiting_review",
-  "pr_url": "https://github.com/test-org/test-repo/pull/42"
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
 }
 EOF
 
-    # Create a mock gh script that simulates failing checks
+    # Create a mock gh script that simulates failing checks and logs calls
     mkdir -p "$TEST_DIR/mock-bin"
     cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
 #!/usr/bin/env bash
-if [[ "$*" == *"auth status"* ]]; then
+echo "$1 $2" >> "$TEST_DIR/gh-calls.log"
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
     echo "Logged in to github.com"
     exit 0
 fi
-if [[ "$*" == *"pr checks"* ]]; then
-    echo '[{"bucket":"fail","link":"https://ci.example.com/1","name":"lint","state":"FAILURE"}]'
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+    echo '[{"link":"https://ci.example.com/1","name":"lint","state":"FAILURE"}]'
     exit 0
 fi
 echo "Unexpected gh call: $*" >&2
@@ -190,4 +195,7 @@ GHEOF
 
     [ "$status" -eq 1 ]
     [[ "$output" == *"lint"* ]]
+
+    # Verify mock gh was actually called
+    [ -f "$TEST_DIR/gh-calls.log" ]
 }

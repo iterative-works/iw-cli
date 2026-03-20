@@ -3,7 +3,7 @@
 
 package iw.core.adapters
 
-import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser, CICheckResult, PhaseMerge}
+import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser, CICheckResult, CICheckStatus}
 
 object GitHubClient:
 
@@ -609,7 +609,7 @@ object GitHubClient:
     Array(
       "pr", "checks", prNumber.toString,
       "--repo", repository,
-      "--json", "name,state,link,bucket"
+      "--json", "name,state,link"
     )
 
   /** Build gh CLI command arguments for merging a PR with branch deletion.
@@ -642,4 +642,34 @@ object GitHubClient:
       case Right(_) =>
         execCommand("gh", buildCheckStatusesCommand(prNumber, repository)) match
           case Left(error) => Left(s"Failed to fetch check statuses: $error")
-          case Right(json) => PhaseMerge.parseGhChecksJson(json)
+          case Right(json) => parseGhChecksJson(json)
+
+  /** Parse JSON output of `gh pr checks` into CI check results.
+    *
+    * @param json Raw JSON string from `gh pr checks --json name,state,link`
+    * @return Right(checks) on success, Left(errorMessage) on parse failure
+    */
+  private def parseGhChecksJson(json: String): Either[String, List[CICheckResult]] =
+    try
+      import ujson.*
+      val parsed = read(json)
+      parsed match
+        case arr: ujson.Arr =>
+          val checks = arr.value.toList.map { item =>
+            val name = item("name").str
+            val state = item("state").str
+            val link = item("link").str
+            val status = state match
+              case "SUCCESS"   => CICheckStatus.Passed
+              case "FAILURE"   => CICheckStatus.Failed
+              case "PENDING"   => CICheckStatus.Pending
+              case "CANCELLED" => CICheckStatus.Cancelled
+              case _           => CICheckStatus.Unknown
+            val url = if link.isEmpty then None else Some(link)
+            CICheckResult(name, status, url)
+          }
+          Right(checks)
+        case other =>
+          Left(s"Expected a JSON array but got: ${other.getClass.getSimpleName}")
+    catch
+      case e: Exception => Left(s"Failed to parse gh checks JSON: ${e.getMessage}")

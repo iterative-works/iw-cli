@@ -1,5 +1,5 @@
 // PURPOSE: Polls GitHub CI checks for a PR and auto-merges on success
-// USAGE: iw phase-merge [--issue-id ID] [--phase-number N]
+// PURPOSE: Invoked as `iw phase-merge [--issue-id ID] [--phase-number N]`
 
 import iw.core.model.*
 import iw.core.adapters.*
@@ -46,25 +46,12 @@ import iw.core.output.*
 
   val reviewStatePath = os.pwd / "project-management" / "issues" / issueId.value / "review-state.json"
 
-  // Read PR URL from review-state.json
-  val prUrl =
-    if !os.exists(reviewStatePath) then
-      Output.error(s"review-state.json not found at $reviewStatePath")
-      sys.exit(1)
-    else
-      val json = CommandHelpers.exitOnError(ReviewStateAdapter.read(reviewStatePath))
-      try
-        import ujson.*
-        val parsed = read(json)
-        if parsed.obj.contains("pr_url") && !parsed("pr_url").isNull then
-          parsed("pr_url").str
-        else
-          Output.error("No pr_url found in review-state.json. Run 'iw phase-pr' first.")
-          sys.exit(1)
-      catch
-        case e: Exception =>
-          Output.error(s"Failed to read pr_url from review-state.json: ${e.getMessage}")
-          sys.exit(1)
+  val prUrl = CommandHelpers.exitOnError(ReviewStateAdapter.readPrUrl(reviewStatePath))
+
+  val expectedPrefix = s"https://github.com/$repository/pull/"
+  if !prUrl.startsWith(expectedPrefix) then
+    Output.error(s"PR URL does not match repository '$repository'.")
+    sys.exit(1)
 
   val prNumber = CommandHelpers.exitOnError(PhaseMerge.extractPrNumber(prUrl))
 
