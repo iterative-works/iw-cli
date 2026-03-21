@@ -1,4 +1,4 @@
-// PURPOSE: Polls GitHub CI checks for a PR and auto-merges on success
+// PURPOSE: Polls CI checks for a PR/MR and auto-merges on success (supports GitHub and GitLab)
 // PURPOSE: Recovers from CI failures by invoking an agent up to a configurable number of times
 
 import iw.core.model.*
@@ -58,10 +58,6 @@ import iw.core.output.*
   val remoteOpt = GitAdapter.getRemoteUrl(os.pwd)
   val forgeType = ForgeType.resolve(remoteOpt, config.trackerType)
 
-  if forgeType == ForgeType.GitLab then
-    Output.error("GitLab support coming in a future phase.")
-    sys.exit(1)
-
   val repository = config.repository.getOrElse {
     remoteOpt.flatMap(r => r.extractRepositoryPath.toOption).getOrElse {
       Output.error("Cannot determine repository. Set 'tracker.repository' in .iw/config.conf")
@@ -79,10 +75,16 @@ import iw.core.output.*
 
   val prUrl = CommandHelpers.exitOnError(ReviewStateAdapter.readPrUrl(reviewStatePath))
 
-  val expectedPrefix = s"https://github.com/$repository/pull/"
-  if !prUrl.startsWith(expectedPrefix) then
-    Output.error(s"PR URL does not match repository '$repository'.")
-    sys.exit(1)
+  forgeType match
+    case ForgeType.GitHub =>
+      val expectedPrefix = s"https://github.com/$repository/pull/"
+      if !prUrl.startsWith(expectedPrefix) then
+        Output.error(s"PR URL does not match repository '$repository'.")
+        sys.exit(1)
+    case ForgeType.GitLab =>
+      if !prUrl.contains(s"/$repository/-/merge_requests/") then
+        Output.error(s"MR URL does not match repository '$repository'.")
+        sys.exit(1)
 
   val prNumber = CommandHelpers.exitOnError(PhaseMerge.extractPrNumber(prUrl))
 
@@ -108,7 +110,10 @@ import iw.core.output.*
       Output.error(s"PR is at $prUrl. You can merge manually once CI passes.")
       sys.exit(1)
 
-    val checks = GitHubClient.fetchCheckStatuses(prNumber, repository) match
+    val checks = (forgeType match
+      case ForgeType.GitHub => GitHubClient.fetchCheckStatuses(prNumber, repository)
+      case ForgeType.GitLab => GitLabClient.fetchCheckStatuses(prNumber, repository)
+    ) match
       case Left(err) =>
         Output.error(s"Failed to fetch CI check statuses: $err")
         sys.exit(1)
@@ -176,9 +181,12 @@ import iw.core.output.*
 
   retryLoop(0)
 
-  // Merge the PR
+  // Merge the PR/MR
   Output.info(s"Merging PR: $prUrl")
-  val mergeResult = ProcessAdapter.run(Seq("gh") ++ GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq)
+  val mergeCmd = forgeType match
+    case ForgeType.GitHub => Seq("gh") ++ GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq
+    case ForgeType.GitLab => Seq("glab") ++ GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq
+  val mergeResult = ProcessAdapter.run(mergeCmd)
   if mergeResult.exitCode != 0 then
     Output.error(s"Failed to merge PR: ${mergeResult.stderr}")
     sys.exit(1)
