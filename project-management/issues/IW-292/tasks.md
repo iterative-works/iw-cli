@@ -3,17 +3,17 @@
 **Issue:** IW-292
 **Created:** 2026-03-21
 **Severity:** High
-**Status:** 0/3 phases complete (0%)
+**Status:** 1/3 phases complete (33%)
 
 ## Phase Index
 
-- [ ] Phase 1: phase-pr does not commit review-state.json update (Est: 2-4h) → `phase-01-context.md`
+- [x] Phase 1: phase-pr does not commit review-state.json update (Est: 2-4h) → `phase-01-context.md`
 - [ ] Phase 2: phase-merge does not commit review-state.json updates (Est: 1-2h) → `phase-02-context.md`
 - [ ] Phase 3: phase-advance does not commit review-state.json update (Est: 1-2h) → `phase-03-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/3 phases
+**Completed:** 1/3 phases
 **Estimated Total:** 4-8 hours
 **Time Spent:** 0 hours
 
