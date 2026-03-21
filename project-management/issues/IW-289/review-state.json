@@ -51,14 +51,18 @@
     {
       "label": "Phase 5 Tasks",
       "path": "project-management/issues/IW-289/phase-05-tasks.md"
+    },
+    {
+      "label": "Phase 6 Context",
+      "path": "project-management/issues/IW-289/phase-06-context.md"
     }
   ],
-  "last_updated": "2026-03-21T10:28:34.064958818Z",
-  "status": "implementing",
+  "last_updated": "2026-03-21T11:06:19.970948952Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 05: Implementing",
-    "type": "progress",
-    "subtext": "CI failure recovery via agent re-invocation"
+    "text": "Phase 6: Context Ready",
+    "type": "info",
+    "subtext": "GitLab CI status support"
   },
   "badges": [
     {
@@ -94,7 +98,7 @@
       "type": "info"
     }
   ],
-  "message": "Phase 05 implementation started",
+  "message": "Phase 6 context ready for review",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -150,9 +154,10 @@
   "git_sha": "8740892",
   "needs_attention": true,
   "phase_checkpoints": {
-    "5": {
-      "context_sha": "context_sha=2a4861427b536eae6b3a73c128d513726779f3c3"
+    "6": {
+      "context_sha": "context_sha=5fd086db3f93a29485ae3fffcc8c27787c6600a4"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/294"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/294",
+  "activity": "working"
 }
