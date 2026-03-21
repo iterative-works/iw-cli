@@ -2,21 +2,21 @@
 
 **Issue:** IW-289
 **Created:** 2026-03-20
-**Status:** 3/7 phases complete (43%)
+**Status:** 4/7 phases complete (57%)
 
 ## Phase Index
 
 - [x] Phase 1: Pure decision logic for CI check results (Est: 4-6h) → `phase-01-context.md`
 - [x] Phase 2: PR number extraction from review-state (Est: 2-3h) → `phase-02-context.md`
 - [x] Phase 3: GitHub CI polling and auto-merge (Est: 8-12h) → `phase-03-context.md`
-- [ ] Phase 4: Timeout and configurable polling (Est: 2-4h) → `phase-04-context.md`
+- [x] Phase 4: Timeout and configurable polling (Est: 2-4h) → `phase-04-context.md`
 - [ ] Phase 5: CI failure recovery via agent re-invocation (Est: 6-8h) → `phase-05-context.md`
 - [ ] Phase 6: GitLab CI status support (Est: 4-6h) → `phase-06-context.md`
 - [ ] Phase 7: batch-implement integration (Est: 4-6h) → `phase-07-context.md`
 
 ## Progress Tracker
 
-**Completed:** 3/7 phases
+**Completed:** 4/7 phases
 **Estimated Total:** 30-45 hours
 **Time Spent:** 0 hours
 
