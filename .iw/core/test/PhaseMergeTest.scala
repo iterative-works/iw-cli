@@ -1,5 +1,5 @@
 // PURPOSE: Unit tests for PhaseMerge model object
-// PURPOSE: Tests pure decision functions for CI check evaluation
+// PURPOSE: Tests CI check evaluation, duration parsing, and PR URL extraction
 
 package iw.core.application
 

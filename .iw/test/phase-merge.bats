@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw phase-merge command
-# PURPOSE: Tests branch validation, forge type checks, and missing PR URL error cases
+# PURPOSE: Tests branch validation, forge type checks, missing PR URL errors, and configurable timeout/polling
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
@@ -288,7 +288,11 @@ GHEOF
     PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --poll-interval 1s --timeout 10s
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"TEST-100"* ]] || [[ "$output" == *"featureBranch"* ]]
+
+    # Verify review-state updated to phase_merged
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"phase_merged"* ]]
 }
 
 @test "phase-merge --timeout with invalid duration exits non-zero with parse error" {

@@ -112,7 +112,7 @@ import iw.core.output.*
         Output.info("No CI checks found — proceeding with merge.")
       case CIVerdict.StillRunning =>
         val pendingNames = checks.filter(_.status == CICheckStatus.Pending).map(_.name).mkString(", ")
-        Output.info(s"CI still running (pending: $pendingNames). Waiting ${mergeConfig.pollIntervalMs / 1000}s...")
+        Output.info(s"CI still running (pending: $pendingNames). Waiting ${PhaseMerge.formatDuration(mergeConfig.pollIntervalMs)}...")
         Thread.sleep(mergeConfig.pollIntervalMs)
         poll()
       case CIVerdict.SomeFailed(failedChecks) =>
