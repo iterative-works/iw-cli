@@ -1,0 +1,206 @@
+{
+  "version": 2,
+  "issue_id": "IW-289",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-289/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-289/tasks.md",
+      "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-289/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-289/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-289/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-289/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-289/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-289/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-289/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-289/phase-04-tasks.md"
+    },
+    {
+      "label": "Phase 5 Context",
+      "path": "project-management/issues/IW-289/phase-05-context.md"
+    },
+    {
+      "label": "Phase 5 Tasks",
+      "path": "project-management/issues/IW-289/phase-05-tasks.md"
+    },
+    {
+      "label": "Phase 6 Context",
+      "path": "project-management/issues/IW-289/phase-06-context.md"
+    },
+    {
+      "label": "Phase 6 Tasks",
+      "path": "project-management/issues/IW-289/phase-06-tasks.md"
+    },
+    {
+      "label": "Phase 7 Context",
+      "path": "project-management/issues/IW-289/phase-07-context.md"
+    },
+    {
+      "label": "Phase 7 Tasks",
+      "path": "project-management/issues/IW-289/phase-07-tasks.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-289/implementation-log.md"
+    },
+    {
+      "label": "Release Notes",
+      "path": "project-management/issues/IW-289/release-notes.md"
+    }
+  ],
+  "last_updated": "2026-03-21T15:05:19.687150393Z",
+  "status": "all_complete",
+  "display": {
+    "text": "Ready for Final Review",
+    "type": "success",
+    "subtext": "batch-implement integration"
+  },
+  "badges": [
+    {
+      "label": "Feature",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ],
+  "message": "All phases complete - final PR created",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "ag-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    }
+  ],
+  "git_sha": "8740892",
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "7": {
+      "context_sha": "context_sha=1fc5948430e232f139ff877eccc10a39b1cfa323"
+    }
+  },
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/299",
+  "activity": "waiting"
+}

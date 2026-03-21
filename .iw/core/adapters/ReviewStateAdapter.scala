@@ -45,6 +45,29 @@ object ReviewStateAdapter:
     catch
       case e: Exception => Left(s"Failed to read $path: ${e.getMessage}")
 
+  /** Read the pr_url field from review-state.json.
+    *
+    * @param path Path to review-state.json
+    * @return Right(prUrl) on success, Left(error) if file missing, unreadable, or pr_url absent
+    */
+  def readPrUrl(path: os.Path): Either[String, String] =
+    for
+      json <- read(path)
+      url <- extractPrUrl(json)
+    yield url
+
+  private def extractPrUrl(json: String): Either[String, String] =
+    try
+      import ujson.*
+      val parsed = ujson.read(json)
+      if parsed.obj.contains("pr_url") && !parsed("pr_url").isNull then
+        Right(parsed("pr_url").str)
+      else
+        Left("No pr_url found in review-state.json. Run 'iw phase-pr' first.")
+    catch
+      case e: Exception =>
+        Left(s"Failed to read pr_url from review-state.json: ${e.getMessage}")
+
   private def writeFile(path: os.Path, content: String): Either[String, Unit] =
     try
       os.write.over(path, content)

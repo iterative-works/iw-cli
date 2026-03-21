@@ -1,9 +1,9 @@
 // PURPOSE: GitLab CLI client for issue and MR management via glab CLI
-// PURPOSE: Provides issue creation, fetching, and MR creation/merge operations
+// PURPOSE: Provides issue creation, fetching, MR creation/merge, and CI pipeline status operations
 
 package iw.core.adapters
 
-import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser}
+import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser, CICheckResult, CICheckStatus}
 
 object GitLabClient:
 
@@ -483,3 +483,138 @@ Check your network connection and try again.""".stripMargin
         execCommand("glab", buildMergeMrCommand(mrUrl)) match
           case Left(error) => Left(error)
           case Right(_) => Right(())
+
+  /** URL-encode the repository path for GitLab API calls. */
+  private def encodedRepo(repository: String): String =
+    repository.replace("/", "%2F")
+
+  /** Build glab CLI command arguments for fetching MR pipelines list.
+    *
+    * Uses the GitLab API to fetch pipelines for an MR, which gives pipeline IDs
+    * to then query for job statuses.
+    *
+    * @param mrNumber MR number (iid)
+    * @param repository GitLab repository in owner/project format
+    * @return Array of command arguments for glab CLI (without leading "glab")
+    */
+  def buildCheckStatusesCommand(mrNumber: Int, repository: String): Array[String] =
+    val repo = encodedRepo(repository)
+    Array("api", s"projects/$repo/merge_requests/$mrNumber/pipelines", "--method", "GET")
+
+  /** Build glab CLI command arguments for fetching pipeline job statuses.
+    *
+    * @param pipelineId GitLab pipeline ID
+    * @param repository GitLab repository in owner/project format
+    * @return Array of command arguments for glab CLI (without leading "glab")
+    */
+  def buildPipelineJobsCommand(pipelineId: Int, repository: String): Array[String] =
+    val repo = encodedRepo(repository)
+    Array("api", s"projects/$repo/pipelines/$pipelineId/jobs", "--method", "GET")
+
+  /** Build glab CLI command arguments for merging an MR with source branch deletion.
+    *
+    * @param mrUrl URL of the MR to merge
+    * @return Array of command arguments for glab CLI (without leading "glab")
+    */
+  def buildMergeMrWithDeleteCommand(mrUrl: String): Array[String] =
+    Array("mr", "merge", "--remove-source-branch", mrUrl)
+
+  /** Parse pipelines list JSON to extract the latest pipeline ID.
+    *
+    * Expected format: [{"id": 123, "status": "success", ...}, ...]
+    * The first element is the most recent pipeline.
+    *
+    * @param json Raw JSON string from glab pipelines API
+    * @return Right(pipelineId) on success, Left(error) on failure
+    */
+  def parseGlabPipelinesJson(json: String): Either[String, Int] =
+    try
+      import ujson.*
+      val parsed = read(json)
+      parsed match
+        case arr: ujson.Arr =>
+          if arr.value.isEmpty then
+            Left("No pipelines found for this MR")
+          else
+            Right(arr.value.head("id").num.toInt)
+        case other =>
+          Left(s"Expected a JSON array but got: ${other.getClass.getSimpleName}")
+    catch
+      case e: Exception => Left(s"Failed to parse pipelines JSON: ${e.getMessage}")
+
+  /** Map a GitLab job status string to a CICheckStatus.
+    *
+    * @param status GitLab job status string
+    * @return Corresponding CICheckStatus
+    */
+  private def mapGitLabJobStatus(status: String): CICheckStatus =
+    status match
+      case "success" | "passed" | "skipped" => CICheckStatus.Passed
+      case "failed"                          => CICheckStatus.Failed
+      case "canceled" | "cancelled"          => CICheckStatus.Cancelled
+      case "pending" | "running" | "created" |
+           "waiting_for_resource" | "preparing" | "manual" => CICheckStatus.Pending
+      case _                                 => CICheckStatus.Unknown
+
+  /** Parse jobs list JSON from GitLab pipeline jobs API into CICheckResult list.
+    *
+    * Expected format: [{"id": 1, "name": "test", "status": "success", "web_url": "..."}, ...]
+    *
+    * @param json Raw JSON string from glab jobs API
+    * @return Right(checks) on success, Left(error) on parse failure
+    */
+  def parseGlabJobsJson(json: String): Either[String, List[CICheckResult]] =
+    try
+      import ujson.*
+      val parsed = read(json)
+      parsed match
+        case arr: ujson.Arr =>
+          val checks = arr.value.toList.map { item =>
+            val name = item("name").str
+            val status = mapGitLabJobStatus(item("status").str)
+            val webUrl = item("web_url").str
+            val url = if webUrl.isEmpty then None else Some(webUrl)
+            CICheckResult(name, status, url)
+          }
+          Right(checks)
+        case other =>
+          Left(s"Expected a JSON array but got: ${other.getClass.getSimpleName}")
+    catch
+      case e: Exception => Left(s"Failed to parse jobs JSON: ${e.getMessage}")
+
+  /** Fetch CI check statuses for an MR via glab CLI.
+    *
+    * Makes two API calls: first to get the latest pipeline ID, then to get job statuses.
+    * Returns an empty list if no pipelines exist yet.
+    *
+    * @param mrNumber MR number (iid) to check
+    * @param repository GitLab repository in owner/project format
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(checks) on success, Left(error message) on failure
+    */
+  def fetchCheckStatuses(
+    mrNumber: Int,
+    repository: String,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, List[CICheckResult]] =
+    validateGlabPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GlabPrerequisiteError.GlabNotInstalled) => Left(formatGlabNotInstalledError())
+      case Left(GlabPrerequisiteError.GlabNotAuthenticated) => Left(formatGlabNotAuthenticatedError())
+      case Left(GlabPrerequisiteError.GlabError(msg)) => Left(s"glab CLI error: $msg")
+      case Right(_) =>
+        execCommand("glab", buildCheckStatusesCommand(mrNumber, repository)) match
+          case Left(error) => Left(s"Failed to fetch pipelines: $error")
+          case Right(pipelinesJson) =>
+            parseGlabPipelinesJson(pipelinesJson) match
+              case Left(msg) if msg == "No pipelines found for this MR" =>
+                // No pipelines yet — treat as empty checks list
+                Right(Nil)
+              case Left(parseError) =>
+                Left(s"Failed to parse pipelines response: $parseError")
+              case Right(pipelineId) =>
+                execCommand("glab", buildPipelineJobsCommand(pipelineId, repository)) match
+                  case Left(error) => Left(s"Failed to fetch pipeline jobs: $error")
+                  case Right(jobsJson) => parseGlabJobsJson(jobsJson)

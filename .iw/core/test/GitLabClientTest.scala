@@ -1,10 +1,10 @@
 // PURPOSE: Unit tests for GitLabClient issue fetching via glab CLI
-// PURPOSE: Tests command building, JSON parsing, and prerequisite validation
+// PURPOSE: Tests command building, JSON parsing, CI pipeline status, and prerequisite validation
 
 package iw.core.test
 
 import iw.core.adapters.{GitLabClient, CreatedIssue}
-import iw.core.model.{FeedbackParser, Issue}
+import iw.core.model.{FeedbackParser, Issue, CICheckStatus, CICheckResult}
 
 class GitLabClientTest extends munit.FunSuite:
 
@@ -916,3 +916,271 @@ class GitLabClientTest extends munit.FunSuite:
 
     assertEquals(result, Right(()))
     assert(capturedArgs.get.contains("merge"), "Should have called mr merge")
+
+  // ========== parseGlabJobsJson Tests ==========
+
+  test("parseGlabJobsJson -- all jobs passed: success statuses map to Passed"):
+    val json = """[
+      {"id": 1, "name": "test", "status": "success", "web_url": "https://gitlab.com/group/project/-/jobs/1"},
+      {"id": 2, "name": "lint", "status": "passed", "web_url": "https://gitlab.com/group/project/-/jobs/2"}
+    ]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    val checks = result.getOrElse(fail("Expected Right"))
+    assertEquals(checks.length, 2)
+    assert(checks.forall(_.status == CICheckStatus.Passed))
+
+  test("parseGlabJobsJson -- some jobs failed: failed status maps to Failed"):
+    val json = """[
+      {"id": 1, "name": "test", "status": "success", "web_url": "https://gitlab.com/-/jobs/1"},
+      {"id": 2, "name": "lint", "status": "failed", "web_url": "https://gitlab.com/-/jobs/2"}
+    ]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    val checks = result.getOrElse(fail("Expected Right"))
+    val lint = checks.find(_.name == "lint").getOrElse(fail("Expected lint check"))
+    assertEquals(lint.status, CICheckStatus.Failed)
+
+  test("parseGlabJobsJson -- running and pending statuses map to Pending"):
+    val json = """[
+      {"id": 1, "name": "build", "status": "running", "web_url": "https://gitlab.com/-/jobs/1"},
+      {"id": 2, "name": "test", "status": "pending", "web_url": "https://gitlab.com/-/jobs/2"}
+    ]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    val checks = result.getOrElse(fail("Expected Right"))
+    assert(checks.forall(_.status == CICheckStatus.Pending))
+
+  test("parseGlabJobsJson -- canceled (American) maps to Cancelled"):
+    val json = """[{"id": 1, "name": "build", "status": "canceled", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    val checks = result.getOrElse(fail("Expected Right"))
+    assertEquals(checks.head.status, CICheckStatus.Cancelled)
+
+  test("parseGlabJobsJson -- cancelled (British) also maps to Cancelled"):
+    val json = """[{"id": 1, "name": "build", "status": "cancelled", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    val checks = result.getOrElse(fail("Expected Right"))
+    assertEquals(checks.head.status, CICheckStatus.Cancelled)
+
+  test("parseGlabJobsJson -- additional pending states: created, waiting_for_resource, preparing, manual"):
+    val statuses = List("created", "waiting_for_resource", "preparing", "manual")
+    statuses.foreach { s =>
+      val json = s"""[{"id": 1, "name": "job", "status": "$s", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+      val result = GitLabClient.parseGlabJobsJson(json)
+      assert(result.isRight, s"Expected Right for status $s")
+      assertEquals(result.getOrElse(Nil).head.status, CICheckStatus.Pending, s"Expected Pending for status $s")
+    }
+
+  test("parseGlabJobsJson -- skipped maps to Passed (should not block)"):
+    val json = """[{"id": 1, "name": "build", "status": "skipped", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    assertEquals(result.getOrElse(Nil).head.status, CICheckStatus.Passed)
+
+  test("parseGlabJobsJson -- unknown status string maps to Unknown"):
+    val json = """[{"id": 1, "name": "build", "status": "something_weird", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    assertEquals(result.getOrElse(Nil).head.status, CICheckStatus.Unknown)
+
+  test("parseGlabJobsJson -- empty array returns Right(Nil)"):
+    val result = GitLabClient.parseGlabJobsJson("[]")
+
+    assertEquals(result, Right(Nil))
+
+  test("parseGlabJobsJson -- invalid JSON returns Left"):
+    val result = GitLabClient.parseGlabJobsJson("{not valid json")
+
+    assert(result.isLeft)
+
+  test("parseGlabJobsJson -- JSON object (not array) returns Left"):
+    val result = GitLabClient.parseGlabJobsJson("""{"id": 1, "name": "test"}""")
+
+    assert(result.isLeft)
+
+  test("parseGlabJobsJson -- entry missing name field returns Left"):
+    val json = """[{"id": 1, "status": "success", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isLeft)
+
+  test("parseGlabJobsJson -- job URL present returns Some(url)"):
+    val json = """[{"id": 1, "name": "test", "status": "success", "web_url": "https://gitlab.com/-/jobs/1"}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    assertEquals(result.getOrElse(Nil).head.url, Some("https://gitlab.com/-/jobs/1"))
+
+  test("parseGlabJobsJson -- empty web_url returns None"):
+    val json = """[{"id": 1, "name": "test", "status": "success", "web_url": ""}]"""
+
+    val result = GitLabClient.parseGlabJobsJson(json)
+
+    assert(result.isRight)
+    assertEquals(result.getOrElse(Nil).head.url, None)
+
+  // ========== parseGlabPipelinesJson Tests ==========
+
+  test("parseGlabPipelinesJson -- returns first pipeline ID from array"):
+    val json = """[
+      {"id": 123, "status": "success", "ref": "feature-branch", "sha": "abc123"},
+      {"id": 122, "status": "failed", "ref": "feature-branch", "sha": "def456"}
+    ]"""
+
+    val result = GitLabClient.parseGlabPipelinesJson(json)
+
+    assertEquals(result, Right(123))
+
+  test("parseGlabPipelinesJson -- empty array returns Left"):
+    val result = GitLabClient.parseGlabPipelinesJson("[]")
+
+    assert(result.isLeft)
+
+  test("parseGlabPipelinesJson -- invalid JSON returns Left"):
+    val result = GitLabClient.parseGlabPipelinesJson("{not valid")
+
+    assert(result.isLeft)
+
+  // ========== buildCheckStatusesCommand Tests ==========
+
+  test("buildCheckStatusesCommand produces correct glab CLI args for pipelines API"):
+    val args = GitLabClient.buildCheckStatusesCommand(42, "test-group/test-repo")
+
+    assert(args.contains("api"))
+    val apiIdx = args.indexOf("api")
+    assert(args(apiIdx + 1).contains("test-group%2Ftest-repo"))
+    assert(args(apiIdx + 1).contains("merge_requests"))
+    assert(args(apiIdx + 1).contains("42"))
+    assert(args(apiIdx + 1).contains("pipelines"))
+
+  test("buildCheckStatusesCommand URL-encodes slash in repository path"):
+    val args = GitLabClient.buildCheckStatusesCommand(1, "group/project")
+
+    val urlArg = args.find(_.contains("group"))
+    assert(urlArg.isDefined)
+    assert(urlArg.get.contains("group%2Fproject"))
+    assert(!urlArg.get.contains("group/project"))
+
+  // ========== buildPipelineJobsCommand Tests ==========
+
+  test("buildPipelineJobsCommand produces correct glab CLI args for jobs API"):
+    val args = GitLabClient.buildPipelineJobsCommand(100, "test-group/test-repo")
+
+    assert(args.contains("api"))
+    val apiIdx = args.indexOf("api")
+    assert(args(apiIdx + 1).contains("test-group%2Ftest-repo"))
+    assert(args(apiIdx + 1).contains("pipelines"))
+    assert(args(apiIdx + 1).contains("100"))
+    assert(args(apiIdx + 1).contains("jobs"))
+
+  // ========== buildMergeMrWithDeleteCommand Tests ==========
+
+  test("buildMergeMrWithDeleteCommand includes --remove-source-branch and MR URL"):
+    val args = GitLabClient.buildMergeMrWithDeleteCommand("https://gitlab.com/owner/project/-/merge_requests/42")
+
+    assert(args.contains("mr"))
+    assert(args.contains("merge"))
+    assert(args.contains("--remove-source-branch"))
+    assert(args.contains("https://gitlab.com/owner/project/-/merge_requests/42"))
+
+  // ========== fetchCheckStatuses Tests ==========
+
+  test("fetchCheckStatuses -- returns parsed checks on success"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in to gitlab.com")
+      else if args.exists(_.contains("pipelines")) && !args.exists(_.contains("jobs")) then
+        Right("""[{"id": 100, "status": "success", "ref": "feature", "sha": "abc"}]""")
+      else if args.exists(_.contains("jobs")) then
+        Right("""[{"id": 1, "name": "test", "status": "success", "web_url": "https://gitlab.com/-/jobs/1"}]""")
+      else
+        Left(s"Unexpected args: ${args.mkString(" ")}")
+
+    val result = GitLabClient.fetchCheckStatuses(
+      mrNumber = 42,
+      repository = "group/project",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    val checks = result.getOrElse(fail("Expected Right"))
+    assertEquals(checks.length, 1)
+    assertEquals(checks.head.name, "test")
+    assertEquals(checks.head.status, CICheckStatus.Passed)
+
+  test("fetchCheckStatuses -- returns Left when pipelines command fails"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.exists(_.contains("pipelines")) && !args.exists(_.contains("jobs")) then
+        Left("API error")
+      else
+        Left("Should not reach jobs call")
+
+    val result = GitLabClient.fetchCheckStatuses(
+      mrNumber = 42,
+      repository = "group/project",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+
+  test("fetchCheckStatuses -- returns Right(Nil) when no pipelines found"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.exists(_.contains("pipelines")) && !args.exists(_.contains("jobs")) then
+        Right("[]")
+      else
+        Left("Should not reach jobs call when no pipelines")
+
+    val result = GitLabClient.fetchCheckStatuses(
+      mrNumber = 42,
+      repository = "group/project",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight)
+    assert(result.getOrElse(fail("Expected Right")).isEmpty)
+
+  test("fetchCheckStatuses -- returns Left when jobs command fails"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.exists(_.contains("pipelines")) && !args.exists(_.contains("jobs")) then
+        Right("""[{"id": 100, "status": "success", "ref": "feature", "sha": "abc"}]""")
+      else if args.exists(_.contains("jobs")) then
+        Left("API error: 500 Internal Server Error")
+      else
+        Left(s"Unexpected args: ${args.mkString(" ")}")
+
+    val result = GitLabClient.fetchCheckStatuses(
+      mrNumber = 42,
+      repository = "group/project",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)

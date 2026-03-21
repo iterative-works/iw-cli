@@ -974,3 +974,144 @@ class GitHubClientTest extends munit.FunSuite:
 
     assertEquals(result, Right(()))
     assert(capturedArgs.get.contains("merge"), "Should have called pr merge")
+
+  // ========== buildCheckStatusesCommand Tests ==========
+
+  test("buildCheckStatusesCommand builds correct gh pr checks command"):
+    val args = GitHubClient.buildCheckStatusesCommand(42, "owner/repo")
+    val argList = args.toList
+    assert(argList.contains("pr"))
+    assert(argList.contains("checks"))
+    assert(argList.contains("42"))
+    assert(argList.contains("--repo"))
+    assert(argList.contains("owner/repo"))
+    assert(argList.contains("--json"))
+    val jsonIdx = argList.indexOf("--json")
+    assertEquals(argList(jsonIdx + 1), "name,state,link")
+
+  // ========== buildMergePrWithDeleteCommand Tests ==========
+
+  test("buildMergePrWithDeleteCommand builds command with --merge and --delete-branch"):
+    val prUrl = "https://github.com/owner/repo/pull/42"
+    val args = GitHubClient.buildMergePrWithDeleteCommand(prUrl)
+    val argList = args.toList
+    assert(argList.contains("pr"))
+    assert(argList.contains("merge"))
+    assert(argList.contains("--merge"))
+    assert(argList.contains("--delete-branch"))
+    assert(argList.contains(prUrl))
+
+  // ========== fetchCheckStatuses Tests ==========
+
+  test("fetchCheckStatuses returns parsed checks on successful gh execution"):
+    val allPassJson = """[
+      {"bucket":"pass","link":"https://ci.example.com/1","name":"test","state":"SUCCESS"},
+      {"bucket":"pass","link":"https://ci.example.com/2","name":"build","state":"SUCCESS"}
+    ]"""
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else Right(allPassJson)
+
+    val result = GitHubClient.fetchCheckStatuses(
+      prNumber = 42,
+      repository = "owner/repo",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isRight, s"Expected Right but got: $result")
+    val checks = result.toOption.get
+    assertEquals(checks.length, 2)
+    assert(checks.forall(_.status == iw.core.model.CICheckStatus.Passed))
+
+  test("fetchCheckStatuses returns Left when gh command returns error"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else Left("gh: pull request not found")
+
+    val result = GitHubClient.fetchCheckStatuses(
+      prNumber = 99,
+      repository = "owner/repo",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)
+
+  test("fetchCheckStatuses returns Right(Nil) when gh returns empty array"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else Right("[]")
+
+    val result = GitHubClient.fetchCheckStatuses(
+      prNumber = 42,
+      repository = "owner/repo",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assertEquals(result, Right(Nil))
+
+  // ========== JSON Parsing Tests (via fetchCheckStatuses) ==========
+
+  private def fetchWithJson(json: String): Either[String, List[iw.core.model.CICheckResult]] =
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then Right("Logged in")
+      else Right(json)
+    GitHubClient.fetchCheckStatuses(
+      prNumber = 1,
+      repository = "owner/repo",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+  test("fetchCheckStatuses maps SUCCESS, FAILURE, PENDING to correct statuses"):
+    val json = """[
+      {"bucket":"pass","link":"https://ci.example.com/1","name":"test","state":"SUCCESS"},
+      {"bucket":"fail","link":"https://ci.example.com/2","name":"lint","state":"FAILURE"},
+      {"bucket":"pending","link":"","name":"build","state":"PENDING"}
+    ]"""
+    val result = fetchWithJson(json)
+    assert(result.isRight)
+    val checks = result.toOption.get
+    assertEquals(checks.find(_.name == "test").map(_.status), Some(iw.core.model.CICheckStatus.Passed))
+    assertEquals(checks.find(_.name == "lint").map(_.status), Some(iw.core.model.CICheckStatus.Failed))
+    assertEquals(checks.find(_.name == "build").map(_.status), Some(iw.core.model.CICheckStatus.Pending))
+
+  test("fetchCheckStatuses maps CANCELLED state to CICheckStatus.Cancelled"):
+    val json = """[{"bucket":"fail","link":"","name":"deploy","state":"CANCELLED"}]"""
+    val result = fetchWithJson(json)
+    assert(result.isRight)
+    assertEquals(result.toOption.get.head.status, iw.core.model.CICheckStatus.Cancelled)
+
+  test("fetchCheckStatuses maps unknown state string to CICheckStatus.Unknown"):
+    val json = """[{"bucket":"pending","link":"","name":"whatever","state":"SKIPPED"}]"""
+    val result = fetchWithJson(json)
+    assert(result.isRight)
+    assertEquals(result.toOption.get.head.status, iw.core.model.CICheckStatus.Unknown)
+
+  test("fetchCheckStatuses returns Left for invalid JSON from gh"):
+    val result = fetchWithJson("not valid json {{{")
+    assert(result.isLeft)
+
+  test("fetchCheckStatuses returns Left for JSON object (not array) from gh"):
+    val result = fetchWithJson("""{"name":"test"}""")
+    assert(result.isLeft)
+
+  test("fetchCheckStatuses returns Left for array entry missing name field"):
+    val json = """[{"bucket":"pass","link":"https://ci.example.com/1","state":"SUCCESS"}]"""
+    val result = fetchWithJson(json)
+    assert(result.isLeft)
+
+  test("fetchCheckStatuses check with empty link returns None for url"):
+    val json = """[{"bucket":"pending","link":"","name":"build","state":"PENDING"}]"""
+    val result = fetchWithJson(json)
+    assert(result.isRight)
+    assertEquals(result.toOption.get.head.url, None)
+
+  test("fetchCheckStatuses check with non-empty link returns Some(link) for url"):
+    val link = "https://ci.example.com/run/42"
+    val json = s"""[{"bucket":"pass","link":"$link","name":"test","state":"SUCCESS"}]"""
+    val result = fetchWithJson(json)
+    assert(result.isRight)
+    assertEquals(result.toOption.get.head.url, Some(link))
