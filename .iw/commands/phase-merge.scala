@@ -8,6 +8,21 @@ import iw.core.output.*
 @main def phaseMerge(args: String*): Unit =
   val argList = args.toList
 
+  val timeoutStr = PhaseArgs.namedArg(argList, "--timeout").getOrElse("30m")
+  val pollIntervalStr = PhaseArgs.namedArg(argList, "--poll-interval").getOrElse("30s")
+
+  val timeoutMs = PhaseMerge.parseDuration(timeoutStr) match
+    case Left(err) =>
+      Output.error(s"Invalid --timeout: $err")
+      sys.exit(1)
+    case Right(ms) => ms
+
+  val pollIntervalMs = PhaseMerge.parseDuration(pollIntervalStr) match
+    case Left(err) =>
+      Output.error(s"Invalid --poll-interval: $err")
+      sys.exit(1)
+    case Right(ms) => ms
+
   val currentBranch = CommandHelpers.exitOnError(GitAdapter.getCurrentBranch(os.pwd))
 
   val (featureBranch, phaseNumRaw) = currentBranch match
@@ -66,14 +81,20 @@ import iw.core.output.*
       case Right(_) => ()
 
   // Polling loop
-  val mergeConfig = PhaseMergeConfig()
+  val mergeConfig = PhaseMergeConfig(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs)
   val startTime = System.currentTimeMillis()
 
   @annotation.tailrec
   def poll(): Unit =
     val elapsed = System.currentTimeMillis() - startTime
     if elapsed > mergeConfig.timeoutMs then
-      Output.error(s"Timed out waiting for CI checks after ${mergeConfig.timeoutMs / 1000}s.")
+      if os.exists(reviewStatePath) then
+        ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
+          activity = Some("waiting")
+        )) match
+          case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
+          case Right(_) => ()
+      Output.error(s"Timed out waiting for CI checks after ${PhaseMerge.formatDuration(mergeConfig.timeoutMs)}.")
       Output.error(s"PR is at $prUrl. You can merge manually once CI passes.")
       sys.exit(1)
 
@@ -91,7 +112,7 @@ import iw.core.output.*
         Output.info("No CI checks found — proceeding with merge.")
       case CIVerdict.StillRunning =>
         val pendingNames = checks.filter(_.status == CICheckStatus.Pending).map(_.name).mkString(", ")
-        Output.info(s"CI still running (pending: $pendingNames). Waiting ${mergeConfig.pollIntervalMs / 1000}s...")
+        Output.info(s"CI still running (pending: $pendingNames). Waiting ${PhaseMerge.formatDuration(mergeConfig.pollIntervalMs)}...")
         Thread.sleep(mergeConfig.pollIntervalMs)
         poll()
       case CIVerdict.SomeFailed(failedChecks) =>

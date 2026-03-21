@@ -85,6 +85,49 @@ object PhaseMerge:
     }
     s"The following CI checks failed:\n${lines.mkString("\n")}"
 
+  /** Parse a human-readable duration string into milliseconds.
+    *
+    * Accepts the following formats:
+    * - `"Ns"` — N seconds (e.g., `"30s"` → 30,000 ms)
+    * - `"Nm"` — N minutes (e.g., `"5m"` → 300,000 ms)
+    * - `"Nh"` — N hours   (e.g., `"2h"` → 7,200,000 ms)
+    *
+    * @param input Duration string (e.g., `"30s"`, `"5m"`, `"2h"`)
+    * @return Right(milliseconds) on success, Left(errorMessage) for invalid input
+    */
+  def parseDuration(input: String): Either[String, Long] =
+    if input.isEmpty then Left("Invalid duration: must not be empty")
+    else
+      val suffix = input.last
+      val numberPart = input.dropRight(1)
+      suffix match
+        case 's' | 'm' | 'h' =>
+          numberPart.toLongOption match
+            case None        => Left(s"Invalid duration: '$input' — numeric value required before suffix")
+            case Some(n) if n < 0 => Left(s"Invalid duration: '$input' — value must not be negative")
+            case Some(n) =>
+              val ms = suffix match
+                case 's' => n * 1_000L
+                case 'm' => n * 60_000L
+                case 'h' => n * 3_600_000L
+              Right(ms)
+        case _ => Left(s"Invalid duration: '$input' — unknown suffix '$suffix', expected s, m, or h")
+
+  /** Format a millisecond duration as a human-readable string.
+    *
+    * Picks the most natural unit:
+    * - hours if divisible by 3,600,000
+    * - minutes if divisible by 60,000
+    * - otherwise seconds
+    *
+    * @param ms Duration in milliseconds
+    * @return Human-readable string (e.g., `"30m"`, `"45s"`, `"2h"`)
+    */
+  def formatDuration(ms: Long): String =
+    if ms >= 3_600_000L && ms % 3_600_000L == 0 then s"${ms / 3_600_000L}h"
+    else if ms >= 60_000L && ms % 60_000L == 0 then s"${ms / 60_000L}m"
+    else s"${ms / 1_000L}s"
+
   private val githubPrPattern = """https://github\.com/.+/pull/(\d+)""".r
   private val gitlabMrPattern = """https://.+/-/merge_requests/(\d+)""".r
 
