@@ -103,7 +103,13 @@ import iw.core.output.*
           badgesMode = ReviewStateUpdater.ArrayMergeMode.Append
         )) match
           case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
-          case Right(_) => ()
+          case Right(_) =>
+            GitAdapter.stageFiles(Seq(reviewStatePath), os.pwd) match
+              case Left(err) => Output.error(s"Warning: Failed to stage review-state: $err")
+              case Right(_) =>
+                GitAdapter.commit(s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}", os.pwd) match
+                  case Left(err) => Output.error(s"Warning: Failed to commit review-state: $err")
+                  case Right(_) => ()
 
       true
     else
@@ -120,7 +126,16 @@ import iw.core.output.*
           actionsMode = ReviewStateUpdater.ArrayMergeMode.Append
         )) match
           case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
-          case Right(_) => ()
+          case Right(_) =>
+            GitAdapter.stageFiles(Seq(reviewStatePath), os.pwd) match
+              case Left(err) => Output.error(s"Warning: Failed to stage review-state: $err")
+              case Right(_) =>
+                GitAdapter.commit(s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}", os.pwd) match
+                  case Left(err) => Output.error(s"Warning: Failed to commit review-state: $err")
+                  case Right(_) =>
+                    GitAdapter.push(currentBranch, os.pwd) match
+                      case Left(err) => Output.error(s"Warning: Failed to push review-state commit: $err")
+                      case Right(_) => ()
 
       false
 
