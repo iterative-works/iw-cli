@@ -237,10 +237,11 @@ EOF
     git remote add origin "$TEST_DIR/remote.git"
     git push -q origin TEST-100 TEST-100-phase-01 2>/dev/null
 
-    # Create a mock gh that handles checks and merge
+    # Create a mock gh that handles checks and merge, logging calls for verification
     mkdir -p "$TEST_DIR/mock-bin"
     cat > "$TEST_DIR/mock-bin/gh" << GHEOF
 #!/usr/bin/env bash
+echo "\$1 \$2" >> "$TEST_DIR/gh-calls.log"
 if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
     echo "Logged in to github.com"
     exit 0
@@ -261,18 +262,23 @@ GHEOF
 
     [ "$status" -eq 0 ]
 
+    # Verify gh pr merge was actually called
+    [ -f "$TEST_DIR/gh-calls.log" ]
+    grep -q "pr merge" "$TEST_DIR/gh-calls.log"
+
     # Working tree must be clean — review-state.json must be committed, not dirty
-    local porcelain
-    porcelain="$(git status --porcelain -- "project-management/issues/TEST-100/review-state.json")"
-    [ -z "$porcelain" ]
+    [ -z "$(git status --porcelain -- "project-management/issues/TEST-100/review-state.json")" ]
 
-    # The latest commit on the feature branch must contain the updated review-state.json
-    local changed_files
-    changed_files="$(git diff --name-only HEAD~1 HEAD)"
-    echo "$changed_files" | grep -q "review-state.json"
+    # The committed blob must contain phase_merged (not just the working-tree file)
+    local committed_content
+    committed_content="$(git show HEAD:project-management/issues/TEST-100/review-state.json)"
+    [[ "$committed_content" == *"phase_merged"* ]]
 
-    # review-state must contain phase_merged status
-    grep -q "phase_merged" "project-management/issues/TEST-100/review-state.json"
+    # The review-state commit must be findable by its message
+    local commit_sha
+    commit_sha="$(git log --oneline --grep="update review-state" -1 --format="%H")"
+    [ -n "$commit_sha" ]
+    git show "$commit_sha" --name-only | grep -q "review-state.json"
 }
 
 @test "phase-merge happy path merges PR and updates review-state to phase_merged" {
