@@ -232,21 +232,21 @@ EOF
 
     # Create a mock gh script that simulates all-passing checks and successful merge
     mkdir -p "$TEST_DIR/mock-bin"
-    cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
+    cat > "$TEST_DIR/mock-bin/gh" << GHEOF
 #!/usr/bin/env bash
-echo "$1 $2" >> "$TEST_DIR/gh-calls.log"
-if [[ "$1" == "auth" && "$2" == "status" ]]; then
+echo "\$1 \$2" >> "$TEST_DIR/gh-calls.log"
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
     echo "Logged in to github.com"
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+if [[ "\$1" == "pr" && "\$2" == "checks" ]]; then
     echo '[{"link":"https://ci.example.com/1","name":"test","state":"SUCCESS"}]'
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "merge" ]]; then
+if [[ "\$1" == "pr" && "\$2" == "merge" ]]; then
     exit 0
 fi
-echo "Unexpected gh call: $*" >&2
+echo "Unexpected gh call: \$*" >&2
 exit 1
 GHEOF
     chmod +x "$TEST_DIR/mock-bin/gh"
@@ -283,18 +283,18 @@ EOF
 
     # Create a mock gh script that simulates failing checks and logs calls
     mkdir -p "$TEST_DIR/mock-bin"
-    cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
+    cat > "$TEST_DIR/mock-bin/gh" << GHEOF
 #!/usr/bin/env bash
-echo "$1 $2" >> "$TEST_DIR/gh-calls.log"
-if [[ "$1" == "auth" && "$2" == "status" ]]; then
+echo "\$1 \$2" >> "$TEST_DIR/gh-calls.log"
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
     echo "Logged in to github.com"
     exit 0
 fi
-if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+if [[ "\$1" == "pr" && "\$2" == "checks" ]]; then
     echo '[{"link":"https://ci.example.com/1","name":"lint","state":"FAILURE"}]'
     exit 0
 fi
-echo "Unexpected gh call: $*" >&2
+echo "Unexpected gh call: \$*" >&2
 exit 1
 GHEOF
     chmod +x "$TEST_DIR/mock-bin/gh"

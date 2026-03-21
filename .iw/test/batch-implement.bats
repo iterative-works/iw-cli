@@ -200,3 +200,100 @@ EOF
     [ -f "$STUB_DIR/claude-calls.txt" ]
     grep -q "iterative-works:wf-implement" "$STUB_DIR/claude-calls.txt"
 }
+
+# --- phase-merge integration tests ---
+# These tests verify batch-implement delegates to ./iw phase-merge instead of
+# performing inline merges.
+
+@test "batch-implement invokes iw phase-merge when review-state status is awaiting_review after agent runs" {
+    # Stub claude: sets review-state to awaiting_review with a pr_url
+    cat > "$STUB_DIR/claude" << STUB
+#!/usr/bin/env bash
+echo "\$@" >> "$STUB_DIR/claude-calls.txt"
+cat > "$TEST_DIR/project-management/issues/IW-275/review-state.json" << 'JSON'
+{
+  "status": "awaiting_review",
+  "workflow_type": "waterfall",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42"
+}
+JSON
+exit 0
+STUB
+    chmod +x "$STUB_DIR/claude"
+
+    # Create a wrapper iw script in TEST_DIR that intercepts phase-merge
+    cat > "$TEST_DIR/iw" << IWSCRIPT
+#!/usr/bin/env bash
+if [[ "\$1" == "phase-merge" ]]; then
+    echo "phase-merge called" >> "$TEST_DIR/phase-merge-calls.log"
+    cat > "$TEST_DIR/project-management/issues/IW-275/review-state.json" << 'JSON'
+{
+  "status": "phase_merged",
+  "workflow_type": "waterfall",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42"
+}
+JSON
+    exit 0
+fi
+exec "$PROJECT_ROOT/iw" "\$@"
+IWSCRIPT
+    chmod +x "$TEST_DIR/iw"
+
+    # Commit wrapper so working tree stays clean
+    git add -A 2>/dev/null
+    git commit -q -m "Add iw wrapper" 2>/dev/null || true
+
+    run "$TEST_DIR/iw" batch-implement IW-275 wf
+
+    [ "$status" -eq 0 ]
+
+    # phase-merge was invoked
+    [ -f "$TEST_DIR/phase-merge-calls.log" ]
+
+    # tasks.md has phase 1 checked off
+    grep -q "\[x\] Phase 1" "$TEST_DIR/project-management/issues/IW-275/tasks.md"
+
+    # No direct gh pr merge calls
+    if [ -f "$STUB_DIR/gh-calls.txt" ]; then
+        ! grep -q "pr merge" "$STUB_DIR/gh-calls.txt"
+    fi
+}
+
+@test "batch-implement stops immediately when phase-merge exits non-zero" {
+    # Stub claude: sets review-state to awaiting_review with a pr_url
+    cat > "$STUB_DIR/claude" << STUB
+#!/usr/bin/env bash
+echo "\$@" >> "$STUB_DIR/claude-calls.txt"
+cat > "$TEST_DIR/project-management/issues/IW-275/review-state.json" << 'JSON'
+{
+  "status": "awaiting_review",
+  "workflow_type": "waterfall",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42"
+}
+JSON
+exit 0
+STUB
+    chmod +x "$STUB_DIR/claude"
+
+    # Create a wrapper iw script where phase-merge always fails
+    cat > "$TEST_DIR/iw" << IWSCRIPT
+#!/usr/bin/env bash
+if [[ "\$1" == "phase-merge" ]]; then
+    echo "phase-merge failed" >&2
+    exit 1
+fi
+exec "$PROJECT_ROOT/iw" "\$@"
+IWSCRIPT
+    chmod +x "$TEST_DIR/iw"
+
+    # Commit wrapper so working tree stays clean
+    git add -A 2>/dev/null
+    git commit -q -m "Add failing iw wrapper" 2>/dev/null || true
+
+    run "$TEST_DIR/iw" batch-implement IW-275 wf
+
+    [ "$status" -ne 0 ]
+
+    # tasks.md does NOT have phase 1 checked off
+    ! grep -q "\[x\] Phase 1" "$TEST_DIR/project-management/issues/IW-275/tasks.md"
+}

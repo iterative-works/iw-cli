@@ -144,15 +144,6 @@ import java.time.format.DateTimeFormatter
         try ujson.read(json).obj.get("status").map(_.str).getOrElse("unknown")
         catch case _: Exception => "unknown"
 
-  // --- Helper: read PR URL from review-state.json ---
-
-  def readPrUrl(): Option[String] =
-    ReviewStateAdapter.read(reviewStatePath) match
-      case Left(_) => None
-      case Right(json) =>
-        try ujson.read(json).obj.get("pr_url").map(_.str)
-        catch case _: Exception => None
-
   // --- Helper: recovery prompt for a status ---
 
   def recoveryPromptFor(status: String): String =
@@ -196,56 +187,22 @@ import java.time.format.DateTimeFormatter
           case Right(sha) => log(s"[phase $phaseNum] tasks.md updated and committed ($sha)")
           case Left(err)  => log(s"[phase $phaseNum] Warning: failed to commit tasks.md update: $err")
 
-  // --- Helper: handle MergePR outcome ---
+  // --- Helper: invoke phase-merge subprocess ---
 
-  def handleMergePR(phaseNum: Int): Unit =
-    val prUrlOpt = readPrUrl()
-    prUrlOpt match
-      case None =>
-        log(s"[phase $phaseNum] Error: MergePR outcome but no pr_url in review-state.json")
-        logWriter.close()
-        sys.exit(1)
-      case Some(prUrl) =>
-        if !prUrl.startsWith("https://") || prUrl.contains(" ") then
-          log(s"[phase $phaseNum] Error: pr_url in review-state.json is not a valid URL: $prUrl")
-          logWriter.close()
-          sys.exit(1)
-        log(s"[phase $phaseNum] Merging PR: $prUrl")
-        val mergeCmd = forgeType match
-          case ForgeType.GitHub =>
-            Seq("gh", "pr", "merge", "--merge", prUrl)
-          case ForgeType.GitLab =>
-            val mrId = prUrl.split("/").last
-            if mrId.isEmpty || !mrId.forall(_.isDigit) then
-              log(s"[phase $phaseNum] Error: cannot extract numeric MR ID from pr_url: $prUrl")
-              logWriter.close()
-              sys.exit(1)
-            Seq("glab", "mr", "merge", mrId, "--yes")
-        val mergeResult = ProcessAdapter.run(mergeCmd)
-        if mergeResult.exitCode != 0 then
-          log(s"[phase $phaseNum] Failed to merge PR: ${mergeResult.stderr}")
-          log(s"[phase $phaseNum] Merge the PR manually and re-run or use 'iw phase-advance'")
-          logWriter.close()
-          sys.exit(1)
-        log(s"[phase $phaseNum] PR merged successfully")
-
-        // Advance the feature branch
-        CommandHelpers.exitOnError(GitAdapter.checkoutBranch(currentBranch, cwd))
-        CommandHelpers.exitOnError(GitAdapter.fetchAndReset(currentBranch, cwd))
-
-        // Update review state
-        if os.exists(reviewStatePath) then
-          ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
-            status = Some("phase_merged"),
-            displayText = Some(s"Phase $phaseNum: Merged"),
-            displayType = Some("success"),
-            badges = Some(List(("Complete", "success"))),
-            badgesMode = ReviewStateUpdater.ArrayMergeMode.Append
-          )) match
-            case Left(err) => log(s"[phase $phaseNum] Warning: could not update review-state: $err")
-            case Right(_) => ()
-
-        markAndCommitPhase(phaseNum)
+  def invokePhaseMerge(phaseNum: Int): Unit =
+    log(s"[phase $phaseNum] Invoking phase-merge to wait for CI and merge...")
+    val phaseMergeCmd = Seq((cwd / "iw").toString, "phase-merge")
+    // phase-merge has its own internal timeout (default 30m) plus may run recovery agents.
+    // Use a very large outer timeout to avoid killing it prematurely.
+    val phaseMergeTimeoutMs = 4 * 60 * 60 * 1000 // 4 hours
+    val exitCode = ProcessAdapter.runStreaming(phaseMergeCmd, phaseMergeTimeoutMs)
+    if exitCode != 0 then
+      log(s"[phase $phaseNum] phase-merge failed (exit code $exitCode). Stopping batch.")
+      log(s"[phase $phaseNum] Check the PR status and resolve manually, then re-run batch-implement.")
+      logWriter.close()
+      sys.exit(1)
+    log(s"[phase $phaseNum] phase-merge completed successfully")
+    markAndCommitPhase(phaseNum)
 
   // --- Recovery loop (tail-recursive) ---
 
@@ -273,7 +230,7 @@ import java.time.format.DateTimeFormatter
   def handleOutcome(phaseNum: Int, status: String, recoveryAttemptsLeft: Int): Unit =
     BatchImplement.decideOutcome(status) match
       case PhaseOutcome.MergePR =>
-        handleMergePR(phaseNum)
+        invokePhaseMerge(phaseNum)
       case PhaseOutcome.MarkDone =>
         log(s"[phase $phaseNum] Phase already merged; marking done.")
         markAndCommitPhase(phaseNum)
