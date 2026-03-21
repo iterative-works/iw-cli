@@ -92,12 +92,10 @@ GHEOF
     # The latest commit must contain the updated review-state.json
     local changed_files
     changed_files="$(git diff --name-only HEAD~1 HEAD)"
-    [[ "$changed_files" == *"review-state.json"* ]]
+    echo "$changed_files" | grep -q "review-state.json"
 
     # review-state must contain awaiting_review status
-    local state
-    state="$(cat "project-management/issues/TEST-100/review-state.json")"
-    [[ "$state" == *"awaiting_review"* ]]
+    grep -q "awaiting_review" "project-management/issues/TEST-100/review-state.json"
 }
 
 @test "phase-pr when not on a phase branch exits with error" {

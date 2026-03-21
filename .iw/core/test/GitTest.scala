@@ -184,6 +184,11 @@ class GitTest extends munit.FunSuite, Fixtures:
       val result = GitAdapter.stageFiles(Seq.empty, repo)
       assert(result.isRight, s"Expected Right but got: $result")
 
+  gitRepo.test("stageFiles with a non-existent path returns Left"):
+    repo =>
+      val result = GitAdapter.stageFiles(Seq(repo / "does-not-exist.txt"), repo)
+      assert(result.isLeft, s"Expected Left but got: $result")
+
   // ========== stageAll Tests ==========
 
   gitRepo.test("stageAll on a repo with unstaged changes stages all files"):
