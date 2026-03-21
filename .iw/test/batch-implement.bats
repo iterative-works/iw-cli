@@ -202,8 +202,7 @@ EOF
 }
 
 # --- phase-merge integration tests ---
-# These tests verify batch-implement delegates to ./iw phase-merge instead of
-# performing inline merges.
+# Verify that batch-implement delegates merge responsibility to ./iw phase-merge.
 
 @test "batch-implement invokes iw phase-merge when review-state status is awaiting_review after agent runs" {
     # Stub claude: sets review-state to awaiting_review with a pr_url
@@ -225,7 +224,7 @@ STUB
     cat > "$TEST_DIR/iw" << IWSCRIPT
 #!/usr/bin/env bash
 if [[ "\$1" == "phase-merge" ]]; then
-    echo "phase-merge called" >> "$TEST_DIR/phase-merge-calls.log"
+    echo "phase-merge \$*" >> "$TEST_DIR/phase-merge-calls.log"
     cat > "$TEST_DIR/project-management/issues/IW-275/review-state.json" << 'JSON'
 {
   "status": "phase_merged",
@@ -253,10 +252,8 @@ IWSCRIPT
     # tasks.md has phase 1 checked off
     grep -q "\[x\] Phase 1" "$TEST_DIR/project-management/issues/IW-275/tasks.md"
 
-    # No direct gh pr merge calls
-    if [ -f "$STUB_DIR/gh-calls.txt" ]; then
-        ! grep -q "pr merge" "$STUB_DIR/gh-calls.txt"
-    fi
+    # No direct gh pr merge calls (assert even if gh was never called)
+    ! grep -q "pr merge" "$STUB_DIR/gh-calls.txt" 2>/dev/null
 }
 
 @test "batch-implement stops immediately when phase-merge exits non-zero" {
