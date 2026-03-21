@@ -59,14 +59,22 @@
     {
       "label": "Phase 6 Tasks",
       "path": "project-management/issues/IW-289/phase-06-tasks.md"
+    },
+    {
+      "label": "Phase 7 Context",
+      "path": "project-management/issues/IW-289/phase-07-context.md"
+    },
+    {
+      "label": "Phase 7 Tasks",
+      "path": "project-management/issues/IW-289/phase-07-tasks.md"
     }
   ],
-  "last_updated": "2026-03-21T11:21:29.290822269Z",
+  "last_updated": "2026-03-21T13:01:35.295898757Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 06: Implementing",
+    "text": "Phase 07: Implementing",
     "type": "progress",
-    "subtext": "GitLab CI status support"
+    "subtext": "batch-implement integration"
   },
   "badges": [
     {
@@ -104,9 +112,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 06 implementation started",
+  "message": "Phase 07 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -162,13 +174,18 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "8740892",
   "needs_attention": true,
   "phase_checkpoints": {
-    "6": {
-      "context_sha": "context_sha=5fd086db3f93a29485ae3fffcc8c27787c6600a4"
+    "7": {
+      "context_sha": "context_sha=1fc5948430e232f139ff877eccc10a39b1cfa323"
     }
   },
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/294",

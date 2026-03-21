@@ -271,3 +271,45 @@ M	.iw/test/phase-merge.bats
 ```
 
 ---
+
+## Phase 7: batch-implement integration (2026-03-21)
+
+**What was built:**
+- `invokePhaseMerge(phaseNum: Int)` in `batch-implement.scala` — calls `./iw phase-merge` as a subprocess with 4-hour outer timeout, replacing the inline merge logic
+- Removed `handleMergePR` function (~48 lines) and local `readPrUrl` closure (~6 lines) from `batch-implement.scala`
+- Fixed pre-existing BATS test failures (tests 7-8) in `phase-merge.bats` — heredoc quoting fix
+
+**Decisions made:**
+- 4-hour outer timeout for `phase-merge` subprocess — `phase-merge` manages its own 30m timeout internally plus recovery agents, so the outer timeout must be much larger to avoid premature kill
+- `markAndCommitPhase` still called after `phase-merge` returns — `phase-merge` handles review-state update to `phase_merged`, but `markAndCommitPhase` checks off `tasks.md` separately (different concerns)
+- Local `readPrUrl` closure removed from `batch-implement.scala` — `ReviewStateAdapter.readPrUrl` in adapter layer left untouched (used by `phase-merge.scala`)
+- `PhaseOutcome.MergePR` enum case unchanged — only the handler in `handleOutcome` changed
+
+**Patterns applied:**
+- Subprocess delegation via `ProcessAdapter.runStreaming` — same pattern used for claude agent invocation
+- Mock `iw` wrapper in BATS tests — intercepts `phase-merge` subcommand, delegates all other commands to the real `iw`
+- Heredoc quoting fix: `<< 'GHEOF'` → `<< GHEOF` with escaped positional parameters (`\$1`, `\$2`)
+
+**Testing:**
+- E2E tests: 2 new BATS tests in `batch-implement.bats` (phase-merge invoked on success, batch stops on failure)
+- E2E fixes: 2 BATS tests in `phase-merge.bats` (tests 7-8 now pass)
+- Total passing: 11/11 batch-implement, 16/16 phase-merge
+
+**Code review:**
+- Iterations: 1 (no critical issues in code; fixed temporal comment and strengthened assertions per review feedback)
+- Review skills: style, testing, security
+- Applied fixes: removed temporal comment, logged phase-merge arguments for stronger assertion, replaced vacuous `if [ -f ... ]` guard with unconditional `! grep` assertion
+
+**For next phases:**
+- All 7 phases complete — `phase-merge` is fully integrated into the batch-implement workflow
+- The batch loop is now: `phase-start -> agent -> phase-pr -> phase-merge -> markAndCommitPhase`
+- CI is verified before every phase merge
+
+**Files changed:**
+```
+M	.iw/commands/batch-implement.scala
+M	.iw/test/batch-implement.bats
+M	.iw/test/phase-merge.bats
+```
+
+---
