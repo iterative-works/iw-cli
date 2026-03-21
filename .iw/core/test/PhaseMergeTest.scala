@@ -273,3 +273,4 @@ class PhaseMergeTest extends FunSuite:
     val result = PhaseMerge.extractPrNumber(input)
     assert(result.isLeft)
     assert(result.left.exists(_.contains(input)))
+

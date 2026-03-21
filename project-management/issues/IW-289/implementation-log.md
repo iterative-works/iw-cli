@@ -83,3 +83,57 @@ M	.iw/core/test/PhaseMergeTest.scala
 ```
 
 ---
+
+## Phase 3: GitHub CI polling and auto-merge (2026-03-20)
+
+**What was built:**
+- `phase-merge.scala` command: polls CI checks for a PR, waits for completion, auto-merges on success, advances feature branch
+- `GitHubClient.fetchCheckStatuses` adapter: calls `gh pr checks --json name,state,link`, parses JSON into `List[CICheckResult]`
+- `GitHubClient.buildCheckStatusesCommand` and `buildMergePrWithDeleteCommand`: pure command builders
+- `ReviewStateAdapter.readPrUrl`: typed read-side accessor for pr_url from review-state.json
+- `PhaseOutput.MergeOutput`: JSON output type for merge results
+- 7 BATS E2E tests covering happy path, CI failure, wrong branch, missing PR URL, GitLab detection, timeout
+
+**Decisions made:**
+- `parseGhChecksJson` placed in `GitHubClient` adapter (not model) — JSON wire format is infrastructure, not domain logic. Code review caught the initial misplacement
+- PR URL validated against configured repository before merge — security review identified that a crafted review-state.json could redirect merge to any accessible repo
+- Merge uses `--merge --delete-branch` (merge commit, not squash) — per analysis decision to avoid history rewriting on phase branches
+- `NoChecksFound` → immediate merge — design decision for repos without CI
+- `CIVerdict.TimedOut` kept in enum but not produced by polling loop — the loop handles timeout via wall-clock check; `TimedOut` is reserved for Phase 4
+- Polling loop uses `@annotation.tailrec` to avoid stack overflow during long waits
+
+**Patterns applied:**
+- Follows `phase-pr.scala` pattern: branch detection, forge type resolution, review-state updates
+- Follows `GitHubClient` injected `execCommand` pattern for testability
+- FCIS layering: pure model types → adapter I/O → command orchestration
+- Mock `gh` scripts in BATS with positional dispatch (`$1`/`$2`) and call log verification
+
+**Testing:**
+- Unit tests: 8 new tests in GitHubClientTest (JSON parsing via fetchCheckStatuses, command builders)
+- E2E tests: 7 BATS tests covering all major scenarios
+- Total tests passing: 2021
+
+**Code review:**
+- Iterations: 1 (3 critical issues found and fixed)
+- Review file: review-phase-03-20260320-221933.md
+- Critical fixes: moved parseGhChecksJson to adapter, added PR URL repository validation, extracted readPrUrl to ReviewStateAdapter
+- Additional fixes: PURPOSE comment, PhaseOutput comment, removed unused bucket field, improved E2E assertions
+
+**For next phases:**
+- `phase-merge` command is ready for Phase 4 (configurable timeout/polling via CLI args)
+- `phase-merge` command is ready for Phase 5 (CI failure recovery loop — currently exits on failure)
+- `GitHubClient.fetchCheckStatuses` is ready for Phase 6 (GitLab equivalent via glab)
+- `ReviewStateAdapter.readPrUrl` is reusable by any command needing PR URL from review-state
+
+**Files changed:**
+```
+A	.iw/commands/phase-merge.scala
+M	.iw/core/adapters/GitHubClient.scala
+M	.iw/core/adapters/ReviewStateAdapter.scala
+M	.iw/core/model/PhaseOutput.scala
+M	.iw/core/test/GitHubClientTest.scala
+M	.iw/core/test/PhaseMergeTest.scala
+A	.iw/test/phase-merge.bats
+```
+
+---

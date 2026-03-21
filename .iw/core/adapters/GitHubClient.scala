@@ -3,7 +3,7 @@
 
 package iw.core.adapters
 
-import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser}
+import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser, CICheckResult, CICheckStatus}
 
 object GitHubClient:
 
@@ -598,3 +598,78 @@ object GitHubClient:
         execCommand("gh", buildMergePrCommand(prUrl)) match
           case Left(error) => Left(error)
           case Right(_) => Right(())
+
+  /** Build gh CLI command arguments for fetching CI check statuses for a PR.
+    *
+    * @param prNumber PR number
+    * @param repository GitHub repository in owner/repo format
+    * @return Array of command arguments for gh CLI (without leading "gh")
+    */
+  def buildCheckStatusesCommand(prNumber: Int, repository: String): Array[String] =
+    Array(
+      "pr", "checks", prNumber.toString,
+      "--repo", repository,
+      "--json", "name,state,link"
+    )
+
+  /** Build gh CLI command arguments for merging a PR with branch deletion.
+    *
+    * @param prUrl URL of the PR to merge
+    * @return Array of command arguments for gh CLI (without leading "gh")
+    */
+  def buildMergePrWithDeleteCommand(prUrl: String): Array[String] =
+    Array("pr", "merge", "--merge", "--delete-branch", prUrl)
+
+  /** Fetch CI check statuses for a PR via gh CLI.
+    *
+    * @param prNumber PR number to check
+    * @param repository GitHub repository in owner/repo format
+    * @param isCommandAvailable Function to check if command exists (injected for testability)
+    * @param execCommand Function to execute shell command (injected for testability)
+    * @return Right(checks) on success, Left(error message) on failure
+    */
+  def fetchCheckStatuses(
+    prNumber: Int,
+    repository: String,
+    isCommandAvailable: String => Boolean = CommandRunner.isCommandAvailable,
+    execCommand: (String, Array[String]) => Either[String, String] =
+      (cmd, args) => CommandRunner.execute(cmd, args)
+  ): Either[String, List[CICheckResult]] =
+    validateGhPrerequisites(repository, isCommandAvailable, execCommand) match
+      case Left(GhPrerequisiteError.GhNotInstalled) => Left(formatGhNotInstalledError())
+      case Left(GhPrerequisiteError.GhNotAuthenticated) => Left(formatGhNotAuthenticatedError())
+      case Left(GhPrerequisiteError.GhOtherError(msg)) => Left(s"gh CLI error: $msg")
+      case Right(_) =>
+        execCommand("gh", buildCheckStatusesCommand(prNumber, repository)) match
+          case Left(error) => Left(s"Failed to fetch check statuses: $error")
+          case Right(json) => parseGhChecksJson(json)
+
+  /** Parse JSON output of `gh pr checks` into CI check results.
+    *
+    * @param json Raw JSON string from `gh pr checks --json name,state,link`
+    * @return Right(checks) on success, Left(errorMessage) on parse failure
+    */
+  private def parseGhChecksJson(json: String): Either[String, List[CICheckResult]] =
+    try
+      import ujson.*
+      val parsed = read(json)
+      parsed match
+        case arr: ujson.Arr =>
+          val checks = arr.value.toList.map { item =>
+            val name = item("name").str
+            val state = item("state").str
+            val link = item("link").str
+            val status = state match
+              case "SUCCESS"   => CICheckStatus.Passed
+              case "FAILURE"   => CICheckStatus.Failed
+              case "PENDING"   => CICheckStatus.Pending
+              case "CANCELLED" => CICheckStatus.Cancelled
+              case _           => CICheckStatus.Unknown
+            val url = if link.isEmpty then None else Some(link)
+            CICheckResult(name, status, url)
+          }
+          Right(checks)
+        case other =>
+          Left(s"Expected a JSON array but got: ${other.getClass.getSimpleName}")
+    catch
+      case e: Exception => Left(s"Failed to parse gh checks JSON: ${e.getMessage}")

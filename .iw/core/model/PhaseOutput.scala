@@ -1,5 +1,5 @@
 // PURPOSE: Data types for JSON output of phase lifecycle commands
-// PURPOSE: StartOutput, CommitOutput, PrOutput, and AdvanceOutput serialize to pretty-printed JSON
+// PURPOSE: StartOutput, CommitOutput, PrOutput, MergeOutput, and AdvanceOutput serialize to pretty-printed JSON
 
 package iw.core.model
 
@@ -55,6 +55,20 @@ object PhaseOutput:
       "headBranch"  -> ujson.Str(headBranch),
       "baseBranch"  -> ujson.Str(baseBranch),
       "merged"      -> ujson.Bool(merged)
+    )
+
+  /** Output of `phase-merge` command */
+  case class MergeOutput(
+    issueId: String,
+    phaseNumber: String,
+    prUrl: String,
+    featureBranch: String
+  ):
+    def toJson: String = PhaseOutput.toJson(
+      "issueId"       -> ujson.Str(issueId),
+      "phaseNumber"   -> ujson.Str(phaseNumber),
+      "prUrl"         -> ujson.Str(prUrl),
+      "featureBranch" -> ujson.Str(featureBranch)
     )
 
   /** Output of `phase-advance` command */
