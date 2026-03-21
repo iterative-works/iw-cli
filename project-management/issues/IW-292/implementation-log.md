@@ -53,3 +53,25 @@ M  .iw/test/phase-merge.bats
 ```
 
 ---
+
+## Phase 3: phase-advance does not commit review-state.json update (2026-03-21)
+
+**Root cause:** `phase-advance.scala` calls `ReviewStateAdapter.update()` to set "phase_merged" status after `fetchAndReset` on the feature branch, but never stages or commits the change. Same pattern as Phase 1 (phase-pr) and Phase 2 (phase-merge).
+
+**Fix applied:**
+- `.iw/commands/phase-advance.scala` — Added stage + commit block in the `Right(_)` case of the `ReviewStateAdapter.update()` match. Uses `GitAdapter.stageFiles` (from Phase 1) + `GitAdapter.commit`. Failures treated as warnings, consistent with Phase 1/2 pattern.
+
+**Regression tests added:**
+- 1 E2E BATS test verifying phase-advance leaves clean working tree with review-state.json committed on feature branch. Test sets up merged PR mock, verifies committed blob content contains "phase_merged", and finds the commit by message pattern.
+
+**Code review:**
+- Iterations: 1 (no critical issues)
+- Review file: review-phase-03-20260321-234429.md
+
+**Files changed:**
+```
+M  .iw/commands/phase-advance.scala
+M  .iw/test/phase-advance.bats
+```
+
+---

@@ -48,6 +48,10 @@ The commit pattern (stage + commit, failures treated as warnings) is established
 
 ## Acceptance Criteria
 
-- [ ] After `iw phase-advance`, `git status` is clean on the feature branch.
-- [ ] The "phase_merged" review-state.json update is committed on the feature branch.
-- [ ] All existing tests pass (`./iw test`).
+- [x] After `iw phase-advance`, `git status` is clean on the feature branch.
+- [x] The "phase_merged" review-state.json update is committed on the feature branch.
+- [x] All existing tests pass (`./iw test`).
+
+## Investigation Notes (Phase 3)
+
+Root cause confirmed by code inspection: `phase-advance.scala` lines 99-101 had the `Right(_) => ()` case which discarded the successful update result without staging or committing. The fix adds a `stageFiles` + `commit` call inside the `Right(_)` case, matching exactly the pattern from phase-merge.scala. The failing test reproduced the defect (dirty working tree assertion failed), and the test passed after the fix.

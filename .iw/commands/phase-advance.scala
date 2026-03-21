@@ -98,7 +98,11 @@ import iw.core.output.*
       badgesMode = ReviewStateUpdater.ArrayMergeMode.Append
     )) match
       case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
-      case Right(_) => ()
+      case Right(_) =>
+        // Commit the review-state update so the feature branch is clean after advance
+        GitAdapter.stageFiles(Seq(reviewStatePath), os.pwd)
+          .flatMap(_ => GitAdapter.commit(s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}", os.pwd))
+          .left.foreach(err => Output.error(s"Warning: Failed to commit review-state update: $err"))
 
   println(PhaseOutput.AdvanceOutput(
     issueId = issueId.value,
