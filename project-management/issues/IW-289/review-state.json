@@ -43,14 +43,22 @@
     {
       "label": "Phase 4 Tasks",
       "path": "project-management/issues/IW-289/phase-04-tasks.md"
+    },
+    {
+      "label": "Phase 5 Context",
+      "path": "project-management/issues/IW-289/phase-05-context.md"
+    },
+    {
+      "label": "Phase 5 Tasks",
+      "path": "project-management/issues/IW-289/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-03-21T10:02:14.117839675Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-03-21T10:28:34.064958818Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 04: Awaiting Review",
-    "type": "warning",
-    "subtext": "Timeout and configurable polling"
+    "text": "Phase 05: Implementing",
+    "type": "progress",
+    "subtext": "CI failure recovery via agent re-invocation"
   },
   "badges": [
     {
@@ -80,9 +88,13 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 04 implementation started",
+  "message": "Phase 05 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -128,13 +140,18 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "8740892",
   "needs_attention": true,
   "phase_checkpoints": {
-    "4": {
-      "context_sha": "context_sha=e293ced3dd129554d18345138e4d02b5e6a0c4c0"
+    "5": {
+      "context_sha": "context_sha=2a4861427b536eae6b3a73c128d513726779f3c3"
     }
   },
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/294"

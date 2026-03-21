@@ -301,3 +301,194 @@ GHEOF
     [ "$status" -eq 1 ]
     [[ "$output" == *"Invalid"* ]] || [[ "$output" == *"invalid"* ]]
 }
+
+@test "phase-merge --max-retries with invalid value exits non-zero with parse error" {
+    run "$PROJECT_ROOT/iw" phase-merge --max-retries abc
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid"* ]] || [[ "$output" == *"invalid"* ]]
+}
+
+@test "phase-merge --max-retries with negative value exits non-zero with parse error" {
+    run "$PROJECT_ROOT/iw" phase-merge --max-retries -1
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid"* ]] || [[ "$output" == *"invalid"* ]]
+}
+
+@test "phase-merge --max-retries 0 exits non-zero immediately without invoking agent" {
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
+}
+EOF
+
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
+#!/usr/bin/env bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+    echo '[{"link":"https://ci.example.com/1","name":"lint","state":"FAILURE"}]'
+    exit 0
+fi
+echo "Unexpected gh call: $*" >&2
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    cat > "$TEST_DIR/mock-bin/claude" << CLAUDEOF
+#!/usr/bin/env bash
+echo "CLAUDE_INVOKED" >> "$TEST_DIR/claude-calls.log"
+exit 0
+CLAUDEOF
+    chmod +x "$TEST_DIR/mock-bin/claude"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --max-retries 0
+
+    [ "$status" -eq 1 ]
+
+    # Verify output contains giving-up message and failed check name
+    [[ "$output" == *"Giving up"* ]] || [[ "$output" == *"still failing"* ]]
+    [[ "$output" == *"lint"* ]]
+
+    # Verify review-state has activity: "waiting"
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"waiting"* ]]
+
+    # Verify agent was NOT invoked
+    [ ! -f "$TEST_DIR/claude-calls.log" ]
+}
+
+@test "phase-merge agent recovery succeeds: CI fails then passes after agent runs" {
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
+}
+EOF
+
+    # Create a fake remote to allow checkout/fetch operations
+    git init -q --bare "$TEST_DIR/remote.git" 2>/dev/null
+    git remote add origin "$TEST_DIR/remote.git"
+    git push -q origin TEST-100 TEST-100-phase-01 2>/dev/null
+
+    local checks_call_count_file="$TEST_DIR/checks-calls.txt"
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/gh" << GHEOF
+#!/usr/bin/env bash
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "checks" ]]; then
+    count=0
+    [ -f "$checks_call_count_file" ] && count="\$(cat "$checks_call_count_file")"
+    count=\$((count + 1))
+    echo "\$count" > "$checks_call_count_file"
+    if [ "\$count" -eq 1 ]; then
+        echo '[{"link":"https://ci.example.com/1","name":"lint","state":"FAILURE"}]'
+    else
+        echo '[{"link":"https://ci.example.com/1","name":"lint","state":"SUCCESS"}]'
+    fi
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "merge" ]]; then
+    exit 0
+fi
+echo "Unexpected gh call: \$*" >&2
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    cat > "$TEST_DIR/mock-bin/claude" << CLAUDEOF
+#!/usr/bin/env bash
+echo "CLAUDE_INVOKED" >> "$TEST_DIR/claude-calls.log"
+exit 0
+CLAUDEOF
+    chmod +x "$TEST_DIR/mock-bin/claude"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --timeout 30s --poll-interval 1s --max-retries 1
+
+    [ "$status" -eq 0 ]
+
+    # Verify agent was invoked exactly once
+    [ -f "$TEST_DIR/claude-calls.log" ]
+    local invocation_count
+    invocation_count="$(wc -l < "$TEST_DIR/claude-calls.log")"
+    [ "$invocation_count" -eq 1 ]
+
+    # Verify output contains recovery message
+    [[ "$output" == *"CI Fixing"* ]] || [[ "$output" == *"recovery agent"* ]]
+
+    # Verify review-state updated to phase_merged
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"phase_merged"* ]]
+}
+
+@test "phase-merge retries exhausted: review-state has activity waiting and exits non-zero" {
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
+}
+EOF
+
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
+#!/usr/bin/env bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+    echo '[{"link":"https://ci.example.com/1","name":"lint","state":"FAILURE"}]'
+    exit 0
+fi
+echo "Unexpected gh call: $*" >&2
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    cat > "$TEST_DIR/mock-bin/claude" << CLAUDEOF
+#!/usr/bin/env bash
+echo "CLAUDE_INVOKED" >> "$TEST_DIR/claude-calls.log"
+exit 0
+CLAUDEOF
+    chmod +x "$TEST_DIR/mock-bin/claude"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --timeout 30s --poll-interval 1s --max-retries 1
+
+    [ "$status" -eq 1 ]
+
+    # Verify agent was invoked exactly once
+    [ -f "$TEST_DIR/claude-calls.log" ]
+    local invocation_count
+    invocation_count="$(wc -l < "$TEST_DIR/claude-calls.log")"
+    [ "$invocation_count" -eq 1 ]
+
+    # Verify output contains exhaustion message
+    [[ "$output" == *"Giving up"* ]] || [[ "$output" == *"exhausted"* ]] || [[ "$output" == *"still failing"* ]]
+
+    # Verify review-state has activity: "waiting"
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"waiting"* ]]
+}
