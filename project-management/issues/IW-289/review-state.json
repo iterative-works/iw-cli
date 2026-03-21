@@ -45,11 +45,11 @@
       "path": "project-management/issues/IW-289/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-03-21T09:38:18.841105800Z",
-  "status": "implementing",
+  "last_updated": "2026-03-21T10:02:14.117839675Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 04: Implementing",
-    "type": "progress",
+    "text": "Phase 04: Awaiting Review",
+    "type": "warning",
     "subtext": "Timeout and configurable polling"
   },
   "badges": [
@@ -76,6 +76,10 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
   "message": "Phase 04 implementation started",
@@ -119,6 +123,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "8740892",
@@ -128,5 +137,5 @@
       "context_sha": "context_sha=e293ced3dd129554d18345138e4d02b5e6a0c4c0"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/293"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/294"
 }
