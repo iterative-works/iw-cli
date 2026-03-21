@@ -784,7 +784,7 @@ class GitLabClientTest extends munit.FunSuite:
     val descIndex = args.indexOf("--description")
     assertEquals(args(descIndex + 1), "MR description")
 
-  test("buildCreateMrCommand uses --head and --base for branch specification"):
+  test("buildCreateMrCommand uses --source-branch and --target-branch for branch specification"):
     val args = GitLabClient.buildCreateMrCommand(
       repository = "owner/project",
       headBranch = "feature-branch",
@@ -793,10 +793,10 @@ class GitLabClientTest extends munit.FunSuite:
       body = "Body"
     )
 
-    val headIndex = args.indexOf("--head")
-    assertEquals(args(headIndex + 1), "feature-branch")
-    val baseIndex = args.indexOf("--base")
-    assertEquals(args(baseIndex + 1), "develop")
+    val sourceIndex = args.indexOf("--source-branch")
+    assertEquals(args(sourceIndex + 1), "feature-branch")
+    val targetIndex = args.indexOf("--target-branch")
+    assertEquals(args(targetIndex + 1), "develop")
 
   // ========== parseCreateMrResponse Tests ==========
 
