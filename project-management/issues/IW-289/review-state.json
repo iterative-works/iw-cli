@@ -37,11 +37,11 @@
       "path": "project-management/issues/IW-289/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-03-20T21:27:40.778285778Z",
-  "status": "implementing",
+  "last_updated": "2026-03-20T22:47:27.685683919Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 03: Implementing",
-    "type": "progress",
+    "text": "Phase 03: Awaiting Review",
+    "type": "warning",
     "subtext": "GitHub CI polling and auto-merge"
   },
   "badges": [
@@ -60,6 +60,10 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
   "message": "Phase 03 implementation started",
@@ -93,6 +97,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "8740892",
@@ -101,5 +110,6 @@
     "3": {
       "context_sha": "context_sha=6e829cd38ba7de0ba01ed0a5cade322229a5bedd"
     }
-  }
+  },
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/293"
 }
