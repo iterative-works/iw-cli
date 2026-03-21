@@ -396,8 +396,8 @@ Check your network connection and try again.""".stripMargin
     Array(
       "mr", "create",
       "--repo", repository,
-      "--head", headBranch,
-      "--base", baseBranch,
+      "--source-branch", headBranch,
+      "--target-branch", baseBranch,
       "--title", title,
       "--description", body
     )
