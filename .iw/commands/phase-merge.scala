@@ -10,6 +10,7 @@ import iw.core.output.*
 
   val timeoutStr = PhaseArgs.namedArg(argList, "--timeout").getOrElse("30m")
   val pollIntervalStr = PhaseArgs.namedArg(argList, "--poll-interval").getOrElse("30s")
+  val maxRetriesStr = PhaseArgs.namedArg(argList, "--max-retries").getOrElse("2")
 
   val timeoutMs = PhaseMerge.parseDuration(timeoutStr) match
     case Left(err) =>
@@ -22,6 +23,15 @@ import iw.core.output.*
       Output.error(s"Invalid --poll-interval: $err")
       sys.exit(1)
     case Right(ms) => ms
+
+  val maxRetries = maxRetriesStr.toIntOption match
+    case None =>
+      Output.error(s"Invalid --max-retries: '$maxRetriesStr' is not a valid integer")
+      sys.exit(1)
+    case Some(n) if n < 0 =>
+      Output.error(s"Invalid --max-retries: value must not be negative")
+      sys.exit(1)
+    case Some(n) => n
 
   val currentBranch = CommandHelpers.exitOnError(GitAdapter.getCurrentBranch(os.pwd))
 
@@ -80,12 +90,12 @@ import iw.core.output.*
       case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
       case Right(_) => ()
 
-  // Polling loop
-  val mergeConfig = PhaseMergeConfig(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs)
+  // Polling and retry loop
+  val mergeConfig = PhaseMergeConfig(timeoutMs = timeoutMs, pollIntervalMs = pollIntervalMs, maxRetries = maxRetries)
   val startTime = System.currentTimeMillis()
 
   @annotation.tailrec
-  def poll(): Unit =
+  def poll(): CIVerdict =
     val elapsed = System.currentTimeMillis() - startTime
     if elapsed > mergeConfig.timeoutMs then
       if os.exists(reviewStatePath) then
@@ -108,26 +118,69 @@ import iw.core.output.*
     verdict match
       case CIVerdict.AllPassed =>
         Output.info("All CI checks passed.")
+        CIVerdict.AllPassed
       case CIVerdict.NoChecksFound =>
         Output.info("No CI checks found — proceeding with merge.")
+        CIVerdict.NoChecksFound
       case CIVerdict.StillRunning =>
         val pendingNames = checks.filter(_.status == CICheckStatus.Pending).map(_.name).mkString(", ")
         Output.info(s"CI still running (pending: $pendingNames). Waiting ${PhaseMerge.formatDuration(mergeConfig.pollIntervalMs)}...")
         Thread.sleep(mergeConfig.pollIntervalMs)
         poll()
-      case CIVerdict.SomeFailed(failedChecks) =>
+      case failed @ CIVerdict.SomeFailed(failedChecks) =>
         Output.error("CI checks failed:")
         failedChecks.foreach { check =>
           val urlPart = check.url.fold("")(u => s" — $u")
           Output.error(s"  ${check.name}: ${check.status}$urlPart")
         }
-        sys.exit(1)
+        failed
       case CIVerdict.TimedOut =>
         // Should not reach here — handled by elapsed check above
         Output.error("Timed out waiting for CI.")
         sys.exit(1)
 
-  poll()
+  @annotation.tailrec
+  def retryLoop(attempt: Int): Unit =
+    poll() match
+      case CIVerdict.SomeFailed(failedChecks) =>
+        if PhaseMerge.shouldRetry(attempt, mergeConfig) then
+          val attemptDisplay = s"${attempt + 1}/${mergeConfig.maxRetries}"
+          Output.info(s"Invoking recovery agent (attempt $attemptDisplay)...")
+          if os.exists(reviewStatePath) then
+            ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
+              status = Some("ci_fixing"),
+              displayText = Some(s"Phase ${phaseNumber.value}: CI Fixing (attempt $attemptDisplay)")
+            )) match
+              case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
+              case Right(_) => ()
+          val basePrompt = PhaseMerge.buildRecoveryPrompt(failedChecks)
+          val fullPrompt =
+            s"You are fixing CI failures for PR $prUrl (branch $currentBranch).\n$basePrompt\n" +
+            "Fix the issues, commit your changes, and push to the branch."
+          ProcessAdapter.runInteractive(
+            Seq("claude", "--dangerously-skip-permissions", "-p", fullPrompt)
+          )
+          if os.exists(reviewStatePath) then
+            ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
+              status = Some("ci_pending"),
+              displayText = Some(s"Phase ${phaseNumber.value}: Waiting for CI")
+            )) match
+              case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
+              case Right(_) => ()
+          retryLoop(attempt + 1)
+        else
+          Output.error(s"CI checks still failing after ${mergeConfig.maxRetries} recovery attempt(s). Giving up.")
+          Output.error(s"PR is at $prUrl. Fix the failures manually.")
+          if os.exists(reviewStatePath) then
+            ReviewStateAdapter.update(reviewStatePath, ReviewStateUpdater.UpdateInput(
+              activity = Some("waiting")
+            )) match
+              case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
+              case Right(_) => ()
+          sys.exit(1)
+      case _ => ()
+
+  retryLoop(0)
 
   // Merge the PR
   Output.info(s"Merging PR: $prUrl")
