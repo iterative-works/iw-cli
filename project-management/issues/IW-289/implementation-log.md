@@ -137,3 +137,45 @@ A	.iw/test/phase-merge.bats
 ```
 
 ---
+
+## Phase 4: Timeout and configurable polling (2026-03-21)
+
+**What was built:**
+- `PhaseMerge.parseDuration(input: String): Either[String, Long]` — parses "30s", "5m", "2h" to milliseconds
+- `PhaseMerge.formatDuration(ms: Long): String` — converts milliseconds to human-readable duration
+- CLI flags `--timeout` and `--poll-interval` wired into `phase-merge.scala`
+- Improved timeout handling: sets review-state `activity: "waiting"` before exit
+
+**Decisions made:**
+- Bare numbers without suffix (e.g., "30") are rejected — require explicit s/m/h suffix for clarity
+- `formatDuration(0L)` returns "0s" — zero is valid but treated as seconds
+- Duration parsing moved to the very start of `phaseMerge` main, before config/branch checks — invalid `--timeout abc` exits immediately with a clear parse error
+- `formatDuration` picks the most natural unit: hours if divisible by 3,600,000, minutes if divisible by 60,000, else seconds
+
+**Patterns applied:**
+- Pure functions in model (`parseDuration`, `formatDuration`) — no I/O, trivially testable
+- Existing `PhaseArgs.namedArg` pattern for CLI argument extraction
+- `ReviewStateUpdater.UpdateInput(activity = Some("waiting"))` for timeout state transition
+
+**Testing:**
+- Unit tests: 15 new tests (9 for parseDuration, 6 for formatDuration) — total 2036
+- E2E tests: 3 new BATS tests (timeout scenario, custom poll interval, invalid duration flag)
+
+**Code review:**
+- Iterations: 1 (no critical issues)
+- Applied fixes: consistent `formatDuration` usage in polling message, stronger E2E assertions for poll-interval test, updated PURPOSE comments
+
+**For next phases:**
+- `phase-merge` command is ready for Phase 5 (CI failure recovery — currently exits on SomeFailed)
+- `parseDuration` and `formatDuration` are reusable by any command needing duration CLI args
+- `activity: "waiting"` state is set on timeout, ready for dashboard to display
+
+**Files changed:**
+```
+M	.iw/commands/phase-merge.scala
+M	.iw/core/model/PhaseMerge.scala
+M	.iw/core/test/PhaseMergeTest.scala
+M	.iw/test/phase-merge.bats
+```
+
+---

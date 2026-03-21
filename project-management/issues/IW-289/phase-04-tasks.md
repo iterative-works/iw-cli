@@ -73,3 +73,4 @@
 - [x] [verify] All E2E tests pass: `./iw test e2e`
 - [x] [verify] Existing phase-merge, phase-pr, and batch-implement tests still pass
 - [x] [verify] No I/O imports in `PhaseMerge.scala` model (parseDuration and formatDuration are pure)
+**Phase Status:** Complete
