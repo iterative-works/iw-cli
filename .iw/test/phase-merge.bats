@@ -309,6 +309,13 @@ GHEOF
     [[ "$output" == *"Invalid"* ]] || [[ "$output" == *"invalid"* ]]
 }
 
+@test "phase-merge --max-retries with negative value exits non-zero with parse error" {
+    run "$PROJECT_ROOT/iw" phase-merge --max-retries -1
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid"* ]] || [[ "$output" == *"invalid"* ]]
+}
+
 @test "phase-merge --max-retries 0 exits non-zero immediately without invoking agent" {
     mkdir -p "project-management/issues/TEST-100"
     cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
@@ -347,6 +354,15 @@ CLAUDEOF
     PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --max-retries 0
 
     [ "$status" -eq 1 ]
+
+    # Verify output contains giving-up message and failed check name
+    [[ "$output" == *"Giving up"* ]] || [[ "$output" == *"still failing"* ]]
+    [[ "$output" == *"lint"* ]]
+
+    # Verify review-state has activity: "waiting"
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"waiting"* ]]
 
     # Verify agent was NOT invoked
     [ ! -f "$TEST_DIR/claude-calls.log" ]
@@ -392,6 +408,7 @@ fi
 if [[ "\$1" == "pr" && "\$2" == "merge" ]]; then
     exit 0
 fi
+echo "Unexpected gh call: \$*" >&2
 exit 1
 GHEOF
     chmod +x "$TEST_DIR/mock-bin/gh"
@@ -407,8 +424,11 @@ CLAUDEOF
 
     [ "$status" -eq 0 ]
 
-    # Verify agent was invoked
+    # Verify agent was invoked exactly once
     [ -f "$TEST_DIR/claude-calls.log" ]
+    local invocation_count
+    invocation_count="$(wc -l < "$TEST_DIR/claude-calls.log")"
+    [ "$invocation_count" -eq 1 ]
 
     # Verify output contains recovery message
     [[ "$output" == *"CI Fixing"* ]] || [[ "$output" == *"recovery agent"* ]]
@@ -458,8 +478,11 @@ CLAUDEOF
 
     [ "$status" -eq 1 ]
 
-    # Verify agent was invoked
+    # Verify agent was invoked exactly once
     [ -f "$TEST_DIR/claude-calls.log" ]
+    local invocation_count
+    invocation_count="$(wc -l < "$TEST_DIR/claude-calls.log")"
+    [ "$invocation_count" -eq 1 ]
 
     # Verify output contains exhaustion message
     [[ "$output" == *"Giving up"* ]] || [[ "$output" == *"exhausted"* ]] || [[ "$output" == *"still failing"* ]]

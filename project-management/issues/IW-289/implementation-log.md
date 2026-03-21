@@ -179,3 +179,48 @@ M	.iw/test/phase-merge.bats
 ```
 
 ---
+
+## Phase 5: CI failure recovery via agent re-invocation (2026-03-21)
+
+**What was built:**
+- Retry loop in `phase-merge.scala` — on CI failure, invokes claude agent with recovery prompt, then re-polls CI
+- `--max-retries` CLI flag (default 2, non-negative integer validation)
+- `tryUpdateState` helper — extracted from 6 duplicate review-state update patterns
+- `invokeRecoveryAgent` procedure — separates agent invocation from retry control flow
+- Review-state transitions: `ci_fixing` → agent run → `ci_pending` → re-poll → merge or exhaust
+
+**Decisions made:**
+- `poll()` restructured to return `CIVerdict` on `SomeFailed` instead of calling `sys.exit` — enables outer retry loop
+- `poll()` still calls `sys.exit` for timeout and fetch errors — accepted trade-off for simplicity
+- Agent invoked via `ProcessAdapter.runInteractive` (no timeout) following `batch-implement.scala` pattern
+- Agent exit code ignored — CI re-check determines success, not agent's self-report
+- `--max-retries 0` disables recovery entirely (immediate exit on CI failure)
+
+**Patterns applied:**
+- `tryUpdateState` helper centralizes existence check + error handling for review-state updates
+- `invokeRecoveryAgent` separates agent invocation concerns from retry loop control flow
+- `@annotation.tailrec` on both `poll()` and `retryLoop()` for stack safety
+- Mock `claude` CLI in BATS tests using counter files for state progression
+
+**Testing:**
+- E2E tests: 5 new BATS tests (invalid max-retries, negative max-retries, zero retries, recovery success, retries exhausted)
+- Tests verify exact agent invocation count (not just presence)
+- No new unit tests needed — `shouldRetry` and `buildRecoveryPrompt` already tested in Phase 1
+
+**Code review:**
+- Iterations: 1 (no critical issues)
+- Review file: review-phase-05-20260321-104804.md
+- Applied fixes: extracted `tryUpdateState` helper, extracted `invokeRecoveryAgent`, updated PURPOSE comment, added negative max-retries test, strengthened E2E assertions with invocation counts
+
+**For next phases:**
+- `phase-merge` command is complete for GitHub — ready for Phase 6 (GitLab CI support)
+- `phase-merge` command is ready for Phase 7 (batch-implement integration)
+- Recovery prompt construction split: `PhaseMerge.buildRecoveryPrompt` (pure, model) + runtime context (command script)
+
+**Files changed:**
+```
+M	.iw/commands/phase-merge.scala
+M	.iw/test/phase-merge.bats
+```
+
+---
