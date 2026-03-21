@@ -43,4 +43,4 @@ and fix two pre-existing BATS test failures in `phase-merge.bats`.
 - [x] Run the two new BATS tests and confirm they now pass
 - [x] Run the full existing `batch-implement.bats` suite to confirm no regressions
 - [x] Run the full `phase-merge.bats` suite to confirm all 16 tests pass (including the two fixed ones)
-- [integ] Commit: `feat(IW-289): replace handleMergePR with phase-merge subprocess in batch-implement`
+- [x] Commit: `feat(IW-289): replace handleMergePR with phase-merge subprocess in batch-implement`
