@@ -224,3 +224,50 @@ M	.iw/test/phase-merge.bats
 ```
 
 ---
+
+## Phase 6: GitLab CI status support (2026-03-21)
+
+**What was built:**
+- `GitLabClient.fetchCheckStatuses` — two-step CI status fetch via GitLab API: lists MR pipelines, then fetches jobs from the latest pipeline
+- `GitLabClient.parseGlabPipelinesJson` — extracts latest pipeline ID from pipelines JSON array
+- `GitLabClient.parseGlabJobsJson` — maps GitLab job statuses to `CICheckResult` list
+- `GitLabClient.buildCheckStatusesCommand` / `buildPipelineJobsCommand` — pure command builders for `glab api` calls
+- `GitLabClient.buildMergeMrWithDeleteCommand` — merge MR with `--remove-source-branch` flag
+- `phase-merge.scala` — forge-type dispatch for CI fetching, URL validation, and merge command
+
+**Decisions made:**
+- Two-step API approach for CI statuses: `glab api projects/:repo/merge_requests/:iid/pipelines` → `glab api projects/:repo/pipelines/:id/jobs`. Simpler single-command approaches (`glab ci status`, `glab ci view`) lack reliable JSON output
+- `skipped` GitLab status maps to `CICheckStatus.Passed` — skipped jobs should not block merge
+- Empty pipelines list (no pipeline triggered yet) returns `Right(Nil)` → treated as `NoChecksFound` → immediate merge (consistent with GitHub behavior)
+- Parse errors from pipelines JSON are propagated (not silently swallowed), only the "no pipelines" case is treated as empty
+- Repository path URL-encoded with `%2F` for GitLab API endpoints, extracted to private `encodedRepo` helper
+
+**Patterns applied:**
+- Mirrors `GitHubClient.fetchCheckStatuses` pattern: validate prerequisites → build command → execute → parse
+- Forge-type dispatch via `forgeType match` in command script (2 dispatch points: CI fetch + merge)
+- Injected `isCommandAvailable` and `execCommand` for testability (same as GitHub client)
+- Mock `glab` scripts in BATS with `$*` logging and dispatch on `$1`/`$2`
+
+**Testing:**
+- Unit tests: 31 new tests in GitLabClientTest (parseGlabJobsJson, parseGlabPipelinesJson, buildCheckStatusesCommand, buildPipelineJobsCommand, buildMergeMrWithDeleteCommand, fetchCheckStatuses)
+- E2E tests: 2 new BATS tests (GitLab happy path, GitLab CI failure), 1 removed (old "not supported" guard test)
+- Total passing: 2061 unit tests, 14/16 BATS (2 pre-existing failures in GitHub tests)
+
+**Code review:**
+- Iterations: 1 (2 critical issues found and fixed)
+- Applied fixes: added jobs API failure test, strengthened BATS merge assertion, distinguished parse errors from empty pipelines, added CICheckStatus imports, extracted encodedRepo helper, updated PURPOSE comment
+
+**For next phases:**
+- `phase-merge` command now works on both GitHub and GitLab — ready for Phase 7 (batch-implement integration)
+- `GitLabClient.fetchCheckStatuses` is available for any future GitLab CI integration needs
+- Two pre-existing BATS test failures (tests 7-8) exist in GitHub path due to single-quoted heredoc preventing `$TEST_DIR` expansion — not caused by Phase 6
+
+**Files changed:**
+```
+M	.iw/commands/phase-merge.scala
+M	.iw/core/adapters/GitLabClient.scala
+M	.iw/core/test/GitLabClientTest.scala
+M	.iw/test/phase-merge.bats
+```
+
+---

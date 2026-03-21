@@ -1,10 +1,10 @@
 // PURPOSE: Unit tests for GitLabClient issue fetching via glab CLI
-// PURPOSE: Tests command building, JSON parsing, and prerequisite validation
+// PURPOSE: Tests command building, JSON parsing, CI pipeline status, and prerequisite validation
 
 package iw.core.test
 
 import iw.core.adapters.{GitLabClient, CreatedIssue}
-import iw.core.model.{FeedbackParser, Issue}
+import iw.core.model.{FeedbackParser, Issue, CICheckStatus, CICheckResult}
 
 class GitLabClientTest extends munit.FunSuite:
 
@@ -930,7 +930,7 @@ class GitLabClientTest extends munit.FunSuite:
     assert(result.isRight)
     val checks = result.getOrElse(fail("Expected Right"))
     assertEquals(checks.length, 2)
-    assert(checks.forall(_.status == iw.core.model.CICheckStatus.Passed))
+    assert(checks.forall(_.status == CICheckStatus.Passed))
 
   test("parseGlabJobsJson -- some jobs failed: failed status maps to Failed"):
     val json = """[
@@ -943,7 +943,7 @@ class GitLabClientTest extends munit.FunSuite:
     assert(result.isRight)
     val checks = result.getOrElse(fail("Expected Right"))
     val lint = checks.find(_.name == "lint").getOrElse(fail("Expected lint check"))
-    assertEquals(lint.status, iw.core.model.CICheckStatus.Failed)
+    assertEquals(lint.status, CICheckStatus.Failed)
 
   test("parseGlabJobsJson -- running and pending statuses map to Pending"):
     val json = """[
@@ -955,7 +955,7 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val checks = result.getOrElse(fail("Expected Right"))
-    assert(checks.forall(_.status == iw.core.model.CICheckStatus.Pending))
+    assert(checks.forall(_.status == CICheckStatus.Pending))
 
   test("parseGlabJobsJson -- canceled (American) maps to Cancelled"):
     val json = """[{"id": 1, "name": "build", "status": "canceled", "web_url": "https://gitlab.com/-/jobs/1"}]"""
@@ -964,7 +964,7 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val checks = result.getOrElse(fail("Expected Right"))
-    assertEquals(checks.head.status, iw.core.model.CICheckStatus.Cancelled)
+    assertEquals(checks.head.status, CICheckStatus.Cancelled)
 
   test("parseGlabJobsJson -- cancelled (British) also maps to Cancelled"):
     val json = """[{"id": 1, "name": "build", "status": "cancelled", "web_url": "https://gitlab.com/-/jobs/1"}]"""
@@ -973,7 +973,7 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     val checks = result.getOrElse(fail("Expected Right"))
-    assertEquals(checks.head.status, iw.core.model.CICheckStatus.Cancelled)
+    assertEquals(checks.head.status, CICheckStatus.Cancelled)
 
   test("parseGlabJobsJson -- additional pending states: created, waiting_for_resource, preparing, manual"):
     val statuses = List("created", "waiting_for_resource", "preparing", "manual")
@@ -981,7 +981,7 @@ class GitLabClientTest extends munit.FunSuite:
       val json = s"""[{"id": 1, "name": "job", "status": "$s", "web_url": "https://gitlab.com/-/jobs/1"}]"""
       val result = GitLabClient.parseGlabJobsJson(json)
       assert(result.isRight, s"Expected Right for status $s")
-      assertEquals(result.getOrElse(Nil).head.status, iw.core.model.CICheckStatus.Pending, s"Expected Pending for status $s")
+      assertEquals(result.getOrElse(Nil).head.status, CICheckStatus.Pending, s"Expected Pending for status $s")
     }
 
   test("parseGlabJobsJson -- skipped maps to Passed (should not block)"):
@@ -990,7 +990,7 @@ class GitLabClientTest extends munit.FunSuite:
     val result = GitLabClient.parseGlabJobsJson(json)
 
     assert(result.isRight)
-    assertEquals(result.getOrElse(Nil).head.status, iw.core.model.CICheckStatus.Passed)
+    assertEquals(result.getOrElse(Nil).head.status, CICheckStatus.Passed)
 
   test("parseGlabJobsJson -- unknown status string maps to Unknown"):
     val json = """[{"id": 1, "name": "build", "status": "something_weird", "web_url": "https://gitlab.com/-/jobs/1"}]"""
@@ -998,7 +998,7 @@ class GitLabClientTest extends munit.FunSuite:
     val result = GitLabClient.parseGlabJobsJson(json)
 
     assert(result.isRight)
-    assertEquals(result.getOrElse(Nil).head.status, iw.core.model.CICheckStatus.Unknown)
+    assertEquals(result.getOrElse(Nil).head.status, CICheckStatus.Unknown)
 
   test("parseGlabJobsJson -- empty array returns Right(Nil)"):
     val result = GitLabClient.parseGlabJobsJson("[]")
@@ -1126,7 +1126,7 @@ class GitLabClientTest extends munit.FunSuite:
     val checks = result.getOrElse(fail("Expected Right"))
     assertEquals(checks.length, 1)
     assertEquals(checks.head.name, "test")
-    assertEquals(checks.head.status, iw.core.model.CICheckStatus.Passed)
+    assertEquals(checks.head.status, CICheckStatus.Passed)
 
   test("fetchCheckStatuses -- returns Left when pipelines command fails"):
     val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
@@ -1164,3 +1164,23 @@ class GitLabClientTest extends munit.FunSuite:
 
     assert(result.isRight)
     assert(result.getOrElse(fail("Expected Right")).isEmpty)
+
+  test("fetchCheckStatuses -- returns Left when jobs command fails"):
+    val mockExec: (String, Array[String]) => Either[String, String] = (cmd, args) =>
+      if args.contains("auth") && args.contains("status") then
+        Right("Logged in")
+      else if args.exists(_.contains("pipelines")) && !args.exists(_.contains("jobs")) then
+        Right("""[{"id": 100, "status": "success", "ref": "feature", "sha": "abc"}]""")
+      else if args.exists(_.contains("jobs")) then
+        Left("API error: 500 Internal Server Error")
+      else
+        Left(s"Unexpected args: ${args.mkString(" ")}")
+
+    val result = GitLabClient.fetchCheckStatuses(
+      mrNumber = 42,
+      repository = "group/project",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assert(result.isLeft)

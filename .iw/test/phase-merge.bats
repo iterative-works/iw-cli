@@ -95,7 +95,7 @@ EOF
     mkdir -p "$TEST_DIR/mock-bin"
     cat > "$TEST_DIR/mock-bin/glab" << GLABEOF
 #!/usr/bin/env bash
-echo "\$1 \$2" >> "$TEST_DIR/glab-calls.log"
+echo "\$*" >> "$TEST_DIR/glab-calls.log"
 if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
     echo "Logged in to gitlab.com"
     exit 0
@@ -132,6 +132,9 @@ GLABEOF
 
     # Verify mock glab was actually called
     [ -f "$TEST_DIR/glab-calls.log" ]
+
+    # Verify the merge was called with the MR URL
+    grep -q "mr merge.*merge_requests/42" "$TEST_DIR/glab-calls.log"
 }
 
 @test "phase-merge with GitLab forge type CI failure exits non-zero and reports failed job name" {

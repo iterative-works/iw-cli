@@ -484,6 +484,10 @@ Check your network connection and try again.""".stripMargin
           case Left(error) => Left(error)
           case Right(_) => Right(())
 
+  /** URL-encode the repository path for GitLab API calls. */
+  private def encodedRepo(repository: String): String =
+    repository.replace("/", "%2F")
+
   /** Build glab CLI command arguments for fetching MR pipelines list.
     *
     * Uses the GitLab API to fetch pipelines for an MR, which gives pipeline IDs
@@ -494,8 +498,8 @@ Check your network connection and try again.""".stripMargin
     * @return Array of command arguments for glab CLI (without leading "glab")
     */
   def buildCheckStatusesCommand(mrNumber: Int, repository: String): Array[String] =
-    val encodedRepo = repository.replace("/", "%2F")
-    Array("api", s"projects/$encodedRepo/merge_requests/$mrNumber/pipelines", "--method", "GET")
+    val repo = encodedRepo(repository)
+    Array("api", s"projects/$repo/merge_requests/$mrNumber/pipelines", "--method", "GET")
 
   /** Build glab CLI command arguments for fetching pipeline job statuses.
     *
@@ -504,8 +508,8 @@ Check your network connection and try again.""".stripMargin
     * @return Array of command arguments for glab CLI (without leading "glab")
     */
   def buildPipelineJobsCommand(pipelineId: Int, repository: String): Array[String] =
-    val encodedRepo = repository.replace("/", "%2F")
-    Array("api", s"projects/$encodedRepo/pipelines/$pipelineId/jobs", "--method", "GET")
+    val repo = encodedRepo(repository)
+    Array("api", s"projects/$repo/pipelines/$pipelineId/jobs", "--method", "GET")
 
   /** Build glab CLI command arguments for merging an MR with source branch deletion.
     *
@@ -605,9 +609,11 @@ Check your network connection and try again.""".stripMargin
           case Left(error) => Left(s"Failed to fetch pipelines: $error")
           case Right(pipelinesJson) =>
             parseGlabPipelinesJson(pipelinesJson) match
-              case Left(_) =>
+              case Left(msg) if msg == "No pipelines found for this MR" =>
                 // No pipelines yet — treat as empty checks list
                 Right(Nil)
+              case Left(parseError) =>
+                Left(s"Failed to parse pipelines response: $parseError")
               case Right(pipelineId) =>
                 execCommand("glab", buildPipelineJobsCommand(pipelineId, repository)) match
                   case Left(error) => Left(s"Failed to fetch pipeline jobs: $error")
