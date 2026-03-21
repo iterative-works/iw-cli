@@ -44,6 +44,60 @@ teardown() {
     rm -rf "$TEST_DIR"
 }
 
+@test "phase-pr non-batch: review-state.json is committed and working tree is clean after PR creation" {
+    # Create a committed review-state.json
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "in_progress",
+  "artifacts": []
+}
+EOF
+    git add "project-management/issues/TEST-100/review-state.json"
+    git commit -q -m "Add review-state"
+
+    # Create a fake bare remote so push succeeds
+    git init -q --bare "$TEST_DIR/remote.git" 2>/dev/null
+    git remote add origin "$TEST_DIR/remote.git"
+    git push -q origin TEST-100 TEST-100-phase-01 2>/dev/null
+
+    # Create a mock gh that handles pr create
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/gh" << GHEOF
+#!/usr/bin/env bash
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "create" ]]; then
+    echo "https://github.com/test-org/test-repo/pull/42"
+    exit 0
+fi
+echo "Unexpected gh call: \$*" >&2
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-pr --title "Phase 1: Implementation"
+
+    [ "$status" -eq 0 ]
+
+    # review-state.json must not appear as modified or staged (M or A in porcelain output)
+    local porcelain
+    porcelain="$(git status --porcelain -- "project-management/issues/TEST-100/review-state.json")"
+    [ -z "$porcelain" ]
+
+    # The latest commit must contain the updated review-state.json
+    local changed_files
+    changed_files="$(git diff --name-only HEAD~1 HEAD)"
+    echo "$changed_files" | grep -q "review-state.json"
+
+    # review-state must contain awaiting_review status
+    grep -q "awaiting_review" "project-management/issues/TEST-100/review-state.json"
+}
+
 @test "phase-pr when not on a phase branch exits with error" {
     # Switch to the feature branch
     git checkout -q TEST-100

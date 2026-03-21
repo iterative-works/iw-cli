@@ -5,6 +5,16 @@ import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
 
+private def commitReviewState(
+  path: os.Path,
+  issueId: IssueId,
+  phaseNumber: PhaseNumber
+): Either[String, Unit] =
+  for
+    _ <- GitAdapter.stageFiles(Seq(path), os.pwd)
+    _ <- GitAdapter.commit(s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}", os.pwd)
+  yield ()
+
 @main def phasePr(args: String*): Unit =
   val argList = args.toList
 
@@ -103,7 +113,10 @@ import iw.core.output.*
           badgesMode = ReviewStateUpdater.ArrayMergeMode.Append
         )) match
           case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
-          case Right(_) => ()
+          case Right(_) =>
+            commitReviewState(reviewStatePath, issueId, phaseNumber) match
+              case Left(err) => Output.error(s"Warning: Failed to persist review-state: $err")
+              case Right(_) => ()
 
       true
     else
@@ -120,7 +133,11 @@ import iw.core.output.*
           actionsMode = ReviewStateUpdater.ArrayMergeMode.Append
         )) match
           case Left(err) => Output.error(s"Warning: Failed to update review-state: $err")
-          case Right(_) => ()
+          case Right(_) =>
+            val committed = commitReviewState(reviewStatePath, issueId, phaseNumber)
+            committed.flatMap(_ => GitAdapter.push(currentBranch, os.pwd)) match
+              case Left(err) => Output.error(s"Warning: Failed to persist review-state: $err")
+              case Right(_) => ()
 
       false
 
