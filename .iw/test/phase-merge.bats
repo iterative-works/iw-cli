@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw phase-merge command
-# PURPOSE: Tests branch validation, forge type checks, missing PR URL errors, and configurable timeout/polling
+# PURPOSE: Tests branch validation, GitHub and GitLab forge support, missing PR URL errors, and configurable timeout/polling
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
@@ -62,7 +62,7 @@ teardown() {
     [[ "$output" == *"config"* ]] || [[ "$output" == *"init"* ]]
 }
 
-@test "phase-merge with GitLab forge type exits with not-supported error" {
+@test "phase-merge with GitLab forge type happy path merges MR and updates review-state to phase_merged" {
     cat > .iw/config.conf << 'EOF'
 project {
   name = testproject
@@ -75,10 +75,118 @@ tracker {
 }
 EOF
 
-    run "$PROJECT_ROOT/iw" phase-merge
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://gitlab.com/test-group/test-repo/-/merge_requests/42",
+  "artifacts": []
+}
+EOF
+
+    # Create a fake remote to allow checkout/fetch operations
+    git init -q --bare "$TEST_DIR/remote.git" 2>/dev/null
+    git remote add origin "$TEST_DIR/remote.git"
+    git push -q origin TEST-100 TEST-100-phase-01 2>/dev/null
+
+    # Create mock glab script dispatching on $1 and $2
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/glab" << GLABEOF
+#!/usr/bin/env bash
+echo "\$*" >> "$TEST_DIR/glab-calls.log"
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
+    echo "Logged in to gitlab.com"
+    exit 0
+fi
+if [[ "\$1" == "api" ]]; then
+    if [[ "\$2" == *"jobs"* ]]; then
+        echo '[{"id":1,"name":"test","status":"success","web_url":"https://gitlab.com/-/jobs/1"}]'
+        exit 0
+    fi
+    if [[ "\$2" == *"pipelines"* ]]; then
+        echo '[{"id":100,"status":"success","ref":"TEST-100-phase-01","sha":"abc123"}]'
+        exit 0
+    fi
+fi
+if [[ "\$1" == "mr" && "\$2" == "merge" ]]; then
+    exit 0
+fi
+echo "Unexpected glab call: \$*" >&2
+exit 1
+GLABEOF
+    chmod +x "$TEST_DIR/mock-bin/glab"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge
+
+    [ "$status" -eq 0 ]
+
+    # Verify review-state was updated to phase_merged
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"phase_merged"* ]]
+
+    # Verify JSON output contains expected fields
+    [[ "$output" == *"TEST-100"* ]]
+
+    # Verify mock glab was actually called
+    [ -f "$TEST_DIR/glab-calls.log" ]
+
+    # Verify the merge was called with the MR URL
+    grep -q "mr merge.*merge_requests/42" "$TEST_DIR/glab-calls.log"
+}
+
+@test "phase-merge with GitLab forge type CI failure exits non-zero and reports failed job name" {
+    cat > .iw/config.conf << 'EOF'
+project {
+  name = testproject
+}
+
+tracker {
+  type = gitlab
+  repository = "test-group/test-repo"
+  teamPrefix = "TEST"
+}
+EOF
+
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://gitlab.com/test-group/test-repo/-/merge_requests/42",
+  "artifacts": []
+}
+EOF
+
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/glab" << GLABEOF
+#!/usr/bin/env bash
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
+    echo "Logged in to gitlab.com"
+    exit 0
+fi
+if [[ "\$1" == "api" ]]; then
+    if [[ "\$2" == *"jobs"* ]]; then
+        echo '[{"id":2,"name":"lint","status":"failed","web_url":"https://gitlab.com/-/jobs/2"}]'
+        exit 0
+    fi
+    if [[ "\$2" == *"pipelines"* ]]; then
+        echo '[{"id":100,"status":"failed","ref":"TEST-100-phase-01","sha":"abc123"}]'
+        exit 0
+    fi
+fi
+echo "Unexpected glab call: \$*" >&2
+exit 1
+GLABEOF
+    chmod +x "$TEST_DIR/mock-bin/glab"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --max-retries 0
 
     [ "$status" -eq 1 ]
-    [[ "$output" == *"GitLab"* ]] || [[ "$output" == *"future phase"* ]]
+    [[ "$output" == *"lint"* ]]
 }
 
 @test "phase-merge with missing review-state.json exits with error" {

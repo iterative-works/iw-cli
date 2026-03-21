@@ -51,14 +51,22 @@
     {
       "label": "Phase 5 Tasks",
       "path": "project-management/issues/IW-289/phase-05-tasks.md"
+    },
+    {
+      "label": "Phase 6 Context",
+      "path": "project-management/issues/IW-289/phase-06-context.md"
+    },
+    {
+      "label": "Phase 6 Tasks",
+      "path": "project-management/issues/IW-289/phase-06-tasks.md"
     }
   ],
-  "last_updated": "2026-03-21T10:28:34.064958818Z",
+  "last_updated": "2026-03-21T11:21:29.290822269Z",
   "status": "implementing",
   "display": {
-    "text": "Phase 05: Implementing",
+    "text": "Phase 06: Implementing",
     "type": "progress",
-    "subtext": "CI failure recovery via agent re-invocation"
+    "subtext": "GitLab CI status support"
   },
   "badges": [
     {
@@ -92,9 +100,13 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
-  "message": "Phase 05 implementation started",
+  "message": "Phase 06 implementation started",
   "available_actions": [
     {
       "id": "create-tasks",
@@ -145,14 +157,20 @@
       "id": "implement",
       "label": "Continue",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "ag-implement"
     }
   ],
   "git_sha": "8740892",
   "needs_attention": true,
   "phase_checkpoints": {
-    "5": {
-      "context_sha": "context_sha=2a4861427b536eae6b3a73c128d513726779f3c3"
+    "6": {
+      "context_sha": "context_sha=5fd086db3f93a29485ae3fffcc8c27787c6600a4"
     }
   },
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/294"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/294",
+  "activity": "waiting"
 }
