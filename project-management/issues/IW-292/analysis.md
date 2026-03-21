@@ -173,31 +173,15 @@ Observed consistently on two consecutive phases of DEVDOCS-110.
 
 ---
 
-## Technical Risks & Uncertainties
+## Technical Decisions
 
-### CLARIFY: Non-batch phase-pr push timing
+### RESOLVED: Non-batch phase-pr push timing
 
-In the **non-batch** path of `phase-pr.scala`, the branch is pushed at line 54, then the PR is created, then review-state is updated at lines 110-123. If we add a commit after the update, the review-state commit will exist locally on the phase sub-branch but will NOT be pushed to the remote (the push already happened). This means:
+**Decision:** Push again after committing the review-state update in the non-batch path. This ensures the review-state change appears in the PR diff and the local branch stays in sync with the remote.
 
-1. The local phase sub-branch has one more commit than the remote.
-2. The PR diff on GitHub/GitLab will not include the review-state update.
+### RESOLVED: Targeted staging vs stageAll
 
-**Questions to answer:**
-1. Should `phase-pr` push again after committing the review-state update? This would add the review-state change to the PR diff.
-2. Or is it acceptable for the review-state commit to stay local and get included in the next push (e.g., if the user makes additional changes)?
-3. Alternatively, should the commit happen but the push be skipped (since review-state changes are bookkeeping, not code)?
-
-**Impact on investigation:** This determines whether the fix for the non-batch path needs a second push call or not. The batch path does not have this issue (it merges immediately and switches to the feature branch).
-
-### CLARIFY: Targeted staging vs stageAll
-
-`GitAdapter` currently only has `stageAll` (equivalent to `git add -A`). Using `stageAll` after the review-state update would stage any other modifications that happened to be in the working tree (unlikely but possible if a pre-commit hook or other tool modified files).
-
-**Questions to answer:**
-1. Should we add a `stageFiles(paths: Seq[os.Path], dir: os.Path)` method to `GitAdapter` for targeted staging?
-2. Or is `stageAll` acceptable given that the working tree should be clean except for review-state.json at this point?
-
-**Impact on investigation:** Minor -- both approaches work. Targeted staging is more precise and safer. Adding `stageFiles` is a small addition (~5 lines) to `GitAdapter`.
+**Decision:** Add a `stageFiles(paths: Seq[os.Path], dir: os.Path)` method to `GitAdapter` for targeted staging. This avoids accidentally staging unrelated changes and is generally useful for other commands.
 
 ---
 
@@ -219,7 +203,7 @@ In the **non-batch** path of `phase-pr.scala`, the branch is pushed at line 54, 
 - Root cause is confirmed by code inspection -- no ambiguity
 - Fix pattern is well-established (phase-commit.scala demonstrates the exact git add + commit pattern)
 - All three defects share the same root cause pattern, so fixes are nearly identical
-- The only uncertainty is the push timing question in the non-batch phase-pr path
+- Push timing and staging strategy decisions are resolved
 
 ## Testing Strategy
 
@@ -253,14 +237,12 @@ In the **non-batch** path of `phase-pr.scala`, the branch is pushed at line 54, 
 - Test environment only needs git, bash, and bats
 
 ### External Blockers
-- The CLARIFY on push timing should be resolved before implementing the non-batch phase-pr fix
-- No other blockers
+- None
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
 
 **Next Steps:**
-1. Resolve CLARIFY markers (push timing, targeted staging)
-2. Run **dx-create-tasks** with issue IW-292
-3. Run **dx-fix** for systematic investigate-and-fix
+1. Run **dx-create-tasks** with issue IW-292
+2. Run **dx-fix** for systematic investigate-and-fix
