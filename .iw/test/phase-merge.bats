@@ -199,3 +199,101 @@ GHEOF
     # Verify mock gh was actually called
     [ -f "$TEST_DIR/gh-calls.log" ]
 }
+
+@test "phase-merge --timeout triggers timeout and sets review-state activity to waiting" {
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
+}
+EOF
+
+    # Mock gh always returns pending checks so timeout fires
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/gh" << 'GHEOF'
+#!/usr/bin/env bash
+if [[ "$1" == "auth" && "$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "$1" == "pr" && "$2" == "checks" ]]; then
+    echo '[{"link":"https://ci.example.com/1","name":"build","state":"PENDING"}]'
+    exit 0
+fi
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --timeout 2s --poll-interval 1s
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Timed out"* ]] || [[ "$output" == *"timed out"* ]]
+
+    # Review-state should have activity: "waiting"
+    local state
+    state="$(cat "project-management/issues/TEST-100/review-state.json")"
+    [[ "$state" == *"waiting"* ]]
+}
+
+@test "phase-merge --poll-interval succeeds with pending then passing checks" {
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
+}
+EOF
+
+    # Create a fake remote to allow checkout/fetch operations
+    git init -q --bare "$TEST_DIR/remote.git" 2>/dev/null
+    git remote add origin "$TEST_DIR/remote.git"
+    git push -q origin TEST-100 TEST-100-phase-01 2>/dev/null
+
+    # Mock gh: first pr checks call returns pending, second returns success
+    # Note: double-quoted heredoc so $TEST_DIR is expanded now; $1/$2 are escaped
+    mkdir -p "$TEST_DIR/mock-bin"
+    local call_count_file="$TEST_DIR/checks-calls.txt"
+    cat > "$TEST_DIR/mock-bin/gh" << GHEOF
+#!/usr/bin/env bash
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "checks" ]]; then
+    count=0
+    [ -f "$call_count_file" ] && count="\$(cat "$call_count_file")"
+    count=\$((count + 1))
+    echo "\$count" > "$call_count_file"
+    if [ "\$count" -eq 1 ]; then
+        echo '[{"link":"https://ci.example.com/1","name":"build","state":"PENDING"}]'
+    else
+        echo '[{"link":"https://ci.example.com/1","name":"build","state":"SUCCESS"}]'
+    fi
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "merge" ]]; then
+    exit 0
+fi
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge --poll-interval 1s --timeout 10s
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"TEST-100"* ]] || [[ "$output" == *"featureBranch"* ]]
+}
+
+@test "phase-merge --timeout with invalid duration exits non-zero with parse error" {
+    run "$PROJECT_ROOT/iw" phase-merge --timeout abc
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid"* ]] || [[ "$output" == *"invalid"* ]]
+}

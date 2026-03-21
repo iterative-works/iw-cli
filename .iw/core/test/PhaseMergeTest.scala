@@ -209,6 +209,57 @@ class PhaseMergeTest extends FunSuite:
   test("buildRecoveryPrompt empty list returns header with no check lines"):
     assertEquals(PhaseMerge.buildRecoveryPrompt(Nil), "The following CI checks failed:\n")
 
+  // parseDuration — valid inputs
+
+  test("parseDuration seconds: 30s returns Right(30_000L)"):
+    assertEquals(PhaseMerge.parseDuration("30s"), Right(30_000L))
+
+  test("parseDuration minutes: 5m returns Right(300_000L)"):
+    assertEquals(PhaseMerge.parseDuration("5m"), Right(300_000L))
+
+  test("parseDuration hours: 2h returns Right(7_200_000L)"):
+    assertEquals(PhaseMerge.parseDuration("2h"), Right(7_200_000L))
+
+  test("parseDuration zero: 0s returns Right(0L)"):
+    assertEquals(PhaseMerge.parseDuration("0s"), Right(0L))
+
+  // parseDuration — invalid inputs
+
+  test("parseDuration empty string returns Left"):
+    assert(PhaseMerge.parseDuration("").isLeft)
+
+  test("parseDuration no number: abc returns Left"):
+    assert(PhaseMerge.parseDuration("abc").isLeft)
+
+  test("parseDuration unknown suffix: 30x returns Left"):
+    assert(PhaseMerge.parseDuration("30x").isLeft)
+
+  test("parseDuration negative duration: -5m returns Left"):
+    assert(PhaseMerge.parseDuration("-5m").isLeft)
+
+  test("parseDuration bare number without suffix: 30 returns Left"):
+    assert(PhaseMerge.parseDuration("30").isLeft)
+
+  // formatDuration
+
+  test("formatDuration 30_000L returns 30s"):
+    assertEquals(PhaseMerge.formatDuration(30_000L), "30s")
+
+  test("formatDuration 300_000L returns 5m"):
+    assertEquals(PhaseMerge.formatDuration(300_000L), "5m")
+
+  test("formatDuration 7_200_000L returns 2h"):
+    assertEquals(PhaseMerge.formatDuration(7_200_000L), "2h")
+
+  test("formatDuration 1_800_000L returns 30m"):
+    assertEquals(PhaseMerge.formatDuration(1_800_000L), "30m")
+
+  test("formatDuration non-round 90_000L stays in seconds: 90s"):
+    assertEquals(PhaseMerge.formatDuration(90_000L), "90s")
+
+  test("formatDuration 0L returns 0s"):
+    assertEquals(PhaseMerge.formatDuration(0L), "0s")
+
   // extractPrNumber — GitHub URLs
 
   test("extractPrNumber extracts number from standard GitHub PR URL"):
