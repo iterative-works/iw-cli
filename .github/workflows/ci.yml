@@ -11,11 +11,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  CI_IMAGE: iw-cli-ci:latest
+
 jobs:
   compile:
     runs-on: self-hosted
     container:
       image: iw-cli-ci:latest
+      options: --pull never
     steps:
       - uses: actions/checkout@v4
       - name: Compile core (warnings as errors)
@@ -25,6 +29,7 @@ jobs:
     runs-on: self-hosted
     container:
       image: iw-cli-ci:latest
+      options: --pull never
     steps:
       - uses: actions/checkout@v4
       - name: Check formatting
@@ -34,6 +39,7 @@ jobs:
     runs-on: self-hosted
     container:
       image: iw-cli-ci:latest
+      options: --pull never
     steps:
       - uses: actions/checkout@v4
       - name: Check scalafix rules
@@ -44,6 +50,7 @@ jobs:
     runs-on: self-hosted
     container:
       image: iw-cli-ci:latest
+      options: --pull never
     steps:
       - uses: actions/checkout@v4
       - name: Run all tests
