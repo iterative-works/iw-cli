@@ -165,7 +165,8 @@ import java.time.format.DateTimeFormatter
 
   def claudeCmd(prompt: String, extraFlags: List[String] = Nil): Seq[String] =
     val base = List(
-      "claude", "-p", prompt,
+      "claude", "--dangerously-skip-permissions",
+      "-p", prompt,
       "--model", model,
       "--max-turns", maxTurns.toString
     )
