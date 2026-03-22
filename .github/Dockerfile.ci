@@ -11,8 +11,16 @@ ENV LANG=en_US.UTF-8
 # System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates git tmux jq unzip \
-    locales \
+    python3 locales \
     && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
 # JDK 21 (Eclipse Temurin) - pre-downloaded to avoid GitHub release flakiness in Docker builds
@@ -40,4 +48,4 @@ RUN git clone --depth 1 --branch "v${BATS_VERSION}" https://github.com/bats-core
     && rm -rf /tmp/bats-core
 
 # Verify all tools are available
-RUN java -version && scala-cli version && scalafix --version && bats --version && tmux -V && jq --version
+RUN java -version && scala-cli version && scalafix --version && bats --version && tmux -V && jq --version && python3 --version && gh --version
