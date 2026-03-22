@@ -212,6 +212,75 @@ EOF
     [[ "$output" == *"pr_url"* ]] || [[ "$output" == *"phase-pr"* ]]
 }
 
+@test "phase-merge happy path: review-state.json is committed and working tree is clean after merge" {
+    # Create a committed review-state.json on the feature branch (TEST-100) and push it.
+    # fetchAndReset resets to origin/TEST-100, so the file must be there to survive the reset.
+    git checkout -q TEST-100
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "awaiting_review",
+  "pr_url": "https://github.com/test-org/test-repo/pull/42",
+  "artifacts": []
+}
+EOF
+    git add "project-management/issues/TEST-100/review-state.json"
+    git commit -q -m "Add review-state"
+    # Switch back to phase sub-branch (phase-merge expects to run from here)
+    git checkout -q TEST-100-phase-01
+    git merge -q TEST-100 2>/dev/null
+
+    # Create a fake remote to allow checkout/fetch operations
+    git init -q --bare "$TEST_DIR/remote.git" 2>/dev/null
+    git remote add origin "$TEST_DIR/remote.git"
+    git push -q origin TEST-100 TEST-100-phase-01 2>/dev/null
+
+    # Create a mock gh that handles checks and merge, logging calls for verification
+    mkdir -p "$TEST_DIR/mock-bin"
+    cat > "$TEST_DIR/mock-bin/gh" << GHEOF
+#!/usr/bin/env bash
+echo "\$1 \$2" >> "$TEST_DIR/gh-calls.log"
+if [[ "\$1" == "auth" && "\$2" == "status" ]]; then
+    echo "Logged in to github.com"
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "checks" ]]; then
+    echo '[{"link":"https://ci.example.com/1","name":"test","state":"SUCCESS"}]'
+    exit 0
+fi
+if [[ "\$1" == "pr" && "\$2" == "merge" ]]; then
+    exit 0
+fi
+echo "Unexpected gh call: \$*" >&2
+exit 1
+GHEOF
+    chmod +x "$TEST_DIR/mock-bin/gh"
+
+    PATH="$TEST_DIR/mock-bin:$PATH" run "$PROJECT_ROOT/iw" phase-merge
+
+    [ "$status" -eq 0 ]
+
+    # Verify gh pr merge was actually called
+    [ -f "$TEST_DIR/gh-calls.log" ]
+    grep -q "pr merge" "$TEST_DIR/gh-calls.log"
+
+    # Working tree must be clean — review-state.json must be committed, not dirty
+    [ -z "$(git status --porcelain -- "project-management/issues/TEST-100/review-state.json")" ]
+
+    # The committed blob must contain phase_merged (not just the working-tree file)
+    local committed_content
+    committed_content="$(git show HEAD:project-management/issues/TEST-100/review-state.json)"
+    [[ "$committed_content" == *"phase_merged"* ]]
+
+    # The review-state commit must be findable by its message
+    local commit_sha
+    commit_sha="$(git log --oneline --grep="update review-state" -1 --format="%H")"
+    [ -n "$commit_sha" ]
+    git show "$commit_sha" --name-only | grep -q "review-state.json"
+}
+
 @test "phase-merge happy path merges PR and updates review-state to phase_merged" {
     # Create review state with pr_url and required artifacts field
     mkdir -p "project-management/issues/TEST-100"

@@ -8,6 +8,9 @@ PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 # Use a unique tmux socket for test isolation
 TMUX_SOCKET="iw-test-$$"
 
+# Detect Docker: tmux capture-pane returns empty content without a real terminal
+is_docker() { [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; }
+
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
@@ -75,6 +78,7 @@ teardown() {
 }
 
 @test "open --prompt sends correct claude command to session" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     # Create worktree
     git worktree add -b IWLE-456 "../testproject-IWLE-456"
 
@@ -96,6 +100,7 @@ teardown() {
 }
 
 @test "open --prompt infers issue from branch and sends keys" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     # Create worktree and switch to it
     git worktree add -b IWLE-789 "../testproject-IWLE-789"
     cd "../testproject-IWLE-789"
@@ -163,6 +168,7 @@ teardown() {
 }
 
 @test "open --prompt with empty string works" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     # Create worktree
     git worktree add -b IWLE-333 "../testproject-IWLE-333"
 
@@ -181,6 +187,7 @@ teardown() {
 }
 
 @test "open --prompt handles quotes in prompt text" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     # Create worktree
     git worktree add -b IWLE-444 "../testproject-IWLE-444"
 
@@ -199,6 +206,7 @@ teardown() {
 }
 
 @test "open --prompt protects against shell metacharacters" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     # Create worktree
     git worktree add -b IWLE-555 "../testproject-IWLE-555"
 

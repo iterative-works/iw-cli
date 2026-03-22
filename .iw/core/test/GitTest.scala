@@ -159,6 +159,36 @@ class GitTest extends munit.FunSuite, Fixtures:
       val result = GitAdapter.checkoutBranch("non-existent-branch", repo)
       assert(result.isLeft, s"Expected Left but got: $result")
 
+  // ========== stageFiles Tests ==========
+
+  gitRepo.test("stageFiles stages only the specified file, leaving other changes unstaged"):
+    repo =>
+      os.write(repo / "target.txt", "target content")
+      os.write(repo / "other.txt", "other content")
+      val result = GitAdapter.stageFiles(Seq(repo / "target.txt"), repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      val staged = ProcessAdapter.run(Seq("git", "-C", repo.toString, "diff", "--cached", "--name-only"))
+      assert(staged.stdout.contains("target.txt"), "target.txt should be staged")
+      assert(!staged.stdout.contains("other.txt"), "other.txt should NOT be staged")
+
+  gitRepo.test("stageFiles stages a modified tracked file"):
+    repo =>
+      os.write.over(repo / "README.md", "modified content")
+      val result = GitAdapter.stageFiles(Seq(repo / "README.md"), repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      val staged = ProcessAdapter.run(Seq("git", "-C", repo.toString, "diff", "--cached", "--name-only"))
+      assert(staged.stdout.contains("README.md"), "README.md should be staged")
+
+  gitRepo.test("stageFiles with empty path list succeeds with no error"):
+    repo =>
+      val result = GitAdapter.stageFiles(Seq.empty, repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+
+  gitRepo.test("stageFiles with a non-existent path returns Left"):
+    repo =>
+      val result = GitAdapter.stageFiles(Seq(repo / "does-not-exist.txt"), repo)
+      assert(result.isLeft, s"Expected Left but got: $result")
+
   // ========== stageAll Tests ==========
 
   gitRepo.test("stageAll on a repo with unstaged changes stages all files"):
@@ -318,6 +348,42 @@ class GitTest extends munit.FunSuite, Fixtures:
           os.remove.all(cloneDir)
       finally
         os.remove.all(bareDir)
+
+  // ========== isFileDirty Tests ==========
+
+  gitRepo.test("isFileDirty returns false for a clean tracked file"):
+    repo =>
+      assert(!GitAdapter.isFileDirty(repo / "README.md", repo))
+
+  gitRepo.test("isFileDirty returns true for a modified tracked file"):
+    repo =>
+      os.write.over(repo / "README.md", "modified")
+      assert(GitAdapter.isFileDirty(repo / "README.md", repo))
+
+  gitRepo.test("isFileDirty returns true for an untracked file"):
+    repo =>
+      os.write(repo / "new.txt", "new content")
+      assert(GitAdapter.isFileDirty(repo / "new.txt", repo))
+
+  // ========== commitFileWithRetry Tests ==========
+
+  gitRepo.test("commitFileWithRetry commits a modified file and returns SHA"):
+    repo =>
+      os.write.over(repo / "README.md", "modified for retry test")
+      val result = GitAdapter.commitFileWithRetry(repo / "README.md", "Test commit with retry", repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      val sha = result.toOption.get
+      assertEquals(sha.length, 40)
+      // File should be clean after commit
+      assert(!GitAdapter.isFileDirty(repo / "README.md", repo))
+
+  gitRepo.test("commitFileWithRetry succeeds silently when file is already clean"):
+    repo =>
+      // README.md is already committed and clean — stage+commit fails but file is clean,
+      // so commitFileWithRetry treats this as success (no action needed)
+      val result = GitAdapter.commitFileWithRetry(repo / "README.md", "Nothing to commit", repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      assertEquals(result.toOption.get, "unknown-sha")
 
   gitRepo.test("fetchAndReset returns Left when no remote configured"):
     repo =>

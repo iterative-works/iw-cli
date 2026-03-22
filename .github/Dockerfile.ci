@@ -1,0 +1,51 @@
+# PURPOSE: CI container image with all iw-cli build and test dependencies
+# PURPOSE: Provides reproducible environment matching GitHub-hosted ubuntu-latest
+
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/iterative-works/iw-cli
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=en_US.UTF-8
+
+# System packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git tmux jq unzip \
+    python3 locales \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# JDK 21 (Eclipse Temurin) - pre-downloaded to avoid GitHub release flakiness in Docker builds
+COPY deps/jdk.tar.gz /tmp/jdk.tar.gz
+RUN tar xzf /tmp/jdk.tar.gz -C /opt \
+    && rm /tmp/jdk.tar.gz \
+    && ln -s /opt/jdk-* /opt/java
+ENV JAVA_HOME=/opt/java
+ENV PATH="/opt/java/bin:${PATH}"
+
+# Scala CLI - pre-downloaded
+COPY deps/scala-cli /usr/local/bin/scala-cli
+RUN scala-cli version
+
+# Coursier (needed for scalafix) - pre-downloaded
+COPY deps/cs /usr/local/bin/cs
+
+# Scalafix
+RUN cs install scalafix --install-dir /usr/local/bin
+
+# BATS (Bash Automated Testing System)
+ARG BATS_VERSION=1.12.0
+RUN git clone --depth 1 --branch "v${BATS_VERSION}" https://github.com/bats-core/bats-core.git /tmp/bats-core \
+    && /tmp/bats-core/install.sh /usr/local \
+    && rm -rf /tmp/bats-core
+
+# Verify all tools are available
+RUN java -version && scala-cli version && scalafix --version && bats --version && tmux -V && jq --version && python3 --version && gh --version
