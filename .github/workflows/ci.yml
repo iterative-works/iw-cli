@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -16,10 +15,7 @@ jobs:
   compile:
     runs-on: self-hosted
     container:
-      image: ghcr.io/iterative-works/iw-cli-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: iw-cli-ci:latest
     steps:
       - uses: actions/checkout@v4
       - name: Compile core (warnings as errors)
@@ -28,10 +24,7 @@ jobs:
   format:
     runs-on: self-hosted
     container:
-      image: ghcr.io/iterative-works/iw-cli-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: iw-cli-ci:latest
     steps:
       - uses: actions/checkout@v4
       - name: Check formatting
@@ -40,10 +33,7 @@ jobs:
   lint:
     runs-on: self-hosted
     container:
-      image: ghcr.io/iterative-works/iw-cli-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: iw-cli-ci:latest
     steps:
       - uses: actions/checkout@v4
       - name: Check scalafix rules
@@ -53,10 +43,7 @@ jobs:
     needs: compile
     runs-on: self-hosted
     container:
-      image: ghcr.io/iterative-works/iw-cli-ci:latest
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      image: iw-cli-ci:latest
     steps:
       - uses: actions/checkout@v4
       - name: Run all tests
