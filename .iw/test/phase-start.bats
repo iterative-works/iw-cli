@@ -127,3 +127,36 @@ teardown() {
     branch="$(echo "$output" | jq -r '.branch')"
     [ "$branch" = "TEST-100-phase-02" ]
 }
+
+@test "phase-start commits review-state.json and leaves clean working tree" {
+    # Set up review-state.json on the feature branch
+    mkdir -p "project-management/issues/TEST-100"
+    cat > "project-management/issues/TEST-100/review-state.json" << 'EOF'
+{
+  "version": 2,
+  "issue_id": "TEST-100",
+  "status": "tasks_ready",
+  "artifacts": []
+}
+EOF
+    git add "project-management/issues/TEST-100/review-state.json"
+    git commit -q -m "Add review-state"
+
+    run "$PROJECT_ROOT/iw" phase-start 1
+
+    [ "$status" -eq 0 ]
+
+    # Working tree must be clean — review-state.json must be committed, not dirty
+    [ -z "$(git status --porcelain -- "project-management/issues/TEST-100/review-state.json")" ]
+
+    # The committed blob must contain "implementing"
+    local committed_content
+    committed_content="$(git show HEAD:project-management/issues/TEST-100/review-state.json)"
+    [[ "$committed_content" == *"implementing"* ]]
+
+    # A commit with "update review-state" message must exist
+    local commit_sha
+    commit_sha="$(git log --oneline --grep="update review-state" -1 --format="%H")"
+    [ -n "$commit_sha" ]
+    git show "$commit_sha" --name-only | grep -q "review-state.json"
+}
