@@ -3,6 +3,8 @@
 
 FROM ubuntu:24.04
 
+LABEL org.opencontainers.image.source=https://github.com/iterative-works/iw-cli
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=en_US.UTF-8
 
@@ -13,26 +15,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
-# JDK 21 (Eclipse Temurin)
-ARG JDK_VERSION=21.0.10_7
-ARG JDK_TAG=jdk-21.0.10+7
-RUN curl -sfL "https://github.com/adoptium/temurin21-binaries/releases/download/${JDK_TAG}/OpenJDK21U-jdk_x64_linux_hotspot_${JDK_VERSION}.tar.gz" \
-    | tar xz -C /opt \
+# JDK 21 (Eclipse Temurin) - pre-downloaded to avoid GitHub release flakiness in Docker builds
+COPY deps/jdk.tar.gz /tmp/jdk.tar.gz
+RUN tar xzf /tmp/jdk.tar.gz -C /opt \
+    && rm /tmp/jdk.tar.gz \
     && ln -s /opt/jdk-* /opt/java
 ENV JAVA_HOME=/opt/java
 ENV PATH="/opt/java/bin:${PATH}"
 
-# Scala CLI
-ARG SCALA_CLI_VERSION=1.12.1
-RUN curl -sfL "https://github.com/VirtusLab/scala-cli/releases/download/v${SCALA_CLI_VERSION}/scala-cli-x86_64-pc-linux.gz" \
-    | gunzip > /usr/local/bin/scala-cli \
-    && chmod +x /usr/local/bin/scala-cli \
-    && scala-cli version
+# Scala CLI - pre-downloaded
+COPY deps/scala-cli /usr/local/bin/scala-cli
+RUN scala-cli version
 
-# Coursier (needed for scalafix)
-RUN curl -sfL "https://github.com/coursier/launchers/raw/master/cs-x86_64-pc-linux.gz" \
-    | gunzip > /usr/local/bin/cs \
-    && chmod +x /usr/local/bin/cs
+# Coursier (needed for scalafix) - pre-downloaded
+COPY deps/cs /usr/local/bin/cs
 
 # Scalafix
 RUN cs install scalafix --install-dir /usr/local/bin
