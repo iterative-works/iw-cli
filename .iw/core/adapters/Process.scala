@@ -71,10 +71,16 @@ object ProcessAdapter:
     catch
       case _: os.SubprocessException => -1
 
-  def runStreaming(command: Seq[String], timeoutMs: Int = DefaultTimeoutMs): Int =
+  def runStreaming(
+    command: Seq[String],
+    timeoutMs: Int = DefaultTimeoutMs,
+    closeStdin: Boolean = false
+  ): Int =
     try
+      val stdinSource = if closeStdin then os.ProcessInput.SourceInput(os.Source.WritableSource("")) else os.Inherit
       val result = os.proc(command).call(
         check = false,
+        stdin = stdinSource,
         stdout = os.Inherit,
         stderr = os.Inherit,
         timeout = timeoutMs

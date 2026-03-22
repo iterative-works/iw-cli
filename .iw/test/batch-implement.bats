@@ -294,3 +294,44 @@ IWSCRIPT
     # tasks.md does NOT have phase 1 checked off
     ! grep -q "\[x\] Phase 1" "$TEST_DIR/project-management/issues/IW-275/tasks.md"
 }
+
+# --- Claude invocation flag tests ---
+
+@test "batch-implement passes --dangerously-skip-permissions to claude" {
+    run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    [ -f "$STUB_DIR/claude-calls.txt" ]
+    grep -q "\-\-dangerously-skip-permissions" "$STUB_DIR/claude-calls.txt"
+}
+
+@test "batch-implement does not hang when claude subprocess has no stdin" {
+    # Stub claude that reads from stdin — if stdin is properly closed, read returns immediately.
+    # Also sets review-state to awaiting_review so the phase progresses.
+    cat > "$STUB_DIR/claude" << STUB
+#!/usr/bin/env bash
+echo "\$@" >> "$STUB_DIR/claude-calls.txt"
+# Try to read from stdin — if stdin is properly closed, read returns immediately
+read -t 5 line
+# Record that read returned (didn't hang)
+echo "read_returned" >> "$STUB_DIR/stdin-test.txt"
+# Set review-state so the phase completes
+cat > "$TEST_DIR/project-management/issues/IW-275/review-state.json" << 'JSON'
+{
+  "status": "phase_merged",
+  "workflow_type": "waterfall"
+}
+JSON
+exit 0
+STUB
+    chmod +x "$STUB_DIR/claude"
+
+    # 30-second timeout: if stdin isn't closed, `read -t 5` waits 5s per invocation
+    # but with closed stdin it returns instantly
+    run timeout 30 "$PROJECT_ROOT/iw" batch-implement IW-275 wf
+
+    # Should complete without timing out
+    [ "$status" -eq 0 ]
+    # Verify read actually returned (stdin was closed)
+    [ -f "$STUB_DIR/stdin-test.txt" ]
+    grep -q "read_returned" "$STUB_DIR/stdin-test.txt"
+}

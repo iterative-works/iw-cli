@@ -217,7 +217,8 @@ import java.time.format.DateTimeFormatter
       log(s"[phase $phaseNum] Recovery attempt ${maxRetries - attemptsLeft + 1}/$maxRetries (status: $status)")
       val recoverExitCode = ProcessAdapter.runStreaming(
         claudeCmd(recoveryPromptFor(status), List("--resume")),
-        claudeTimeoutMs
+        claudeTimeoutMs,
+        closeStdin = true
       )
       if recoverExitCode != 0 then
         log(s"[phase $phaseNum] claude recovery exited with code $recoverExitCode")
@@ -255,7 +256,7 @@ import java.time.format.DateTimeFormatter
         log(s"[phase $phaseNum] Starting implementation via claude...")
         val prompt = s"/iterative-works:$workflowCode-implement ${issueId.value} --phase $phaseNum"
         log(s"[phase $phaseNum] Invoking: claude -p \"$prompt\"")
-        val claudeExitCode = ProcessAdapter.runStreaming(claudeCmd(prompt), claudeTimeoutMs)
+        val claudeExitCode = ProcessAdapter.runStreaming(claudeCmd(prompt), claudeTimeoutMs, closeStdin = true)
         if claudeExitCode != 0 then
           log(s"[phase $phaseNum] claude exited with code $claudeExitCode (entering recovery)")
 
@@ -274,7 +275,7 @@ import java.time.format.DateTimeFormatter
   log("All phases done. Running completion flow (final PR / release notes)...")
   val completionPrompt = s"/iterative-works:$workflowCode-implement ${issueId.value}"
   log(s"Invoking: claude -p \"$completionPrompt\"")
-  val completionExitCode = ProcessAdapter.runStreaming(claudeCmd(completionPrompt), claudeTimeoutMs)
+  val completionExitCode = ProcessAdapter.runStreaming(claudeCmd(completionPrompt), claudeTimeoutMs, closeStdin = true)
   log(s"Completion flow finished with exit code $completionExitCode")
   logWriter.close()
 
