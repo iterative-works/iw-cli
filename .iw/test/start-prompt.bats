@@ -8,6 +8,9 @@ PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
 # Use a unique tmux socket for test isolation
 TMUX_SOCKET="iw-test-$$"
 
+# Detect Docker: tmux capture-pane returns empty content without a real terminal
+is_docker() { [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; }
+
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
@@ -79,6 +82,7 @@ teardown() {
 }
 
 @test "start --prompt sends correct claude command to session" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     # Run start with --prompt
     run "$PROJECT_ROOT/iw" start --prompt "analyze this code" IWLE-456
 
@@ -125,6 +129,7 @@ teardown() {
 }
 
 @test "start --prompt with empty string works" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     run "$PROJECT_ROOT/iw" start --prompt "" IWLE-111
 
     [ "$status" -eq 0 ]
@@ -140,6 +145,7 @@ teardown() {
 }
 
 @test "start --prompt handles quotes in prompt text" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     run "$PROJECT_ROOT/iw" start --prompt 'say "hello world"' IWLE-222
 
     [ "$status" -eq 0 ]
@@ -155,6 +161,7 @@ teardown() {
 }
 
 @test "start --prompt protects against shell metacharacters" {
+    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
     run "$PROJECT_ROOT/iw" start --prompt '$(echo INJECTED)' IWLE-333
 
     [ "$status" -eq 0 ]
