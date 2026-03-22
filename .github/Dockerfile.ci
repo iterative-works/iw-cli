@@ -1,0 +1,47 @@
+# PURPOSE: CI container image with all iw-cli build and test dependencies
+# PURPOSE: Provides reproducible environment matching GitHub-hosted ubuntu-latest
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=en_US.UTF-8
+
+# System packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git tmux jq unzip \
+    locales \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# JDK 21 (Eclipse Temurin)
+ARG JDK_VERSION=21.0.10_7
+ARG JDK_TAG=jdk-21.0.10+7
+RUN curl -sfL "https://github.com/adoptium/temurin21-binaries/releases/download/${JDK_TAG}/OpenJDK21U-jdk_x64_linux_hotspot_${JDK_VERSION}.tar.gz" \
+    | tar xz -C /opt \
+    && ln -s /opt/jdk-* /opt/java
+ENV JAVA_HOME=/opt/java
+ENV PATH="/opt/java/bin:${PATH}"
+
+# Scala CLI
+ARG SCALA_CLI_VERSION=1.12.1
+RUN curl -sfL "https://github.com/VirtusLab/scala-cli/releases/download/v${SCALA_CLI_VERSION}/scala-cli-x86_64-pc-linux.gz" \
+    | gunzip > /usr/local/bin/scala-cli \
+    && chmod +x /usr/local/bin/scala-cli \
+    && scala-cli version
+
+# Coursier (needed for scalafix)
+RUN curl -sfL "https://github.com/coursier/launchers/raw/master/cs-x86_64-pc-linux.gz" \
+    | gunzip > /usr/local/bin/cs \
+    && chmod +x /usr/local/bin/cs
+
+# Scalafix
+RUN cs install scalafix --install-dir /usr/local/bin
+
+# BATS (Bash Automated Testing System)
+ARG BATS_VERSION=1.12.0
+RUN git clone --depth 1 --branch "v${BATS_VERSION}" https://github.com/bats-core/bats-core.git /tmp/bats-core \
+    && /tmp/bats-core/install.sh /usr/local \
+    && rm -rf /tmp/bats-core
+
+# Verify all tools are available
+RUN java -version && scala-cli version && scalafix --version && bats --version && tmux -V && jq --version
