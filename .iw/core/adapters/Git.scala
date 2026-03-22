@@ -110,6 +110,30 @@ object GitAdapter:
     else
       Left(s"Failed to get full HEAD SHA: ${result.stderr}")
 
+  /** Check if a specific file has uncommitted changes. */
+  def isFileDirty(path: os.Path, dir: os.Path): Boolean =
+    val result = ProcessAdapter.run(Seq("git", "-C", dir.toString, "status", "--porcelain", "--", path.toString))
+    result.exitCode == 0 && result.stdout.trim.nonEmpty
+
+  /** Stage and commit a file, retrying once if the first attempt fails but the file is still dirty.
+    *
+    * Handles transient failures (e.g., index.lock) and the case where
+    * commit succeeds but SHA readback fails.
+    */
+  def commitFileWithRetry(path: os.Path, message: String, dir: os.Path): Either[String, String] =
+    val firstAttempt = stageFiles(Seq(path), dir).flatMap(_ => commit(message, dir))
+    firstAttempt match
+      case Right(sha) => Right(sha)
+      case Left(firstErr) =>
+        if !isFileDirty(path, dir) then
+          // File is clean despite the error (e.g., commit succeeded but SHA readback failed)
+          Right("unknown-sha")
+        else
+          // Still dirty — retry once
+          stageFiles(Seq(path), dir).flatMap(_ => commit(message, dir)) match
+            case Right(sha) => Right(sha)
+            case Left(retryErr) => Left(s"$firstErr (retry also failed: $retryErr)")
+
   /** Fetch from origin and reset the current branch to the remote tracking branch.
     *
     * Used after a squash-merge to advance the feature branch without spurious conflicts.

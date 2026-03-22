@@ -10,10 +10,11 @@ private def commitReviewState(
   issueId: IssueId,
   phaseNumber: PhaseNumber
 ): Either[String, Unit] =
-  for
-    _ <- GitAdapter.stageFiles(Seq(path), os.pwd)
-    _ <- GitAdapter.commit(s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}", os.pwd)
-  yield ()
+  GitAdapter.commitFileWithRetry(
+    path,
+    s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}",
+    os.pwd
+  ).map(_ => ())
 
 @main def phasePr(args: String*): Unit =
   val argList = args.toList

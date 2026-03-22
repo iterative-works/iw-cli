@@ -206,9 +206,11 @@ import iw.core.output.*
 
   // Commit the review-state update so the feature branch is clean after merge
   if os.exists(reviewStatePath) then
-    GitAdapter.stageFiles(Seq(reviewStatePath), os.pwd)
-      .flatMap(_ => GitAdapter.commit(s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}", os.pwd))
-      .left.foreach(err => Output.error(s"Warning: Failed to commit review-state update: $err"))
+    GitAdapter.commitFileWithRetry(
+      reviewStatePath,
+      s"chore(${issueId.value}): update review-state for phase ${phaseNumber.value}",
+      os.pwd
+    ).left.foreach(err => Output.error(s"Warning: Failed to commit review-state update: $err"))
 
   println(PhaseOutput.MergeOutput(
     issueId = issueId.value,

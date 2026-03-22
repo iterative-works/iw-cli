@@ -349,6 +349,42 @@ class GitTest extends munit.FunSuite, Fixtures:
       finally
         os.remove.all(bareDir)
 
+  // ========== isFileDirty Tests ==========
+
+  gitRepo.test("isFileDirty returns false for a clean tracked file"):
+    repo =>
+      assert(!GitAdapter.isFileDirty(repo / "README.md", repo))
+
+  gitRepo.test("isFileDirty returns true for a modified tracked file"):
+    repo =>
+      os.write.over(repo / "README.md", "modified")
+      assert(GitAdapter.isFileDirty(repo / "README.md", repo))
+
+  gitRepo.test("isFileDirty returns true for an untracked file"):
+    repo =>
+      os.write(repo / "new.txt", "new content")
+      assert(GitAdapter.isFileDirty(repo / "new.txt", repo))
+
+  // ========== commitFileWithRetry Tests ==========
+
+  gitRepo.test("commitFileWithRetry commits a modified file and returns SHA"):
+    repo =>
+      os.write.over(repo / "README.md", "modified for retry test")
+      val result = GitAdapter.commitFileWithRetry(repo / "README.md", "Test commit with retry", repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      val sha = result.toOption.get
+      assertEquals(sha.length, 40)
+      // File should be clean after commit
+      assert(!GitAdapter.isFileDirty(repo / "README.md", repo))
+
+  gitRepo.test("commitFileWithRetry succeeds silently when file is already clean"):
+    repo =>
+      // README.md is already committed and clean — stage+commit fails but file is clean,
+      // so commitFileWithRetry treats this as success (no action needed)
+      val result = GitAdapter.commitFileWithRetry(repo / "README.md", "Nothing to commit", repo)
+      assert(result.isRight, s"Expected Right but got: $result")
+      assertEquals(result.toOption.get, "unknown-sha")
+
   gitRepo.test("fetchAndReset returns Left when no remote configured"):
     repo =>
       Process(Seq("git", "remote", "remove", "origin"), repo.toIO).!
