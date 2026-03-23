@@ -38,13 +38,15 @@ object ProcessAdapter:
   def run(
     command: Seq[String],
     maxOutputBytes: Int = 1024 * 1024,
-    timeoutMs: Int = DefaultTimeoutMs
+    timeoutMs: Int = DefaultTimeoutMs,
+    env: Map[String, String] = Map.empty
   ): ProcessResult =
     val result = os.proc(command).call(
       check = false,
       stdout = os.Pipe,
       stderr = os.Pipe,
-      timeout = timeoutMs
+      timeout = timeoutMs,
+      env = env
     )
 
     val (stdout, stdoutTruncated) = truncateOutput(result.out.text().trim, maxOutputBytes)

@@ -7,6 +7,19 @@ import iw.core.model.{Issue, IssueId, ApiToken, FeedbackParser, CICheckResult, C
 
 object GitLabClient:
 
+  /** Create an execCommand function that sets GITLAB_HOST for glab CLI.
+    *
+    * glab CLI needs GITLAB_HOST to identify the correct GitLab instance.
+    * This creates a command executor with the host set in the environment.
+    *
+    * @param host Optional GitLab hostname (e.g., "gitlab.com")
+    * @return execCommand function suitable for passing to GitLabClient methods
+    */
+  def execCommandWithHost(host: Option[String]): (String, Array[String]) => Either[String, String] =
+    host match
+      case Some(h) => (cmd, args) => CommandRunner.execute(cmd, args, env = Map("GITLAB_HOST" -> h))
+      case None => (cmd, args) => CommandRunner.execute(cmd, args)
+
   /** Error types for glab CLI prerequisite validation. */
   enum GlabPrerequisiteError:
     case GlabNotInstalled
@@ -360,10 +373,11 @@ Check your network connection and try again.""".stripMargin
   def createIssue(
     repository: String,
     title: String,
-    description: String
+    description: String,
+    execCommand: (String, Array[String]) => Either[String, String]
   ): Either[String, CreatedIssue] =
     // Validate prerequisites before attempting creation
-    validateGlabPrerequisites(repository) match
+    validateGlabPrerequisites(repository, execCommand = execCommand) match
       case Left(GlabPrerequisiteError.GlabNotInstalled) =>
         Left(formatGlabNotInstalledError())
       case Left(GlabPrerequisiteError.GlabNotAuthenticated) =>
@@ -373,7 +387,7 @@ Check your network connection and try again.""".stripMargin
       case Right(_) =>
         val args = buildCreateIssueCommandWithoutLabel(repository, title, description)
 
-        CommandRunner.execute("glab", args) match
+        execCommand("glab", args) match
           case Left(error) => Left(error)
           case Right(output) => parseCreateIssueResponse(output)
 

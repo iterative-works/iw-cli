@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter
   val workflowCodeArg = positionalArgs.find(a => a == "ag" || a == "wf" || a == "dx")
 
   val model = PhaseArgs.namedArg(argList, "--model").getOrElse("opus")
-  val maxTurns = PhaseArgs.namedArg(argList, "--max-turns").flatMap(_.toIntOption).getOrElse(50)
+  val maxTurns = PhaseArgs.namedArg(argList, "--max-turns").flatMap(_.toIntOption)
   val maxRetries = PhaseArgs.namedArg(argList, "--max-retries").flatMap(_.toIntOption).getOrElse(1)
   val maxBudgetUsd = PhaseArgs.namedArg(argList, "--max-budget-usd").flatMap(_.toDoubleOption)
 
@@ -37,7 +37,7 @@ import java.time.format.DateTimeFormatter
         case Right(id) => id
         case Left(_) =>
           Output.error("Cannot determine issue ID. Provide it as a positional argument (e.g. IW-275)")
-          Output.error("Usage: iw batch-implement [ISSUE_ID] [ag|wf] [--model MODEL] [--max-turns N] [--max-retries N]")
+          Output.error("Usage: iw batch-implement [ISSUE_ID] [ag|wf] [--model MODEL] [--max-turns N] [--max-retries N] [--max-budget-usd N]")
           sys.exit(1)
 
   // --- Paths ---
@@ -105,7 +105,7 @@ import java.time.format.DateTimeFormatter
 
   // --- Logging setup ---
 
-  val claudeTimeoutMs = 30 * 60 * 1000 // 30-minute per-phase limit
+  val claudeTimeoutMs = 60 * 60 * 1000 // 60-minute per-phase limit
 
   val logPath = issueDir / "batch-implement.log"
   val logWriter = new BufferedWriter(new FileWriter(logPath.toIO, true))
@@ -118,7 +118,7 @@ import java.time.format.DateTimeFormatter
 
   val timestamp = LocalDateTime.now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
   log(s"=== batch-implement session started at $timestamp ===")
-  log(s"Issue: ${issueId.value}  Workflow: $workflowCode  Model: $model  MaxTurns: $maxTurns  MaxRetries: $maxRetries")
+  log(s"Issue: ${issueId.value}  Workflow: $workflowCode  Model: $model  MaxTurns: ${maxTurns.getOrElse("unlimited")}  MaxRetries: $maxRetries")
   maxBudgetUsd.foreach(b => log(s"Max budget: $$${b}"))
 
   // --- Helper: commit any uncommitted changes claude left behind ---
@@ -163,22 +163,30 @@ import java.time.format.DateTimeFormatter
 
   // --- Helper: build claude command ---
 
+  val forgeHint = forgeType match
+    case ForgeType.GitHub => "This project uses GitHub. Use `gh` CLI for PRs and issues. Do NOT use `glab`."
+    case ForgeType.GitLab =>
+      val hostHint = remoteOpt.flatMap(_.host.toOption).map(h => s" The GitLab host is $h.").getOrElse("")
+      s"This project uses GitLab.$hostHint Use `glab` CLI for MRs and issues. Do NOT use `gh`."
+
   def claudeCmd(prompt: String, extraFlags: List[String] = Nil): Seq[String] =
     val base = List(
       "claude", "--dangerously-skip-permissions",
       "-p", prompt,
       "--model", model,
-      "--max-turns", maxTurns.toString
+      "--append-system-prompt", forgeHint
     )
-    maxBudgetUsd match
-      case Some(budget) => base ++ List("--max-cost-usd", budget.toString) ++ extraFlags
-      case None => base ++ extraFlags
+    val withTurns = maxTurns.map(t => base ++ List("--max-turns", t.toString)).getOrElse(base)
+    val withBudget = maxBudgetUsd.map(b => withTurns ++ List("--max-cost-usd", b.toString)).getOrElse(withTurns)
+    withBudget ++ extraFlags
 
   // --- Helper: mark phase done in tasks.md and commit ---
 
   def markAndCommitPhase(phaseNum: Int): Unit =
     val tasksContent = os.read(tasksPath)
     BatchImplement.markPhaseComplete(tasksContent, phaseNum) match
+      case Left(err) if err.contains("already marked complete") =>
+        log(s"[phase $phaseNum] Phase already marked complete in tasks.md, skipping.")
       case Left(err) =>
         log(s"[phase $phaseNum] Warning: could not mark phase complete in tasks.md: $err")
       case Right(updated) =>
