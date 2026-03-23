@@ -25,10 +25,6 @@ This change is entirely in the **command/adapter layer** — no domain model cha
 - This ensures the remote has all local commits before the phase branch diverges
 - Must handle push failure gracefully (exit with error)
 
-**Component: `phase-pr.scala`** (safety net, optional)
-- In batch mode, before `fetchAndReset`, consider warning if the feature branch target has unpushed commits
-- Currently `phase-pr` already pushes the *phase* branch (line 67), but doesn't verify the *feature* branch (its merge target) is up to date on remote
-
 #### Adapters Layer (`.iw/core/adapters/`)
 
 **Component: `Git.scala`**
@@ -54,14 +50,9 @@ Use `setUpstream = true` to ensure tracking is established. The feature branch m
 
 If the push fails, `phase-start` should exit with an error rather than proceeding. A failed push means the precondition (remote parity) is not met, and continuing would reproduce the original bug.
 
-### TD-3: Safety warning in `phase-pr` (optional enhancement)
+### TD-3: No safety warning in `phase-pr`
 
-### CLARIFY: phase-pr safety warning scope
-
-Should `phase-pr` add a preflight check that warns/errors if the feature branch (merge target) has unpushed commits? The issue mentions this as a "safety net" but the primary fix in `phase-start` should prevent the scenario. Options:
-1. Skip for now — the `phase-start` fix is sufficient
-2. Add a warning only (non-blocking)
-3. Add a blocking check that prevents PR creation
+The `phase-start` push fix is sufficient to prevent the scenario. No additional preflight check in `phase-pr` is needed — it would add complexity for a case that can no longer occur.
 
 ## Estimates
 
@@ -69,8 +60,7 @@ Should `phase-pr` add a preflight check that warns/errors if the feature branch 
 |-------|-----------|--------|
 | Commands | `phase-start.scala` — add push before branch creation | 0.5h |
 | E2E Tests | `phase-start.bats` — test push behavior | 1h |
-| Commands | `phase-pr.scala` — optional safety warning | 0.5h |
-| **Total** | | **1.5–2h** |
+| **Total** | | **1.5h** |
 
 ## Testing Strategy
 
@@ -93,4 +83,3 @@ The full scenario from the issue (push → phase-start → implement → squash 
 
 1. **Phase 1**: Update `phase-start.scala` to push feature branch before creating sub-branch
 2. **Phase 2**: Update E2E tests — add bare remote to setup, add new test cases for push behavior
-3. **Phase 3** (optional): Add safety warning in `phase-pr.scala` for unpushed feature branch commits
