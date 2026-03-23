@@ -6,7 +6,7 @@
 
 ## Phase Index
 
-- [ ] Phase 1: Command fix — push feature branch in phase-start (Est: 0.5h) → `phase-01-context.md`
+- [x] Phase 1: Command fix — push feature branch in phase-start (Est: 0.5h) → `phase-01-context.md`
 - [ ] Phase 2: E2E tests — add bare remote to setup, test push behavior (Est: 1h) → `phase-02-context.md`
 
 ## Progress Tracker
