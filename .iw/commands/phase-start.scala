@@ -31,6 +31,10 @@ import iw.core.output.*
 
   val branchName = PhaseBranch(featureBranch, phaseNumber).branchName
 
+  // Push feature branch to origin before creating the phase sub-branch,
+  // so the remote has all local commits (e.g., context and task files)
+  CommandHelpers.exitOnError(GitAdapter.push(featureBranch, os.pwd, setUpstream = true))
+
   CommandHelpers.exitOnError(GitAdapter.createAndCheckoutBranch(branchName, os.pwd))
 
   val baselineSha = CommandHelpers.exitOnError(GitAdapter.getFullHeadSha(os.pwd))
