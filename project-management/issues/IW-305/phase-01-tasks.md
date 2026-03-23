@@ -2,6 +2,6 @@
 
 ## Implementation
 
-- [ ] [impl] Add `GitAdapter.push(featureBranch, os.pwd, setUpstream = true)` call before `createAndCheckoutBranch` in `phase-start.scala`
-- [ ] [impl] Wrap push call with `CommandHelpers.exitOnError` so phase-start fails fast on push error
-- [ ] [verify] Confirm `phase-start.scala` compiles cleanly with `scala-cli compile`
+- [x] [impl] Add `GitAdapter.push(featureBranch, os.pwd, setUpstream = true)` call before `createAndCheckoutBranch` in `phase-start.scala`
+- [x] [impl] Wrap push call with `CommandHelpers.exitOnError` so phase-start fails fast on push error
+- [x] [verify] Confirm `phase-start.scala` compiles cleanly with `scala-cli compile`
