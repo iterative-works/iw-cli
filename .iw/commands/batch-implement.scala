@@ -163,19 +163,18 @@ import java.time.format.DateTimeFormatter
 
   // --- Helper: build claude command ---
 
-  val forgeHint = forgeType match
-    case ForgeType.GitHub => "This project uses GitHub. Use `gh` CLI for PRs and issues. Do NOT use `glab`."
-    case ForgeType.GitLab =>
-      val hostHint = remoteOpt.flatMap(_.host.toOption).map(h => s" The GitLab host is $h.").getOrElse("")
-      s"This project uses GitLab.$hostHint Use `glab` CLI for MRs and issues. Do NOT use `gh`."
+  val projectContext = configOpt match
+    case Some(config) =>
+      val input = ProjectContext.fromConfig(config, remoteOpt)
+      ProjectContext.render(input)
+    case None => ""
 
   def claudeCmd(prompt: String, extraFlags: List[String] = Nil): Seq[String] =
     val base = List(
       "claude", "--dangerously-skip-permissions",
       "-p", prompt,
-      "--model", model,
-      "--append-system-prompt", forgeHint
-    )
+      "--model", model
+    ) ++ (if projectContext.nonEmpty then List("--append-system-prompt", projectContext) else Nil)
     val withTurns = maxTurns.map(t => base ++ List("--max-turns", t.toString)).getOrElse(base)
     val withBudget = maxBudgetUsd.map(b => withTurns ++ List("--max-cost-usd", b.toString)).getOrElse(withTurns)
     withBudget ++ extraFlags
