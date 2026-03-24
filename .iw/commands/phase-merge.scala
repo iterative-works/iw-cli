@@ -57,6 +57,7 @@ import iw.core.output.*
 
   val remoteOpt = GitAdapter.getRemoteUrl(os.pwd)
   val forgeType = ForgeType.resolve(remoteOpt, config.trackerType)
+  val gitlabHost = remoteOpt.flatMap(_.host.toOption)
 
   val repository = config.repository.getOrElse {
     remoteOpt.flatMap(r => r.extractRepositoryPath.toOption).getOrElse {
@@ -112,7 +113,7 @@ import iw.core.output.*
 
     val checks = (forgeType match
       case ForgeType.GitHub => GitHubClient.fetchCheckStatuses(prNumber, repository)
-      case ForgeType.GitLab => GitLabClient.fetchCheckStatuses(prNumber, repository)
+      case ForgeType.GitLab => GitLabClient.fetchCheckStatuses(prNumber, repository, execCommand = GitLabClient.execCommandWithHost(gitlabHost))
     ) match
       case Left(err) =>
         Output.error(s"Failed to fetch CI check statuses: $err")
@@ -186,7 +187,8 @@ import iw.core.output.*
   val mergeCmd = forgeType match
     case ForgeType.GitHub => Seq("gh") ++ GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq
     case ForgeType.GitLab => Seq("glab") ++ GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq
-  val mergeResult = ProcessAdapter.run(mergeCmd)
+  val mergeEnv = if forgeType == ForgeType.GitLab then gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty) else Map.empty[String, String]
+  val mergeResult = ProcessAdapter.run(mergeCmd, env = mergeEnv)
   if mergeResult.exitCode != 0 then
     Output.error(s"Failed to merge PR: ${mergeResult.stderr}")
     sys.exit(1)

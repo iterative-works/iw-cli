@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "issue_id": "IW-305",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-305/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-305/tasks.md",
+      "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-305/phase-01-context.md"
+    }
+  ],
+  "last_updated": "2026-03-23T21:57:52.121398359Z",
+  "status": "implementing",
+  "display": {
+    "text": "Phase 1: Implemented",
+    "type": "progress",
+    "subtext": "Command fix — push feature branch in phase-start"
+  },
+  "message": "Phase 1 implementation complete, preparing PR",
+  "activity": "working",
+  "workflow_type": "waterfall",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "wf-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
+    }
+  ],
+  "git_sha": "f5aa4b1",
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "1": {
+      "context_sha": "context_sha=066bf651bc7372d31177859d0d248a61d45037db"
+    }
+  }
+}

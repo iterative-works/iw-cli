@@ -55,6 +55,8 @@ private def commitReviewState(
 
   val forgeType = ForgeType.resolve(remoteOpt, config.trackerType)
 
+  val gitlabHost = remoteOpt.flatMap(_.host.toOption)
+
   val repository = config.repository.getOrElse {
     remoteOpt.flatMap(r => r.extractRepositoryPath.toOption).getOrElse {
       Output.error("Cannot determine repository. Set 'tracker.repository' in .iw/config.conf")
@@ -79,7 +81,8 @@ private def commitReviewState(
           Output.error(s"Failed to create pull request: $err")
           sys.exit(1)
     case ForgeType.GitLab =>
-      GitLabClient.createMergeRequest(repository, currentBranch, featureBranch, title, prBody) match
+      val glabExec = GitLabClient.execCommandWithHost(gitlabHost)
+      GitLabClient.createMergeRequest(repository, currentBranch, featureBranch, title, prBody, execCommand = glabExec) match
         case Right(url) => url
         case Left(err) =>
           Output.error(s"The branch '$currentBranch' was already pushed. You can create the MR manually.")
@@ -94,7 +97,8 @@ private def commitReviewState(
         case ForgeType.GitHub =>
           ProcessAdapter.run(Seq(forgeType.cliTool, "pr", "merge", "--squash", "--delete-branch", prUrl))
         case ForgeType.GitLab =>
-          ProcessAdapter.run(Seq(forgeType.cliTool, "mr", "merge", "--squash", prUrl))
+          val envVars = gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty)
+          ProcessAdapter.run(Seq(forgeType.cliTool, "mr", "merge", "--squash", prUrl), env = envVars)
 
       if mergeResult.exitCode != 0 then
         Output.error(s"Failed to merge PR: ${mergeResult.stderr}")

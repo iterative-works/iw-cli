@@ -130,7 +130,10 @@ private def createGitLabIssue(title: String, description: String, config: Projec
     sys.exit(1)
   }
 
-  GitLabClient.createIssue(repository, title, description) match
+  val glabExec = GitLabClient.execCommandWithHost(
+    GitAdapter.getRemoteUrl(os.pwd).flatMap(_.host.toOption)
+  )
+  GitLabClient.createIssue(repository, title, description, execCommand = glabExec) match
     case Left(error) =>
       Output.error(s"Failed to create issue: $error")
       sys.exit(1)
@@ -184,6 +187,9 @@ def loadConfig(): Either[String, ProjectConfiguration] =
     case None => Left("Configuration file not found. Run 'iw init' first.")
 
 def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, Issue] =
+  val glabExec = GitLabClient.execCommandWithHost(
+    GitAdapter.getRemoteUrl(os.pwd).flatMap(_.host.toOption)
+  )
   config.trackerType match
     case IssueTrackerType.Linear =>
       ApiToken.fromEnv(Constants.EnvVars.LinearApiToken) match
@@ -215,7 +221,7 @@ def fetchIssue(issueId: IssueId, config: ProjectConfiguration): Either[String, I
           Left("GitLab repository not configured. Run 'iw init' first.")
         case Some(repository) =>
           // Pass full issue ID (e.g., "PROJ-123") - client extracts number for API
-          GitLabClient.fetchIssue(issueId.value, repository) match
+          GitLabClient.fetchIssue(issueId.value, repository, execCommand = glabExec) match
             case Left(error) if GitLabClient.isNotFoundError(error) =>
               Left(GitLabClient.formatIssueNotFoundError(issueId.value, repository))
             case Left(error) if GitLabClient.isAuthenticationError(error) =>

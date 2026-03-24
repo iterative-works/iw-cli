@@ -22,15 +22,20 @@ object CommandRunner:
   def execute(
     command: String,
     args: Array[String],
-    workingDir: Option[String] = None
+    workingDir: Option[String] = None,
+    env: Map[String, String] = Map.empty
   ): Either[String, String] =
     try
       val stdout = new StringBuilder
       val stderr = new StringBuilder
 
-      val processBuilder = workingDir match
+      val baseBuilder = workingDir match
         case Some(dir) => Process(command +: args, new File(dir))
         case None => Process(command +: args)
+
+      val processBuilder =
+        if env.isEmpty then baseBuilder
+        else Process(command +: args, workingDir.map(new File(_)), env.toSeq*)
 
       val exitCode = processBuilder ! ProcessLogger(
         line => stdout.append(line).append("\n"),

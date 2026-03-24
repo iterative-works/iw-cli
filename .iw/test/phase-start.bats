@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw phase-start command
-# PURPOSE: Tests phase sub-branch creation, JSON output, and error cases
+# PURPOSE: Tests phase sub-branch creation, JSON output, push behavior, and error cases
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
@@ -10,18 +10,27 @@ setup() {
     export IW_SERVER_DISABLED=1
 
     TEST_DIR="$(mktemp -d)"
+    BARE_REMOTE="$(mktemp -d)"
     cd "$TEST_DIR"
+
+    # Create a bare remote for push operations
+    git init -q --bare "$BARE_REMOTE" 2>/dev/null
 
     # Create a git repo on a feature branch
     git init -q 2>/dev/null
     git config user.email "test@example.com"
     git config user.name "Test User"
+    git remote add origin "$BARE_REMOTE"
     echo "initial" > README.md
     git add README.md 2>/dev/null
     git commit -q -m "Initial commit" 2>/dev/null
 
+    # Push main branch to the bare remote
+    git push -q -u origin HEAD 2>/dev/null
+
     # Create and switch to a feature branch
     git checkout -q -b TEST-100
+    git push -q -u origin TEST-100 2>/dev/null
 
     # Initialize iw config
     mkdir -p .iw
@@ -40,7 +49,7 @@ EOF
 
 teardown() {
     cd /
-    rm -rf "$TEST_DIR"
+    rm -rf "$TEST_DIR" "$BARE_REMOTE"
 }
 
 @test "phase-start 1 creates sub-branch and outputs valid JSON" {
@@ -159,4 +168,37 @@ EOF
     commit_sha="$(git log --oneline --grep="update review-state" -1 --format="%H")"
     [ -n "$commit_sha" ]
     git show "$commit_sha" --name-only | grep -q "review-state.json"
+}
+
+@test "phase-start pushes feature branch to origin before creating sub-branch" {
+    # Add a local commit that hasn't been pushed
+    echo "unpushed content" > unpushed-file.txt
+    git add unpushed-file.txt
+    git commit -q -m "Unpushed local commit"
+
+    local localSha
+    localSha="$(git rev-parse HEAD)"
+
+    run "$PROJECT_ROOT/iw" phase-start 1
+
+    [ "$status" -eq 0 ]
+
+    # The remote feature branch must have the local commit
+    local remoteSha
+    remoteSha="$(git -C "$BARE_REMOTE" rev-parse TEST-100)"
+    [ "$remoteSha" = "$localSha" ]
+}
+
+@test "phase-start fails when push fails due to no remote" {
+    # Remove the remote so push will fail
+    git remote remove origin
+
+    run "$PROJECT_ROOT/iw" phase-start 1
+
+    [ "$status" -eq 1 ]
+
+    # Should NOT have created the phase branch
+    local currentBranch
+    currentBranch="$(git branch --show-current)"
+    [ "$currentBranch" = "TEST-100" ]
 }

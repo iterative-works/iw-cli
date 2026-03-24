@@ -38,13 +38,15 @@ object ProcessAdapter:
   def run(
     command: Seq[String],
     maxOutputBytes: Int = 1024 * 1024,
-    timeoutMs: Int = DefaultTimeoutMs
+    timeoutMs: Int = DefaultTimeoutMs,
+    env: Map[String, String] = Map.empty
   ): ProcessResult =
     val result = os.proc(command).call(
       check = false,
       stdout = os.Pipe,
       stderr = os.Pipe,
-      timeout = timeoutMs
+      timeout = timeoutMs,
+      env = env
     )
 
     val (stdout, stdoutTruncated) = truncateOutput(result.out.text().trim, maxOutputBytes)
@@ -71,10 +73,16 @@ object ProcessAdapter:
     catch
       case _: os.SubprocessException => -1
 
-  def runStreaming(command: Seq[String], timeoutMs: Int = DefaultTimeoutMs): Int =
+  def runStreaming(
+    command: Seq[String],
+    timeoutMs: Int = DefaultTimeoutMs,
+    closeStdin: Boolean = false
+  ): Int =
     try
+      val stdinSource = if closeStdin then os.ProcessInput.SourceInput(os.Source.WritableSource("")) else os.Inherit
       val result = os.proc(command).call(
         check = false,
+        stdin = stdinSource,
         stdout = os.Inherit,
         stderr = os.Inherit,
         timeout = timeoutMs
