@@ -95,7 +95,6 @@ teardown() {
     local pane_content
     pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-456)"
 
-    # Should contain the claude command with the triage prompt
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
+    # Should contain the triage prompt (claude invocation style tested in start-prompt.bats)
     [[ "$pane_content" == *"/iterative-works:triage-issue"* ]]
 }

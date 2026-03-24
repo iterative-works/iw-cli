@@ -15,16 +15,19 @@ import iw.core.output.*
   val exitCode = ProcessAdapter.runInteractive(
     Seq(iwRun, "start", "--prompt", "/iterative-works:triage-issue", issueId)
   )
-  sys.exit(exitCode)
+  if exitCode != 0 then sys.exit(exitCode)
 
 // Find iw-run relative to IW_COMMANDS_DIR (set by the iw launcher).
 // Dev layout: .iw/commands/ → iw-run two levels up
 // Release layout: commands/ → iw-run one level up
 private def findIwRun(): String =
-  val commandsDir = os.Path(sys.env.getOrElse("IW_COMMANDS_DIR",
-    { Output.error("IW_COMMANDS_DIR not set"); sys.exit(1) }
-  ))
-  List(commandsDir / os.up / "iw-run", commandsDir / os.up / os.up / "iw-run")
-    .find(os.exists)
-    .map(_.toString)
-    .getOrElse { Output.error("Cannot find iw-run"); sys.exit(1) }
+  sys.env.get("IW_COMMANDS_DIR") match
+    case None =>
+      Output.error("IW_COMMANDS_DIR not set")
+      sys.exit(1)
+    case Some(dir) =>
+      val commandsDir = os.Path(dir)
+      List(commandsDir / os.up / "iw-run", commandsDir / os.up / os.up / "iw-run")
+        .find(os.exists)
+        .map(_.toString)
+        .getOrElse { Output.error("Cannot find iw-run"); sys.exit(1) }
