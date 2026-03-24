@@ -27,16 +27,28 @@
     {
       "label": "Phase 2 Tasks",
       "path": "project-management/issues/IW-309/phase-02-tasks.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-309/implementation-log.md"
+    },
+    {
+      "label": "Release Notes",
+      "path": "project-management/issues/IW-309/release-notes.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-309/review-packet.md"
     }
   ],
-  "last_updated": "2026-03-24T14:10:03.507168084Z",
-  "status": "phase_merged",
+  "last_updated": "2026-03-24T14:15:08.702007591Z",
+  "status": "all_complete",
   "display": {
-    "text": "Phase 02: Merged",
+    "text": "Ready for Final Review",
     "type": "success",
     "subtext": "implement command — workflow-aware dispatcher"
   },
-  "message": "Phase 02 implementation started",
+  "message": "All phases complete - final PR created",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -64,6 +76,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "134e474",
@@ -90,5 +107,6 @@
       "label": "Complete",
       "type": "success"
     }
-  ]
+  ],
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/312"
 }
