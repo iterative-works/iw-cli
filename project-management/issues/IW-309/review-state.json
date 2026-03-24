@@ -11,16 +11,24 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-309/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-309/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-309/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-03-24T13:24:30.267183936Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-03-24T13:33:18.986933256Z",
+  "status": "implementing",
   "display": {
-    "text": "Tasks Ready",
-    "type": "success",
-    "subtext": "2 phases identified"
+    "text": "Phase 01: Implementing",
+    "type": "progress",
+    "subtext": "analyze command — triage shortcut"
   },
-  "message": "Task breakdown complete. Ready to begin implementation.",
+  "message": "Phase 01 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -38,8 +46,24 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "ag-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "134e474",
-  "needs_attention": true
+  "needs_attention": true,
+  "phase_checkpoints": {
+    "1": {
+      "context_sha": "context_sha=b64e15497bebe9476f11eb4c6ed56a7f4191aedb"
+    }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
