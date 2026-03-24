@@ -6,7 +6,7 @@
 
 ## Phase Index
 
-- [ ] Phase 1: `analyze` command — triage shortcut (Est: 1-2h) → `phase-01-context.md`
+- [x] Phase 1: `analyze` command — triage shortcut (Est: 1-2h) → `phase-01-context.md`
 - [ ] Phase 2: `implement` command — workflow-aware dispatcher (Est: 2-3h) → `phase-02-context.md`
 
 ## Progress Tracker
