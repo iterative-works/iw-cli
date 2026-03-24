@@ -15,3 +15,4 @@
 - [x] [impl] Create `.iw/commands/analyze.scala` — parse args, delegate to `iw start --prompt`
 - [x] [impl] Verify all new tests pass
 - [x] [impl] Verify existing `start-prompt.bats` tests still pass (regression)
+**Phase Status:** Complete
