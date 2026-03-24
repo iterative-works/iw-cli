@@ -19,16 +19,24 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-309/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-309/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-309/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-03-24T13:49:27.291661964Z",
-  "status": "phase_merged",
+  "last_updated": "2026-03-24T13:56:56.507656311Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 01: Merged",
-    "type": "success",
-    "subtext": "analyze command — triage shortcut"
+    "text": "Phase 02: Implementing",
+    "type": "progress",
+    "subtext": "implement command — workflow-aware dispatcher"
   },
-  "message": "Phase 01 implementation started",
+  "message": "Phase 02 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -51,13 +59,18 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "134e474",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=b64e15497bebe9476f11eb4c6ed56a7f4191aedb"
+    "2": {
+      "context_sha": "context_sha=c64447bcfe04660ef0ee4eb08a9ba78d2c136f58"
     }
   },
   "badges": [
@@ -68,6 +81,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ]
 }
