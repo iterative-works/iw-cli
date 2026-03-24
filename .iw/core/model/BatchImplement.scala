@@ -70,13 +70,26 @@ object BatchImplement:
     * @return Right with updated content, or Left with reason if the line was not found or already checked
     */
   def markPhaseComplete(tasksContent: String, phaseNumber: Int): Either[String, String] =
-    val uncheckedPattern = s"^(\\s*-\\s+)\\[ \\](\\s+Phase\\s+$phaseNumber:)".r
-    val alreadyCheckedPattern = s"^\\s*-\\s+\\[[xX]\\]\\s+Phase\\s+$phaseNumber:".r
+    // Match any digit sequence after "Phase" and compare numerically to handle zero-padded numbers
+    val checkedPattern = "^(\\s*-\\s+)\\[([xX ])\\](\\s+Phase\\s+(\\d+):.*)$".r
     val lines = tasksContent.split("\n", -1).toList
 
-    if lines.exists(alreadyCheckedPattern.findFirstIn(_).isDefined) then
+    val hasChecked = lines.exists {
+      case checkedPattern(_, marker, _, num) => num.toInt == phaseNumber && marker.toLowerCase == "x"
+      case _ => false
+    }
+    val hasUnchecked = lines.exists {
+      case checkedPattern(_, marker, _, num) => num.toInt == phaseNumber && marker == " "
+      case _ => false
+    }
+
+    if hasChecked then
       Left(s"Phase $phaseNumber is already marked complete")
-    else if !lines.exists(uncheckedPattern.findFirstIn(_).isDefined) then
+    else if !hasUnchecked then
       Left(s"Phase $phaseNumber not found in tasks content")
     else
-      Right(lines.map(uncheckedPattern.replaceFirstIn(_, "$1[x]$2")).mkString("\n"))
+      Right(lines.map {
+        case checkedPattern(prefix, " ", rest, num) if num.toInt == phaseNumber =>
+          s"${prefix}[x]${rest}"
+        case line => line
+      }.mkString("\n"))

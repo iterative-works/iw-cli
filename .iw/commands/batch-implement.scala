@@ -187,7 +187,10 @@ import java.time.format.DateTimeFormatter
       case Left(err) if err.contains("already marked complete") =>
         log(s"[phase $phaseNum] Phase already marked complete in tasks.md, skipping.")
       case Left(err) =>
-        log(s"[phase $phaseNum] Warning: could not mark phase complete in tasks.md: $err")
+        log(s"[phase $phaseNum] Fatal: could not mark phase complete in tasks.md: $err")
+        log(s"[phase $phaseNum] Fix tasks.md manually and re-run batch-implement.")
+        logWriter.close()
+        sys.exit(1)
       case Right(updated) =>
         os.write.over(tasksPath, updated)
         CommandHelpers.exitOnError(GitAdapter.stageAll(cwd))

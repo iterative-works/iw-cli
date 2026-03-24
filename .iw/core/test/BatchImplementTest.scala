@@ -167,3 +167,40 @@ class BatchImplementTest extends FunSuite:
         assert(content.contains("- [x] Phase 3:"), "Phase 3 should remain checked")
         assert(content.contains("# Tasks"), "Header should be preserved")
       case Left(err) => fail(s"Expected Right but got Left($err)")
+
+  // Zero-padded phase number tests
+
+  val zeroPaddedTasks =
+    """|# Tasks
+       |
+       |- [ ] Phase 01: Setup environment
+       |- [ ] Phase 02: Implement core logic
+       |- [x] Phase 03: Write tests
+       |""".stripMargin
+
+  test("markPhaseComplete handles zero-padded phase numbers"):
+    val result = BatchImplement.markPhaseComplete(zeroPaddedTasks, 1)
+    result match
+      case Right(content) =>
+        assert(content.contains("- [x] Phase 01:"), s"Expected checked Phase 01 in: $content")
+      case Left(err) => fail(s"Expected Right but got Left($err)")
+
+  test("markPhaseComplete with zero-padded numbers only checks the target phase"):
+    val result = BatchImplement.markPhaseComplete(zeroPaddedTasks, 2)
+    result match
+      case Right(content) =>
+        assert(content.contains("- [x] Phase 02:"), s"Expected Phase 02 checked in: $content")
+        assert(content.contains("- [ ] Phase 01:"), s"Expected Phase 01 still unchecked in: $content")
+      case Left(err) => fail(s"Expected Right but got Left($err)")
+
+  test("markPhaseComplete recognizes already-checked zero-padded phase"):
+    val result = BatchImplement.markPhaseComplete(zeroPaddedTasks, 3)
+    result match
+      case Left(msg) => assert(msg.contains("already marked complete"))
+      case Right(_) => fail("Expected Left but got Right")
+
+  test("markPhaseComplete with zero-padded non-existent phase returns Left"):
+    val result = BatchImplement.markPhaseComplete(zeroPaddedTasks, 99)
+    result match
+      case Left(_) => () // expected
+      case Right(_) => fail("Expected Left but got Right")
