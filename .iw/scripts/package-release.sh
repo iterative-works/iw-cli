@@ -48,6 +48,9 @@ rsync -a \
 cd "$RELEASE_DIR"
 tar -czf "iw-cli-${VERSION}.tar.gz" "iw-cli-$VERSION"
 
+# Clean up staging directory (only the tarball matters)
+rm -rf "iw-cli-$VERSION"
+
 echo "Release tarball created: $RELEASE_DIR/iw-cli-${VERSION}.tar.gz"
 echo "Contents:"
-tar -tzf "iw-cli-${VERSION}.tar.gz" | head -20
+tar -tzf "iw-cli-${VERSION}.tar.gz" | head -20 || true
