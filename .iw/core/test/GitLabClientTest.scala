@@ -600,6 +600,23 @@ class GitLabClientTest extends munit.FunSuite:
     val issue = result.getOrElse(fail("Expected Right"))
     assertEquals(issue.id, "999")
 
+  test("parseCreateIssueResponse parses work_items URL"):
+    val output = "https://gitlab.com/fifty-forms/platform/-/work_items/210\n"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "210")
+    assertEquals(issue.url, "https://gitlab.com/fifty-forms/platform/-/work_items/210")
+
+  test("parseCreateIssueResponse parses self-hosted work_items URL"):
+    val output = "https://gitlab.company.com/team/app/-/work_items/42"
+    val result = GitLabClient.parseCreateIssueResponse(output)
+
+    assert(result.isRight)
+    val issue = result.getOrElse(fail("Expected Right"))
+    assertEquals(issue.id, "42")
+
   // ========== isLabelError Tests ==========
 
   test("isLabelError detects label not found error"):

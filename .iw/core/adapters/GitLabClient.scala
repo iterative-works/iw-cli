@@ -297,8 +297,9 @@ Check your network connection and try again.""".stripMargin
     if url.isEmpty then
       Left("Empty response from glab CLI")
     else
-      // Extract issue number from GitLab URL pattern: .*/-/issues/(\d+)$
-      val issuePattern = """.*/-/issues/(\d+)$""".r
+      // Extract issue number from GitLab URL pattern
+      // Matches both classic issues and newer work_items URLs
+      val issuePattern = """.*/-/(?:issues|work_items)/(\d+)$""".r
       url match
       case issuePattern(number) =>
         Right(CreatedIssue(number, url))
