@@ -102,17 +102,16 @@ import iw.core.output.*
   Output.info("Running Claude to analyze codebase and generate iw-cli-ops skill...")
   Output.info("This may take a moment...")
 
-  // Run claude with the prompt piped via stdin
-  // Uses --dangerously-skip-permissions since this is a non-interactive scripted invocation
-  // and the prompt directs writes only to .claude/skills/
+  // Run claude with the prompt via -p flag (stdin mode doesn't grant tool permissions)
   val result = os.proc(
     "claude",
     "--print",
     "--dangerously-skip-permissions",
-    "--allowedTools", "Read,Glob,Grep,Write"
+    "--allowedTools", "Read,Glob,Grep,Write",
+    "-p", prompt
   ).call(
       cwd = os.pwd,
-      stdin = prompt,
+      stdin = "",
       check = false,
       stdout = os.Inherit,
       stderr = os.Inherit
@@ -122,17 +121,23 @@ import iw.core.output.*
     Output.error("Claude exited with error")
     sys.exit(1)
 
-  // Report what was generated
+  // Report what was generated — only count directories that have a SKILL.md
   if os.exists(skillsDir) then
-    val newSkills = os.list(skillsDir)
+    val allSkills = os.list(skillsDir)
       .filter(os.isDir)
       .filter(d => d.last.startsWith("iw-"))
+      .filter(d => os.exists(d / "SKILL.md"))
       .toList
 
-    if newSkills.nonEmpty then
+    val generatedSkills = allSkills.filterNot(s => staticSkills.contains(s.last))
+
+    if generatedSkills.nonEmpty then
       Output.success("Skills synced:")
-      newSkills.foreach(s => Output.info(s"  - ${s.last}"))
+      allSkills.foreach(s => Output.info(s"  - ${s.last}"))
     else
-      Output.warning("No iw skills found after sync")
+      Output.error("Claude did not generate any skill files.")
+      Output.error("This usually means the Write tool was blocked by permissions.")
+      Output.error("Ensure iw-cli is up to date: ./iw update")
+      sys.exit(1)
   else
     Output.warning("Skills directory not created")

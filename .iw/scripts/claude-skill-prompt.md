@@ -111,3 +111,4 @@ Write skill files to `.claude/skills/`. Examples:
 - **Description quality is critical** - agents select skills based on matching user phrases
 - Put "read/fetch issue description" use case prominently - it's the most common miss
 - CRITICAL: Always use `./iw` not `iw` - the script is project-local, not in PATH
+- You have full write permission to `.claude/skills/`. Write files directly without asking for approval.
