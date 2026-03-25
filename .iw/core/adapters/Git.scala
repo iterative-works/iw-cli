@@ -4,6 +4,7 @@
 package iw.core.adapters
 
 import iw.core.model.GitRemote
+import iw.core.model.StagingCheck
 
 import scala.sys.process.*
 import scala.util.Try
@@ -41,6 +42,14 @@ object GitAdapter:
       Right(result.stdout.trim.nonEmpty)
     else
       Left(s"Failed to check for uncommitted changes: ${result.stderr}")
+
+  /** Inspect worktree state: staged, unstaged, and untracked files. */
+  def getStagingCheck(dir: os.Path): Either[String, StagingCheck] =
+    val result = ProcessAdapter.run(Seq("git", "-C", dir.toString, "status", "--porcelain"))
+    if result.exitCode == 0 then
+      Right(StagingCheck.fromPorcelain(result.stdout))
+    else
+      Left(s"Failed to inspect worktree state: ${result.stderr}")
 
   /** Create and checkout a new branch from HEAD. */
   def createAndCheckoutBranch(name: String, dir: os.Path): Either[String, Unit] =

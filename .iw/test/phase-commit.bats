@@ -50,6 +50,7 @@ teardown() {
 
 make_change() {
     echo "change" >> README.md
+    git add README.md
 }
 
 @test "phase-commit --title 'Test commit' stages, commits, outputs valid JSON" {
@@ -143,13 +144,13 @@ make_change() {
     run "$PROJECT_ROOT/iw" phase-commit --title "Test"
 
     [ "$status" -eq 1 ]
-    [[ "$output" == *"Failed to commit"* ]]
+    [[ "$output" == *"No staged changes"* ]]
 }
 
 @test "phase-commit updates phase task file Phase Status to Complete" {
     make_change
 
-    # Create the phase task file
+    # Create the phase task file and stage it
     mkdir -p project-management/issues/TEST-100
     cat > project-management/issues/TEST-100/phase-01-tasks.md << 'EOF'
 # Phase 1 Tasks
@@ -159,6 +160,7 @@ make_change() {
 
 **Phase Status:** Not Started
 EOF
+    git add project-management/issues/TEST-100/phase-01-tasks.md
 
     run "$PROJECT_ROOT/iw" phase-commit --title "Test"
 
@@ -173,7 +175,7 @@ EOF
 @test "phase-commit includes task file update in the commit (no uncommitted files)" {
     make_change
 
-    # Create the phase task file
+    # Create the phase task file and stage it
     mkdir -p project-management/issues/TEST-100
     cat > project-management/issues/TEST-100/phase-01-tasks.md << 'EOF'
 # Phase 1 Tasks
@@ -182,6 +184,7 @@ EOF
 
 **Phase Status:** Not Started
 EOF
+    git add project-management/issues/TEST-100/phase-01-tasks.md
 
     run "$PROJECT_ROOT/iw" phase-commit --title "Test"
 
@@ -190,4 +193,30 @@ EOF
     # There should be no uncommitted changes left
     run git status --porcelain
     [ -z "$output" ]
+}
+
+@test "phase-commit rejects unstaged modifications" {
+    # Stage a change, then make another unstaged modification
+    echo "staged" >> README.md
+    git add README.md
+    echo "unstaged" >> README.md
+
+    run "$PROJECT_ROOT/iw" phase-commit --title "Test"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Unstaged modifications"* ]]
+    [[ "$output" == *"README.md"* ]]
+}
+
+@test "phase-commit rejects untracked files" {
+    # Stage a change but also create an untracked file
+    echo "staged" >> README.md
+    git add README.md
+    echo "stray" > unrelated.txt
+
+    run "$PROJECT_ROOT/iw" phase-commit --title "Test"
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Untracked files"* ]]
+    [[ "$output" == *"unrelated.txt"* ]]
 }

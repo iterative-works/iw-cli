@@ -1,4 +1,4 @@
-// PURPOSE: Stages all changes, commits with a structured message, and updates phase task file
+// PURPOSE: Commits staged changes with a structured message and updates phase task file
 // USAGE: iw phase-commit --title TITLE [--items ITEM1,ITEM2,...] [--issue-id ID] [--phase-number N]
 
 import iw.core.model.*
@@ -49,14 +49,25 @@ import iw.core.output.*
       Output.error("If they have NOT been implemented, complete them before committing.")
       sys.exit(1)
 
-  // Mark task file complete/reviewed before staging so it's included in the commit
+  // Require a clean worktree: all changes must be staged, nothing unstaged or untracked
+  val stagingCheck = CommandHelpers.exitOnError(GitAdapter.getStagingCheck(os.pwd))
+  stagingCheck.readyToCommit match
+    case Left(err) =>
+      Output.error("Worktree is not ready for phase-commit.")
+      Output.error("")
+      err.split("\n").foreach(line => Output.error(line))
+      Output.error("")
+      Output.error("Stage your implementation files with `git add`, then re-run phase-commit.")
+      sys.exit(1)
+    case Right(()) => ()
+
+  // Mark task file complete/reviewed and stage it
   if os.exists(taskFilePath) then
     val content = os.read(taskFilePath)
     val afterComplete = PhaseTaskFile.markComplete(content)
     val afterReviewed = PhaseTaskFile.markReviewed(afterComplete)
     os.write.over(taskFilePath, afterReviewed)
-
-  CommandHelpers.exitOnError(GitAdapter.stageAll(os.pwd))
+    CommandHelpers.exitOnError(GitAdapter.stageFiles(Seq(taskFilePath), os.pwd))
 
   val message = CommitMessage.build(title, items)
 
