@@ -103,10 +103,12 @@ import iw.core.output.*
   Output.info("This may take a moment...")
 
   // Run claude with the prompt piped via stdin
-  // Restrict to read/search tools plus Write (prompt directs writes to .claude/skills/)
+  // Uses --dangerously-skip-permissions since this is a non-interactive scripted invocation
+  // and the prompt directs writes only to .claude/skills/
   val result = os.proc(
     "claude",
     "--print",
+    "--dangerously-skip-permissions",
     "--allowedTools", "Read,Glob,Grep,Write"
   ).call(
       cwd = os.pwd,
