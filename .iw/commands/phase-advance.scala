@@ -59,7 +59,7 @@ import iw.core.output.*
       out != "[]" && out.nonEmpty
     case ForgeType.GitLab =>
       val result = ProcessAdapter.run(
-        Seq(forgeType.cliTool, "mr", "list", "--source-branch", phaseBranchName, "--state", "merged")
+        Seq(forgeType.cliTool, "mr", "list", "--source-branch", phaseBranchName, "--merged")
       )
       if result.exitCode != 0 then
         Output.error(s"Failed to check MR status: ${result.stderr}")
