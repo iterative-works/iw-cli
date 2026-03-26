@@ -163,7 +163,7 @@ teardown() {
     run "$PROJECT_ROOT/iw" batch-implement IW-275 wf
 
     [ -f "$STUB_DIR/claude-calls.txt" ]
-    grep -q "IW-275 --phase" "$STUB_DIR/claude-calls.txt"
+    grep -q "IW-275 --batch --phase" "$STUB_DIR/claude-calls.txt"
 }
 
 @test "batch-implement uses workflow code from positional arg in claude prompt" {
@@ -190,7 +190,7 @@ EOF
     run "$PROJECT_ROOT/iw" batch-implement wf
 
     [ -f "$STUB_DIR/claude-calls.txt" ]
-    grep -q "IW-275 --phase" "$STUB_DIR/claude-calls.txt"
+    grep -q "IW-275 --batch --phase" "$STUB_DIR/claude-calls.txt"
 }
 
 @test "batch-implement auto-detects workflow code from review-state.json" {
