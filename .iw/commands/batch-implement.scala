@@ -264,7 +264,7 @@ import java.time.format.DateTimeFormatter
         log("All phases complete.")
       case Some(phaseNum) =>
         log(s"[phase $phaseNum] Starting implementation via claude...")
-        val prompt = s"/iterative-works:$workflowCode-implement ${issueId.value} --phase $phaseNum"
+        val prompt = s"/iterative-works:$workflowCode-implement ${issueId.value} --batch --phase $phaseNum"
         log(s"[phase $phaseNum] Invoking: claude -p \"$prompt\"")
         val claudeExitCode = ProcessAdapter.runStreaming(claudeCmd(prompt), claudeTimeoutMs, closeStdin = true)
         if claudeExitCode != 0 then
