@@ -32,33 +32,12 @@ project/
 
 This project uses GitHub for issue tracking: `iterative-works/iw-cli`
 
-## Claude Code Integration
+## Claude Code Skills
 
-iw-cli includes Claude Code skill generation for agent awareness.
-
-### Generating Skills
-
-```bash
-./iw claude-sync          # Generate skill files in .claude/skills/
-./iw claude-sync --force  # Regenerate existing skills
-```
-
-This uses Claude CLI to analyze the codebase and generate skill files that teach agents:
-- What commands are available and how to use them
-- How to compose ad-hoc scripts from core modules
-- Project-specific context (tracker type, issue ID format)
-
-### Updating Skills
-
-Run `./iw claude-sync --force` when:
-- Adding new commands to `.iw/commands/`
-- Changing core module APIs
-- Updating project configuration
-
-### Skill Location
-
-Generated skills go to `.claude/skills/iw-cli-ops/`. These are separate from the
-`iw-command-creation` skill which teaches how to create new iw commands.
+iw-cli skills (`iw-cli-ops`, `iw-command-creation`) are maintained in the
+dev-docs repository (`iterative-works/dev-docs`) and distributed via its
+Claude Code plugin. Skills should be updated in dev-docs when releasing
+new iw-cli versions that add or change commands.
 
 ## Server Configuration
 
