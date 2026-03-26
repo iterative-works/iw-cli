@@ -226,7 +226,7 @@ import java.time.format.DateTimeFormatter
     else
       log(s"[phase $phaseNum] Recovery attempt ${maxRetries - attemptsLeft + 1}/$maxRetries (status: $status)")
       val recoverExitCode = ProcessAdapter.runStreaming(
-        claudeCmd(recoveryPromptFor(status), List("--resume")),
+        claudeCmd(recoveryPromptFor(status), List("--continue")),
         claudeTimeoutMs,
         closeStdin = true
       )
