@@ -22,8 +22,15 @@ mkdir -p "$RELEASE_PACKAGE_DIR"/{commands,core}
 cp "$PROJECT_ROOT/iw-run" "$RELEASE_PACKAGE_DIR/"
 cp "$PROJECT_ROOT/iw-bootstrap" "$RELEASE_PACKAGE_DIR/"
 
-# Copy all command files
-cp "$PROJECT_ROOT/.iw/commands"/*.scala "$RELEASE_PACKAGE_DIR/commands/"
+# Copy all command files (recursively, preserving directory structure)
+# Exclude .scala-build/ directories
+rsync -a \
+    --exclude='.scala-build/' \
+    --exclude='.bsp/' \
+    --include='*/' \
+    --include='*.scala' \
+    --exclude='*' \
+    "$PROJECT_ROOT/.iw/commands/" "$RELEASE_PACKAGE_DIR/commands/"
 
 # Copy all core files (recursively, preserving directory structure)
 # Exclude test/ and .scala-build/ directories
