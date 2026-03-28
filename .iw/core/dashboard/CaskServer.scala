@@ -495,8 +495,9 @@ class CaskServer(statePath: String, port: Int, hosts: Seq[String], startedAt: In
 
   @cask.get("/static/:filename")
   def staticFiles(filename: String): cask.Response[Array[Byte]] =
-    // Determine static files directory relative to CWD (project root)
-    val staticDir = os.pwd / ".iw" / "core" / "dashboard" / "resources" / "static"
+    // Resolve static files from installation directory (IW_CORE_DIR) or CWD fallback
+    val coreDir = sys.env.get("IW_CORE_DIR").map(os.Path(_)).getOrElse(os.pwd / ".iw" / "core")
+    val staticDir = coreDir / "dashboard" / "resources" / "static"
     val filePath = staticDir / filename
 
     // Check if file exists
