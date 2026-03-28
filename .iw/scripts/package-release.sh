@@ -37,8 +37,11 @@ rsync -a \
 rsync -a \
     --exclude='test/' \
     --exclude='.scala-build/' \
+    --exclude='.bsp/' \
     --include='*/' \
     --include='*.scala' \
+    --include='*.css' \
+    --include='*.js' \
     --exclude='*' \
     "$PROJECT_ROOT/.iw/core/" "$RELEASE_PACKAGE_DIR/core/"
 
