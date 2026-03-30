@@ -11,6 +11,7 @@ object Constants:
     val YouTrackApiToken = "YOUTRACK_API_TOKEN"
     val IwHookClasses = "IW_HOOK_CLASSES"
     val IwCommandsDir = "IW_COMMANDS_DIR"
+    val IwPluginDirs = "IW_PLUGIN_DIRS"
     val Tmux = "TMUX"
     val TmuxSocket = "IW_TMUX_SOCKET"
 
@@ -29,6 +30,11 @@ object Constants:
     val IwDir = ".iw"
     val ConfigFileName = "config.conf"
     val ConfigFile = s"$IwDir/$ConfigFileName"  // For display purposes
+    val PluginsDir = "plugins"
+
+  /** Command script header field names */
+  object CommandHeaders:
+    val Requires = "REQUIRES"
 
   /** System property names */
   object SystemProps:

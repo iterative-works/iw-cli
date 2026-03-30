@@ -66,3 +66,12 @@ class ConstantsTest extends FunSuite:
     catch
       case e: IllegalArgumentException =>
         fail(s"IwCliTeamId should be a valid UUID, but got: $teamId")
+
+  test("Constants.EnvVars contains IW_PLUGIN_DIRS"):
+    assertEquals(Constants.EnvVars.IwPluginDirs, "IW_PLUGIN_DIRS")
+
+  test("Constants.Paths contains plugins directory"):
+    assertEquals(Constants.Paths.PluginsDir, "plugins")
+
+  test("Constants.CommandHeaders contains REQUIRES"):
+    assertEquals(Constants.CommandHeaders.Requires, "REQUIRES")
