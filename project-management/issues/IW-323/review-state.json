@@ -35,16 +35,24 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-323/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-323/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-323/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-03-31T17:55:07.180419928Z",
-  "status": "phase_merged",
+  "last_updated": "2026-03-31T19:58:20.334913836Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 03: Merged",
-    "type": "success",
-    "subtext": "Plugin Command Execution"
+    "text": "Phase 04: Implementing",
+    "type": "progress",
+    "subtext": "Hooks and Version Checking"
   },
-  "message": "Phase 03 merged",
+  "message": "Phase 04 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -92,13 +100,18 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "beccdc5",
   "needs_attention": true,
   "phase_checkpoints": {
-    "3": {
-      "context_sha": "context_sha=79ff39f97e28afc9696352f98ad3584ab06a8e55"
+    "4": {
+      "context_sha": "context_sha=383b7cf510d173163b9f13caea897cbfddd94dd8"
     }
   },
   "badges": [
@@ -129,6 +142,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/327"
