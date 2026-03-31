@@ -50,6 +50,18 @@ teardown() {
     [ "$result" = "0.3.7" ]
 }
 
+@test "read_iw_version returns 0.0.0 when VERSION file is missing" {
+    rm -f "$INSTALL_DIR/VERSION"
+    result=$(read_iw_version)
+    [ "$result" = "0.0.0" ]
+}
+
+@test "read_iw_version returns 0.0.0 when VERSION file has malformed content" {
+    echo "not-a-version" > "$INSTALL_DIR/VERSION"
+    result=$(read_iw_version)
+    [ "$result" = "0.0.0" ]
+}
+
 @test "read_iw_version trims trailing newline from VERSION file" {
     printf "0.3.7\n\n" > "$INSTALL_DIR/VERSION"
     result=$(read_iw_version)
@@ -111,7 +123,7 @@ EOF
 // REQUIRES: iw-cli >= 99.0.0
 EOF
     run check_version_requirement "$TEST_DIR/test-cmd.scala"
-    [ "$status" -ne 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" == *"99.0.0"* ]]
     [[ "$output" == *"upgrade"* || "$output" == *"Upgrade"* || "$output" == *"update"* || "$output" == *"Update"* ]]
 }

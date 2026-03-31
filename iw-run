@@ -42,7 +42,14 @@ read_iw_version() {
     local version_file="$INSTALL_DIR/VERSION"
     if [ -f "$version_file" ]; then
         # Read and trim whitespace/newlines
-        tr -d '[:space:]' < "$version_file"
+        local version
+        version=$(tr -d '[:space:]' < "$version_file")
+        # Validate semver format; fall back to 0.0.0 if malformed
+        if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$version"
+        else
+            echo "0.0.0"
+        fi
     else
         echo "0.0.0"
     fi
@@ -443,16 +450,16 @@ describe_command() {
 }
 
 # Extract hook object names from hook files
-# Pattern: 'object XyzHookDoctor' -> 'XyzHookDoctor'
+# Pattern: 'object XyzHookCmd' -> 'XyzHookCmd'
 extract_hook_classes() {
     local hook_files="$1"
     local classes=""
 
     for file in $hook_files; do
         if [ -f "$file" ]; then
-            # Extract object name (e.g., "object IssueHookDoctor" -> "IssueHookDoctor")
+            # Extract object name from hook file (e.g., "object IssueHookDoctor" -> "IssueHookDoctor")
             local class_name
-            class_name=$(grep -oE 'object [A-Za-z]+HookDoctor' "$file" | head -1 | sed 's/object //')
+            class_name=$(grep -oE 'object [A-Za-z0-9]+' "$file" | head -1 | sed 's/object //')
             if [ -n "$class_name" ]; then
                 if [ -n "$classes" ]; then
                     classes="$classes,$class_name"

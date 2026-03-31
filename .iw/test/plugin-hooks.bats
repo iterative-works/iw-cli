@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# PURPOSE: Tests for plugin hook discovery in shared and plugin command execution
+# PURPOSE: Tests for plugin hook discovery and class extraction in iw-run
 # PURPOSE: Verifies hooks from plugin directories and project commands are discovered
 
 setup() {
@@ -70,36 +70,54 @@ teardown() {
 
 # --- Plugin hook discovery for shared commands ---
 
-@test "shared command execution discovers hook files from plugin hooks/ directory" {
-    # Use discover_plugins and simulate the hook discovery logic
-    # We test by checking the hook_files variable after running the discovery portion
-
-    # Create a hook in the plugin's hooks/ dir matching the doctor command
-    local hook_file="$PLUGIN_BASE/testplugin/hooks/myhook.hook-doctor.scala"
-    cat > "$hook_file" << 'EOF'
-// PURPOSE: Test hook for doctor
-
-object MyHookDoctor:
-  val name = "MyHookDoctor"
-EOF
-
-    # The hook should be found when we scan plugin hooks/ dirs
-    # We test this by checking discover_plugins output and manually scanning
+@test "discover_plugins finds plugin with hooks directory" {
     local plugins
     plugins=$(discover_plugins)
-    [ -n "$plugins" ]
-
-    # Verify the hook file exists in the plugin's hooks/ dir
-    [ -f "$hook_file" ]
-
-    # Check that the hook pattern would match
-    local found
-    found=$(find "$PLUGIN_BASE/testplugin/hooks" -maxdepth 1 -name "*.hook-doctor.scala" 2>/dev/null || true)
-    [ -n "$found" ]
+    [[ "$plugins" == *"testplugin"* ]]
 }
 
-@test "plugin without hooks/ directory is silently skipped during shared command hook discovery" {
-    # Create a plugin without a hooks/ directory
+@test "extract_hook_classes extracts class name from doctor hook file" {
+    local classes
+    classes=$(extract_hook_classes "$PLUGIN_BASE/testplugin/hooks/testplugin.hook-doctor.scala")
+    [ "$classes" = "TestpluginHookDoctor" ]
+}
+
+@test "extract_hook_classes extracts class from non-Doctor hook file" {
+    # Hook targeting a non-doctor command (e.g., hello)
+    cat > "$PLUGIN_BASE/testplugin/hooks/myhook.hook-hello.scala" << 'EOF'
+// PURPOSE: Hook for hello command
+
+object MyHookHello:
+  val name = "MyHookHello"
+EOF
+
+    local classes
+    classes=$(extract_hook_classes "$PLUGIN_BASE/testplugin/hooks/myhook.hook-hello.scala")
+    [ "$classes" = "MyHookHello" ]
+}
+
+@test "extract_hook_classes handles multiple hook files" {
+    cat > "$PLUGIN_BASE/testplugin/hooks/alpha.hook-doctor.scala" << 'EOF'
+// PURPOSE: Alpha hook
+
+object AlphaHookDoctor:
+  val name = "alpha"
+EOF
+
+    cat > "$PLUGIN_BASE/testplugin/hooks/beta.hook-doctor.scala" << 'EOF'
+// PURPOSE: Beta hook
+
+object BetaHookDoctor:
+  val name = "beta"
+EOF
+
+    local classes
+    classes=$(extract_hook_classes "$PLUGIN_BASE/testplugin/hooks/alpha.hook-doctor.scala $PLUGIN_BASE/testplugin/hooks/beta.hook-doctor.scala")
+    [[ "$classes" == *"AlphaHookDoctor"* ]]
+    [[ "$classes" == *"BetaHookDoctor"* ]]
+}
+
+@test "plugin without hooks/ directory is silently skipped during discovery" {
     mkdir -p "$PLUGIN_BASE/nohooks/commands"
     cat > "$PLUGIN_BASE/nohooks/commands/cmd.scala" << 'EOF'
 // PURPOSE: Command in plugin without hooks
@@ -108,36 +126,58 @@ EOF
 @main def cmd(args: String*): Unit = println("OK")
 EOF
 
-    # The scan should not fail even without hooks/ directory
-    local found
-    found=$(find "$PLUGIN_BASE/nohooks/hooks" -maxdepth 1 -name "*.hook-doctor.scala" 2>/dev/null || true)
-    [ -z "$found" ]
-
-    # discover_plugins should still work
+    # discover_plugins finds both plugins
     local plugins
     plugins=$(discover_plugins)
     [[ "$plugins" == *"nohooks"* ]]
+    [[ "$plugins" == *"testplugin"* ]]
+
+    # Scanning nohooks for hooks yields nothing (directory doesn't exist)
+    local hook_files=""
+    if [ -d "$PLUGIN_BASE/nohooks/hooks" ]; then
+        hook_files=$(find "$PLUGIN_BASE/nohooks/hooks" -maxdepth 1 -name "*.hook-doctor.scala" 2>/dev/null || true)
+    fi
+    [ -z "$hook_files" ]
 }
 
-@test "hook classes from plugin hooks are extracted and included in IW_HOOK_CLASSES" {
-    local hook_file="$PLUGIN_BASE/testplugin/hooks/extracted.hook-doctor.scala"
-    cat > "$hook_file" << 'EOF'
-// PURPOSE: Hook for class extraction test
+@test "shared command hook discovery finds plugin hooks via discover_plugins" {
+    # Simulate the shared command hook discovery logic from execute_command
+    local actual_name="doctor"
+    local hook_files=""
 
-object ExtractedHookDoctor:
-  val name = "extracted"
-EOF
+    # Scan plugin hooks (same logic as execute_command)
+    local plugin_entries
+    plugin_entries=$(discover_plugins)
+    [ -n "$plugin_entries" ]
 
-    # Test extract_hook_classes picks up the object name
-    local classes
-    classes=$(extract_hook_classes "$hook_file")
-    [ "$classes" = "ExtractedHookDoctor" ]
+    while IFS=: read -r _plugin_name plugin_dir; do
+        if [ -d "$plugin_dir/hooks" ]; then
+            local plugin_hooks
+            plugin_hooks=$(find "$plugin_dir/hooks" -maxdepth 1 -name "*.hook-${actual_name}.scala" 2>/dev/null || true)
+            if [ -n "$plugin_hooks" ]; then
+                if [ -n "$hook_files" ]; then
+                    hook_files="$hook_files $plugin_hooks"
+                else
+                    hook_files="$plugin_hooks"
+                fi
+            fi
+        fi
+    done <<< "$plugin_entries"
+
+    [ -n "$hook_files" ]
+    [[ "$hook_files" == *"hook-doctor.scala"* ]]
+
+    # Extract classes from discovered hooks
+    local hook_classes
+    hook_classes=$(extract_hook_classes "$hook_files")
+    [ -n "$hook_classes" ]
+    [[ "$hook_classes" == *"TestpluginHookDoctor"* ]]
 }
 
 # --- Project hook discovery for plugin commands ---
 
-@test "plugin command execution discovers hook files from project .iw/commands/ directory" {
-    # Create a hook in the project .iw/commands/ dir matching the plugin command name
+@test "project hook discovery finds hooks for plugin commands" {
+    # Create a project hook targeting the plugin's hello command
     local hook_file="$TEST_DIR/.iw/commands/project.hook-hello.scala"
     cat > "$hook_file" << 'EOF'
 // PURPOSE: Project hook for plugin hello command
@@ -146,12 +186,28 @@ object ProjectHookHello:
   val name = "ProjectHookHello"
 EOF
 
-    # Verify the hook file exists in project .iw/commands/
-    [ -f "$hook_file" ]
+    # Simulate plugin command hook discovery logic from execute_command
+    local plugin_cmd_name="hello"
+    local project_hooks
+    project_hooks=$(find "$TEST_DIR/.iw/commands" -maxdepth 1 -name "*.hook-${plugin_cmd_name}.scala" 2>/dev/null || true)
 
-    # Check that the hook pattern would match the plugin command name
-    local found
-    found=$(find "$TEST_DIR/.iw/commands" -maxdepth 1 -name "*.hook-hello.scala" 2>/dev/null || true)
-    [ -n "$found" ]
-    [[ "$found" == *"hook-hello"* ]]
+    [ -n "$project_hooks" ]
+    [[ "$project_hooks" == *"hook-hello.scala"* ]]
+
+    # Extract classes
+    local hook_classes
+    hook_classes=$(extract_hook_classes "$project_hooks")
+    [ "$hook_classes" = "ProjectHookHello" ]
+}
+
+@test "extract_hook_classes returns empty string for file with no object declaration" {
+    local hook_file="$TEST_DIR/empty-hook.scala"
+    cat > "$hook_file" << 'EOF'
+// PURPOSE: Malformed hook with no object
+val x = 42
+EOF
+
+    local classes
+    classes=$(extract_hook_classes "$hook_file")
+    [ -z "$classes" ]
 }
