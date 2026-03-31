@@ -45,11 +45,11 @@
       "path": "project-management/issues/IW-323/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-03-31T19:58:20.334913836Z",
-  "status": "implementing",
+  "last_updated": "2026-03-31T20:42:25.288809758Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 04: Implementing",
-    "type": "progress",
+    "text": "Phase 04: Awaiting Review",
+    "type": "warning",
     "subtext": "Hooks and Version Checking"
   },
   "message": "Phase 04 implementation started",
@@ -105,6 +105,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "beccdc5",
@@ -146,7 +151,11 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/327"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/328"
 }
