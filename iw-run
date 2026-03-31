@@ -436,6 +436,73 @@ execute_command() {
         # shellcheck disable=SC2086
         exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $core_files -- "$@"
 
+    elif [[ "$cmd_name" != ./* ]] && [[ "$cmd_name" == */* ]]; then
+        # Plugin command
+        # Validate: only one slash allowed
+        local slash_count="${cmd_name//[^\/]/}"
+        if [ "${#slash_count}" -ne 1 ]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+
+        local plugin_name="${cmd_name%%/*}"
+        local plugin_cmd_name="${cmd_name#*/}"
+
+        # Validate both parts
+        if [[ -z "$plugin_name" ]] || [[ ! "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+        if [[ -z "$plugin_cmd_name" ]] || [[ ! "$plugin_cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+
+        # Find the plugin directory
+        local plugin_dir=""
+        local plugin_entries
+        plugin_entries=$(discover_plugins)
+        if [ -n "$plugin_entries" ]; then
+            while IFS=: read -r entry_name entry_dir; do
+                if [ "$entry_name" = "$plugin_name" ]; then
+                    plugin_dir="$entry_dir"
+                    break
+                fi
+            done <<< "$plugin_entries"
+        fi
+
+        if [ -z "$plugin_dir" ]; then
+            echo "Error: Plugin '$plugin_name' not found" >&2
+            echo "Run 'iw --list' to see available commands" >&2
+            exit 1
+        fi
+
+        cmd_file="$plugin_dir/commands/${plugin_cmd_name}.scala"
+
+        if [ ! -f "$cmd_file" ]; then
+            echo "Error: Command '$plugin_cmd_name' not found in plugin '$plugin_name'" >&2
+            echo "Run 'iw --list' to see available commands" >&2
+            exit 1
+        fi
+
+        # Find core files excluding test directory
+        local core_files
+        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
+
+        # Find plugin lib files if lib/ directory exists
+        local lib_files=""
+        if [ -d "$plugin_dir/lib" ]; then
+            lib_files=$(find "$plugin_dir/lib" -name "*.scala" -not -path "*/.scala-build/*" | tr '\n' ' ')
+        fi
+
+        # Plugin commands: Execute with core library and plugin lib, NO hook discovery
+        cd "$PROJECT_DIR"
+        # shellcheck disable=SC2086
+        exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $core_files $lib_files -- "$@"
+
     else
         # Shared command
         actual_name="$cmd_name"

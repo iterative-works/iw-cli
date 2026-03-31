@@ -68,3 +68,35 @@ A	.iw/test/plugin-discovery.bats
 ```
 
 ---
+
+## Phase 3: Plugin Command Execution (2026-03-31)
+
+**Layer:** Infrastructure (iw-run shell script)
+
+**What was built:**
+- Extended `execute_command()` with new `elif` branch for `<plugin>/<command>` syntax (lines 439-504)
+- Plugin name/command validation (alphanumeric, dash, underscore; single slash only)
+- Plugin resolution via `discover_plugins()` (from Phase 2)
+- Classpath assembly: core files + plugin `lib/*.scala` files
+- Error handling: unknown plugin, unknown command, invalid syntax — all with `--list` suggestion
+
+**Dependencies on other layers:**
+- Phase 1: Uses `IW_PLUGIN_DIRS` env var name
+- Phase 2: Uses `discover_plugins()` function for plugin directory resolution
+
+**Testing:**
+- E2E tests: 9 BATS tests added
+  - `plugin-commands-execute.bats` (9 tests): basic execution, argument passing, core classpath, plugin lib classpath, unknown plugin error, unknown command error, invalid syntax (3 variants)
+
+**Code review:**
+- Iterations: 1
+- Review file: review-phase-03-20260331-124113.md
+- Result: Pass (0 critical, 7 warnings — all pre-existing patterns or minor, 4 suggestions)
+
+**Files changed:**
+```
+M	iw-run
+A	.iw/test/plugin-commands-execute.bats
+```
+
+---
