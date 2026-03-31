@@ -145,4 +145,7 @@ EOF
     # Should show the IW_PLUGIN_DIRS version (env-cmd), not the XDG version (xdg-cmd)
     [[ "$output" == *"dualplugin/env-cmd"* ]]
     [[ "$output" != *"dualplugin/xdg-cmd"* ]]
+    # Plugin section should appear exactly once (not duplicated)
+    local count=$(echo "$output" | grep -c "Plugin commands (dualplugin):")
+    [ "$count" -eq 1 ]
 }

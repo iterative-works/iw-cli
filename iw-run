@@ -72,7 +72,10 @@ discover_plugins() {
             if [ -d "$parent_dir" ]; then
                 for plugin_dir in "$parent_dir"/*/; do
                     [ -d "$plugin_dir" ] || continue
-                    local plugin_name=$(basename "$plugin_dir")
+                    local plugin_name
+                    plugin_name=$(basename "$plugin_dir")
+                    # Skip directories with non-conforming names
+                    [[ "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
                     # Skip if no commands/ subdirectory
                     [ -d "$plugin_dir/commands" ] || continue
                     if [ -z "${seen_plugins[$plugin_name]+x}" ]; then
@@ -90,7 +93,10 @@ discover_plugins() {
     if [ -d "$xdg_plugins_dir" ]; then
         for plugin_dir in "$xdg_plugins_dir"/*/; do
             [ -d "$plugin_dir" ] || continue
-            local plugin_name=$(basename "$plugin_dir")
+            local plugin_name
+            plugin_name=$(basename "$plugin_dir")
+            # Skip directories with non-conforming names
+            [[ "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
             # Skip if no commands/ subdirectory
             [ -d "$plugin_dir/commands" ] || continue
             if [ -z "${seen_plugins[$plugin_name]+x}" ]; then
@@ -254,9 +260,9 @@ describe_command() {
         local plugin_entries
         plugin_entries=$(discover_plugins)
         if [ -n "$plugin_entries" ]; then
-            while IFS=: read -r pname pdir; do
-                if [ "$pname" = "$plugin_name" ]; then
-                    plugin_dir="$pdir"
+            while IFS=: read -r entry_name entry_dir; do
+                if [ "$entry_name" = "$plugin_name" ]; then
+                    plugin_dir="$entry_dir"
                     break
                 fi
             done <<< "$plugin_entries"
