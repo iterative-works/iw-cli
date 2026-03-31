@@ -58,6 +58,60 @@ parse_command_header() {
     esac
 }
 
+# Discover plugin directories from XDG and IW_PLUGIN_DIRS
+# Outputs plugin_name:plugin_dir pairs, one per line
+# IW_PLUGIN_DIRS entries are scanned first and take precedence for duplicate names
+discover_plugins() {
+    local -A seen_plugins
+    local results=()
+
+    # Scan IW_PLUGIN_DIRS first (takes precedence)
+    if [ -n "${IW_PLUGIN_DIRS:-}" ]; then
+        IFS=':' read -ra plugin_parents <<< "$IW_PLUGIN_DIRS"
+        for parent_dir in "${plugin_parents[@]}"; do
+            if [ -d "$parent_dir" ]; then
+                for plugin_dir in "$parent_dir"/*/; do
+                    [ -d "$plugin_dir" ] || continue
+                    local plugin_name
+                    plugin_name=$(basename "$plugin_dir")
+                    # Skip directories with non-conforming names
+                    [[ "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
+                    # Skip if no commands/ subdirectory
+                    [ -d "$plugin_dir/commands" ] || continue
+                    if [ -z "${seen_plugins[$plugin_name]+x}" ]; then
+                        seen_plugins[$plugin_name]=1
+                        results+=("$plugin_name:${plugin_dir%/}")
+                    fi
+                done
+            fi
+        done
+    fi
+
+    # Scan XDG data directory
+    local xdg_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+    local xdg_plugins_dir="$xdg_data_home/iw/plugins"
+    if [ -d "$xdg_plugins_dir" ]; then
+        for plugin_dir in "$xdg_plugins_dir"/*/; do
+            [ -d "$plugin_dir" ] || continue
+            local plugin_name
+            plugin_name=$(basename "$plugin_dir")
+            # Skip directories with non-conforming names
+            [[ "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
+            # Skip if no commands/ subdirectory
+            [ -d "$plugin_dir/commands" ] || continue
+            if [ -z "${seen_plugins[$plugin_name]+x}" ]; then
+                seen_plugins[$plugin_name]=1
+                results+=("$plugin_name:${plugin_dir%/}")
+            fi
+        done
+    fi
+
+    # Output results
+    for entry in "${results[@]}"; do
+        echo "$entry"
+    done
+}
+
 # List all available commands with metadata
 list_commands() {
     echo "Available commands:"
@@ -81,6 +135,51 @@ list_commands() {
             echo ""
         fi
     done
+
+    # List plugin commands
+    local plugin_entries
+    plugin_entries=$(discover_plugins)
+    if [ -n "$plugin_entries" ]; then
+        while IFS=: read -r plugin_name plugin_dir; do
+            # Check if there are any non-hook .scala files in commands/
+            local has_plugin_commands=false
+            for cmd_file in "$plugin_dir/commands"/*.scala; do
+                if [ -f "$cmd_file" ]; then
+                    local filename=$(basename "$cmd_file")
+                    # Skip hook files (*.hook-*.scala)
+                    if [[ "$filename" =~ \.hook- ]]; then
+                        continue
+                    fi
+                    has_plugin_commands=true
+                    break
+                fi
+            done
+
+            if [ "$has_plugin_commands" = true ]; then
+                echo "Plugin commands ($plugin_name):"
+                echo ""
+
+                for cmd_file in "$plugin_dir/commands"/*.scala; do
+                    if [ -f "$cmd_file" ]; then
+                        local filename=$(basename "$cmd_file")
+                        # Skip hook files (*.hook-*.scala)
+                        if [[ "$filename" =~ \.hook- ]]; then
+                            continue
+                        fi
+
+                        local cmd_name=$(basename "$cmd_file" .scala)
+                        local purpose=$(parse_command_header "$cmd_file" "PURPOSE")
+                        local usage=$(parse_command_header "$cmd_file" "USAGE")
+
+                        echo "Command: $plugin_name/$cmd_name"
+                        echo "Purpose: $purpose"
+                        echo "Usage:   $usage"
+                        echo ""
+                    fi
+                done
+            fi
+        done <<< "$plugin_entries"
+    fi
 
     # List project commands if they exist
     local project_commands_dir="$PROJECT_DIR/.iw/commands"
@@ -130,6 +229,86 @@ describe_command() {
     local cmd_name="$1"
     local cmd_file=""
     local display_name=""
+
+    # Detect if this is a plugin command (contains / but does not start with ./)
+    if [[ "$cmd_name" != ./* ]] && [[ "$cmd_name" == */* ]]; then
+        # Validate: only one slash allowed
+        local slash_count="${cmd_name//[^\/]/}"
+        if [ "${#slash_count}" -ne 1 ]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+
+        local plugin_name="${cmd_name%%/*}"
+        local plugin_cmd_name="${cmd_name#*/}"
+
+        # Validate both parts
+        if [[ -z "$plugin_name" ]] || [[ ! "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid plugin name '$plugin_name'" >&2
+            echo "Plugin names must contain only letters, numbers, dashes, and underscores" >&2
+            exit 1
+        fi
+        if [[ -z "$plugin_cmd_name" ]] || [[ ! "$plugin_cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid command name '$plugin_cmd_name'" >&2
+            echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+            exit 1
+        fi
+
+        # Find the plugin directory
+        local plugin_dir=""
+        local plugin_entries
+        plugin_entries=$(discover_plugins)
+        if [ -n "$plugin_entries" ]; then
+            while IFS=: read -r entry_name entry_dir; do
+                if [ "$entry_name" = "$plugin_name" ]; then
+                    plugin_dir="$entry_dir"
+                    break
+                fi
+            done <<< "$plugin_entries"
+        fi
+
+        if [ -z "$plugin_dir" ]; then
+            echo "Error: Plugin '$plugin_name' not found" >&2
+            exit 1
+        fi
+
+        cmd_file="$plugin_dir/commands/${plugin_cmd_name}.scala"
+        display_name="$plugin_name/$plugin_cmd_name"
+
+        if [ ! -f "$cmd_file" ]; then
+            echo "Error: Command '$plugin_cmd_name' not found in plugin '$plugin_name'" >&2
+            exit 1
+        fi
+
+        echo "=== Command: $display_name ==="
+        echo ""
+
+        echo "Purpose:"
+        parse_command_header "$cmd_file" "PURPOSE"
+        echo ""
+
+        echo "Usage:"
+        parse_command_header "$cmd_file" "USAGE"
+        echo ""
+
+        local args=$(parse_command_header "$cmd_file" "ARGS")
+        if [ -n "$args" ]; then
+            echo "Arguments:"
+            echo "$args"
+            echo ""
+        fi
+
+        local examples=$(parse_command_header "$cmd_file" "EXAMPLES")
+        if [ -n "$examples" ]; then
+            echo "Examples:"
+            echo "$examples"
+            echo ""
+        fi
+
+        echo "Source: plugin ($plugin_name)"
+        return
+    fi
 
     # Detect if this is a project command (starts with ./)
     if [[ "$cmd_name" == ./* ]]; then
