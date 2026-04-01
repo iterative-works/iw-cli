@@ -100,3 +100,44 @@ A	.iw/test/plugin-commands-execute.bats
 ```
 
 ---
+
+## Phase 4: Hooks and Version Checking (2026-03-31)
+
+**Layer:** Infrastructure (iw-run shell script + version infrastructure)
+
+**What was built:**
+- `.iw/VERSION` — new file, single source of truth for the version string (`0.3.7`), readable by both bash and Scala
+- `read_iw_version()` — reads and validates version from `$INSTALL_DIR/VERSION`, falls back to `0.0.0` for missing or malformed files
+- `compare_versions()` — pure semver comparison (`major.minor.patch`), returns 0 if a >= b
+- `check_version_requirement()` — parses `// REQUIRES: iw-cli >= X.Y.Z` header from command files, gates execution on version check, warns on malformed headers
+- Plugin hook discovery for shared commands — iterates `discover_plugins()` and scans each `$plugin_dir/hooks/*.hook-${cmd_name}.scala`
+- Project hook discovery for plugin commands — scans `$PROJECT_DIR/.iw/commands/*.hook-${cmd_name}.scala` when executing plugin commands
+- Generalized `extract_hook_classes()` regex to match any `object` declaration (was hardcoded to `HookDoctor` pattern)
+- Added `BASH_SOURCE` guard to `iw-run` to enable function-level BATS testing without running `main()`
+- Updated `version.scala` to read version from `.iw/VERSION` at runtime
+
+**Dependencies on other layers:**
+- Phase 1: `Constants.CommandHeaders.Requires` (bash reads header directly)
+- Phase 2: `discover_plugins()` function for plugin directory resolution
+- Phase 3: Plugin command execution branch in `execute_command()`
+
+**Testing:**
+- BATS tests: 23 tests across 2 files
+  - `version-check.bats` (15 tests): `read_iw_version()`, `compare_versions()`, `check_version_requirement()`
+  - `plugin-hooks.bats` (8 tests): plugin hook discovery, project hook discovery, `extract_hook_classes()` generalization
+
+**Code review:**
+- Iterations: 2
+- Review file: review-phase-04-20260331-203513.md
+- Result: Pass after fixes (2 critical issues fixed: test coverage gaps and hardcoded regex)
+
+**Files changed:**
+```
+A	.iw/VERSION
+M	.iw/commands/version.scala
+A	.iw/test/plugin-hooks.bats
+A	.iw/test/version-check.bats
+M	iw-run
+```
+
+---

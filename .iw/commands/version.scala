@@ -7,7 +7,10 @@
 
 import iw.core.output.Output
 
-val iwVersion = "0.3.7"
+val iwVersion: String =
+  val versionFile = os.Path(sys.env.getOrElse("IW_COMMANDS_DIR", ".")) / os.up / "VERSION"
+  if os.exists(versionFile) then os.read(versionFile).trim
+  else "0.0.0"
 
 @main def version(args: String*): Unit =
   val verbose = args.contains("--verbose")
