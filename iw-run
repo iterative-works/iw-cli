@@ -37,6 +37,82 @@ bootstrap() {
     echo "Bootstrap complete. iw-cli is ready for offline use." >&2
 }
 
+# Read the installed version from the VERSION file
+read_iw_version() {
+    local version_file="$INSTALL_DIR/VERSION"
+    if [ -f "$version_file" ]; then
+        # Read and trim whitespace/newlines
+        local version
+        version=$(tr -d '[:space:]' < "$version_file")
+        # Validate semver format; fall back to 0.0.0 if malformed
+        if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$version"
+        else
+            echo "0.0.0"
+        fi
+    else
+        echo "0.0.0"
+    fi
+}
+
+# Compare two semver strings (major.minor.patch)
+# Returns 0 if version_a >= version_b, 1 otherwise
+compare_versions() {
+    local version_a="$1"
+    local version_b="$2"
+
+    local major_a minor_a patch_a
+    local major_b minor_b patch_b
+
+    IFS='.' read -r major_a minor_a patch_a <<< "$version_a"
+    IFS='.' read -r major_b minor_b patch_b <<< "$version_b"
+
+    # Compare major
+    if [ "$major_a" -gt "$major_b" ]; then return 0; fi
+    if [ "$major_a" -lt "$major_b" ]; then return 1; fi
+
+    # Compare minor
+    if [ "$minor_a" -gt "$minor_b" ]; then return 0; fi
+    if [ "$minor_a" -lt "$minor_b" ]; then return 1; fi
+
+    # Compare patch
+    if [ "$patch_a" -ge "$patch_b" ]; then return 0; fi
+    return 1
+}
+
+# Check if a command file's version requirement is satisfied
+# Exits with an error if the installed version is too old
+# Warns and continues if the REQUIRES header is malformed
+# Passes silently if no REQUIRES header is present
+check_version_requirement() {
+    local cmd_file="$1"
+    local required_line
+    required_line=$(grep "^// REQUIRES:" "$cmd_file" | head -1 || true)
+
+    # No requirement header — pass silently
+    [ -z "$required_line" ] && return 0
+
+    # Parse: "// REQUIRES: iw-cli >= X.Y.Z"
+    local required_version
+    required_version=$(echo "$required_line" | sed -n 's|^// REQUIRES: iw-cli >= \([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*|\1|p')
+
+    if [ -z "$required_version" ]; then
+        echo "Warning: malformed REQUIRES header in $(basename "$cmd_file"): $required_line" >&2
+        return 0
+    fi
+
+    local installed_version
+    installed_version=$(read_iw_version)
+
+    if compare_versions "$installed_version" "$required_version"; then
+        return 0
+    fi
+
+    echo "Error: This command requires iw-cli >= $required_version (installed: $installed_version)" >&2
+    echo "Please upgrade iw-cli to continue." >&2
+    exit 1
+}
+
 # Parse command headers from a Scala file
 parse_command_header() {
     local file="$1"
@@ -56,6 +132,60 @@ parse_command_header() {
             grep "^// EXAMPLE:" "$file" | sed 's|^// EXAMPLE: *||'
             ;;
     esac
+}
+
+# Discover plugin directories from XDG and IW_PLUGIN_DIRS
+# Outputs plugin_name:plugin_dir pairs, one per line
+# IW_PLUGIN_DIRS entries are scanned first and take precedence for duplicate names
+discover_plugins() {
+    local -A seen_plugins
+    local results=()
+
+    # Scan IW_PLUGIN_DIRS first (takes precedence)
+    if [ -n "${IW_PLUGIN_DIRS:-}" ]; then
+        IFS=':' read -ra plugin_parents <<< "$IW_PLUGIN_DIRS"
+        for parent_dir in "${plugin_parents[@]}"; do
+            if [ -d "$parent_dir" ]; then
+                for plugin_dir in "$parent_dir"/*/; do
+                    [ -d "$plugin_dir" ] || continue
+                    local plugin_name
+                    plugin_name=$(basename "$plugin_dir")
+                    # Skip directories with non-conforming names
+                    [[ "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
+                    # Skip if no commands/ subdirectory
+                    [ -d "$plugin_dir/commands" ] || continue
+                    if [ -z "${seen_plugins[$plugin_name]+x}" ]; then
+                        seen_plugins[$plugin_name]=1
+                        results+=("$plugin_name:${plugin_dir%/}")
+                    fi
+                done
+            fi
+        done
+    fi
+
+    # Scan XDG data directory
+    local xdg_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+    local xdg_plugins_dir="$xdg_data_home/iw/plugins"
+    if [ -d "$xdg_plugins_dir" ]; then
+        for plugin_dir in "$xdg_plugins_dir"/*/; do
+            [ -d "$plugin_dir" ] || continue
+            local plugin_name
+            plugin_name=$(basename "$plugin_dir")
+            # Skip directories with non-conforming names
+            [[ "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]] || continue
+            # Skip if no commands/ subdirectory
+            [ -d "$plugin_dir/commands" ] || continue
+            if [ -z "${seen_plugins[$plugin_name]+x}" ]; then
+                seen_plugins[$plugin_name]=1
+                results+=("$plugin_name:${plugin_dir%/}")
+            fi
+        done
+    fi
+
+    # Output results
+    for entry in "${results[@]}"; do
+        echo "$entry"
+    done
 }
 
 # List all available commands with metadata
@@ -81,6 +211,51 @@ list_commands() {
             echo ""
         fi
     done
+
+    # List plugin commands
+    local plugin_entries
+    plugin_entries=$(discover_plugins)
+    if [ -n "$plugin_entries" ]; then
+        while IFS=: read -r plugin_name plugin_dir; do
+            # Check if there are any non-hook .scala files in commands/
+            local has_plugin_commands=false
+            for cmd_file in "$plugin_dir/commands"/*.scala; do
+                if [ -f "$cmd_file" ]; then
+                    local filename=$(basename "$cmd_file")
+                    # Skip hook files (*.hook-*.scala)
+                    if [[ "$filename" =~ \.hook- ]]; then
+                        continue
+                    fi
+                    has_plugin_commands=true
+                    break
+                fi
+            done
+
+            if [ "$has_plugin_commands" = true ]; then
+                echo "Plugin commands ($plugin_name):"
+                echo ""
+
+                for cmd_file in "$plugin_dir/commands"/*.scala; do
+                    if [ -f "$cmd_file" ]; then
+                        local filename=$(basename "$cmd_file")
+                        # Skip hook files (*.hook-*.scala)
+                        if [[ "$filename" =~ \.hook- ]]; then
+                            continue
+                        fi
+
+                        local cmd_name=$(basename "$cmd_file" .scala)
+                        local purpose=$(parse_command_header "$cmd_file" "PURPOSE")
+                        local usage=$(parse_command_header "$cmd_file" "USAGE")
+
+                        echo "Command: $plugin_name/$cmd_name"
+                        echo "Purpose: $purpose"
+                        echo "Usage:   $usage"
+                        echo ""
+                    fi
+                done
+            fi
+        done <<< "$plugin_entries"
+    fi
 
     # List project commands if they exist
     local project_commands_dir="$PROJECT_DIR/.iw/commands"
@@ -130,6 +305,86 @@ describe_command() {
     local cmd_name="$1"
     local cmd_file=""
     local display_name=""
+
+    # Detect if this is a plugin command (contains / but does not start with ./)
+    if [[ "$cmd_name" != ./* ]] && [[ "$cmd_name" == */* ]]; then
+        # Validate: only one slash allowed
+        local slash_count="${cmd_name//[^\/]/}"
+        if [ "${#slash_count}" -ne 1 ]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+
+        local plugin_name="${cmd_name%%/*}"
+        local plugin_cmd_name="${cmd_name#*/}"
+
+        # Validate both parts
+        if [[ -z "$plugin_name" ]] || [[ ! "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid plugin name '$plugin_name'" >&2
+            echo "Plugin names must contain only letters, numbers, dashes, and underscores" >&2
+            exit 1
+        fi
+        if [[ -z "$plugin_cmd_name" ]] || [[ ! "$plugin_cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid command name '$plugin_cmd_name'" >&2
+            echo "Command names must contain only letters, numbers, dashes, and underscores" >&2
+            exit 1
+        fi
+
+        # Find the plugin directory
+        local plugin_dir=""
+        local plugin_entries
+        plugin_entries=$(discover_plugins)
+        if [ -n "$plugin_entries" ]; then
+            while IFS=: read -r entry_name entry_dir; do
+                if [ "$entry_name" = "$plugin_name" ]; then
+                    plugin_dir="$entry_dir"
+                    break
+                fi
+            done <<< "$plugin_entries"
+        fi
+
+        if [ -z "$plugin_dir" ]; then
+            echo "Error: Plugin '$plugin_name' not found" >&2
+            exit 1
+        fi
+
+        cmd_file="$plugin_dir/commands/${plugin_cmd_name}.scala"
+        display_name="$plugin_name/$plugin_cmd_name"
+
+        if [ ! -f "$cmd_file" ]; then
+            echo "Error: Command '$plugin_cmd_name' not found in plugin '$plugin_name'" >&2
+            exit 1
+        fi
+
+        echo "=== Command: $display_name ==="
+        echo ""
+
+        echo "Purpose:"
+        parse_command_header "$cmd_file" "PURPOSE"
+        echo ""
+
+        echo "Usage:"
+        parse_command_header "$cmd_file" "USAGE"
+        echo ""
+
+        local args=$(parse_command_header "$cmd_file" "ARGS")
+        if [ -n "$args" ]; then
+            echo "Arguments:"
+            echo "$args"
+            echo ""
+        fi
+
+        local examples=$(parse_command_header "$cmd_file" "EXAMPLES")
+        if [ -n "$examples" ]; then
+            echo "Examples:"
+            echo "$examples"
+            echo ""
+        fi
+
+        echo "Source: plugin ($plugin_name)"
+        return
+    fi
 
     # Detect if this is a project command (starts with ./)
     if [[ "$cmd_name" == ./* ]]; then
@@ -195,16 +450,16 @@ describe_command() {
 }
 
 # Extract hook object names from hook files
-# Pattern: 'object XyzHookDoctor' -> 'XyzHookDoctor'
+# Pattern: 'object XyzHookCmd' -> 'XyzHookCmd'
 extract_hook_classes() {
     local hook_files="$1"
     local classes=""
 
     for file in $hook_files; do
         if [ -f "$file" ]; then
-            # Extract object name (e.g., "object IssueHookDoctor" -> "IssueHookDoctor")
+            # Extract object name from hook file (e.g., "object IssueHookDoctor" -> "IssueHookDoctor")
             local class_name
-            class_name=$(grep -oE 'object [A-Za-z]+HookDoctor' "$file" | head -1 | sed 's/object //')
+            class_name=$(grep -oE 'object [A-Za-z0-9]+' "$file" | head -1 | sed 's/object //')
             if [ -n "$class_name" ]; then
                 if [ -n "$classes" ]; then
                     classes="$classes,$class_name"
@@ -252,10 +507,95 @@ execute_command() {
         local core_files
         core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
 
+        check_version_requirement "$cmd_file"
+
         # Project commands: Execute with core library, NO hook discovery
         cd "$PROJECT_DIR"
         # shellcheck disable=SC2086
         exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $core_files -- "$@"
+
+    elif [[ "$cmd_name" != ./* ]] && [[ "$cmd_name" == */* ]]; then
+        # Plugin command
+        # Validate: only one slash allowed
+        local slash_count="${cmd_name//[^\/]/}"
+        if [ "${#slash_count}" -ne 1 ]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+
+        local plugin_name="${cmd_name%%/*}"
+        local plugin_cmd_name="${cmd_name#*/}"
+
+        # Validate both parts
+        if [[ -z "$plugin_name" ]] || [[ ! "$plugin_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+        if [[ -z "$plugin_cmd_name" ]] || [[ ! "$plugin_cmd_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "Error: Invalid plugin command syntax '$cmd_name'" >&2
+            echo "Use <plugin>/<command> format (e.g., kanon/implement)" >&2
+            exit 1
+        fi
+
+        # Find the plugin directory
+        local plugin_dir=""
+        local plugin_entries
+        plugin_entries=$(discover_plugins)
+        if [ -n "$plugin_entries" ]; then
+            while IFS=: read -r entry_name entry_dir; do
+                if [ "$entry_name" = "$plugin_name" ]; then
+                    plugin_dir="$entry_dir"
+                    break
+                fi
+            done <<< "$plugin_entries"
+        fi
+
+        if [ -z "$plugin_dir" ]; then
+            echo "Error: Plugin '$plugin_name' not found" >&2
+            echo "Run 'iw --list' to see available commands" >&2
+            exit 1
+        fi
+
+        cmd_file="$plugin_dir/commands/${plugin_cmd_name}.scala"
+
+        if [ ! -f "$cmd_file" ]; then
+            echo "Error: Command '$plugin_cmd_name' not found in plugin '$plugin_name'" >&2
+            echo "Run 'iw --list' to see available commands" >&2
+            exit 1
+        fi
+
+        # Find core files excluding test directory
+        local core_files
+        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
+
+        # Find plugin lib files if lib/ directory exists
+        local lib_files=""
+        if [ -d "$plugin_dir/lib" ]; then
+            lib_files=$(find "$plugin_dir/lib" -name "*.scala" -not -path "*/.scala-build/*" | tr '\n' ' ')
+        fi
+
+        # Find project hooks for this plugin command
+        local hook_files=""
+        local project_hooks
+        project_hooks=$(find "$PROJECT_DIR/.iw/commands" -maxdepth 1 -name "*.hook-${plugin_cmd_name}.scala" 2>/dev/null || true)
+        if [ -n "$project_hooks" ]; then
+            hook_files="$project_hooks"
+        fi
+
+        # Extract hook class names and pass as environment variable
+        local hook_classes=""
+        if [ -n "$hook_files" ]; then
+            hook_classes=$(extract_hook_classes "$hook_files")
+        fi
+
+        check_version_requirement "$cmd_file"
+
+        # Plugin commands: Execute with core library, plugin lib, and project hooks
+        cd "$PROJECT_DIR"
+        # shellcheck disable=SC2086
+        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $hook_files $core_files $lib_files -- "$@"
 
     else
         # Shared command
@@ -302,6 +642,25 @@ execute_command() {
             fi
         fi
 
+        # Find plugin hooks (scan each plugin's hooks/ directory)
+        local plugin_entries
+        plugin_entries=$(discover_plugins)
+        if [ -n "$plugin_entries" ]; then
+            while IFS=: read -r _plugin_name plugin_dir; do
+                if [ -d "$plugin_dir/hooks" ]; then
+                    local plugin_hooks
+                    plugin_hooks=$(find "$plugin_dir/hooks" -maxdepth 1 -name "*.hook-${actual_name}.scala" 2>/dev/null || true)
+                    if [ -n "$plugin_hooks" ]; then
+                        if [ -n "$hook_files" ]; then
+                            hook_files="$hook_files $plugin_hooks"
+                        else
+                            hook_files="$plugin_hooks"
+                        fi
+                    fi
+                fi
+            done <<< "$plugin_entries"
+        fi
+
         # Extract hook class names and pass as environment variable
         local hook_classes=""
         if [ -n "$hook_files" ]; then
@@ -311,6 +670,8 @@ execute_command() {
         # Find core files excluding test directory
         local core_files
         core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
+
+        check_version_requirement "$cmd_file"
 
         # Change to project directory for command execution
         cd "$PROJECT_DIR"
@@ -359,4 +720,6 @@ main() {
     esac
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi
