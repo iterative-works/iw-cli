@@ -45,11 +45,11 @@
       "path": "project-management/issues/IW-323/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-03-31T20:42:25.288809758Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-01T07:41:41.930272430Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 04: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 04: Merged",
+    "type": "success",
     "subtext": "Hooks and Version Checking"
   },
   "message": "Phase 04 implementation started",
@@ -155,6 +155,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/328"
