@@ -28,7 +28,7 @@ setup() {
 
     # Override INSTALL_DIR to point at our temp install by pre-setting it
     # (iw-run sources INSTALL_DIR from its own location; we copy it there)
-    cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/.iw-install/iw-run"
+    cp "$BATS_TEST_DIRNAME/../iw-run" "$TEST_DIR/.iw-install/iw-run"
     chmod +x "$TEST_DIR/.iw-install/iw-run"
 
     # Source iw-run to get access to bash functions directly
