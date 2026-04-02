@@ -16,7 +16,7 @@ setup() {
     git config user.name "Test User"
 
     # Copy the iw-run script (this is the actual script we're testing)
-    cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/iw-run"
+    cp "$BATS_TEST_DIRNAME/../iw-run" "$TEST_DIR/iw-run"
     chmod +x "$TEST_DIR/iw-run"
 
     # Copy shared commands (excluding hooks) and core

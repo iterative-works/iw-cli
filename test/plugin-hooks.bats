@@ -8,7 +8,7 @@ setup() {
     export TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"
 
-    cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/iw-run"
+    cp "$BATS_TEST_DIRNAME/../iw-run" "$TEST_DIR/iw-run"
     chmod +x "$TEST_DIR/iw-run"
 
     # Create install directories
