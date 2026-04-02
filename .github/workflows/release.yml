@@ -26,7 +26,7 @@ jobs:
           sudo /tmp/bats-core/install.sh /usr/local
 
       - name: Run all tests
-        run: ./iw test
+        run: ./iw ./test
         timeout-minutes: 20
 
       - name: Extract version from tag
@@ -42,7 +42,7 @@ jobs:
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build release tarball
-        run: .iw/scripts/package-release.sh "${{ steps.version.outputs.version }}"
+        run: scripts/package-release.sh "${{ steps.version.outputs.version }}"
 
       - name: Upload to versioned release
         env:

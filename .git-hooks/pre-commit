@@ -33,7 +33,7 @@ fi
 
 # Compile core with warnings-as-errors
 echo -e "${YELLOW}Compiling core (warnings as errors)...${NC}"
-if scala-cli compile --scalac-option -Werror .iw/core/ 2>&1; then
+if scala-cli compile --scalac-option -Werror core/ 2>&1; then
     echo -e "${GREEN}Compilation passed (no warnings).${NC}"
 else
     echo ""
@@ -41,7 +41,7 @@ else
     echo -e "${RED}│  COMMIT BLOCKED: Compilation errors/warnings │${NC}"
     echo -e "${RED}├──────────────────────────────────────────────┤${NC}"
     echo -e "${RED}│  Fix compilation errors and warnings in      │${NC}"
-    echo -e "${RED}│  .iw/core/ before committing.                │${NC}"
+    echo -e "${RED}│  core/ before committing.                    │${NC}"
     echo -e "${RED}│                                              │${NC}"
     echo -e "${RED}│  Bypass: git commit --no-verify              │${NC}"
     echo -e "${RED}│          (not recommended)                   │${NC}"

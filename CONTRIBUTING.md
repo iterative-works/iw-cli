@@ -24,7 +24,7 @@ git config core.hooksPath .git-hooks
 Runs two checks:
 
 1. **Format check** (`scala-cli fmt --check .`) — blocks if formatting issues found
-2. **Compile core** (`scala-cli compile --scalac-option -Werror .iw/core/`) — blocks on errors or warnings
+2. **Compile core** (`scala-cli compile --scalac-option -Werror core/`) — blocks on errors or warnings
 
 Fix formatting with:
 
@@ -39,7 +39,7 @@ Then re-stage your changes and commit again.
 Runs two checks before allowing a push:
 
 1. **Compile core** — compiles with `-Werror` (warnings treated as errors)
-2. **Full test suite** — runs `./iw test` (unit tests, command compilation, E2E tests)
+2. **Full test suite** — runs `./iw ./test` (unit tests, command compilation, E2E tests)
 
 ## Local Development
 
@@ -49,11 +49,11 @@ Run checks locally before pushing:
 |-------|---------|
 | Format check | `scala-cli fmt --check .` |
 | Auto-format | `scala-cli fmt .` |
-| Compile (strict) | `scala-cli compile --scalac-option -Werror .iw/core/` |
+| Compile (strict) | `scala-cli compile --scalac-option -Werror core/` |
 | Lint | `scalafix --check` |
-| All tests | `./iw test` |
-| Unit tests only | `./iw test unit` |
-| E2E tests only | `./iw test e2e` |
+| All tests | `./iw ./test` |
+| Unit tests only | `./iw ./test unit` |
+| E2E tests only | `./iw ./test e2e` |
 
 ## Troubleshooting
 

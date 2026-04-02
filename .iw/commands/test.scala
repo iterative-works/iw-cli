@@ -54,13 +54,12 @@ def showUsage(): Unit =
   System.out.println("  iw test e2e       # Run only E2E tests")
 
 def runUnitTests(): Boolean =
-  val projectDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
-  val iwDir = projectDir / Constants.Paths.IwDir
-  val testDir = iwDir / "core" / "test"
-  val coreDir = iwDir / "core"
+  val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
+  val testDir = installDir / "core" / "test"
+  val coreDir = installDir / "core"
 
   if !os.exists(testDir) then
-    Output.info("No unit tests found (missing .iw/core/test/)")
+    Output.info("No unit tests found (missing core/test/)")
     true
   else
     val testFiles = os.list(testDir).filter(_.ext == "scala")
@@ -77,13 +76,12 @@ def runUnitTests(): Boolean =
       exitCode == 0
 
 def runCommandCompileCheck(): Boolean =
-  val projectDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
-  val iwDir = projectDir / Constants.Paths.IwDir
-  val commandsDir = iwDir / "commands"
-  val coreDir = iwDir / "core"
+  val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
+  val commandsDir = installDir / "commands"
+  val coreDir = installDir / "core"
 
   if !os.exists(commandsDir) then
-    Output.info("No commands directory found (missing .iw/commands/)")
+    Output.info("No commands directory found (missing commands/)")
     true
   else
     val commandFiles = os.list(commandsDir).filter(_.ext == "scala")
@@ -125,11 +123,11 @@ def runCommandCompileCheck(): Boolean =
       allSuccess
 
 def runE2ETests(): Boolean =
-  val projectDir = os.Path(System.getProperty(Constants.SystemProps.UserDir))
-  val testDir = projectDir / Constants.Paths.IwDir / "test"
+  val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
+  val testDir = installDir / "test"
 
   if !os.exists(testDir) then
-    Output.info("No E2E tests found (missing .iw/test/)")
+    Output.info("No E2E tests found (missing test/)")
     true
   else
     val testFiles = os.list(testDir).filter(_.ext == "bats")

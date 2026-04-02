@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Directory where this script is located (the installation directory)
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export IW_INSTALL_DIR="$INSTALL_DIR"
 export IW_COMMANDS_DIR="${IW_COMMANDS_DIR:-$INSTALL_DIR/commands}"
 export IW_CORE_DIR="${IW_CORE_DIR:-$INSTALL_DIR/core}"
 COMMANDS_DIR="$IW_COMMANDS_DIR"

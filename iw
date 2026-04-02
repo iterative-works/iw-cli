@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 # PURPOSE: Bootstrap script for iw-cli local development
-# PURPOSE: Delegates to iw-run with proper environment setup
+# PURPOSE: Delegates to iw-run (dev layout matches release layout, no overrides needed)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Delegate to iw-run with local development paths
-# IW_PROJECT_DIR defaults to pwd in iw-run (where command is invoked from)
-# IW_COMMANDS_DIR and IW_CORE_DIR point to the local dev sources
-IW_COMMANDS_DIR="$SCRIPT_DIR/.iw/commands" \
-IW_CORE_DIR="$SCRIPT_DIR/.iw/core" \
 exec "$SCRIPT_DIR/iw-run" "$@"

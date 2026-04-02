@@ -331,5 +331,5 @@ fi
 ## See Also
 
 - Schema definition: `schemas/review-state.schema.json`
-- Dashboard rendering: `.iw/core/dashboard/`
-- Example states: `.iw/core/test/resources/review-state/`
+- Dashboard rendering: `core/dashboard/`
+- Example states: `core/test/resources/review-state/`

@@ -65,7 +65,7 @@ If not specified, defaults to "latest".
 | `iw worktrees [--all] [--json]` | List worktrees for current project |
 | `iw status [issue-id] [--json]` | Show detailed worktree status |
 | `iw review-state` | Manage review-state.json files (validate, write, update) |
-| `iw test [unit\|compile\|e2e]` | Run tests |
+| `iw ./test [unit\|compile\|e2e]` | Run tests (project-specific command) |
 
 ### Agent integration
 
@@ -243,7 +243,7 @@ cd iw-cli
 ./iw --list
 ```
 
-The local `iw` script runs commands from `.iw/commands/` without downloading anything - ideal for development.
+The local `iw` script runs commands from `commands/` without downloading anything - ideal for development.
 
 ### Testing in Other Projects
 
@@ -269,13 +269,13 @@ The project has three types of tests:
 Run Scala unit tests with:
 
 ```bash
-./iw test unit
+./iw ./test unit
 ```
 
 Or directly with scala-cli:
 
 ```bash
-scala-cli test .iw/core/test/*.scala .iw/core/*.scala
+scala-cli test core/
 ```
 
 #### E2E Tests (BATS)
@@ -285,13 +285,13 @@ End-to-end tests verify the CLI behavior. By default, tests that would create re
 Run E2E tests (without live API calls):
 
 ```bash
-./iw test e2e
+./iw ./test e2e
 ```
 
 Or directly with BATS:
 
 ```bash
-bats .iw/test/
+bats test/
 ```
 
 #### Live API Tests
@@ -301,7 +301,7 @@ Some E2E tests can create real Linear issues for comprehensive testing. These ar
 To enable live API tests:
 
 ```bash
-ENABLE_LIVE_API_TESTS=1 ./iw test e2e
+ENABLE_LIVE_API_TESTS=1 ./iw ./test e2e
 ```
 
 **Requirements:**
@@ -313,13 +313,13 @@ ENABLE_LIVE_API_TESTS=1 ./iw test e2e
 #### Run All Tests
 
 ```bash
-./iw test
+./iw ./test
 ```
 
 Or manually:
 
 ```bash
-scala-cli test .iw/core/test/*.scala .iw/core/*.scala && bats .iw/test/
+scala-cli test core/ && bats test/
 ```
 
 ### Project Structure
@@ -329,13 +329,16 @@ iw-cli/
 ├── iw                    # Development launcher (runs locally)
 ├── iw-bootstrap          # Distribution bootstrap (downloads releases)
 ├── iw-run                # Distribution launcher (in release tarball)
+├── VERSION               # Current version
+├── commands/             # Shared command implementations (*.scala)
+├── core/                 # Shared library code
+│   ├── project.scala     # Build configuration (deps, Scala version)
+│   └── test/             # Unit tests
+├── test/                 # E2E tests (*.bats)
+├── scripts/              # Build/release scripts
 ├── .iw/
-│   ├── commands/         # Command implementations (*.scala)
-│   ├── core/             # Shared library code
-│   │   ├── project.scala # Build configuration (deps, Scala version)
-│   │   └── test/         # Unit tests
-│   ├── scripts/          # Build/release scripts
-│   └── test/             # Integration tests (*.bats)
+│   ├── config.conf       # Project config (tracker, etc.)
+│   └── commands/         # Project-specific commands (test.scala)
 └── RELEASE.md            # Release process documentation
 ```
 
@@ -344,7 +347,7 @@ iw-cli/
 See [RELEASE.md](RELEASE.md) for the full release process. Quick version:
 
 ```bash
-.iw/scripts/package-release.sh 0.1.0
+scripts/package-release.sh 0.1.0
 # Creates release/iw-cli-0.1.0.tar.gz
 ```
 

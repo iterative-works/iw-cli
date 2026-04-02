@@ -19,7 +19,7 @@ Decide on the version number (e.g., `0.1.0`) following semantic versioning.
 Run the packaging script:
 
 ```bash
-.iw/scripts/package-release.sh 0.1.0
+scripts/package-release.sh 0.1.0
 ```
 
 This creates:
@@ -45,7 +45,7 @@ cd /tmp/iw-test/iw-cli-0.1.0
 Or run the automated tests:
 
 ```bash
-bats .iw/test/bootstrap.bats
+bats test/bootstrap.bats
 ```
 
 ### 4. Create GitHub Release
@@ -112,8 +112,9 @@ iw-cli uses a shared installation model:
 ### Release tarball too large
 Check what's being included. Should only contain:
 - iw-run script
-- .iw/commands/*.scala
-- .iw/core/*.scala
+- VERSION
+- commands/*.scala
+- core/*.scala
 
 ### Bootstrap fails to download
 Verify:
