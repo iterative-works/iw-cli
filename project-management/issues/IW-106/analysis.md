@@ -42,13 +42,13 @@ This issue is a structural refactoring with no new domain logic, application ser
 - `test/` -- move from `.iw/test/` to repo root (BATS E2E tests)
 - `scripts/` -- move from `.iw/scripts/` to repo root
 - `VERSION` -- move from `.iw/VERSION` to repo root
-- `docs/` -- move from `.iw/docs/` to repo root `docs/` (merge with existing)
+- `docs/` -- move from `.iw/docs/` to `docs/api/` (API reference docs, disjoint from existing operational docs)
 - `llms.txt` -- move from `.iw/llms.txt` to repo root
 
 **Responsibilities:**
 - `git mv` all source directories/files
 - Preserve git history via renames
-- Ensure `.iw/` retains only `config.conf` and `cache/`
+- Ensure `.iw/` retains only `config.conf`, `cache/`, and `commands/test.scala` (project-specific command)
 
 **Estimated Effort:** 1-2 hours
 **Complexity:** Straightforward
@@ -95,13 +95,15 @@ This issue is a structural refactoring with no new domain logic, application ser
 ### Layer 4: Scala Source Updates
 
 **Components:**
-- `commands/test.scala` -- update `runUnitTests`, `runCommandCompileCheck`, `runE2ETests` to find `core/`, `commands/`, `test/` relative to INSTALL_DIR (via env vars) instead of via `Constants.Paths.IwDir`
+- `.iw/commands/test.scala` -- stays in place as a **project-specific command** (not shipped in release tarball). Update `runUnitTests`, `runCommandCompileCheck`, `runE2ETests` to find `core/`, `commands/`, `test/` via `IW_INSTALL_DIR` env var instead of `Constants.Paths.IwDir`
+- `iw-run` -- export `INSTALL_DIR` as `IW_INSTALL_DIR` so project-specific commands can find the installation root
 - `commands/version.scala` -- currently reads VERSION relative to `IW_COMMANDS_DIR`; after the move, the path resolution stays the same (`$IW_COMMANDS_DIR/../VERSION` still works since commands/ and VERSION are siblings)
 - `core/model/Constants.scala` -- `Paths.IwDir` stays as `.iw` (still used for consumer project config path)
 - Documentation files (`CLAUDE.md`, `core/CLAUDE.md`, `docs/`) -- update directory references
 
 **Responsibilities:**
-- `test.scala` must find core, commands, and test directories using the new layout
+- `test.scala` must find core, commands, and test directories using `IW_INSTALL_DIR`
+- `iw-run` must export `IW_INSTALL_DIR`
 - No changes to `Constants.Paths.IwDir` -- it correctly describes where consumer projects keep config
 
 **Estimated Effort:** 2-3 hours
@@ -146,48 +148,23 @@ This issue is a structural refactoring with no new domain logic, application ser
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Commit Strategy
+### RESOLVED: Commit Strategy
 
-Should the restructure be one atomic commit or broken into multiple commits?
-
-**Options:**
-- **Option A: Single atomic commit** -- Move files and update all references in one commit. Pro: no intermediate broken state. Con: large diff, harder to review.
-- **Option B: Multiple commits** -- Move files first, then fix references. Pro: easier to review. Con: intermediate commits will have broken builds (hooks reference old paths).
-
-**Impact:** Review experience and bisectability.
-
-**Recommendation:** Option A (single atomic commit). The intermediate broken state in Option B provides no value and would break `git bisect`.
+**Decision:** Single atomic commit. Move files and update all references in one commit. No intermediate broken state, no broken `git bisect`.
 
 ---
 
-### CLARIFY: test.scala Path Resolution
+### RESOLVED: test.scala Path Resolution
 
-`test.scala` currently finds source directories via `Constants.Paths.IwDir` (`.iw`). After the move, it needs a new strategy.
+**Decision:** `test.scala` stays at `.iw/commands/test.scala` as a **project-specific command** (not a shared command). After the move, shared commands live in `commands/` at repo root; `.iw/commands/` becomes the project-specific command directory as `iw-run` already expects. `test.scala` will use `IW_INSTALL_DIR` (exported from `iw-run`) to find `core/`, `commands/`, and `test/` at the installation root.
 
-**Questions to answer:**
-1. Should `test.scala` use environment variables (`IW_COMMANDS_DIR`, `IW_CORE_DIR`) to find source dirs?
-2. Should it derive paths from the project root using `user.dir` system property?
-3. Should a new env var (e.g., `IW_TEST_DIR`) be introduced for the test directory?
-
-**Options:**
-- **Option A: Use existing env vars** -- `IW_COMMANDS_DIR` for commands/, `IW_CORE_DIR` for core/, derive test/ as `$IW_CORE_DIR/../test`. Pro: no new variables, consistent with how `iw-run` already works. Con: test/ path is derived by convention.
-- **Option B: Add IW_INSTALL_DIR env var** -- Export `INSTALL_DIR` from `iw-run` and use it as the root for all path resolution. Pro: single source of truth. Con: new env var, changes to `iw-run`.
-
-**Impact:** How `test.scala` and potentially future internal commands find iw-cli's own directories.
-
-**Recommendation:** Option B is cleaner long-term. `iw-run` already computes `INSTALL_DIR` but doesn't export it. Exporting it as `IW_INSTALL_DIR` gives all commands a clean way to find the installation root.
+`iw-run` already computes `INSTALL_DIR` but doesn't export it. Exporting it as `IW_INSTALL_DIR` gives project-specific commands a clean way to find the installation root.
 
 ---
 
-### CLARIFY: .iw/docs/ Merge Strategy
+### RESOLVED: .iw/docs/ Merge Strategy
 
-`.iw/docs/` contains iw-cli development docs. The repo root already has a `docs/` directory.
-
-**Questions to answer:**
-1. Are the contents of `.iw/docs/` and root `docs/` disjoint?
-2. Should they merge into one `docs/` directory?
-
-**Impact:** Directory organization.
+**Decision:** Merge `.iw/docs/` into `docs/api/`. The contents are disjoint — `.iw/docs/` contains Scala API reference docs (class/module docs for command authors), while `docs/` contains operational/design docs (server config, command reference, plans). Both target iw-cli developers but serve different purposes. The `api/` subdirectory keeps them organized.
 
 ---
 
