@@ -9,7 +9,7 @@ setup() {
     cd "$TEST_DIR"
 
     # Copy iw-run for sourcing
-    cp "$BATS_TEST_DIRNAME/../../iw-run" "$TEST_DIR/iw-run"
+    cp "$BATS_TEST_DIRNAME/../iw-run" "$TEST_DIR/iw-run"
     chmod +x "$TEST_DIR/iw-run"
 
     # Create install directories mirroring real layout
