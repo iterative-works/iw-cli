@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile core (warnings as errors)
-        run: scala-cli compile --scalac-option -Werror .iw/core/
+        run: scala-cli compile --scalac-option -Werror core/
 
   format:
     runs-on: self-hosted
@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check scalafix rules
-        run: scalafix --check --scala-version 3.3.7 --files .iw/core/ --files .iw/commands/
+        run: scalafix --check --scala-version 3.3.7 --files core/ --files commands/
 
   test:
     needs: compile
@@ -60,5 +60,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run all tests
-        run: ./iw test
+        run: ./iw ./test
         timeout-minutes: 30

@@ -1,0 +1,117 @@
+// PURPOSE: Remove a worktree for a completed issue
+// PURPOSE: Kills tmux session and removes worktree with safety checks
+// USAGE: iw rm <issue-id> [--force]
+
+import iw.core.model.*
+import iw.core.adapters.*
+import iw.core.output.*
+
+@main def rm(args: String*): Unit =
+  // Parse arguments
+  val (issueIdArg, forceFlag) = parseArgs(args.toList)
+
+  // Load config to get team prefix
+  val configPath = os.pwd / Constants.Paths.IwDir / "config.conf"
+  val config = ConfigFileRepository.read(configPath) match
+    case None =>
+      Output.error("Cannot read configuration")
+      Output.info("Run './iw init' to initialize the project")
+      sys.exit(1)
+    case Some(c) => c
+
+  issueIdArg match
+    case None =>
+      Output.error("Missing issue ID")
+      Output.info("Usage: ./iw rm <issue-id> [--force]")
+      sys.exit(1)
+    case Some(rawId) =>
+      // Parse issue ID with team prefix from config (for GitHub/GitLab trackers)
+      val teamPrefix = config.trackerType match
+        case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+          config.teamPrefix
+        case _ => None
+      IssueId.parse(rawId, teamPrefix) match
+        case Left(error) =>
+          Output.error(error)
+          sys.exit(1)
+        case Right(issueId) =>
+          removeWorktree(issueId, forceFlag, config)
+
+def parseArgs(args: List[String]): (Option[String], Boolean) =
+  val forceFlag = args.contains("--force")
+  val issueIdArg = args.find(arg => !arg.startsWith("--"))
+  (issueIdArg, forceFlag)
+
+def removeWorktree(
+    issueId: IssueId,
+    force: Boolean,
+    config: ProjectConfiguration
+): Unit =
+  val currentDir = os.pwd
+  val worktreePath = WorktreePath(config.projectName, issueId)
+  val targetPath = worktreePath.resolve(currentDir)
+  val sessionName = worktreePath.sessionName
+
+  // Check if worktree exists
+  if !GitWorktreeAdapter.worktreeExists(targetPath, currentDir) then
+    Output.error(s"Worktree not found: ${worktreePath.directoryName}")
+    sys.exit(1)
+
+  // Check if currently in target session
+  if TmuxAdapter.isCurrentSession(sessionName) then
+    Output.error(s"Cannot remove worktree - you are in its tmux session")
+    Output.info("Detach from session first: Ctrl+B, D")
+    sys.exit(1)
+
+  // Check for uncommitted changes
+  val forceRemove =
+    if !force then
+      GitAdapter.hasUncommittedChanges(targetPath) match
+        case Left(error) =>
+          Output.error(s"Failed to check for uncommitted changes: $error")
+          sys.exit(1)
+        case Right(true) =>
+          Output.warning("Worktree has uncommitted changes")
+          if !Prompt.confirm("Continue with removal?", default = false) then
+            Output.info("Removal cancelled")
+            sys.exit(0)
+          true
+        case Right(false) =>
+          false
+    else true
+
+  // Kill tmux session if it exists
+  if TmuxAdapter.sessionExists(sessionName) then
+    Output.info(s"Killing tmux session '$sessionName'...")
+    TmuxAdapter.killSession(sessionName) match
+      case Left(error) =>
+        Output.warning(s"Failed to kill session: $error")
+        Output.info("Continuing with worktree removal...")
+      case Right(_) =>
+        Output.success("Session killed")
+
+  // Remove worktree
+  Output.info(s"Removing worktree '${worktreePath.directoryName}'...")
+  GitWorktreeAdapter.removeWorktree(
+    targetPath,
+    currentDir,
+    force = forceRemove
+  ) match
+    case Left(error) =>
+      Output.error(s"Failed to remove worktree: $error")
+      sys.exit(1)
+    case Right(_) =>
+      Output.success("Worktree removed")
+
+      // Unregister from dashboard (best-effort)
+      ServerClient.unregisterWorktree(issueId.value) match
+        case Right(_) =>
+          Output.info("Unregistered from dashboard")
+        case Left(err) =>
+          System.err.println(
+            s"Warning: Failed to unregister from dashboard: $err"
+          )
+
+      Output.info(
+        s"Branch '${issueId.value}' was not deleted (delete manually if needed)"
+      )

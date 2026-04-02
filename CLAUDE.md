@@ -13,12 +13,18 @@ iw-cli is a project-local CLI tool for managing git worktrees and issue tracker 
 ## Architecture
 
 ```
-project/
-├── iw                        # bootstrap shell script
+iw-cli/
+├── iw                        # dev bootstrap shell script
+├── iw-run                    # main launcher
+├── iw-bootstrap              # consumer bootstrap (downloads releases)
+├── VERSION                   # current version
+├── commands/                 # shared scala-cli command scripts
+├── core/                     # core library (model, adapters, output, dashboard)
+├── test/                     # BATS E2E tests
+├── scripts/                  # release and packaging scripts
 ├── .iw/
-│   ├── config.yaml           # project config (tracker, etc.)
-│   ├── commands/             # local scala-cli scripts
-│   └── cache/                # downloaded tool jar
+│   ├── config.conf           # project config (tracker, etc.)
+│   └── commands/             # project-specific commands (e.g., test.scala)
 ```
 
 ## Development Principles
@@ -52,15 +58,15 @@ See [docs/server-config.md](docs/server-config.md) for full documentation on:
 
 Run all tests (unit + E2E):
 ```bash
-./iw test
+./iw ./test
 ```
 
 Run only unit tests (Scala/munit):
 ```bash
-./iw test unit
+./iw ./test unit
 ```
 
 Run only E2E tests (BATS):
 ```bash
-./iw test e2e
+./iw ./test e2e
 ```
