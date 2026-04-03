@@ -22,6 +22,13 @@ object HookDiscovery:
     */
   def collectValues[T: ClassTag]: List[T] =
     val hookClasses = sys.env.getOrElse(Constants.EnvVars.IwHookClasses, "")
+    collectValuesFrom[T](hookClasses)
+
+  /** Collect values from an explicit comma-separated class list.
+    *
+    * Exposed for testing — production code should use collectValues[T].
+    */
+  def collectValuesFrom[T: ClassTag](hookClasses: String): List[T] =
     if hookClasses.isEmpty then Nil
     else
       val targetClass = summon[ClassTag[T]].runtimeClass
