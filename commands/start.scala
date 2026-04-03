@@ -138,58 +138,23 @@ def createWorktreeForIssue(
     case Right(_) =>
       Output.success(s"Tmux session created")
 
-  // If .envrc exists, run direnv allow before anything else in the session
-  if os.exists(targetPath / ".envrc") then
-    TmuxAdapter.sendKeys(sessionName, "direnv allow") match
-      case Left(error) => Output.warning(s"Failed to run direnv allow: $error")
-      case Right(_)    => ()
-
-  // Invoke session action hooks; if a hook handled the session, don't attach
-  val hookHandled =
-    handleSessionAction(sessionName, targetPath, issueId, promptOpt)
-  if !hookHandled then joinSession(sessionName)
-
-/** Invoke session action hooks. Returns true if a hook sent a command (caller
-  * should not attach).
-  */
-def handleSessionAction(
-    sessionName: String,
-    worktreePath: os.Path,
-    issueId: IssueId,
-    promptOpt: Option[String]
-): Boolean =
-  val sessionActions = HookDiscovery.collectValues[SessionAction]
-  if sessionActions.isEmpty then
-    if promptOpt.isDefined then
-      Output.warning("--prompt ignored: no session action hook installed")
-    promptOpt.isDefined // don't attach if --prompt was given
-  else
-    val ctx =
-      SessionContext(sessionName, worktreePath, issueId.value, promptOpt)
-    val results = sessionActions.map(_.run(ctx)).flatten
-
-    if results.size > 1 then
-      Output.error(
-        "Multiple session action hooks returned commands. Only one hook may provide a session command."
+  // Invoke session hooks (built-in setup like direnv, plugin setup, then action)
+  val ctx = SessionContext(sessionName, targetPath, issueId.value, promptOpt)
+  SessionHooks.run(ctx) match
+    case SessionHookResult.ActionHandled =>
+      Output.success(s"Session '$sessionName' created and hook command sent")
+    case SessionHookResult.Error(message) =>
+      Output.error(message)
+      Output.info(
+        s"Session created. Attach manually with: tmux attach -t $sessionName"
       )
       sys.exit(1)
-
-    results.headOption match
-      case Some(command) =>
-        TmuxAdapter.sendKeys(sessionName, command) match
-          case Left(error) =>
-            Output.error(s"Failed to send session command: $error")
-            Output.info(
-              s"Session created. Attach manually with: tmux attach -t $sessionName"
-            )
-            sys.exit(1)
-          case Right(_) =>
-            Output.success(
-              s"Session '$sessionName' created and hook command sent"
-            )
-        true
-      case None =>
-        false
+    case SessionHookResult.SetupOnly =>
+      joinSession(sessionName)
+    case SessionHookResult.NoHooks =>
+      if promptOpt.isDefined then
+        Output.warning("--prompt ignored: no session action hook installed")
+      else joinSession(sessionName)
 
 def joinSession(sessionName: String): Unit =
   if TmuxAdapter.isInsideTmux then
