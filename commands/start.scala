@@ -154,7 +154,7 @@ def createWorktreeForIssue(
     case SessionHookResult.NoHooks =>
       if promptOpt.isDefined then
         Output.warning("--prompt ignored: no session action hook installed")
-      joinSession(sessionName)
+      else joinSession(sessionName)
 
 def joinSession(sessionName: String): Unit =
   if TmuxAdapter.isInsideTmux then

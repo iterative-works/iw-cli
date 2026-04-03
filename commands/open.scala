@@ -80,7 +80,8 @@ def handleSessionHooks(
     case SessionHookResult.NoHooks =>
       if promptOpt.isDefined then
         Output.warning("--prompt ignored: no session action hook installed")
-      false
+        true // don't attach — user intended to send a prompt, not interact
+      else false
 
 def joinSession(sessionName: String): Unit =
   if TmuxAdapter.isInsideTmux then
