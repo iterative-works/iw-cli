@@ -34,32 +34,6 @@ val baseChecks: List[Check] = List(
   )
 )
 
-// Collect hook checks from discovered hook classes via reflection
-private def collectHookChecks(): List[Check] =
-  val hookClasses = sys.env.getOrElse(Constants.EnvVars.IwHookClasses, "")
-  if hookClasses.isEmpty then Nil
-  else
-    hookClasses.split(",").toList.flatMap { className =>
-      try
-        val clazz =
-          Class.forName(s"$className$$") // Scala object class names end with $
-        val instance = clazz
-          .getField(Constants.ScalaReflection.ModuleField)
-          .get(Option.empty[AnyRef].orNull)
-
-        // Collect all fields of type Check from the hook
-        clazz.getDeclaredMethods
-          .filter(_.getReturnType == classOf[Check])
-          .filter(_.getParameterCount == 0)
-          .flatMap { method =>
-            try Some(method.invoke(instance).asInstanceOf[Check])
-            catch case _: Exception => None
-          }
-          .toList
-      catch
-        case _: Exception => Nil // Hook not present or error accessing checks
-    }
-
 @main def doctor(args: String*): Unit =
   // Load configuration (use default if not available for hook checks)
   val config = ConfigFileRepository
@@ -79,7 +53,7 @@ private def collectHookChecks(): List[Check] =
   System.out.println()
 
   // Collect all checks: base + hooks (immutable composition)
-  val allChecks = baseChecks ++ collectHookChecks()
+  val allChecks = baseChecks ++ HookDiscovery.collectValues[Check]
 
   // Filter checks by category if requested
   val checksToRun = DoctorChecks.filterByCategory(allChecks, filterCategory)
@@ -137,34 +111,37 @@ private def collectHookChecks(): List[Check] =
       .isInstanceOf[CheckResult.WarningWithHint]
   }
 
-  // Fix mode: launch Claude Code with remediation prompt
+  // Fix mode: invoke FixAction hook
   if fixMode then
     if errorCount == 0 then
       System.out.println("All quality gate checks pass. Nothing to fix.")
       sys.exit(0)
     else
-      // Collect failed check names
-      val failedChecks = results.collect {
-        case (name, CheckResult.Error(_, _), _) => name
-      }
+      val fixActions = HookDiscovery.collectValues[FixAction]
+      if fixActions.isEmpty then
+        Output.warning(
+          "No fix provider installed. Install a plugin that provides a FixAction hook."
+        )
+        sys.exit(1)
+      else
+        // Collect failed check names
+        val failedChecks = results.collect {
+          case (name, CheckResult.Error(_, _), _) => name
+        }
 
-      // Detect build system
-      val buildSystem = BuildSystem.detect()
+        // Detect build system
+        val buildSystem = BuildSystem.detect()
 
-      // Detect CI platform from tracker type
-      val ciPlatform = config.tracker.trackerType match
-        case IssueTrackerType.GitHub => "GitHub Actions"
-        case IssueTrackerType.GitLab => "GitLab CI"
-        case _                       => "Unknown"
+        // Detect CI platform from tracker type
+        val ciPlatform = config.tracker.trackerType match
+          case IssueTrackerType.GitHub => "GitHub Actions"
+          case IssueTrackerType.GitLab => "GitLab CI"
+          case _                       => "Unknown"
 
-      // Generate remediation prompt
-      val prompt = FixPrompt.generate(failedChecks, buildSystem, ciPlatform)
-
-      // Launch interactive Claude Code session
-      val exitCode = ProcessAdapter.runInteractive(
-        Seq("claude", prompt)
-      )
-      sys.exit(exitCode)
+        val ctx =
+          DoctorFixContext(failedChecks, buildSystem, ciPlatform, config)
+        val exitCode = fixActions.head.fix(ctx)
+        sys.exit(exitCode)
 
   // Summary
   if errorCount == 0 && warningCount == 0 then
