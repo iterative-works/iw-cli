@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # PURPOSE: End-to-end tests for iw start --prompt flag
-# PURPOSE: Tests that --prompt sends claude command to session instead of attaching
+# PURPOSE: Tests that --prompt passes prompt to session action hooks
 
 # Get the project root directory (parent of .iw)
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
@@ -64,7 +64,7 @@ teardown() {
     local parent_dir="$(dirname "$(pwd)")"
     local expected_worktree="$parent_dir/testproject-IWLE-123"
 
-    # Run start with --prompt
+    # Run start with --prompt (no hook installed, so it warns and joins normally)
     run "$PROJECT_ROOT/iw" start --prompt "do something" IWLE-123
 
     # Should succeed
@@ -76,28 +76,20 @@ teardown() {
     # Session should be created
     tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-123" 2>/dev/null
 
-    # Should show success message (not "Attaching" or "Switching")
-    [[ "$output" != *"Attaching"* ]]
-    [[ "$output" != *"Switching"* ]]
+    # Without a session action hook, --prompt is ignored with a warning
+    [[ "$output" == *"no session action hook"* ]]
 }
 
-@test "start --prompt sends correct claude command to session" {
-    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
-    # Run start with --prompt
+@test "start --prompt without hook warns about missing hook" {
     run "$PROJECT_ROOT/iw" start --prompt "analyze this code" IWLE-456
 
     [ "$status" -eq 0 ]
 
-    # Give tmux a moment to process the keys
-    sleep 0.1
+    # Should warn about missing hook
+    [[ "$output" == *"no session action hook"* ]]
 
-    # Capture pane content to verify the command was sent
-    local pane_content
-    pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-456)"
-
-    # Should contain the claude command
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
-    [[ "$pane_content" == *"analyze this code"* ]]
+    # Session should still be created (graceful degradation)
+    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-456" 2>/dev/null
 }
 
 @test "start --prompt fails without prompt text" {
@@ -126,53 +118,7 @@ teardown() {
 
     # Should show attaching or switching message (normal behavior)
     [[ "$output" == *"Attaching"* ]] || [[ "$output" == *"Switching"* ]] || [[ "$output" == *"tmux session"* ]]
-}
 
-@test "start --prompt with empty string works" {
-    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
-    run "$PROJECT_ROOT/iw" start --prompt "" IWLE-111
-
-    [ "$status" -eq 0 ]
-
-    # Session should be created
-    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-111" 2>/dev/null
-
-    # Pane should contain the claude command (even with empty prompt)
-    sleep 0.1
-    local pane_content
-    pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-111)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
-}
-
-@test "start --prompt handles quotes in prompt text" {
-    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
-    run "$PROJECT_ROOT/iw" start --prompt 'say "hello world"' IWLE-222
-
-    [ "$status" -eq 0 ]
-
-    # Session should be created
-    tmux -L "$TMUX_SOCKET" has-session -t "testproject-IWLE-222" 2>/dev/null
-
-    # Pane should contain the command with single-quoted prompt
-    sleep 0.1
-    local pane_content
-    pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-222)"
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
-}
-
-@test "start --prompt protects against shell metacharacters" {
-    is_docker && skip "tmux capture-pane needs real terminal (see IW-293)"
-    run "$PROJECT_ROOT/iw" start --prompt '$(echo INJECTED)' IWLE-333
-
-    [ "$status" -eq 0 ]
-
-    # Give tmux a moment to process
-    sleep 0.1
-
-    # Capture pane content — the $() should appear literally (single-quoted), not executed
-    local pane_content
-    pane_content="$(tmux -L "$TMUX_SOCKET" capture-pane -p -t testproject-IWLE-333)"
-    # The literal $(echo should appear in the pane (inside single quotes)
-    [[ "$pane_content" == *'$(echo'* ]]
-    [[ "$pane_content" == *"claude --dangerously-skip-permissions"* ]]
+    # Should NOT warn about missing hook (no --prompt)
+    [[ "$output" != *"no session action hook"* ]]
 }
