@@ -40,7 +40,7 @@ The existing `Check` discovery pattern is proven and well-understood. Extending 
 - Carry context data to hooks without coupling to I/O
 - `SessionAction.run` returns `Option[String]` (tmux command to send, or None)
 - `FixAction.fix` returns `Int` (exit code)
-- `RecoveryAction.recover` returns `Unit` (side-effecting by nature — the hook runs an external tool)
+- `RecoveryAction.recover` returns `Int` (exit code — natural return type for running external tools)
 
 **Estimated Effort:** 0.5-1 hours
 **Complexity:** Straightforward
@@ -50,8 +50,9 @@ The existing `Check` discovery pattern is proven and well-understood. Extending 
 ### Application Layer
 
 **Components:**
-- Generic hook collection function (generalize `collectHookChecks` to work with any type)
+- `HookDiscovery` in `core/adapters/` — generic `collectHookValues[T: ClassTag]` replacing per-command reflection code
 - Hook invocation logic in each command script (start, open, doctor, phase-merge)
+- Conflict detection for `SessionAction` (error when multiple non-None results)
 
 **Responsibilities:**
 - Discover hook objects via `IW_HOOK_CLASSES` reflection
@@ -114,55 +115,19 @@ The existing `Check` discovery pattern is proven and well-understood. Extending 
 - `iw-run` already discovers `*.hook-{command}.scala` files — no changes needed
 - Hook files (to be created in IW-324/dev-docs#123) will import from `core/model/` and `core/adapters/`
 
-## Technical Risks & Uncertainties
+## Technical Decisions (Resolved)
 
-### CLARIFY: Generic hook collection vs. per-command duplication
+### Decision: Generic hook collection in core/adapters/
 
-The existing `collectHookChecks()` in `doctor.scala` is specific to the `Check` type. Three more commands will need similar reflection logic. Should we extract a generic `collectHookValues[T]` function into `core/`, or duplicate the pattern in each command?
+Extract a generic `collectHookValues[T: ClassTag]` function into `core/adapters/HookDiscovery.scala`. This avoids duplicating ~15 lines of reflection boilerplate across four commands. Reflection is a side effect, so `adapters/` is the correct home.
 
-**Questions to answer:**
-1. Is a generic function worth the complexity of parameterized reflection?
-2. Should it live in `core/model/` (pure) or `core/adapters/` (reflection = side effect)?
+### Decision: SessionAction conflict resolution — error on conflict
 
-**Options:**
-- **Option A**: Extract generic function into `core/adapters/HookDiscovery.scala`. Pros: DRY, single place to maintain. Cons: Reflection with type parameters in Scala 3 requires `ClassTag`, slightly more complex.
-- **Option B**: Duplicate the pattern (3 small functions, ~15 lines each). Pros: Simple, each command is self-contained. Cons: Four copies of nearly identical reflection code.
-- **Option C**: Extract a generic function but keep it in a shared file compiled with all commands (not in core/). Pros: DRY without putting reflection in core. Cons: Need a mechanism to share code across command scripts.
+When multiple hooks provide a `SessionAction` and more than one returns a non-None result, the command errors. This makes conflicts explicit and forces the user to resolve plugin overlap. Can be relaxed to first-wins later if needed (non-breaking change).
 
-**Impact:** Code maintainability. All options work functionally.
+### Decision: Both FixAction and RecoveryAction return Int (exit code)
 
----
-
-### CLARIFY: SessionAction conflict resolution
-
-When multiple hooks provide a `SessionAction`, what happens?
-
-**Questions to answer:**
-1. Should first non-None win, or should we error on conflict?
-2. Is there a realistic scenario where multiple plugins provide session actions?
-
-**Options:**
-- **Option A**: First non-None wins (ordered by class name or discovery order). Simple, but potentially confusing.
-- **Option B**: Error if multiple non-None results. Strict, prevents ambiguity.
-- **Option C**: Allow chaining (all hooks run in sequence). More flexible but complex.
-
-**Impact:** Determines behavior when users install multiple plugins with session hooks.
-
----
-
-### CLARIFY: FixAction and RecoveryAction return types
-
-The issue proposes `FixAction.fix` returns `Int` (exit code) and `RecoveryAction.recover` returns `Unit`. Both are inherently side-effecting (they run external tools). Should the traits acknowledge this more explicitly?
-
-**Questions to answer:**
-1. Is `Unit` the right return for `RecoveryAction.recover`? It hides whether recovery succeeded.
-2. Should we use `Either[String, Unit]` or similar to signal success/failure?
-
-**Options:**
-- **Option A**: Keep as proposed (`Int` and `Unit`). Simple, matches current behavior.
-- **Option B**: Use `Either[String, Unit]` for both. More functional, enables better error reporting.
-
-**Impact:** Error reporting quality in phase-merge recovery loop.
+Both `FixAction.fix` and `RecoveryAction.recover` return `Int` (exit code). This is the natural return type for hooks that run external processes, giving callers just enough info to log success/failure without over-engineering. For `phase-merge`, the real success signal is whether CI passes on the next poll, not the hook's return value.
 
 ## Total Estimates
 
@@ -191,7 +156,7 @@ The issue proposes `FixAction.fix` returns `Int` (exit code) and `RecoveryAction
 - Unit: Verify trait contracts compile with test implementations
 
 **Application Layer:**
-- Unit: Test generic hook collection with mock classloader (if Option A from CLARIFY)
+- Unit: Test `HookDiscovery.collectHookValues[T]` with mock classloader
 - Integration: Test that commands behave correctly when no hooks are present (warn + graceful degradation)
 - Integration: Test that commands invoke hooks when present (requires a test hook file)
 
@@ -273,9 +238,10 @@ Revert the branch. No data or configuration changes to worry about.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Ready for Implementation
+
+**All CLARIFY markers resolved.** Decisions recorded in Technical Decisions section.
 
 **Next Steps:**
-1. Resolve CLARIFY markers with stakeholders
-2. Run **wf-create-tasks** with the issue ID
-3. Run **wf-implement** for layer-by-layer implementation
+1. Run **wf-create-tasks** with the issue ID
+2. Run **wf-implement** for layer-by-layer implementation
