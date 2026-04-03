@@ -3,7 +3,13 @@
 package iw.tests
 
 import iw.core.adapters.HookDiscovery
-import iw.core.model.{Check, CheckResult, SessionAction, SessionContext}
+import iw.core.model.{
+  Check,
+  CheckResult,
+  SessionAction,
+  SessionContext,
+  SessionSetup
+}
 import munit.FunSuite
 
 // Test hook objects — these are on the classpath during test runs
@@ -20,6 +26,16 @@ object TestHookWithBoth:
     Check("Both Check", _ => CheckResult.Success("from both"))
   val action: SessionAction = new SessionAction:
     def run(ctx: SessionContext): Option[String] = Some("both-command")
+
+object TestHookWithSessionSetup:
+  val setup: SessionSetup = new SessionSetup:
+    def run(ctx: SessionContext): Option[String] = Some("direnv allow")
+
+object TestHookWithSetupAndAction:
+  val setup: SessionSetup = new SessionSetup:
+    def run(ctx: SessionContext): Option[String] = Some("nvm use")
+  val action: SessionAction = new SessionAction:
+    def run(ctx: SessionContext): Option[String] = Some("claude-code")
 
 object TestHookEmpty:
   val unrelated: String = "not a hook value"
@@ -83,3 +99,33 @@ class HookDiscoveryTest extends FunSuite:
       "iw.tests.TestHookEmpty"
     )
     assertEquals(result, Nil)
+
+  test("collectValuesFrom discovers SessionSetup values from hook object"):
+    val result = HookDiscovery.collectValuesFrom[SessionSetup](
+      "iw.tests.TestHookWithSessionSetup"
+    )
+    assertEquals(result.size, 1)
+    val ctx = SessionContext("s", os.pwd, "IW-1", None)
+    assertEquals(result.head.run(ctx), Some("direnv allow"))
+
+  test(
+    "collectValuesFrom discovers both SessionSetup and SessionAction from same hook"
+  ):
+    val setups = HookDiscovery.collectValuesFrom[SessionSetup](
+      "iw.tests.TestHookWithSetupAndAction"
+    )
+    assertEquals(setups.size, 1)
+    val ctx = SessionContext("s", os.pwd, "IW-1", None)
+    assertEquals(setups.head.run(ctx), Some("nvm use"))
+
+    val actions = HookDiscovery.collectValuesFrom[SessionAction](
+      "iw.tests.TestHookWithSetupAndAction"
+    )
+    assertEquals(actions.size, 1)
+    assertEquals(actions.head.run(ctx), Some("claude-code"))
+
+  test("collectValuesFrom collects SessionSetup from multiple hook objects"):
+    val result = HookDiscovery.collectValuesFrom[SessionSetup](
+      "iw.tests.TestHookWithSessionSetup,iw.tests.TestHookWithSetupAndAction"
+    )
+    assertEquals(result.size, 2)
