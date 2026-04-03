@@ -184,12 +184,14 @@ import iw.core.output.*
         Output.error("Timed out waiting for CI.")
         sys.exit(1)
 
-  def invokeRecoveryAgent(
+  val recoveryActions = HookDiscovery.collectValues[RecoveryAction]
+
+  def invokeRecoveryAction(
       attempt: Int,
       failedChecks: List[CICheckResult]
   ): Unit =
     val attemptDisplay = s"${attempt + 1}/${mergeConfig.maxRetries}"
-    Output.info(s"Invoking recovery agent (attempt $attemptDisplay)...")
+    Output.info(s"Invoking recovery action (attempt $attemptDisplay)...")
     tryUpdateState(
       ReviewStateUpdater.UpdateInput(
         status = Some("ci_fixing"),
@@ -198,13 +200,14 @@ import iw.core.output.*
         )
       )
     )
-    val basePrompt = PhaseMerge.buildRecoveryPrompt(failedChecks)
-    val fullPrompt =
-      s"You are fixing CI failures for PR $prUrl (branch $currentBranch).\n$basePrompt\n" +
-        "Fix the issues, commit your changes, and push to the branch."
-    ProcessAdapter.runInteractive(
-      Seq("claude", "--dangerously-skip-permissions", "-p", fullPrompt)
+    val ctx = RecoveryContext(
+      failedChecks = failedChecks,
+      prUrl = prUrl,
+      branch = currentBranch,
+      attempt = attempt,
+      maxRetries = mergeConfig.maxRetries
     )
+    recoveryActions.head.recover(ctx)
     tryUpdateState(
       ReviewStateUpdater.UpdateInput(
         status = Some("ci_pending"),
@@ -216,8 +219,19 @@ import iw.core.output.*
   def retryLoop(attempt: Int): Unit =
     poll() match
       case CIVerdict.SomeFailed(failedChecks) =>
-        if PhaseMerge.shouldRetry(attempt, mergeConfig) then
-          invokeRecoveryAgent(attempt, failedChecks)
+        if recoveryActions.isEmpty then
+          Output.warning(
+            "No recovery action hook installed. Cannot attempt automatic recovery."
+          )
+          Output.error(s"PR is at $prUrl. Fix the failures manually.")
+          tryUpdateState(
+            ReviewStateUpdater.UpdateInput(
+              activity = Some("waiting")
+            )
+          )
+          sys.exit(1)
+        else if PhaseMerge.shouldRetry(attempt, mergeConfig) then
+          invokeRecoveryAction(attempt, failedChecks)
           retryLoop(attempt + 1)
         else
           Output.error(

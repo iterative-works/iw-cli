@@ -144,45 +144,73 @@ def createWorktreeForIssue(
       case Left(error) => Output.warning(s"Failed to run direnv allow: $error")
       case Right(_)    => ()
 
-  // Handle session joining based on --prompt flag
-  promptOpt match
-    case Some(prompt) =>
-      // Send claude command instead of attaching
-      // Use single-quote wrapping for shell safety (protects all metacharacters)
-      val shellSafe = "'" + prompt.replace("'", "'\\''") + "'"
-      val claudeCommand = s"claude --dangerously-skip-permissions $shellSafe"
-      TmuxAdapter.sendKeys(sessionName, claudeCommand) match
-        case Left(error) =>
-          Output.error(s"Failed to send claude command: $error")
-          Output.info(
-            s"Session created. Attach manually with: tmux attach -t $sessionName"
-          )
-          sys.exit(1)
-        case Right(_) =>
-          Output.success(
-            s"Session '$sessionName' created and claude agent launched"
-          )
-    case None =>
-      // Normal attach/switch behavior
-      if TmuxAdapter.isInsideTmux then
-        Output.info(s"Switching to session '$sessionName'...")
-        TmuxAdapter.switchSession(sessionName) match
+  // Invoke session action hooks; if a hook handled the session, don't attach
+  val hookHandled =
+    handleSessionAction(sessionName, targetPath, issueId, promptOpt)
+  if !hookHandled then joinSession(sessionName)
+
+/** Invoke session action hooks. Returns true if a hook sent a command (caller
+  * should not attach).
+  */
+def handleSessionAction(
+    sessionName: String,
+    worktreePath: os.Path,
+    issueId: IssueId,
+    promptOpt: Option[String]
+): Boolean =
+  val sessionActions = HookDiscovery.collectValues[SessionAction]
+  if sessionActions.isEmpty then
+    if promptOpt.isDefined then
+      Output.warning("--prompt ignored: no session action hook installed")
+    promptOpt.isDefined // don't attach if --prompt was given
+  else
+    val ctx =
+      SessionContext(sessionName, worktreePath, issueId.value, promptOpt)
+    val results = sessionActions.map(_.run(ctx)).flatten
+
+    if results.size > 1 then
+      Output.error(
+        "Multiple session action hooks returned commands. Only one hook may provide a session command."
+      )
+      sys.exit(1)
+
+    results.headOption match
+      case Some(command) =>
+        TmuxAdapter.sendKeys(sessionName, command) match
           case Left(error) =>
-            Output.error(error)
-            Output.info(
-              s"Session created. Switch manually with: tmux switch-client -t $sessionName"
-            )
-            sys.exit(1)
-          case Right(_) =>
-            () // Successfully switched
-      else
-        Output.info(s"Attaching to session...")
-        TmuxAdapter.attachSession(sessionName) match
-          case Left(error) =>
-            Output.error(error)
+            Output.error(s"Failed to send session command: $error")
             Output.info(
               s"Session created. Attach manually with: tmux attach -t $sessionName"
             )
             sys.exit(1)
           case Right(_) =>
-            () // Successfully attached and detached
+            Output.success(
+              s"Session '$sessionName' created and hook command sent"
+            )
+        true
+      case None =>
+        false
+
+def joinSession(sessionName: String): Unit =
+  if TmuxAdapter.isInsideTmux then
+    Output.info(s"Switching to session '$sessionName'...")
+    TmuxAdapter.switchSession(sessionName) match
+      case Left(error) =>
+        Output.error(error)
+        Output.info(
+          s"Session created. Switch manually with: tmux switch-client -t $sessionName"
+        )
+        sys.exit(1)
+      case Right(_) =>
+        () // Successfully switched
+  else
+    Output.info(s"Attaching to session...")
+    TmuxAdapter.attachSession(sessionName) match
+      case Left(error) =>
+        Output.error(error)
+        Output.info(
+          s"Session created. Attach manually with: tmux attach -t $sessionName"
+        )
+        sys.exit(1)
+      case Right(_) =>
+        () // Successfully attached and detached
