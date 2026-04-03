@@ -158,28 +158,30 @@ def handleSessionAction(
   if sessionActions.isEmpty then
     if promptOpt.isDefined then
       Output.warning("--prompt ignored: no session action hook installed")
-    return
+  else
+    val ctx =
+      SessionContext(sessionName, worktreePath, issueId.value, promptOpt)
+    val results = sessionActions.map(_.run(ctx)).flatten
 
-  val ctx = SessionContext(sessionName, worktreePath, issueId.value, promptOpt)
-  val results = sessionActions.map(_.run(ctx)).flatten
+    if results.size > 1 then
+      Output.error(
+        "Multiple session action hooks returned commands. Only one hook may provide a session command."
+      )
+      sys.exit(1)
 
-  if results.size > 1 then
-    Output.error(
-      "Multiple session action hooks returned commands. Only one hook may provide a session command."
-    )
-    sys.exit(1)
-
-  results.headOption.foreach { command =>
-    TmuxAdapter.sendKeys(sessionName, command) match
-      case Left(error) =>
-        Output.error(s"Failed to send session command: $error")
-        Output.info(
-          s"Session created. Attach manually with: tmux attach -t $sessionName"
-        )
-        sys.exit(1)
-      case Right(_) =>
-        Output.success(s"Session '$sessionName' created and hook command sent")
-  }
+    results.headOption.foreach { command =>
+      TmuxAdapter.sendKeys(sessionName, command) match
+        case Left(error) =>
+          Output.error(s"Failed to send session command: $error")
+          Output.info(
+            s"Session created. Attach manually with: tmux attach -t $sessionName"
+          )
+          sys.exit(1)
+        case Right(_) =>
+          Output.success(
+            s"Session '$sessionName' created and hook command sent"
+          )
+    }
 
 def joinSession(sessionName: String): Unit =
   if TmuxAdapter.isInsideTmux then
