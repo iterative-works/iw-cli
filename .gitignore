@@ -13,6 +13,9 @@ target/
 # Release artifacts
 release/
 
+# Staged output for publishing skills to dev-docs
+build/
+
 # IDE
 .idea/
 .vscode/
