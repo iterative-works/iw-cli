@@ -45,6 +45,13 @@ dev-docs repository (`iterative-works/dev-docs`) and distributed via its
 Claude Code plugin. Skills should be updated in dev-docs when releasing
 new iw-cli versions that add or change commands.
 
+To regenerate the published skills (plus `llms.txt` and `docs/api/`) from
+current source, use the project-local `build-iw-cli-skills` skill at
+`.claude/skills/build-iw-cli-skills/`. It stages output under
+`build/published-skills/` for copying into the dev-docs plugin, supports
+incremental updates via a `.last-built` SHA marker, and is the canonical
+way to keep the published skills in sync with iw-cli changes.
+
 ## Server Configuration
 
 The dashboard server config is at `~/.local/share/iw/server/config.json`.
