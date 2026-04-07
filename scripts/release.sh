@@ -41,10 +41,10 @@ fi
 echo "=== Creating iw-cli release v$VERSION ==="
 echo ""
 
-# Step 1: Update version in version.scala
-VERSION_FILE="$PROJECT_ROOT/commands/version.scala"
-echo "Step 1: Updating version in $VERSION_FILE..."
-sed -i "s/val iwVersion = \"[^\"]*\"/val iwVersion = \"$VERSION\"/" "$VERSION_FILE"
+# Step 1: Update VERSION file (single source of truth, read at runtime by version.scala)
+VERSION_FILE="$PROJECT_ROOT/VERSION"
+echo "Step 1: Updating $VERSION_FILE..."
+echo "$VERSION" > "$VERSION_FILE"
 echo "  Version updated to $VERSION"
 
 # Step 2: Package the release
@@ -86,13 +86,17 @@ else
 fi
 echo "  Updated 'latest' to point to v$VERSION"
 
-# Step 5: Commit version bump
+# Step 5: Commit version bump (only if VERSION actually changed)
 echo ""
 echo "Step 5: Committing version bump..."
 cd "$PROJECT_ROOT"
-git add "$VERSION_FILE"
-git commit -m "chore: Bump version to $VERSION"
-git push
+if git diff --quiet "$VERSION_FILE"; then
+    echo "  VERSION already at $VERSION, no commit needed"
+else
+    git add "$VERSION_FILE"
+    git commit -m "chore: Bump version to $VERSION"
+    git push
+fi
 
 echo ""
 echo "=== Release v$VERSION complete! ==="
