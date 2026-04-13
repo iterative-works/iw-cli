@@ -67,31 +67,19 @@ This matches the existing pattern in phase commands, where commit failure of rev
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: Should write.scala also get --commit?
+### Resolved: write.scala also gets --commit
 
-The issue description says "Possibly `commands/review-state/write.scala` — same flag if applicable". The kanon blueprints call `review-state update` at the listed transitions, but `write` is used at initial creation (e.g., by `wf-create-analysis`).
+Both `update.scala` and `write.scala` get the `--commit` flag. The `write` command is used at initial creation (e.g., by `wf-create-analysis`) and has the same uncommitted-file problem.
 
-**Options:**
-- **Option A**: Add `--commit` to both `update.scala` and `write.scala` now. Low risk, consistent API, ~30 minutes extra work.
-- **Option B**: Add `--commit` only to `update.scala`. Smaller change, can add to `write.scala` later if needed.
+### Resolved: Commit message when --status is not provided
 
-**Impact:** Minor. If we skip `write.scala` now, it is trivial to add later.
-
-### CLARIFY: Commit message when --status is not provided
-
-When `--commit` is used but `--status` is not among the flags, what should the commit message say?
-
-**Options:**
-- **Option A**: `chore(<issueId>): update review-state` (generic, always works)
-- **Option B**: Parse status from the merged JSON string. More informative but adds complexity.
-
-**Impact:** Cosmetic only. Option A is simplest and sufficient.
+When `--commit` is used but `--status` is not among the flags, the commit message uses the generic form: `chore(<issueId>): update review-state`. When `--status` is provided, it includes it: `chore(<issueId>): update review-state to <status>`.
 
 ## Total Estimates
 
 **Per-Layer Breakdown:**
 - Presentation Layer (update.scala): 1–2 hours
-- Presentation Layer (write.scala, if included): 0.5–1 hour
+- Presentation Layer (write.scala): 0.5–1 hour
 - E2E Tests: 1–2 hours
 
 **Total Range:** 2.5 – 5 hours (including both commands and tests)
@@ -113,7 +101,7 @@ Tests for `--commit` require a git-initialized temp directory (existing E2E test
 6. `--commit` with validation failure does NOT commit (file unchanged, no commit)
 7. `--help` output includes `--commit` flag
 
-**Tests for write.scala (if included):**
+**Tests for write.scala:**
 1. `--commit` flag stages and commits the written file
 2. Without `--commit`, file is written but not committed
 3. `--help` output includes `--commit` flag
@@ -132,7 +120,7 @@ Tests for `--commit` require a git-initialized temp directory (existing E2E test
 **Recommended Layer Order:**
 
 1. **Presentation Layer — update.scala**: Add `--commit` flag parsing, post-write commit logic, help text update, ARGS comment update.
-2. **Presentation Layer — write.scala**: Same pattern applied to the write command (pending CLARIFY resolution).
+2. **Presentation Layer — write.scala**: Same pattern applied to the write command.
 3. **E2E Tests**: BATS tests for both commands with `--commit`.
 
 **Ordering Rationale:**
