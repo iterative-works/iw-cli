@@ -21,6 +21,7 @@
 //   --from-stdin               Read full JSON from stdin
 //   --issue-id <value>         Issue ID override (auto-inferred from branch)
 //   --version <value>          Version number (default: 2)
+//   --commit                   Stage and commit review-state.json after writing
 // EXAMPLE: iw review-state write --display-text "Implementing" --display-type progress --output review-state.json
 
 import iw.core.model.*
@@ -96,6 +97,9 @@ private def showHelp(): Unit =
   println(
     "  --version <value>                         Version number (default: 2)"
   )
+  println(
+    "  --commit                                  Stage and commit review-state.json after writing"
+  )
   println()
   println("Example:")
   println(
@@ -123,6 +127,15 @@ private def handleStdin(argList: List[String]): Unit =
 
   os.makeDir.all(outputPath / os.up)
   os.write.over(outputPath, json)
+
+  val issueId = extractFlag(argList, "--issue-id") match
+    case Some(id) => id
+    case None     =>
+      GitAdapter.getCurrentBranch(os.pwd).flatMap(IssueId.fromBranch) match
+        case Right(id) => id.value
+        case Left(_)   => "unknown"
+  commitIfRequested(argList, issueId, outputPath)
+
   Output.success(s"Review state written to $outputPath")
 
 private def handleFlags(argList: List[String]): Unit =
@@ -253,7 +266,27 @@ private def handleFlags(argList: List[String]): Unit =
 
   os.makeDir.all(outputPath / os.up)
   os.write.over(outputPath, json)
+
+  commitIfRequested(argList, issueId, outputPath)
+
   Output.success(s"Review state written to $outputPath")
+
+private def commitIfRequested(
+    argList: List[String],
+    issueId: String,
+    outputPath: os.Path
+): Unit =
+  if argList.contains("--commit") then
+    val status = extractFlag(argList, "--status")
+    val commitMessage = status match
+      case Some(s) => s"chore($issueId): update review-state to $s"
+      case None    => s"chore($issueId): update review-state"
+    GitAdapter
+      .commitFileWithRetry(outputPath, commitMessage, outputPath / os.up)
+      .left
+      .foreach(err =>
+        Output.warning(s"Failed to commit review-state update: $err")
+      )
 
 private def extractFlag(args: List[String], flag: String): Option[String] =
   val idx = args.indexOf(flag)

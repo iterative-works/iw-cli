@@ -706,3 +706,171 @@ assert d['workflow_type'] == 'waterfall'
     [[ "$output" == *"--workflow-type"* ]]
     [[ "$output" == *"--clear-workflow-type"* ]]
 }
+
+# ============================================================================
+# UPDATE --commit FLAG TESTS
+# ============================================================================
+
+setup_git_repo() {
+    local dir="$1"
+    git -C "$dir" init -q
+    git -C "$dir" config user.email "test@test.com"
+    git -C "$dir" config user.name "Test"
+    # Create an initial commit so HEAD exists
+    git -C "$dir" commit -q --allow-empty -m "initial"
+}
+
+@test "review-state update: --commit stages and commits review-state.json (clean tree after)" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$state_file"
+    git -C "$TEST_TMPDIR" add "$state_file"
+    git -C "$TEST_TMPDIR" commit -q -m "add state"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --status implementing \
+        --input "$state_file" \
+        --commit
+    [ "$status" -eq 0 ]
+
+    # Working tree should be clean (file committed)
+    run git -C "$TEST_TMPDIR" status --porcelain
+    [ "$output" = "" ]
+}
+
+@test "review-state update: --commit message contains issue ID and status" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+    echo '{"version":2,"issue_id":"IW-42","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$state_file"
+    git -C "$TEST_TMPDIR" add "$state_file"
+    git -C "$TEST_TMPDIR" commit -q -m "add state"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-42 \
+        --status done \
+        --input "$state_file" \
+        --commit
+    [ "$status" -eq 0 ]
+
+    local msg
+    msg="$(git -C "$TEST_TMPDIR" log -1 --format=%s)"
+    [[ "$msg" == *"IW-42"* ]]
+    [[ "$msg" == *"done"* ]]
+}
+
+@test "review-state update: --commit without --status uses generic commit message" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+    echo '{"version":2,"issue_id":"IW-10","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$state_file"
+    git -C "$TEST_TMPDIR" add "$state_file"
+    git -C "$TEST_TMPDIR" commit -q -m "add state"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-10 \
+        --message "hello" \
+        --input "$state_file" \
+        --commit
+    [ "$status" -eq 0 ]
+
+    local msg
+    msg="$(git -C "$TEST_TMPDIR" log -1 --format=%s)"
+    [[ "$msg" == *"IW-10"* ]]
+    [[ "$msg" != *" to "* ]]
+}
+
+@test "review-state update: without --commit, file is written but not committed" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+    echo '{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-01T12:00:00Z"}' > "$state_file"
+    git -C "$TEST_TMPDIR" add "$state_file"
+    git -C "$TEST_TMPDIR" commit -q -m "add state"
+
+    run "$PROJECT_ROOT/iw" review-state update \
+        --issue-id IW-1 \
+        --status implementing \
+        --input "$state_file"
+    [ "$status" -eq 0 ]
+
+    # File should be modified but not committed
+    run git -C "$TEST_TMPDIR" status --porcelain "$state_file"
+    [[ "$output" != "" ]]
+}
+
+@test "review-state update: --help includes --commit flag" {
+    run "$PROJECT_ROOT/iw" review-state update --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--commit"* ]]
+}
+
+# ============================================================================
+# WRITE --commit FLAG TESTS
+# ============================================================================
+
+@test "review-state write: --commit stages and commits the written file (clean tree after)" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --status implementing \
+        --output "$state_file" \
+        --commit
+    [ "$status" -eq 0 ]
+
+    # Working tree should be clean
+    run git -C "$TEST_TMPDIR" status --porcelain
+    [ "$output" = "" ]
+}
+
+@test "review-state write: without --commit, file is written but not committed" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-1 \
+        --status implementing \
+        --output "$state_file"
+    [ "$status" -eq 0 ]
+
+    # File should exist but not be committed
+    [ -f "$state_file" ]
+    run git -C "$TEST_TMPDIR" status --porcelain "$state_file"
+    [[ "$output" != "" ]]
+}
+
+@test "review-state write: --from-stdin --commit stages and commits (clean tree after)" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+    local json='{"version":2,"issue_id":"IW-1","artifacts":[],"last_updated":"2026-01-28T12:00:00Z"}'
+
+    run bash -c "echo '$json' | '$PROJECT_ROOT/iw' review-state write --from-stdin --commit --issue-id IW-1 --output '$state_file'"
+    [ "$status" -eq 0 ]
+
+    # Working tree should be clean
+    run git -C "$TEST_TMPDIR" status --porcelain
+    [ "$output" = "" ]
+}
+
+@test "review-state write: --commit message contains issue ID and status" {
+    setup_git_repo "$TEST_TMPDIR"
+    local state_file="$TEST_TMPDIR/state.json"
+
+    run "$PROJECT_ROOT/iw" review-state write \
+        --issue-id IW-55 \
+        --status reviewing \
+        --output "$state_file" \
+        --commit
+    [ "$status" -eq 0 ]
+
+    local msg
+    msg="$(git -C "$TEST_TMPDIR" log -1 --format=%s)"
+    [[ "$msg" == *"IW-55"* ]]
+    [[ "$msg" == *"reviewing"* ]]
+}
+
+@test "review-state write: --help includes --commit flag" {
+    run "$PROJECT_ROOT/iw" review-state write --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"--commit"* ]]
+}
