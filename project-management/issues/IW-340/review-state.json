@@ -11,16 +11,24 @@
       "label": "Tasks",
       "path": "project-management/issues/IW-340/tasks.md",
       "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-340/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-340/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-13T11:25:09.848058653Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-13T11:31:07.605203140Z",
+  "status": "implementing",
   "display": {
-    "text": "Tasks Ready",
-    "type": "success",
-    "subtext": "1 phase identified"
+    "text": "Phase 01: Implementing",
+    "type": "progress",
+    "subtext": "Add --commit flag to review-state commands"
   },
-  "message": "Task breakdown complete. Ready to begin implementation.",
+  "message": "Phase 01 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -38,7 +46,23 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
-  "git_sha": "0bebf3e"
+  "git_sha": "0bebf3e",
+  "phase_checkpoints": {
+    "1": {
+      "context_sha": "context_sha=6634e231193e554943a396e278f659fcb96005a7"
+    }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
