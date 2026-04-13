@@ -2,17 +2,15 @@
 
 **Issue:** IW-340
 **Created:** 2026-04-13
-**Status:** 0/3 phases complete (0%)
+**Status:** 0/1 phases complete (0%)
 
 ## Phase Index
 
-- [ ] Phase 1: update.scala --commit flag (Est: 1-2h) → `phase-01-context.md`
-- [ ] Phase 2: write.scala --commit flag (Est: 0.5-1h) → `phase-02-context.md`
-- [ ] Phase 3: E2E tests (Est: 1-2h) → `phase-03-context.md`
+- [ ] Phase 1: Add --commit flag to review-state commands (Est: 2.5-5h) → `phase-01-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/3 phases
+**Completed:** 0/1 phases
 **Estimated Total:** 2.5-5 hours
 **Time Spent:** 0 hours
 
@@ -23,3 +21,4 @@
 - Estimates are rough and will be refined during implementation
 - All changes are in the presentation layer (command scripts) — no core changes needed
 - Existing `GitAdapter.commitFileWithRetry()` provides the commit infrastructure
+- Single phase covers: update.scala, write.scala, and E2E tests (TDD)
