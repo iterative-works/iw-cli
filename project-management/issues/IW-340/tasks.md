@@ -6,11 +6,11 @@
 
 ## Phase Index
 
-- [ ] Phase 1: Add --commit flag to review-state commands (Est: 2.5-5h) → `phase-01-context.md`
+- [x] Phase 1: Add --commit flag to review-state commands (Est: 2.5-5h) → `phase-01-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/1 phases
+**Completed:** 1/1 phases
 **Estimated Total:** 2.5-5 hours
 **Time Spent:** 0 hours
 
