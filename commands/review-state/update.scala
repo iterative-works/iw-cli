@@ -37,6 +37,7 @@
 //   --clear-display-subtext    Remove display.subtext field
 //   --clear-needs-attention    Remove needs_attention field
 //   --issue-id <value>         Issue ID override (auto-inferred from branch)
+//   --commit                   Stage and commit review-state.json after writing
 // EXAMPLE: iw review-state update --display-text "Implementing"
 // EXAMPLE: iw review-state update --append-artifact "Tasks:phase-02-tasks.md"
 // EXAMPLE: iw review-state update --clear-message
@@ -222,6 +223,18 @@ import iw.core.output.*
 
   // Write back to same location
   os.write.over(inputPath, mergedJson)
+
+  if argList.contains("--commit") then
+    val commitMessage = status match
+      case Some(s) => s"chore($issueId): update review-state to $s"
+      case None    => s"chore($issueId): update review-state"
+    GitAdapter
+      .commitFileWithRetry(inputPath, commitMessage, inputPath / os.up)
+      .left
+      .foreach(err =>
+        Output.warning(s"Failed to commit review-state update: $err")
+      )
+
   Output.success(s"Review state updated at $inputPath")
 
 private def showHelp(): Unit =
@@ -301,6 +314,9 @@ private def showHelp(): Unit =
   println("  --clear-needs-attention              Remove needs_attention field")
   println(
     "  --issue-id <value>                   Issue ID override (auto-inferred from branch)"
+  )
+  println(
+    "  --commit                             Stage and commit review-state.json after writing"
   )
   println()
   println("Examples:")
