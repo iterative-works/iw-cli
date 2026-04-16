@@ -116,7 +116,7 @@ def createWorktreeForIssue(
     config.projectName,
     currentDir.toString,
     config.trackerType.toString,
-    config.team,
+    config.teamIdentifier,
     trackerUrl
   ) match
     case Left(error) =>
