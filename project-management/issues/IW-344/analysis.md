@@ -82,21 +82,25 @@ This issue is entirely within the **Build Infrastructure** layer -- there are no
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: scala-cli --jar and dependency resolution
+### RESOLVED: scala-cli --jar and dependency resolution
 
-When commands are compiled with `--jar build/iw-core.jar` instead of core source files, the `//> using dep` directives in `core/project.scala` may not be visible to scala-cli since they're in source files that are no longer passed. This means either:
+**Spike conducted on 2026-04-16.** Resolution: **Option B** — pass `core/project.scala` alongside `--jar`.
 
-**Questions to answer:**
-1. Does `scala-cli package --library` embed the dependency metadata in the jar so that `--jar` consumers resolve them automatically?
-2. If not, do we need to pass `core/project.scala` alongside `--jar` for its directives?
-3. Or do we need a separate mechanism to forward dependencies?
+**Findings:**
+- `scala-cli --power package --library -o build/iw-core.jar <core files>` produces a 1.6MB library jar (compiled `.class` + `.tasty` files, no embedded dependency metadata — MANIFEST.MF only contains `Manifest-Version: 1.0`).
+- `--jar build/iw-core.jar` alone causes commands to fail compilation: `Not found: os`, `Not found: config`, etc. scala-cli does not resolve transitive dependencies from the jar.
+- `--jar build/iw-core.jar core/project.scala` works end-to-end. scala-cli picks up the `//> using dep` directives from `project.scala` (which contains only directives, no code), and the compiled classes come from the jar.
 
-**Options:**
-- **Option A**: Use `scala-cli package --library` and test whether deps are resolved transitively. If yes, cleanest solution.
-- **Option B**: Keep passing `core/project.scala` as a source file alongside `--jar` for its `//> using dep` directives only. Simple fallback.
-- **Option C**: Duplicate the `//> using dep` directives into each command file. Violates DRY, not viable.
+**Performance (measured on `commands/version.scala`):**
 
-**Impact:** If Option A doesn't work, we need Option B, which is a minor adjustment but changes the "zero source files" narrative slightly.
+| Approach              | Cold compile | Warm (BSP) |
+|-----------------------|--------------|------------|
+| Old (132 source files) | 29.6s        | 1.2s       |
+| New (--jar + project.scala) | **1.1s** | **0.8s**   |
+
+Cold runs are **~27x faster**. This is the most significant user-facing win since branch switches, fresh clones, and `.scala-build/` clears all trigger cold rebuilds. The core-heavy `commands/status.scala` confirmed end-to-end output correctness (JSON output matches the source-file mode).
+
+**Implication for `iw-run`:** All three invocation sites in `execute_command()` must include `"$CORE_DIR/project.scala"` as a source alongside `--jar "$CORE_JAR"`. Command authors still never touch `project.scala` — `iw-run` injects it transparently, preserving the "no directives for command authors" constraint.
 
 ### CLARIFY: Dev-mode stale jar behavior
 
@@ -136,15 +140,15 @@ Many E2E tests currently copy core source files into temp directories. With jar-
 - Infrastructure (Build Scripts): 4-6 hours
 - Tests: 3-5 hours
 
-**Total Range:** 7-11 hours
+**Total Range:** 6-9 hours (revised down from 7-11 after spike)
 
-**Confidence:** Medium
+**Confidence:** Medium-High (spike resolved the main technical unknown)
 
 **Reasoning:**
-- The `iw-run` changes are mechanically straightforward (three find-and-replace sites plus one new function)
-- The CLARIFY on dependency resolution could add 1-2 hours if Option A doesn't work and we need fallback
-- Test migration is the bulk of uncertainty -- many test files copy core sources and may need updating
-- `scala-cli package --library` behavior with `--jar` needs empirical verification
+- Spike confirmed the jar + `project.scala` recipe works and delivers ~27x cold-start speedup
+- The `iw-run` changes are mechanically straightforward (three invocation sites plus `build_core_jar()` function)
+- Test migration is still the bulk of remaining uncertainty -- many BATS tests copy core sources, and need to either pre-build the jar or keep source-file support as a fallback
+- Risk 1 (dep resolution) is eliminated; Risk 3 (fat jar) is also eliminated -- the library jar is 1.6MB with no bundled deps
 
 ## Testing Strategy
 
@@ -196,32 +200,39 @@ None.
 
 ## Risks & Mitigations
 
-### Risk 1: scala-cli --jar doesn't resolve transitive dependencies from library jar
-**Likelihood:** Medium
-**Impact:** Medium
-**Mitigation:** Test empirically before implementation. Fall back to Option B (pass project.scala alongside jar).
+### ~~Risk 1: scala-cli --jar doesn't resolve transitive dependencies from library jar~~ RESOLVED
+Confirmed via spike (2026-04-16). Adopted Option B: pass `core/project.scala` alongside `--jar`.
 
 ### Risk 2: E2E test migration takes longer than expected
 **Likelihood:** Medium
 **Impact:** Low (tests still work in source-file fallback mode)
 **Mitigation:** Implement dual mode in iw-run so tests can be migrated incrementally.
 
-### Risk 3: scala-cli package --library produces a fat jar with all dependencies bundled
-**Likelihood:** Low
-**Impact:** Medium (large jar, slower builds, potential classpath conflicts)
-**Mitigation:** Check jar size and contents. Use `--library` flag which should produce a thin jar.
+### ~~Risk 3: scala-cli package --library produces a fat jar with all dependencies bundled~~ RESOLVED
+Spike confirmed `--library` produces a thin 1.6MB jar with only compiled core classes.
+
+### Risk 4 (new): Jar rebuild cost blocks developers editing core/
+**Likelihood:** High
+**Impact:** Low-Medium
+**Mitigation:** Initial `scala-cli package` of core takes ~30s cold. The mtime-check/auto-rebuild decision (CLARIFY) directly determines how often developers pay this cost. Auto-rebuild with a visible message is the leading option.
 
 ## Implementation Sequence
 
 **Recommended Layer Order:**
 
-1. **Spike: verify scala-cli package --library + --jar interaction** -- 30 min manual test to resolve the dependency CLARIFY
+1. ~~**Spike**~~ ✅ Done 2026-04-16 -- confirmed Option B (jar + project.scala) works with ~27x cold-start speedup
 2. **Infrastructure: build_core_jar() and mtime check** -- add the jar build function to iw-run
-3. **Infrastructure: update execute_command()** -- switch three invocation sites from $core_files to --jar
-4. **Infrastructure: update bootstrap()** -- integrate jar build into bootstrap flow
+3. **Infrastructure: update execute_command()** -- switch three invocation sites from `$core_files` to `--jar "$CORE_JAR" "$CORE_DIR/project.scala"`
+4. **Infrastructure: update bootstrap()** -- integrate jar build into bootstrap flow; replace existing `scala-cli compile version.scala` with `build_core_jar`
 5. **Tests: update E2E tests** -- adapt test setup to jar-based execution
 
 **Ordering Rationale:**
-- The spike must come first because it determines whether we need the project.scala fallback
-- The build function must exist before execute_command can reference it
+- The build function must exist before `execute_command()` can reference it
 - Tests come last because they validate the final behavior
+
+**Command recipe for `execute_command()`:**
+```bash
+scala-cli run -q --suppress-outdated-dependency-warning \
+    "$cmd_file" $hook_files "$CORE_DIR/project.scala" \
+    --jar "$CORE_JAR" -- "$@"
+```
