@@ -41,7 +41,7 @@ build_core_jar() {
 
     # shellcheck disable=SC2086
     scala-cli --power package --library \
-        -o "$CORE_JAR" \
+        -o "$CORE_JAR" -f \
         $core_files \
         --server=false
 }
@@ -516,6 +516,8 @@ execute_command() {
     local cmd_name="$1"
     shift
 
+    ensure_core_jar
+
     # Detect if this is a project command (starts with ./)
     local is_project_cmd=false
     local actual_name=""
@@ -541,16 +543,11 @@ execute_command() {
             exit 1
         fi
 
-        # Find core files excluding test directory
-        local core_files
-        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
-
         check_version_requirement "$cmd_file"
 
         # Project commands: Execute with core library, NO hook discovery
         cd "$PROJECT_DIR"
-        # shellcheck disable=SC2086
-        exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $core_files -- "$@"
+        exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" "$CORE_DIR/project.scala" --jar "$CORE_JAR" -- "$@"
 
     elif [[ "$cmd_name" != ./* ]] && [[ "$cmd_name" == */* ]]; then
         # Plugin command
@@ -604,10 +601,6 @@ execute_command() {
             exit 1
         fi
 
-        # Find core files excluding test directory
-        local core_files
-        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
-
         # Find plugin lib files if lib/ directory exists
         local lib_files=""
         if [ -d "$plugin_dir/lib" ]; then
@@ -633,7 +626,7 @@ execute_command() {
         # Plugin commands: Execute with core library, plugin lib, and project hooks
         cd "$PROJECT_DIR"
         # shellcheck disable=SC2086
-        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $hook_files $core_files $lib_files -- "$@"
+        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $hook_files $lib_files "$CORE_DIR/project.scala" --jar "$CORE_JAR" -- "$@"
 
     else
         # Shared command
@@ -705,10 +698,6 @@ execute_command() {
             hook_classes=$(extract_hook_classes "$hook_files")
         fi
 
-        # Find core files excluding test directory
-        local core_files
-        core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
-
         check_version_requirement "$cmd_file"
 
         # Change to project directory for command execution
@@ -717,7 +706,7 @@ execute_command() {
         # Execute with scala-cli, including core library and any discovered hook files
         # IW_HOOK_CLASSES tells the command which hook objects to initialize
         # shellcheck disable=SC2086
-        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $hook_files $core_files -- "$@"
+        IW_HOOK_CLASSES="$hook_classes" exec scala-cli run -q --suppress-outdated-dependency-warning "$cmd_file" $hook_files "$CORE_DIR/project.scala" --jar "$CORE_JAR" -- "$@"
     fi
 }
 
