@@ -6,7 +6,7 @@
 
 ## Phase Index
 
-- [ ] Phase 1: Core jar build and mtime check (Est: 2-3h) → `phase-01-context.md`
+- [x] Phase 1: Core jar build and mtime check (Est: 2-3h) → `phase-01-context.md`
 - [ ] Phase 2: Update command execution to use jar (Est: 2-3h) → `phase-02-context.md`
 - [ ] Phase 3: E2E test adaptation (Est: 3-5h) → `phase-03-context.md`
 
