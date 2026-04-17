@@ -94,6 +94,19 @@ iw status IW-203 --json
 
 For detailed documentation on `review-state` commands, see [docs/commands/review-state.md](docs/commands/review-state.md).
 
+## Plugins
+
+AI-specific workflow commands (e.g. `implement`, `batch-implement`, `transcript-analyze`) are not part of iw-cli core. They are distributed as plugin commands — the reference distribution is [kanon](https://github.com/iterative-works/kanon), which packages Claude Code integrations as hooks and commands.
+
+Plugins are discovered automatically under `$XDG_DATA_HOME/iw/plugins/` (defaults to `~/.local/share/iw/plugins/`) or via the `IW_PLUGIN_DIRS` environment variable. A plugin's commands are invoked with the `<plugin>/<command>` syntax:
+
+```bash
+iw kanon/batch-implement IW-123
+iw kanon/implement IW-123 --phase 2
+```
+
+Plugins may also contribute hooks that extend the behavior of core commands (e.g. kanon's `claude-session.hook-start.scala` adds an agent session launch to `iw start`).
+
 ## GitHub Integration
 
 ### Repository Auto-Detection
