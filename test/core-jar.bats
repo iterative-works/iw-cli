@@ -30,8 +30,6 @@ setup() {
 teardown() {
     cd /
     rm -rf "$TEST_DIR"
-    # Clean up custom jar from scenario 4
-    rm -f /tmp/custom-iw-core.jar
 }
 
 @test "missing jar triggers auto-rebuild on command execution" {
@@ -78,10 +76,9 @@ teardown() {
 }
 
 @test "IW_CORE_JAR override is honored by --bootstrap" {
-    local custom_jar="/tmp/custom-iw-core.jar"
-    rm -f "$custom_jar"
+    local custom_jar="$TEST_DIR/custom-iw-core.jar"
 
-    IW_CORE_JAR="$custom_jar" run bash -c 'IW_CORE_JAR="'"$custom_jar"'" "$TEST_DIR/iw-run" --bootstrap 2>&1'
+    run bash -c 'IW_CORE_JAR="'"$custom_jar"'" "$TEST_DIR/iw-run" --bootstrap 2>&1'
     [ "$status" -eq 0 ]
     [ -f "$custom_jar" ]
     # The default per-test jar must NOT have been created
@@ -96,7 +93,7 @@ teardown() {
     [ -f "$IW_CORE_JAR" ]
 }
 
-@test "build_core_jar overwrites existing jar without error (Phase-2 -f regression guard)" {
+@test "build_core_jar overwrites existing jar cleanly" {
     # Build initial jar
     run bash -c '"$TEST_DIR/iw-run" --bootstrap 2>&1'
     [ "$status" -eq 0 ]

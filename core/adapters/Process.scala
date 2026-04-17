@@ -1,5 +1,5 @@
 // PURPOSE: Adapter for executing shell commands and process operations
-// PURPOSE: Provides commandExists to check if a command is available in PATH
+// PURPOSE: Provides run, runStreaming, runInteractive, and commandExists for subprocess control
 
 package iw.core.adapters
 
