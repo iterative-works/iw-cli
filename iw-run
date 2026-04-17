@@ -11,6 +11,8 @@ export IW_COMMANDS_DIR="${IW_COMMANDS_DIR:-$INSTALL_DIR/commands}"
 export IW_CORE_DIR="${IW_CORE_DIR:-$INSTALL_DIR/core}"
 COMMANDS_DIR="$IW_COMMANDS_DIR"
 CORE_DIR="$IW_CORE_DIR"
+CORE_JAR="${IW_CORE_JAR:-$INSTALL_DIR/build/iw-core.jar}"
+export IW_CORE_JAR="$CORE_JAR"
 
 # Project directory where iw was invoked (passed as IW_PROJECT_DIR or current dir)
 PROJECT_DIR="${IW_PROJECT_DIR:-$(pwd)}"
@@ -22,19 +24,54 @@ if ! command -v scala-cli &> /dev/null; then
     exit 1
 fi
 
-# Bootstrap: pre-compile all commands and dependencies
+# Build the core library jar from $CORE_DIR sources.
+# Writes to $CORE_JAR.
+build_core_jar() {
+    echo "Rebuilding core jar..." >&2
+
+    # Ensure the parent directory exists.
+    mkdir -p "$(dirname "$CORE_JAR")"
+
+    # Collect core source files (exclude tests and scala-build cache).
+    local core_files
+    core_files=$(find "$CORE_DIR" -name "*.scala" \
+        -not -path "*/test/*" \
+        -not -path "*/.scala-build/*" \
+        | tr '\n' ' ')
+
+    # shellcheck disable=SC2086
+    scala-cli --power package --library \
+        -o "$CORE_JAR" \
+        $core_files \
+        --server=false
+}
+
+# Returns 0 (true) if the jar is missing or any core/**/*.scala is newer.
+# Returns 1 (false) if the jar exists and is at least as new as every source.
+core_jar_stale() {
+    [ ! -f "$CORE_JAR" ] && return 0
+
+    local newer
+    newer=$(find "$CORE_DIR" -name "*.scala" \
+        -not -path "*/test/*" \
+        -not -path "*/.scala-build/*" \
+        -newer "$CORE_JAR" \
+        -print -quit 2>/dev/null)
+
+    [ -n "$newer" ]
+}
+
+# Ensure $CORE_JAR exists and is up to date; rebuild if stale.
+ensure_core_jar() {
+    if core_jar_stale; then
+        build_core_jar
+    fi
+}
+
+# Bootstrap: pre-compile the core library jar for offline use
 bootstrap() {
     echo "Bootstrapping iw-cli installation at $INSTALL_DIR..." >&2
-
-    # Find core files excluding test directory
-    local core_files
-    core_files=$(find "$CORE_DIR" -name "*.scala" -not -path "*/test/*" -not -path "*/.scala-build/*" | tr '\n' ' ')
-
-    # Compile a simple command to trigger dependency download and compilation
-    # This ensures subsequent runs work offline
-    # shellcheck disable=SC2086
-    scala-cli compile "$COMMANDS_DIR/version.scala" $core_files --server=false > /dev/null 2>&1
-
+    build_core_jar
     echo "Bootstrap complete. iw-cli is ready for offline use." >&2
 }
 
