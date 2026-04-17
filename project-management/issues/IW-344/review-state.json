@@ -37,14 +37,14 @@
       "path": "project-management/issues/IW-344/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T17:31:01.350113030Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-17T17:38:46.218802418Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 3: Tasks Ready",
-    "type": "success",
+    "text": "Phase 03: Implementing",
+    "type": "progress",
     "subtext": "E2E test adaptation"
   },
-  "message": "Phase 3 tasks ready",
+  "message": "Phase 03 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -78,6 +78,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/362",
