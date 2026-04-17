@@ -21,59 +21,23 @@
       "path": "project-management/issues/IW-344/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T12:26:42.840062107Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-17T14:56:12.356855814Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 01: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 01: Merged",
+    "type": "success",
     "subtext": "Core jar build and mtime check"
   },
-  "message": "Phase 01 implementation started",
-  "activity": "waiting",
+  "message": "Phase 1 merged successfully. Ready to continue to phase 2.",
+  "activity": "working",
   "workflow_type": "waterfall",
-  "available_actions": [
-    {
-      "id": "create-tasks",
-      "label": "Generate Tasks",
-      "skill": "wf-create-tasks"
-    },
-    {
-      "id": "implement",
-      "label": "Start Implementation",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "implement",
-      "label": "Start Implementation",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "implement",
-      "label": "Continue",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "view-pr",
-      "label": "View Pull Request",
-      "skill": "external-link"
-    }
-  ],
+  "available_actions": [],
   "git_sha": "1c0fa99",
-  "needs_attention": true,
   "phase_checkpoints": {
     "1": {
       "context_sha": "context_sha=ff8c6ec632d2a1101e21df2cf3507364ad0d3ba0"
     }
   },
-  "badges": [
-    {
-      "label": "In Progress",
-      "type": "info"
-    },
-    {
-      "label": "Review Needed",
-      "type": "warning"
-    }
-  ],
+  "badges": [],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/359"
 }
