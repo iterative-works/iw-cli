@@ -797,6 +797,11 @@ object GitHubClient:
         Left(s"gh CLI error: $msg")
       case Right(_) =>
         execCommand("gh", buildCheckStatusesCommand(prNumber, repository)) match
+          case Left(error) if error.contains("no checks reported") =>
+            // `gh pr checks` exits non-zero when the branch has no CI
+            // configured; surface that as an empty list so callers can
+            // treat it as "proceed".
+            Right(Nil)
           case Left(error) => Left(s"Failed to fetch check statuses: $error")
           case Right(json) => parseGhChecksJson(json)
 

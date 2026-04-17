@@ -94,14 +94,42 @@ import java.time.format.DateTimeFormatter
     sys.exit(1)
 
   // --- Pre-flight: clean working tree ---
+  //
+  // A previous interrupted batch-implement run may have left the workflow's
+  // own state files dirty (e.g. review-state.json updated but not committed
+  // because phase-merge failed). Those are ours to clean up. User code
+  // changes, however, must be handled manually.
 
-  val isDirty =
-    CommandHelpers.exitOnError(GitAdapter.hasUncommittedChanges(cwd))
-  if isDirty then
-    Output.error(
-      "Working tree has uncommitted changes. Please commit or stash them before running batch-implement."
+  val stagingCheck = CommandHelpers.exitOnError(GitAdapter.getStagingCheck(cwd))
+  val dirtyPaths =
+    stagingCheck.stagedFiles ++ stagingCheck.unstagedFiles ++ stagingCheck.untrackedFiles
+  if dirtyPaths.nonEmpty then
+    val (stateOwned, userOwned) =
+      WorkflowStatePaths.partition(dirtyPaths, issueId.value)
+    if userOwned.nonEmpty then
+      Output.error(
+        "Working tree has uncommitted changes outside the workflow state directory:"
+      )
+      userOwned.foreach(p => Output.error(s"  $p"))
+      Output.error(
+        "Please commit or stash them before running batch-implement."
+      )
+      sys.exit(1)
+    // Only state files dirty → commit them ourselves so the workflow starts
+    // from a clean tree.
+    Output.info(
+      s"Committing ${stateOwned.size} stale workflow state file(s) from a previous run..."
     )
-    sys.exit(1)
+    CommandHelpers.exitOnError(GitAdapter.stageAll(cwd))
+    GitAdapter.commit(
+      s"chore(${issueId.value}): recover workflow state from interrupted run",
+      cwd
+    ) match
+      case Right(sha) =>
+        Output.info(s"Committed recovered state as $sha")
+      case Left(err) =>
+        Output.error(s"Failed to commit recovered state: $err")
+        sys.exit(1)
 
   // --- Workflow code resolution ---
 
