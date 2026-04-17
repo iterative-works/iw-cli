@@ -2,17 +2,17 @@
 
 **Issue:** IW-344
 **Created:** 2026-04-17
-**Status:** 0/3 phases complete (0%)
+**Status:** 2/3 phases complete (67%)
 
 ## Phase Index
 
 - [x] Phase 1: Core jar build and mtime check (Est: 2-3h) → `phase-01-context.md`
-- [ ] Phase 2: Update command execution to use jar (Est: 2-3h) → `phase-02-context.md`
+- [x] Phase 2: Update command execution to use jar (Est: 2-3h) → `phase-02-context.md`
 - [ ] Phase 3: E2E test adaptation (Est: 3-5h) → `phase-03-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/3 phases
+**Completed:** 2/3 phases
 **Estimated Total:** 7-11 hours
 **Time Spent:** 0 hours
 
