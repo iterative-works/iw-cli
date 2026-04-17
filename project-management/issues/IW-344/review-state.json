@@ -31,17 +31,21 @@
     {
       "label": "Phase 3 Context",
       "path": "project-management/issues/IW-344/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-344/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T17:22:54.468391855Z",
-  "status": "context_ready",
+  "last_updated": "2026-04-17T17:31:01.350113030Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Phase 03: Context Ready",
-    "type": "info",
+    "text": "Phase 3: Tasks Ready",
+    "type": "success",
     "subtext": "E2E test adaptation"
   },
-  "message": "Phase 03 context ready for review",
-  "activity": "working",
+  "message": "Phase 3 tasks ready",
+  "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -53,6 +57,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "1c0fa99",
