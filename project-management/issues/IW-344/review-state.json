@@ -6,16 +6,21 @@
       "label": "Analysis",
       "path": "project-management/issues/IW-344/analysis.md",
       "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-344/tasks.md",
+      "category": "output"
     }
   ],
-  "last_updated": "2026-04-15T12:47:01.953710948Z",
-  "status": "analysis_ready",
+  "last_updated": "2026-04-17T08:02:46.060851360Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Analysis Ready",
+    "text": "Tasks Ready",
     "type": "success",
-    "subtext": "Architecture analysis complete"
+    "subtext": "3 phases identified"
   },
-  "message": "Analysis complete - ready for task generation",
+  "message": "Task breakdown complete. Ready to begin implementation.",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -28,7 +33,13 @@
       "id": "implement",
       "label": "Start Implementation",
       "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
     }
   ],
-  "git_sha": "1c0fa99"
+  "git_sha": "1c0fa99",
+  "needs_attention": true
 }
