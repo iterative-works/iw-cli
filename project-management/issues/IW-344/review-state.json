@@ -29,14 +29,14 @@
       "path": "project-management/issues/IW-344/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T15:22:19.977080925Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-17T15:36:55.565782803Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 2: Tasks Ready",
-    "type": "success",
+    "text": "Phase 02: Awaiting Review",
+    "type": "warning",
     "subtext": "Update command execution to use jar"
   },
-  "message": "Phase 2 tasks ready",
+  "message": "Phase 02 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -44,6 +44,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1c0fa99",
@@ -52,6 +57,16 @@
       "context_sha": "context_sha=ea7a864e7d31f29e3423b205e5181eec6dcc30fa"
     }
   },
-  "badges": [],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/359"
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    }
+  ],
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/362",
+  "needs_attention": true
 }
