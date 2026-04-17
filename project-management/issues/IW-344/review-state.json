@@ -27,17 +27,21 @@
     {
       "label": "Phase 2 Tasks",
       "path": "project-management/issues/IW-344/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-344/phase-03-context.md"
     }
   ],
-  "last_updated": "2026-04-17T15:36:55.565782803Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-17T17:22:54.468391855Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 02: Awaiting Review",
-    "type": "warning",
-    "subtext": "Update command execution to use jar"
+    "text": "Phase 03: Context Ready",
+    "type": "info",
+    "subtext": "E2E test adaptation"
   },
-  "message": "Phase 02 implementation started",
-  "activity": "waiting",
+  "message": "Phase 03 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -53,8 +57,8 @@
   ],
   "git_sha": "1c0fa99",
   "phase_checkpoints": {
-    "2": {
-      "context_sha": "context_sha=ea7a864e7d31f29e3423b205e5181eec6dcc30fa"
+    "3": {
+      "context_sha": "context_sha=c25687d520f3340bf2e59a48ead340d7d73e1b37"
     }
   },
   "badges": [
