@@ -34,6 +34,16 @@ setup() {
     export IW_CORE_DIR="$TEST_DIR/.iw-install/core"
     export IW_PROJECT_DIR="$TEST_DIR"
 
+    # Point at the shared, pre-built core jar from the repo root and sync the
+    # copied sources' mtimes to it so core_jar_stale stays false (otherwise the
+    # copy's fresh mtimes would trigger a rebuild into the shared jar path,
+    # clobbering it for other tests in the suite).
+    if [ -f "$BATS_TEST_DIRNAME/../build/iw-core.jar" ]; then
+        export IW_CORE_JAR="$BATS_TEST_DIRNAME/../build/iw-core.jar"
+        find "$TEST_DIR/.iw-install/core" -name '*.scala' \
+            -exec touch -r "$IW_CORE_JAR" {} +
+    fi
+
     # Create minimal config
     mkdir -p .iw
     cat > .iw/config.conf << 'EOF'
