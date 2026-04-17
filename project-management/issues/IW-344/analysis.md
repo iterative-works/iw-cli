@@ -102,37 +102,26 @@ Cold runs are **~27x faster**. This is the most significant user-facing win sinc
 
 **Implication for `iw-run`:** All three invocation sites in `execute_command()` must include `"$CORE_DIR/project.scala"` as a source alongside `--jar "$CORE_JAR"`. Command authors still never touch `project.scala` — `iw-run` injects it transparently, preserving the "no directives for command authors" constraint.
 
-### CLARIFY: Dev-mode stale jar behavior
+### RESOLVED: Dev-mode stale jar behavior
 
-Should the mtime check auto-rebuild or just warn?
+**Decision (2026-04-17): Option C — auto-rebuild with visible message, no source-file fallback.**
 
-**Questions to answer:**
-1. Is auto-rebuild acceptable during `iw <command>` invocation (adds latency on first run after core change)?
-2. Should there be an explicit `iw --build` subcommand instead?
-3. Should the jar be required (fail if missing) or optional (fall back to source files)?
+- When the jar is missing or stale (any `core/**/*.scala` newer than the jar), `iw-run` prints "Rebuilding core jar..." to stderr and rebuilds before executing the command.
+- No fallback to source-file mode. The jar is always required; if it doesn't exist, it gets built on first run.
+- `./iw --bootstrap` still works as an explicit pre-build entry point.
 
-**Options:**
-- **Option A**: Auto-rebuild silently when stale. Simplest UX, but adds surprise latency.
-- **Option B**: Warn when stale, require explicit `iw --bootstrap` to rebuild. Predictable but manual.
-- **Option C**: Auto-rebuild with a visible message ("Rebuilding core jar..."). Best of both.
+**Rationale:** Keeping source-file fallback would make the slow path the default for anyone who doesn't know about `--bootstrap`. Auto-rebuild with a message gives transparency without requiring manual steps.
 
-**Impact:** Affects developer experience during core development workflow.
+### RESOLVED: E2E test strategy for jar-based execution
 
-### CLARIFY: E2E test strategy for jar-based execution
+**Decision (2026-04-17): Option C — `IW_CORE_JAR` env var override, pre-built once per test run.**
 
-Many E2E tests currently copy core source files into temp directories. With jar-based execution, tests need a jar.
+- `iw-run` checks `IW_CORE_JAR` env var first; if unset, defaults to `$INSTALL_DIR/build/iw-core.jar`.
+- `test.scala` builds the jar once at the start of the test run, sets `IW_CORE_JAR` to point at it.
+- Individual BATS tests inherit the env var — no per-test jar building needed.
+- Tests that copy `iw-run` into temp dirs can point `IW_CORE_JAR` at the pre-built jar location.
 
-**Questions to answer:**
-1. Should tests pre-build the jar once and reuse it across test files?
-2. Should tests fall back to source-file mode for simplicity?
-3. Should `iw-run` support both modes (jar if present, source files as fallback)?
-
-**Options:**
-- **Option A**: Build jar once in test setup, all tests use it. Most realistic but slower test setup.
-- **Option B**: Keep source-file fallback in `iw-run`, tests use source mode. Easiest migration but doesn't test the jar path.
-- **Option C**: Dual mode with `IW_CORE_JAR` env var override. Tests can point to pre-built jar or skip.
-
-**Impact:** Determines how much test infrastructure changes and whether jar path is actually tested in E2E.
+**Rationale:** Since there's no source-file fallback, tests must use the jar path. The env var gives the test harness control over jar location without hardcoding paths, and the one-time build cost (~30s) is amortized across all test files.
 
 ## Total Estimates
 
