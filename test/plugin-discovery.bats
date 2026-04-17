@@ -2,6 +2,8 @@
 # PURPOSE: E2E tests for plugin directory discovery in iw-run
 # PURPOSE: Verifies plugins are found via XDG_DATA_HOME and IW_PLUGIN_DIRS
 
+load helpers/bloop-cleanup
+
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
@@ -49,6 +51,7 @@ EOF
 }
 
 teardown() {
+    stop_test_bloop
     cd /
     rm -rf "$TEST_DIR"
 }

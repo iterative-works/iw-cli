@@ -2,6 +2,8 @@
 # PURPOSE: E2E tests for plugin command listing in iw --list output
 # PURPOSE: Verifies plugin commands are displayed with correct format and filtering
 
+load helpers/bloop-cleanup
+
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
@@ -57,6 +59,7 @@ EOF
 }
 
 teardown() {
+    stop_test_bloop
     cd /
     rm -rf "$TEST_DIR"
 }
