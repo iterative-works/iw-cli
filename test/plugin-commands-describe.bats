@@ -2,6 +2,8 @@
 # PURPOSE: E2E tests for plugin command description with --describe
 # PURPOSE: Verifies --describe works for plugin/command syntax with source attribution
 
+load helpers/bloop-cleanup
+
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
@@ -62,6 +64,7 @@ EOF
 }
 
 teardown() {
+    stop_test_bloop
     cd /
     rm -rf "$TEST_DIR"
 }

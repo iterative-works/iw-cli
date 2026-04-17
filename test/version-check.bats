@@ -2,6 +2,8 @@
 # PURPOSE: Tests for version file reading and version requirement checking in iw-run
 # PURPOSE: Covers read_iw_version(), compare_versions(), and check_version_requirement()
 
+load helpers/bloop-cleanup
+
 setup() {
     export IW_SERVER_DISABLED=1
 
@@ -39,6 +41,7 @@ setup() {
 }
 
 teardown() {
+    stop_test_bloop
     cd /
     rm -rf "$TEST_DIR"
 }
