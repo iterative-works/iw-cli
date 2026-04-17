@@ -21,14 +21,14 @@
       "path": "project-management/issues/IW-344/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T12:14:44.788041850Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-17T12:16:11.288054566Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 1: Tasks Ready",
-    "type": "success",
+    "text": "Phase 01: Implementing",
+    "type": "progress",
     "subtext": "Core jar build and mtime check"
   },
-  "message": "Phase 1 tasks ready",
+  "message": "Phase 01 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -59,5 +59,11 @@
     "1": {
       "context_sha": "context_sha=ff8c6ec632d2a1101e21df2cf3507364ad0d3ba0"
     }
-  }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
