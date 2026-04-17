@@ -37,11 +37,11 @@
       "path": "project-management/issues/IW-344/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T17:38:46.218802418Z",
-  "status": "implementing",
+  "last_updated": "2026-04-17T18:31:46.352166107Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 03: Implementing",
-    "type": "progress",
+    "text": "Phase 03: Awaiting Review",
+    "type": "warning",
     "subtext": "E2E test adaptation"
   },
   "message": "Phase 03 implementation started",
@@ -62,6 +62,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1c0fa99",
@@ -82,8 +87,12 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/362",
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/364",
   "needs_attention": true
 }
