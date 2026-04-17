@@ -21,11 +21,11 @@
       "path": "project-management/issues/IW-344/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-17T12:16:11.288054566Z",
-  "status": "implementing",
+  "last_updated": "2026-04-17T12:26:42.840062107Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 01: Implementing",
-    "type": "progress",
+    "text": "Phase 01: Awaiting Review",
+    "type": "warning",
     "subtext": "Core jar build and mtime check"
   },
   "message": "Phase 01 implementation started",
@@ -51,6 +51,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "1c0fa99",
@@ -64,6 +69,11 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
-  ]
+  ],
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/359"
 }
