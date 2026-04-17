@@ -1137,6 +1137,26 @@ class GitHubClientTest extends munit.FunSuite:
 
     assertEquals(result, Right(Nil))
 
+  test(
+    "fetchCheckStatuses returns Right(Nil) when gh reports 'no checks reported'"
+  ):
+    // `gh pr checks` exits non-zero with this message when a branch has no CI
+    // configured. Treat it as an empty list rather than an error.
+    val mockExec: (String, Array[String]) => Either[String, String] =
+      (cmd, args) =>
+        if args.contains("auth") && args.contains("status") then
+          Right("Logged in")
+        else Left("no checks reported on the 'IW-344-phase-01' branch")
+
+    val result = GitHubClient.fetchCheckStatuses(
+      prNumber = 42,
+      repository = "owner/repo",
+      isCommandAvailable = _ => true,
+      execCommand = mockExec
+    )
+
+    assertEquals(result, Right(Nil))
+
   // ========== JSON Parsing Tests (via fetchCheckStatuses) ==========
 
   private def fetchWithJson(
