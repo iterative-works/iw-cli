@@ -19,23 +19,27 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-344/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-344/phase-02-context.md"
     }
   ],
-  "last_updated": "2026-04-17T14:56:12.356855814Z",
-  "status": "phase_merged",
+  "last_updated": "2026-04-17T15:20:47.738645025Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 01: Merged",
-    "type": "success",
-    "subtext": "Core jar build and mtime check"
+    "text": "Phase 2: Context Ready",
+    "type": "info",
+    "subtext": "Update command execution to use jar"
   },
-  "message": "Phase 1 merged successfully. Ready to continue to phase 2.",
+  "message": "Phase 2 context ready for review",
   "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [],
   "git_sha": "1c0fa99",
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=ff8c6ec632d2a1101e21df2cf3507364ad0d3ba0"
+    "2": {
+      "context_sha": "context_sha=ea7a864e7d31f29e3423b205e5181eec6dcc30fa"
     }
   },
   "badges": [],
