@@ -33,3 +33,4 @@
 - `bootstrap()` calls `build_core_jar` directly, not via `ensure_core_jar`, because bootstrap is the explicit pre-build entry point and should always rebuild regardless of mtime.
 - `ensure_core_jar()` is intentionally dead code in this phase; it ships as part of the same coherent commit so Phase 2 can simply add call sites without re-touching the function definitions.
 - This phase does not touch `execute_command()`, `commands/version.scala`, `scripts/package-release.sh`, or any BATS test file.
+**Phase Status:** Complete
