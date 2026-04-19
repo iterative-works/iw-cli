@@ -80,3 +80,56 @@ M	iw-run
 ```
 
 ---
+
+## Phase 3: E2E test adaptation (2026-04-17)
+
+**Layer:** Test infrastructure (BATS suite + `test.scala` runner + one `core/adapters` signature extension)
+
+**What was built:**
+- `core/adapters/Process.scala` — `runStreaming` gained a trailing `env: Map[String, String] = Map.empty` parameter, forwarded to `os.proc(...).call(env = env)`. Mirrors the existing `run` method; default-empty preserves every existing call site. Also refreshed the file PURPOSE header to cover all four public operations.
+- `.iw/commands/test.scala` — `runE2ETests()` now pre-builds the core jar via `./iw-run --bootstrap` before the BATS loop (10-min timeout, aborts the suite if bootstrap fails), then injects `IW_CORE_JAR` into each BATS child's env via the new `runStreaming(env = ...)` parameter. Saves the ~30s-per-test jar rebuild cost and models the real launcher contract.
+- Seven BATS setup functions (`plugin-commands-describe.bats`, `plugin-commands-execute.bats`, `plugin-commands-list.bats`, `plugin-discovery.bats`, `project-commands-describe.bats`, `project-commands-execute.bats`, `project-commands-list.bats`) — each gained the `IW_CORE_JAR` + `touch -r` block immediately after `export IW_CORE_DIR=...`. The block points at the shared pre-built jar when present and syncs copied-source mtimes so `core_jar_stale` stays false, preventing mid-suite clobbering of the shared jar.
+- `test/core-jar.bats` (new, 6 scenarios) — missing-jar auto-rebuild, stale-jar auto-rebuild, fresh-jar silence, `IW_CORE_JAR` override honored, `./iw-run --bootstrap` produces the jar at the default location, `build_core_jar` overwrites cleanly (regression guard for the Phase-2 `-f` fix). Uses a per-test `IW_CORE_JAR` inside `$TEST_DIR` so scenarios that mutate the jar don't contaminate the shared one.
+
+**Dependencies on other layers:**
+- Consumes Phase 1's `CORE_JAR`, `IW_CORE_JAR`, `build_core_jar()`, `core_jar_stale()`, `ensure_core_jar()`.
+- Consumes Phase 2's `ensure_core_jar` hook inside `execute_command()` and the `-f` overwrite fix in `build_core_jar()`.
+
+**Testing:**
+- `./iw ./test unit` — green.
+- `./iw ./test compile` — all 35 commands compile.
+- `bats test/core-jar.bats` — all 6 scenarios pass standalone.
+- `./iw ./test e2e` — `core-jar.bats` green; sentinel `project-commands-execute.bats` all 10 pass; `plugin-commands-execute.bats` all 4 pass. 6 pre-existing, unrelated failures in `phase-merge.bats`, `start-prompt.bats`, and `dashboard.bats`.
+
+**Code review:**
+- Iterations: 1
+- Review file: `review-phase-03-20260417-202044.md`
+- 4 skills: style, testing, security, scala3.
+- 0 critical from style/security/scala3; testing flagged 2 criticals (`/tmp/custom-iw-core.jar` shared path; `sleep 1` for mtime granularity).
+- `/tmp` issue fixed in-phase: `core-jar.bats` now uses `$TEST_DIR/custom-iw-core.jar`, teardown simplified. Stale test name "Phase-2 -f regression guard" renamed. `Process.scala` PURPOSE comment updated.
+- `sleep 1`: explicit pushback in review file — the idiom is correct for 1-second mtime granularity, tests pass reliably, the `touch -d "1 minute ago"` alternative is a stylistic refinement, not a correctness fix. Left as-is.
+- Warnings left as-is with rationale: BATS setup-block extraction (8 occurrences now; not worth blocking Phase 3); `env` parameter validation guard (current callers all pass `os.Path`-derived values; add when/if external callers appear); `return false` in `runE2ETests` (readable, local, and mirrors existing short-circuit style in the same file).
+
+**Notable decisions:**
+- BATS setup block stays copy-pasted across seven files rather than extracting into `test/helpers/core-jar-setup.bash`. The project already tolerates duplicated setup patterns (`IW_SERVER_DISABLED`, `TEST_DIR` boilerplate), and extracting mid-phase would grow scope. Candidate for a follow-up refactor.
+- `core-jar.bats` uses its own per-test `IW_CORE_JAR` (inside `$TEST_DIR`) deliberately — scenarios 2 and 6 mutate the jar and must not contaminate the shared repo-root jar inherited by the other seven BATS files.
+- Kept `return false` in `runE2ETests` over restructuring into nested `if/else` — the function is short, the early-exit pattern keeps the happy path at the outer indentation level, and matches the `if testFiles.isEmpty then ... return` already in the same function.
+
+**For next phases:**
+- IW-344 feature complete after this phase; remaining follow-ups (BATS helper extraction, `env` key validation guard, cleanup of 6 pre-existing unrelated BATS failures) tracked as separate issues.
+
+**Files changed:**
+```
+M	.iw/commands/test.scala
+M	core/adapters/Process.scala
+A	test/core-jar.bats
+M	test/plugin-commands-describe.bats
+M	test/plugin-commands-execute.bats
+M	test/plugin-commands-list.bats
+M	test/plugin-discovery.bats
+M	test/project-commands-describe.bats
+M	test/project-commands-execute.bats
+M	test/project-commands-list.bats
+```
+
+---
