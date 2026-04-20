@@ -94,7 +94,7 @@ project. Follow these rules:
    - Issue Information (`issue`)
    - Worktree Lifecycle (`start`, `open`, `rm`, `worktrees`, `status`, `register`)
    - Phase Workflow (`phase-start`, `phase-commit`, `phase-pr`, `phase-merge`, `phase-advance`)
-   - Implementation (`analyze`, `implement`, `batch-implement`)
+   - Implementation (`analyze`)
    - Project Setup (`init`, `doctor`, `config`, `project-context`)
    - Dashboard & Server (`dashboard`, `server`)
    - Review State (`review-state`)
