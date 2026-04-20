@@ -75,14 +75,23 @@ teardown() {
         [ -n "$PORT" ] && break
     done
 
+    # Extract temp directory from output (needed for the state.json poll below)
+    TEMP_DIR=$(grep -o "/tmp/iw-dev-[0-9]*" /tmp/test-output.txt 2>/dev/null | head -1)
+
+    # "Port:" is printed before sample-data generation writes state.json, so
+    # poll for the file itself rather than racing on the Port marker.
+    if [ -n "$TEMP_DIR" ]; then
+        for i in $(seq 1 40); do
+            [ -f "$TEMP_DIR/state.json" ] && break
+            sleep 0.5
+        done
+    fi
+
     # Kill server
     kill $PID 2>/dev/null || true
     wait $PID 2>/dev/null || true
 
     [ -n "$PORT" ] || { cat /tmp/test-output.txt; echo "Server did not produce Port output"; rm -f /tmp/test-output.txt; return 1; }
-
-    # Extract temp directory from output
-    TEMP_DIR=$(grep -o "/tmp/iw-dev-[0-9]*" /tmp/test-output.txt | head -1)
 
     # Verify temp directory was found
     [ -n "$TEMP_DIR" ]
