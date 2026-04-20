@@ -1,0 +1,115 @@
+{
+  "version": 2,
+  "issue_id": "IW-344",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-344/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-344/tasks.md",
+      "category": "output"
+    },
+    {
+      "label": "Phase 1 Context",
+      "path": "project-management/issues/IW-344/phase-01-context.md"
+    },
+    {
+      "label": "Phase 1 Tasks",
+      "path": "project-management/issues/IW-344/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-344/phase-02-context.md"
+    },
+    {
+      "label": "Phase 2 Tasks",
+      "path": "project-management/issues/IW-344/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-344/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-344/phase-03-tasks.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-344/implementation-log.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-344/review-packet.md"
+    },
+    {
+      "label": "Release Notes",
+      "path": "project-management/issues/IW-344/release-notes.md"
+    }
+  ],
+  "last_updated": "2026-04-19T08:22:16.883087979Z",
+  "status": "all_complete",
+  "display": {
+    "text": "Ready for Final Review",
+    "type": "success",
+    "subtext": "E2E test adaptation"
+  },
+  "message": "All phases complete - final PR created",
+  "activity": "waiting",
+  "workflow_type": "waterfall",
+  "available_actions": [
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
+    }
+  ],
+  "git_sha": "1c0fa99",
+  "phase_checkpoints": {
+    "3": {
+      "context_sha": "context_sha=c25687d520f3340bf2e59a48ead340d7d73e1b37"
+    }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    }
+  ],
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/365",
+  "needs_attention": true
+}

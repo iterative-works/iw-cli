@@ -135,11 +135,28 @@ def runE2ETests(): Boolean =
       Output.info("No BATS test files found")
       true
     else
+      // Pre-build the core jar once so BATS tests inherit it via IW_CORE_JAR,
+      // avoiding per-test 30s jar rebuilds.
+      Output.section("Pre-building core jar for E2E tests")
+      val bootstrapExit = ProcessAdapter.runStreaming(
+        Seq((installDir / "iw-run").toString, "--bootstrap"),
+        timeoutMs = 10 * 60 * 1000
+      )
+      if bootstrapExit != 0 then
+        Output.error("Failed to pre-build core jar; aborting E2E run")
+        return false
+
+      val coreJar = installDir / "build" / "iw-core.jar"
+
       Output.section("Running E2E Tests")
 
       // Run each BATS file individually to avoid temp directory race conditions
       val sortedFiles = testFiles.sortBy(_.last)
       val results = sortedFiles.map { testFile =>
-        ProcessAdapter.runStreaming(Seq("bats", testFile.toString), timeoutMs = 10 * 60 * 1000) == 0
+        ProcessAdapter.runStreaming(
+          Seq("bats", testFile.toString),
+          timeoutMs = 10 * 60 * 1000,
+          env = Map("IW_CORE_JAR" -> coreJar.toString)
+        ) == 0
       }
       results.forall(identity)
