@@ -1,5 +1,6 @@
 // PURPOSE: Shared build configuration for iw-cli core library
 // PURPOSE: Declares Scala version and external dependencies used across all commands
+// SYNC: Dep list mirrors `build.mill`'s `core.mvnDeps`. Keep both in sync by hand.
 
 //> using scala 3.3.7
 //> using dep com.typesafe:config:1.4.5

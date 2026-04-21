@@ -16,6 +16,9 @@ release/
 # Staged output for publishing skills to dev-docs
 build/
 
+# Mill build output
+out/
+
 # IDE
 .idea/
 .vscode/

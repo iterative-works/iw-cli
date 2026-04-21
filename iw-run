@@ -28,22 +28,8 @@ fi
 # Writes to $CORE_JAR.
 build_core_jar() {
     echo "Rebuilding core jar..." >&2
-
-    # Ensure the parent directory exists.
     mkdir -p "$(dirname "$CORE_JAR")"
-
-    # Collect core source files (exclude tests and scala-build cache).
-    local core_files
-    core_files=$(find "$CORE_DIR" -name "*.scala" \
-        -not -path "*/test/*" \
-        -not -path "*/.scala-build/*" \
-        | tr '\n' ' ')
-
-    # shellcheck disable=SC2086
-    scala-cli --power package --library \
-        -o "$CORE_JAR" -f \
-        $core_files \
-        --server=false
+    (cd "$INSTALL_DIR" && ./mill iwCoreJar)
 }
 
 # Returns 0 (true) if the jar is missing or any core/**/*.scala is newer.

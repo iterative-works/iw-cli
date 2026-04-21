@@ -1,0 +1,39 @@
+// PURPOSE: Mill build definition — produces build/iw-core.jar from core/
+// PURPOSE: Defines the core ScalaModule and iwCoreJar top-level task
+package build
+import mill.*
+import mill.scalalib.*
+
+// SYNC: mvnDeps mirror `core/project.scala`'s `//> using dep` entries. Keep both in sync by hand.
+object core extends ScalaModule {
+  def scalaVersion = "3.3.7"
+
+  def sources = Task.Sources(
+    moduleDir / os.up / "core" / "adapters",
+    moduleDir / os.up / "core" / "dashboard",
+    moduleDir / os.up / "core" / "model",
+    moduleDir / os.up / "core" / "output",
+    moduleDir / os.up / "core" / "IssueCreateParser.scala",
+  )
+
+  def mvnDeps = Seq(
+    mvn"com.typesafe:config:1.4.5",
+    mvn"com.softwaremill.sttp.client4::core:4.0.15",
+    mvn"com.lihaoyi::upickle:4.4.2",
+    mvn"com.lihaoyi::os-lib:0.11.6",
+    // Dashboard-only deps; currently bundled here pending a dedicated dashboard module.
+    mvn"com.lihaoyi::cask:0.11.3",
+    mvn"com.lihaoyi::scalatags:0.13.1",
+    mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
+  )
+
+  // Test sources are compiled by scala-cli; Mill packages compiled classes only.
+}
+
+// Materialises `core.jar` at `build/iw-core.jar` for launcher discoverability.
+def iwCoreJar(): Command[PathRef] = Task.Command {
+  val target = core.moduleDir / os.up / "build" / "iw-core.jar"
+  os.makeDir.all(target / os.up)
+  os.copy.over(core.jar().path, target)
+  PathRef(target)
+}

@@ -21,14 +21,14 @@
       "path": "project-management/issues/IW-345/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-21T14:37:11.523640224Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-21T15:07:52.952406722Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 1: Tasks Ready",
-    "type": "success",
+    "text": "Phase 01: Awaiting Review",
+    "type": "warning",
     "subtext": "Mill bootstrap + core jar production"
   },
-  "message": "Phase 1 tasks ready",
+  "message": "Phase 01 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -51,6 +51,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "9fc7115",
@@ -59,5 +64,16 @@
     "1": {
       "context_sha": "context_sha=edbd5d6648b5d1ab4c575c6dc7a6aeb3e8c48f70"
     }
-  }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    }
+  ],
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/366"
 }
