@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "issue_id": "IW-345",
+  "artifacts": [
+    {
+      "label": "Analysis",
+      "path": "project-management/issues/IW-345/analysis.md",
+      "category": "input"
+    },
+    {
+      "label": "Tasks",
+      "path": "project-management/issues/IW-345/tasks.md",
+      "category": "output"
+    }
+  ],
+  "last_updated": "2026-04-21T12:48:31.024262209Z",
+  "status": "tasks_ready",
+  "display": {
+    "text": "Tasks Ready",
+    "type": "success",
+    "subtext": "4 phases identified"
+  },
+  "message": "Task breakdown complete. Ready to begin implementation.",
+  "activity": "waiting",
+  "workflow_type": "waterfall",
+  "available_actions": [
+    {
+      "id": "create-tasks",
+      "label": "Generate Tasks",
+      "skill": "wf-create-tasks"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
+    },
+    {
+      "id": "implement",
+      "label": "Start Implementation",
+      "skill": "wf-implement"
+    }
+  ],
+  "git_sha": "9fc7115",
+  "needs_attention": true
+}
