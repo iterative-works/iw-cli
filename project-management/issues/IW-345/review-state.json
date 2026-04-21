@@ -19,17 +19,21 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-345/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-345/phase-02-context.md"
     }
   ],
-  "last_updated": "2026-04-21T15:07:52.952406722Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-21T20:36:30.254951516Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 01: Awaiting Review",
-    "type": "warning",
-    "subtext": "Mill bootstrap + core jar production"
+    "text": "Phase 2: Context Ready",
+    "type": "info",
+    "subtext": "Dashboard JVM module — move, rename, test migration"
   },
-  "message": "Phase 01 implementation started",
-  "activity": "waiting",
+  "message": "Phase 2 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -61,8 +65,8 @@
   "git_sha": "9fc7115",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=edbd5d6648b5d1ab4c575c6dc7a6aeb3e8c48f70"
+    "2": {
+      "context_sha": "context_sha=478d96aced696aad252ee03ece9ed237344a3715"
     }
   },
   "badges": [
