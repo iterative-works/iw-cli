@@ -21,14 +21,14 @@
       "path": "project-management/issues/IW-345/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-21T14:37:11.523640224Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-21T14:39:15.792328612Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 1: Tasks Ready",
-    "type": "success",
+    "text": "Phase 01: Implementing",
+    "type": "progress",
     "subtext": "Mill bootstrap + core jar production"
   },
-  "message": "Phase 1 tasks ready",
+  "message": "Phase 01 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -59,5 +59,11 @@
     "1": {
       "context_sha": "context_sha=edbd5d6648b5d1ab4c575c6dc7a6aeb3e8c48f70"
     }
-  }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
