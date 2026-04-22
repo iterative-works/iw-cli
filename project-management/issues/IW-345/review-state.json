@@ -37,14 +37,14 @@
       "path": "project-management/issues/IW-345/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T11:55:41.615316121Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-22T14:34:53.328389978Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 3: Tasks Ready",
-    "type": "success",
+    "text": "Phase 03: Implementing",
+    "type": "progress",
     "subtext": "Frontend pipeline + fat-jar assembly + integration tests"
   },
-  "message": "Phase 3 tasks ready",
+  "message": "Phase 03 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -112,6 +112,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/367"
