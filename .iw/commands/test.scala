@@ -1,10 +1,12 @@
-// PURPOSE: Run project tests (unit tests, command compilation, and E2E tests)
-// USAGE: iw test [unit|compile|e2e]
+// PURPOSE: Run project tests (unit tests, integration tests, command compilation, and E2E tests)
+// USAGE: iw test [unit|itest|compile|e2e]
 // ARGS:
-//   [type]: Optional test type - 'unit' for Scala tests, 'compile' for command compilation, 'e2e' for BATS tests
-//           If not provided, runs all tests including command compilation
+//   [type]: Optional test type - 'unit' for Scala tests, 'itest' for dashboard integration tests,
+//           'compile' for command compilation, 'e2e' for BATS tests
+//           If not provided, runs all tests
 // EXAMPLE: iw test
 // EXAMPLE: iw test unit
+// EXAMPLE: iw test itest
 // EXAMPLE: iw test compile
 // EXAMPLE: iw test e2e
 
@@ -22,6 +24,9 @@ import iw.core.output.*
     case "unit" =>
       val result = runUnitTests()
       sys.exit(if result then 0 else 1)
+    case "itest" =>
+      val result = runIntegrationTests()
+      sys.exit(if result then 0 else 1)
     case "compile" =>
       val result = runCommandCompileCheck()
       sys.exit(if result then 0 else 1)
@@ -30,19 +35,23 @@ import iw.core.output.*
       sys.exit(if result then 0 else 1)
     case "all" =>
       val unitResult = runUnitTests()
+      val itestResult = runIntegrationTests()
       val compileResult = runCommandCompileCheck()
       val e2eResult = runE2ETests()
-      sys.exit(if unitResult && compileResult && e2eResult then 0 else 1)
+      sys.exit(
+        if unitResult && itestResult && compileResult && e2eResult then 0 else 1
+      )
     case other =>
       Output.error(s"Unknown test type: $other")
       showUsage()
       sys.exit(1)
 
 def showUsage(): Unit =
-  System.out.println("Usage: iw test [unit|compile|e2e]")
+  System.out.println("Usage: iw test [unit|itest|compile|e2e]")
   System.out.println()
   System.out.println("Arguments:")
   System.out.println("  unit     Run Scala unit tests only")
+  System.out.println("  itest    Run dashboard integration tests only")
   System.out.println("  compile  Check that all commands compile")
   System.out.println("  e2e      Run BATS E2E tests only")
   System.out.println("  (none)   Run all tests including command compilation")
@@ -50,6 +59,7 @@ def showUsage(): Unit =
   System.out.println("Examples:")
   System.out.println("  iw test           # Run all tests")
   System.out.println("  iw test unit      # Run only unit tests")
+  System.out.println("  iw test itest     # Run only integration tests")
   System.out.println("  iw test compile   # Check command compilation only")
   System.out.println("  iw test e2e       # Run only E2E tests")
 
@@ -80,6 +90,13 @@ def runUnitTests(): Boolean =
 
       coreExitCode == 0 && dashboardExitCode == 0
 
+def runIntegrationTests(): Boolean =
+  val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
+  Output.section("Running Dashboard Integration Tests")
+  val millCommand =
+    Seq((installDir / "mill").toString, "dashboard.itest.testForked")
+  ProcessAdapter.runStreaming(millCommand) == 0
+
 def runCommandCompileCheck(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
   val commandsDir = installDir / "commands"
@@ -99,16 +116,22 @@ def runCommandCompileCheck(): Boolean =
 
       val dashboardSrcDir = installDir / "dashboard" / "jvm" / "src"
       // Transitional: these scripts import iw.dashboard.* types until Phase 4 rewrites them.
-      val dashboardBridgeCommands = Set("dashboard.scala", "server-daemon.scala")
+      val dashboardBridgeCommands =
+        Set("dashboard.scala", "server-daemon.scala")
 
       val results = commandFiles.sorted.map { commandFile =>
         val commandName = commandFile.last
         val extraSources =
-          if dashboardBridgeCommands.contains(commandName) && os.exists(dashboardSrcDir)
+          if dashboardBridgeCommands.contains(commandName) && os.exists(
+              dashboardSrcDir
+            )
           then Seq(dashboardSrcDir.toString)
           else Seq.empty
         val result = ProcessAdapter.run(
-          Seq("scala-cli", "compile", coreDir.toString) ++ extraSources ++ Seq(commandFile.toString, "--quiet")
+          Seq("scala-cli", "compile", coreDir.toString) ++ extraSources ++ Seq(
+            commandFile.toString,
+            "--quiet"
+          )
         )
 
         if result.exitCode == 0 then
@@ -117,8 +140,7 @@ def runCommandCompileCheck(): Boolean =
         else
           Output.error(s"  ✗ $commandName - compilation failed")
           // Show the error output
-          if result.stderr.nonEmpty then
-            System.err.println(result.stderr)
+          if result.stderr.nonEmpty then System.err.println(result.stderr)
           false
       }
 
@@ -130,7 +152,9 @@ def runCommandCompileCheck(): Boolean =
       if allSuccess then
         Output.success(s"All $successCount commands compiled successfully")
       else
-        Output.error(s"$failCount of ${commandFiles.length} commands failed to compile")
+        Output.error(
+          s"$failCount of ${commandFiles.length} commands failed to compile"
+        )
 
       allSuccess
 

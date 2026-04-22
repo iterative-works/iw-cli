@@ -43,7 +43,9 @@ object PageLayout:
         // Dashboard CSS
         link(rel := "stylesheet", href := "/static/dashboard.css"),
         // Dashboard JS
-        tag("script")(src := "/static/dashboard.js")
+        tag("script")(src := "/static/dashboard.js"),
+        // Frontend bundle: Web Awesome Pro components, Tailwind CSS, htmx
+        tag("script")(src := "/assets/main.js", attr("type") := "module")
       ),
       body(
         attr("hx-ext") := "response-targets",

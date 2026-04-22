@@ -1,5 +1,5 @@
 // PURPOSE: Mill build definition — produces build/iw-core.jar from core/
-// PURPOSE: Defines the core and dashboard ScalaModules and iwCoreJar top-level task
+// PURPOSE: Defines the core, dashboard, and frontend modules; iwCoreJar and iwDashboardJar top-level tasks
 package build
 import mill.*
 import mill.scalalib.*
@@ -33,7 +33,14 @@ object dashboard extends ScalaModule {
   def scalaVersion = "3.3.7"
   def moduleDeps = Seq(core)
   def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "src")
-  def resources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "resources")
+  def mainClass = Some("iw.dashboard.ServerDaemon")
+
+  def jvmResources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "resources")
+
+  def resources = Task {
+    jvmResources() ++ Seq(frontend.viteBuild())
+  }
+
   def mvnDeps = Seq(
     mvn"com.lihaoyi::cask:0.11.3",
     mvn"com.lihaoyi::scalatags:0.13.1",
@@ -43,6 +50,42 @@ object dashboard extends ScalaModule {
   object test extends ScalaTests with TestModule.Munit {
     def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "test" / "src")
     def mvnDeps = Seq(mvn"org.scalameta::munit::1.2.1")
+  }
+
+  object itest extends ScalaTests with TestModule.Munit {
+    def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "itest" / "src")
+    def mvnDeps = Seq(
+      mvn"org.scalameta::munit::1.2.1",
+      mvn"com.softwaremill.sttp.client4::core:4.0.15",
+    )
+  }
+}
+
+// Frontend build pipeline — Yarn + Vite + Tailwind produce dist/assets/ consumed by dashboard.resources.
+object frontend extends Module {
+
+  def frontendDir = Task.Sources(
+    moduleDir / os.up / "dashboard" / "frontend" / "package.json",
+    moduleDir / os.up / "dashboard" / "frontend" / "yarn.lock",
+    moduleDir / os.up / "dashboard" / "frontend" / "vite.config.js",
+    moduleDir / os.up / "dashboard" / "frontend" / "src",
+    moduleDir / os.up / "dashboard" / "frontend" / ".yarnrc.yml",
+  )
+
+  // Tailwind @source scans Scala sources; changes there must re-trigger viteBuild.
+  def scalaTemplates = Task.Sources(
+    moduleDir / os.up / "dashboard" / "jvm" / "src"
+  )
+
+  def viteBuild: T[PathRef] = Task {
+    val srcDir = moduleDir / os.up / "dashboard" / "frontend"
+    frontendDir()
+    scalaTemplates()
+    // Run yarn install + yarn build with inherited env (WEBAWESOME_NPM_TOKEN).
+    // Output goes directly to Task.dest so Mill owns it for change-detection.
+    os.proc("yarn", "install", "--immutable").call(cwd = srcDir, stdout = os.Inherit, stderr = os.Inherit)
+    os.proc("yarn", "build", "--outDir", Task.dest.toString).call(cwd = srcDir, stdout = os.Inherit, stderr = os.Inherit)
+    PathRef(Task.dest)
   }
 }
 
@@ -59,5 +102,14 @@ def iwCoreJar(): Command[PathRef] = Task.Command {
   os.proc("jar", "xf", core.jar().path.toString).call(cwd = staging)
   os.proc("jar", "xf", dashboard.jar().path.toString).call(cwd = staging)
   os.proc("jar", "cf", target.toString, ".").call(cwd = staging)
+  PathRef(target)
+}
+
+// Materialises the dashboard fat jar at build/iw-dashboard.jar for launcher discoverability.
+// Phase 4 will replace iwCoreJar's stage-and-repack with this artifact and rewrite the launcher.
+def iwDashboardJar(): Command[PathRef] = Task.Command {
+  val target = dashboard.moduleDir / os.up / "build" / "iw-dashboard.jar"
+  os.makeDir.all(target / os.up)
+  os.copy.over(dashboard.assembly().path, target)
   PathRef(target)
 }

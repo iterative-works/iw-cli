@@ -608,35 +608,28 @@ class CaskServer(
 
   @cask.get("/static/:filename")
   def staticFiles(filename: String): cask.Response[Array[Byte]] =
-    // Resolve static files from installation directory (IW_CORE_DIR) or CWD fallback
-    val coreDir = sys.env
-      .get("IW_CORE_DIR")
-      .map(os.Path(_))
-      .getOrElse(os.pwd / ".iw" / "core")
-    val staticDir = coreDir / "dashboard" / "resources" / "static"
-    val filePath = staticDir / filename
+    serveClasspathResource(s"/static/$filename")
 
-    // Check if file exists
-    if os.exists(filePath) && os.isFile(filePath) then
-      // Read file content
-      val content = os.read.bytes(filePath)
+  @cask.get("/assets/:filename")
+  def assetFiles(filename: String): cask.Response[Array[Byte]] =
+    serveClasspathResource(s"/assets/$filename")
 
-      // Determine Content-Type based on file extension
-      val contentType = filename match
-        case f if f.endsWith(".css") => "text/css; charset=UTF-8"
-        case f if f.endsWith(".js")  => "application/javascript; charset=UTF-8"
-        case _                       => "application/octet-stream"
-
-      cask.Response(
-        data = content,
-        headers = Seq("Content-Type" -> contentType)
-      )
-    else
-      // File not found
-      cask.Response(
-        data = Array.empty[Byte],
-        statusCode = 404
-      )
+  private def serveClasspathResource(
+      resourcePath: String
+  ): cask.Response[Array[Byte]] =
+    Option(this.getClass.getResourceAsStream(resourcePath)) match
+      case None =>
+        cask.Response(data = Array.empty[Byte], statusCode = 404)
+      case Some(stream) =>
+        val content = stream.readAllBytes()
+        val contentType = resourcePath match
+          case p if p.endsWith(".css") => "text/css; charset=UTF-8"
+          case p if p.endsWith(".js") => "application/javascript; charset=UTF-8"
+          case _                      => "application/octet-stream"
+        cask.Response(
+          data = content,
+          headers = Seq("Content-Type" -> contentType)
+        )
 
   @cask.get("/api/status")
   def status(): ujson.Value =

@@ -23,6 +23,11 @@ out/
 .idea/
 .vscode/
 
+# Frontend build artifacts
+dashboard/frontend/node_modules/
+dashboard/frontend/dist/
+dashboard/frontend/.yarn/
+
 # OS
 .DS_Store
 .playwright-mcp/
