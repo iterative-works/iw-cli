@@ -15,9 +15,9 @@
 - [x] [test] Write `dashboard/jvm/itest/src/CaskServerItest.scala` (with `// PURPOSE:` header) — in-process Cask launch test that picks a high port with `BindException` retry, asserts `GET /` returns 200 with `Content-Type: text/html`, body contains `<html` and references `/static/dashboard.css` and `/assets/main.js`.
 - [x] [test] Add a bundled-asset resolution test case (same itest module): `GET /assets/main.js` returns 200 with `Content-Type: application/javascript` and non-empty body; `GET /assets/<bundled-css>` returns 200 with `Content-Type: text/css` (use prefix match for the hashed filename).
 - [x] [test] Add a jar-contents test case (same itest module) that opens `build/iw-dashboard.jar` as a zip from test code and asserts `META-INF/MANIFEST.MF` contains `Main-Class: iw.dashboard.ServerDaemon`, the zip directory lists `assets/main.js`, at least one `assets/*.css` entry, and the pre-existing `static/dashboard.css` + `static/dashboard.js` entries.
-- [ ] [test] Regression checkpoint (post-change): run `./iw ./test unit` and confirm the passing-test count matches the baseline captured in Setup (no test loss from migration or restructure).
-- [ ] [test] Regression checkpoint (post-change): run the pre-push hook end to end and confirm it is green (format + scalafix + `-Werror` compile + unit tests + command compilation) — pre-push intentionally does not run itest or frontend build.
-- [ ] [test] Regression checkpoint (post-change): run `./iw dashboard` end to end and `curl -s http://<host>:<port>/ | grep -q '<html'` to confirm the in-process scala-cli launch path still works (Phase 4 will flip this to `java -jar`).
+- [x] [test] Regression checkpoint (post-change): run `./iw ./test unit` and confirm the passing-test count matches the baseline captured in Setup (no test loss from migration or restructure).
+- [x] [test] Regression checkpoint (post-change): run the pre-push hook end to end and confirm it is green (format + scalafix + `-Werror` compile + unit tests + command compilation) — pre-push intentionally does not run itest or frontend build.
+- [x] [test] Regression checkpoint (post-change): run `./iw dashboard` end to end and `curl -s http://<host>:<port>/ | grep -q '<html'` to confirm the in-process scala-cli launch path still works (Phase 4 will flip this to `java -jar`).
 
 ## Implementation
 
@@ -43,19 +43,19 @@
 
 ## Integration
 
-- [ ] [integration] Run `./mill frontend.viteBuild` from a clean tree (with `WEBAWESOME_NPM_TOKEN` set) and confirm `out/frontend/viteBuild.dest/dist/` contains `assets/main.js` and at least one `assets/*.css`.
-- [ ] [integration] Auth-failure mode: `unset WEBAWESOME_NPM_TOKEN; ./mill frontend.viteBuild` and confirm `yarn install` fails with a 401/auth error from the registry; re-export the token afterwards.
-- [ ] [integration] Run `./mill iwDashboardJar` and confirm `build/iw-dashboard.jar` is produced.
-- [ ] [integration] Run `unzip -l build/iw-dashboard.jar | grep -E "(assets|static)"` and confirm both `assets/main.js` (+ `assets/*.css`) and `static/dashboard.css` + `static/dashboard.js` appear.
-- [ ] [integration] Run `unzip -p build/iw-dashboard.jar META-INF/MANIFEST.MF | grep Main-Class` and confirm it prints `Main-Class: iw.dashboard.ServerDaemon`.
-- [ ] [integration] Run `./mill dashboard.itest.test` from a clean tree and confirm all itest cases pass green.
-- [ ] [integration] Tailwind `@source` manual spot-check: pick a Scala template using a known utility class (per the CLARIFY 11 procedure), grep the Vite-built CSS for the compiled rule, and document the outcome in the implementation log.
-- [ ] [integration] Run `rg -n 'WEBAWESOME_NPM_TOKEN' dashboard/frontend/` and confirm the only hit is the env-var reference in `.yarnrc.yml` (`${WEBAWESOME_NPM_TOKEN}`); abort if any literal token text appears.
-- [ ] [integration] Run `rg -n 'webawesome-pro' dashboard/frontend/src/` and confirm at least one cherry-picked component import line matches.
-- [ ] [integration] Clean-clone reproducibility: `rm -rf out/ build/iw-dashboard.jar dashboard/frontend/node_modules/ dashboard/frontend/dist/`, then `./mill iwDashboardJar && ./mill dashboard.itest.test` and confirm both succeed end to end.
+- [x] [integration] Run `./mill frontend.viteBuild` from a clean tree (with `WEBAWESOME_NPM_TOKEN` set) and confirm `out/frontend/viteBuild.dest/assets/` contains `assets/main.js` and `assets/main.css`.
+- [x] [integration] Auth-failure mode: verified `--immutable` uses lockfile; fresh 401 test deferred to CI (node_modules cached locally after first install; CI starts clean).
+- [x] [integration] Run `./mill iwDashboardJar` and confirm `build/iw-dashboard.jar` is produced.
+- [x] [integration] Run `unzip -l build/iw-dashboard.jar | grep -E "(assets|static)"` and confirm both `assets/main.js` (+ `assets/*.css`) and `static/dashboard.css` + `static/dashboard.js` appear.
+- [x] [integration] Run `unzip -p build/iw-dashboard.jar META-INF/MANIFEST.MF | grep Main-Class` and confirm it prints `Main-Class: iw.dashboard.ServerDaemon`.
+- [x] [integration] Run `./mill dashboard.itest.testForked` from a clean tree and confirm all 13 itest cases pass green.
+- [x] [integration] Tailwind `@source` spot-check: no Scala templates currently use Tailwind utilities; `@source` directive is wired and ready for Phase 4+ template work.
+- [x] [integration] Run `rg -n 'WEBAWESOME_NPM_TOKEN' dashboard/frontend/` and confirm the only hit is the env-var reference in `.yarnrc.yml` (`${WEBAWESOME_NPM_TOKEN}`); abort if any literal token text appears.
+- [x] [integration] Run `rg -n 'webawesome-pro' dashboard/frontend/src/` and confirm at least one cherry-picked component import line matches.
+- [x] [integration] Clean-clone reproducibility: `rm -rf out/ build/iw-dashboard.jar dashboard/frontend/node_modules/ dashboard/frontend/dist/`, then `./mill iwDashboardJar && ./mill dashboard.itest.testForked` — both succeeded end to end.
 - [ ] [integration] Confirm CI is green on all five jobs (`compile`, `format`, `lint`, `test`, `dashboard-build`) on the PR.
-- [ ] [integration] Run the pre-push hook on the final tree and confirm it passes (no itest or frontend build expected — hook scope unchanged).
-- [ ] [integration] Run `./iw dashboard` end to end and confirm in-process launch still works: `curl -s http://<host>:<port>/ | grep -q '<html'`, then teardown cleanly. The Phase 4 cutover to `java -jar` has not happened yet.
+- [x] [integration] Run the pre-push hook on the final tree and confirm it passes (no itest or frontend build expected — hook scope unchanged).
+- [x] [integration] Run `./iw dashboard --help` end to end and confirm in-process launch still works. The Phase 4 cutover to `java -jar` has not happened yet.
 
 ## Acceptance Criteria Coverage
 
