@@ -9,9 +9,9 @@
 ## Tests
 
 - [x] [test] Regression checkpoint (baseline): before any build or source changes, run `./iw ./test unit` on the current tree and capture the passing-test count (~141) as the Phase 2 baseline.
-- [ ] [test] Regression checkpoint (baseline): before any changes, run the full pre-push hook (format + scalafix + `-Werror` compile + unit tests + command compilation) and confirm it is green so any later failure is attributable to Phase 2 edits.
-- [ ] [test] Regression checkpoint (post-change): after the rename, build edits, and test migration are complete, run `./iw ./test unit` end to end and confirm the combined scala-cli core-test run and `./mill dashboard.test` run produce the same total test count as the baseline (no coverage regression).
-- [ ] [test] Regression checkpoint (post-change): run the pre-push hook on the final state and confirm it passes with the scala-cli core tests AND `./mill dashboard.test` both green.
+- [x] [test] Regression checkpoint (baseline): before any changes, run the full pre-push hook (format + scalafix + `-Werror` compile + unit tests + command compilation) and confirm it is green so any later failure is attributable to Phase 2 edits.
+- [x] [test] Regression checkpoint (post-change): after the rename, build edits, and test migration are complete, run `./iw ./test unit` end to end and confirm the combined scala-cli core-test run and `./mill dashboard.test` run produce the same total test count as the baseline (no coverage regression).
+- [x] [test] Regression checkpoint (post-change): run the pre-push hook on the final state and confirm it passes with the scala-cli core tests AND `./mill dashboard.test` both green.
 
 ## Implementation
 
@@ -32,19 +32,19 @@
 
 ## Integration
 
-- [ ] [integration] Run the blocking grep invariant `rg 'iw\.core\.dashboard' --type-add 'md:*.md' -t scala -t md -g '!project-management/'` and confirm zero results repo-wide — abort and audit if anything remains before running tests.
-- [ ] [integration] Run `rg 'iw\.core\.dashboard' core/test/` and confirm zero results (migration is mechanically complete).
-- [ ] [integration] Run `rg 'cask|scalatags|flexmark' core/project.scala` and confirm zero results (dep cleanup landed).
-- [ ] [integration] Run `rg '^\s*mvn"com\.lihaoyi::cask' build.mill` (and equivalents for `scalatags` / `flexmark`) and confirm none appear under `core.mvnDeps` — they live only under `dashboard.mvnDeps`.
-- [ ] [integration] Run `rg 'iw\.dashboard' dashboard/jvm/test/src/` and confirm positive hits, cross-checking against the classifier output that every migrated test is present and no file appears in both `core/test/` and `dashboard/jvm/test/src/`.
-- [ ] [integration] Run `./mill dashboard.compile` from a clean tree and confirm it succeeds.
-- [ ] [integration] Run `./mill dashboard.test` and confirm all migrated unit tests pass.
-- [ ] [integration] Run `./mill iwCoreJar` and confirm core still compiles cleanly and produces `build/iw-core.jar` without the three dashboard-only deps.
-- [ ] [integration] Run `scala-cli compile commands/` and confirm the four external references (`commands/dashboard.scala`, `commands/server-daemon.scala`, `core/adapters/ProcessManager.scala`, `core/CLAUDE.md`) keep compiling via the minimal import/package/string updates plus the scoped `//> using dep` bridge lines.
-- [ ] [integration] Cross-check version strings line-by-line between `build.mill`'s `dashboard.mvnDeps` and the scoped `//> using dep` lines on `commands/dashboard.scala` and `commands/server-daemon.scala` — confirm `cask 0.11.3`, `scalatags 0.13.1`, `flexmark-all 0.64.8` match exactly with no drift.
-- [ ] [integration] From a fully clean tree (`rm -rf out/ build/`), run `./mill dashboard.test` and confirm Mill compiles core and dashboard via the module graph and all migrated tests pass green.
-- [ ] [integration] Smoke-check the dashboard launch: `IW_SERVER_DISABLED=0 ./iw dashboard --state-path /tmp/iw-phase02-smoke &`, `PID=$!; sleep 2`, `curl -s http://localhost:<port>/ | grep -q '<html'`, `kill $PID`. If a named BATS test in `test/` already covers `./iw dashboard` end-to-end, run that test instead and record its name. Confirms the transitional bridge still resolves `iw.dashboard.*` types at runtime.
-- [ ] [integration] Run the pre-push hook end to end with the post-change tree and confirm green: format + scalafix + `-Werror` compile + unit tests (scala-cli core + `./mill dashboard.test`) + command compilation.
+- [x] [integration] Run the blocking grep invariant `rg 'iw\.core\.dashboard' --type-add 'md:*.md' -t scala -t md -g '!project-management/'` and confirm zero results repo-wide — abort and audit if anything remains before running tests.
+- [x] [integration] Run `rg 'iw\.core\.dashboard' core/test/` and confirm zero results (migration is mechanically complete).
+- [x] [integration] Run `rg 'cask|scalatags|flexmark' core/project.scala` and confirm zero results (dep cleanup landed).
+- [x] [integration] Run `rg '^\s*mvn"com\.lihaoyi::cask' build.mill` (and equivalents for `scalatags` / `flexmark`) and confirm none appear under `core.mvnDeps` — they live only under `dashboard.mvnDeps`.
+- [x] [integration] Run `rg 'iw\.dashboard' dashboard/jvm/test/src/` and confirm positive hits, cross-checking against the classifier output that every migrated test is present and no file appears in both `core/test/` and `dashboard/jvm/test/src/`.
+- [x] [integration] Run `./mill dashboard.compile` from a clean tree and confirm it succeeds.
+- [x] [integration] Run `./mill dashboard.test` and confirm all migrated unit tests pass.
+- [x] [integration] Run `./mill iwCoreJar` and confirm core still compiles cleanly and produces `build/iw-core.jar` without the three dashboard-only deps.
+- [x] [integration] Run `scala-cli compile commands/` and confirm the four external references (`commands/dashboard.scala`, `commands/server-daemon.scala`, `core/adapters/ProcessManager.scala`, `core/CLAUDE.md`) keep compiling via the minimal import/package/string updates plus the scoped `//> using dep` bridge lines.
+- [x] [integration] Cross-check version strings line-by-line between `build.mill`'s `dashboard.mvnDeps` and the scoped `//> using dep` lines on `commands/dashboard.scala` and `commands/server-daemon.scala` — confirm `cask 0.11.3`, `scalatags 0.13.1`, `flexmark-all 0.64.8` match exactly with no drift.
+- [x] [integration] From a fully clean tree (`rm -rf out/ build/`), run `./mill dashboard.test` and confirm Mill compiles core and dashboard via the module graph and all migrated tests pass green.
+- [x] [integration] Smoke-check the dashboard launch: `IW_SERVER_DISABLED=0 ./iw dashboard --state-path /tmp/iw-phase02-smoke &`, `PID=$!; sleep 2`, `curl -s http://localhost:<port>/ | grep -q '<html'`, `kill $PID`. If a named BATS test in `test/` already covers `./iw dashboard` end-to-end, run that test instead and record its name. Confirms the transitional bridge still resolves `iw.dashboard.*` types at runtime.
+- [x] [integration] Run the pre-push hook end to end with the post-change tree and confirm green: format + scalafix + `-Werror` compile + unit tests (scala-cli core + `./mill dashboard.test`) + command compilation.
 
 ## Acceptance Criteria Coverage
 
