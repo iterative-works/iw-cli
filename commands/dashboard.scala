@@ -2,6 +2,8 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
+// SYNC: Keep these versions identical to `dashboard.mvnDeps` in `build.mill`
+// and to the scoped deps in `commands/server-daemon.scala`. Transitional until Phase 4.
 //> using dep com.lihaoyi::cask:0.11.3
 //> using dep com.lihaoyi::scalatags:0.13.1
 //> using dep com.vladsch.flexmark:flexmark-all:0.64.8

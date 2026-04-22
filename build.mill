@@ -26,6 +26,9 @@ object core extends ScalaModule {
   // Test sources are compiled by scala-cli; Mill packages compiled classes only.
 }
 
+// SYNC: mvnDeps mirror scoped `//> using dep` entries in
+// `commands/dashboard.scala` and `commands/server-daemon.scala`.
+// Keep version strings identical across all three until the Phase 4 launcher rewrite.
 object dashboard extends ScalaModule {
   def scalaVersion = "3.3.7"
   def moduleDeps = Seq(core)
@@ -35,7 +38,6 @@ object dashboard extends ScalaModule {
     mvn"com.lihaoyi::cask:0.11.3",
     mvn"com.lihaoyi::scalatags:0.13.1",
     mvn"works.iterative::scalatags-webawesome:3.2.1.1",
-    mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
   )
 
   object test extends ScalaTests with TestModule.Munit {
@@ -44,17 +46,18 @@ object dashboard extends ScalaModule {
   }
 }
 
-// Materialises combined core+dashboard classes at `build/iw-core.jar` for launcher discoverability.
+// Produces a single jar merging core + dashboard classes so `iw-run`'s
+// scala-cli bridge can resolve both `iw.core.*` and `iw.dashboard.*` from one
+// classpath entry. Transitional until Phase 4 replaces the bridge with
+// `dashboard.assembly`; Mill has no first-class multi-module fat-jar task at
+// this phase, so stage-and-repack is the minimal solution.
 def iwCoreJar(): Command[PathRef] = Task.Command {
   val target = core.moduleDir / os.up / "build" / "iw-core.jar"
   os.makeDir.all(target / os.up)
   val staging = Task.dest / "staging"
   os.makeDir.all(staging)
-  // Unpack core classes
   os.proc("jar", "xf", core.jar().path.toString).call(cwd = staging)
-  // Unpack dashboard classes on top
   os.proc("jar", "xf", dashboard.jar().path.toString).call(cwd = staging)
-  // Repack into the target jar
   os.proc("jar", "cf", target.toString, ".").call(cwd = staging)
   PathRef(target)
 }

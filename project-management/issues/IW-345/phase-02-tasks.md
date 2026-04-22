@@ -64,4 +64,4 @@
 - AC14 Smoke check passes: dashboard launches, `curl` sees `<html`, teardown is clean → `[integration]` dashboard smoke-check (or named BATS equivalent).
 - AC15 From-clean-tree `./mill dashboard.test` compiles core and dashboard via the Mill graph and runs migrated tests green → `[integration]` clean-tree (`rm -rf out/ build/`) `./mill dashboard.test` run.
 
-**Phase Status:** Pending
+**Phase Status:** Complete
