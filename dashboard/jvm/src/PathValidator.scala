@@ -1,6 +1,6 @@
 // PURPOSE: Validate artifact paths to prevent directory traversal attacks
 // PURPOSE: Ensures paths stay within worktree boundaries with secure error messages
-package iw.core.dashboard
+package iw.dashboard
 
 import java.nio.file.{Path, Paths}
 

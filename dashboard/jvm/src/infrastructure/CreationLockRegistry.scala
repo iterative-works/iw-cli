@@ -1,9 +1,9 @@
 // PURPOSE: Thread-safe registry for tracking in-progress worktree creation operations
 // PURPOSE: Prevents concurrent creation attempts for the same issue using ConcurrentHashMap
 
-package iw.core.dashboard.infrastructure
+package iw.dashboard.infrastructure
 
-import iw.core.dashboard.domain.CreationLock
+import iw.dashboard.domain.CreationLock
 import java.util.concurrent.ConcurrentHashMap
 import java.time.{Duration, Instant}
 import scala.jdk.CollectionConverters.*

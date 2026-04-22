@@ -5,7 +5,7 @@ package iw.core.presentation.views
 
 import munit.FunSuite
 import iw.core.model.Check
-import iw.core.dashboard.presentation.views.CreateWorktreeModal
+import iw.dashboard.presentation.views.CreateWorktreeModal
 
 class CreateWorktreeModalTest extends FunSuite:
 

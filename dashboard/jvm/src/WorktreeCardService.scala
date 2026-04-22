@@ -1,7 +1,7 @@
 // PURPOSE: Application service for rendering individual worktree cards with refresh
 // PURPOSE: Handles per-card HTML generation with rate limiting and error handling
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{
   WorktreeRegistration,
@@ -17,10 +17,7 @@ import iw.core.model.{
   Issue,
   IssueId
 }
-import iw.core.dashboard.presentation.views.{
-  WorktreeCardRenderer,
-  HtmxCardConfig
-}
+import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try

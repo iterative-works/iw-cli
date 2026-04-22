@@ -1,7 +1,7 @@
 // PURPOSE: Generate complete sample ServerState for development and testing
 // PURPOSE: Provides deterministic sample data across all cache types with diverse scenarios
 
-package iw.core.dashboard.domain
+package iw.dashboard.domain
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit

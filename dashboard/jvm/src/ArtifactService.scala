@@ -1,9 +1,9 @@
 // PURPOSE: Application service for loading and rendering artifact content
 // PURPOSE: Coordinates path validation, file reading, and markdown rendering with I/O injection
 
-package iw.core.dashboard
+package iw.dashboard
 
-import iw.core.dashboard.PathValidator
+import iw.dashboard.PathValidator
 import iw.core.model.ServerState
 import iw.core.output.MarkdownRenderer
 import java.nio.file.{Path, Paths}

@@ -1,7 +1,7 @@
 // PURPOSE: User-facing error representation with actionable suggestions
 // PURPOSE: Maps technical errors to friendly messages with retry capability
 
-package iw.core.dashboard.domain
+package iw.dashboard.domain
 
 /** User-friendly error for display in the UI.
   *

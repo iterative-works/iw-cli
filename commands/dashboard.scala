@@ -2,8 +2,8 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
-import iw.core.dashboard.{CaskServer, StateRepository}
-import iw.core.dashboard.domain.SampleDataGenerator
+import iw.dashboard.{CaskServer, StateRepository}
+import iw.dashboard.domain.SampleDataGenerator
 import iw.core.adapters.ServerConfigRepository
 import iw.core.output.Output
 import iw.core.model.ServerConfig

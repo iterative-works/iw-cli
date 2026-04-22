@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.dashboard.ServerStateService
+import iw.dashboard.ServerStateService
 import iw.core.model.{
   ServerState,
   WorktreeRegistration,
@@ -20,7 +20,7 @@ import iw.core.model.{
   CachedReviewState,
   ProjectRegistration
 }
-import iw.core.dashboard.StateRepository
+import iw.dashboard.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path}
 import java.util.concurrent.{Executors, TimeUnit, CountDownLatch}

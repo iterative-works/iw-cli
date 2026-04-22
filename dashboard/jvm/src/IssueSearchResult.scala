@@ -1,7 +1,7 @@
 // PURPOSE: Domain model for issue search results
 // PURPOSE: Represents a single search result with issue ID, title, status, and URL
 
-package iw.core.dashboard
+package iw.dashboard
 
 /** Issue search result with essential fields for display.
   *

@@ -1,7 +1,7 @@
 // PURPOSE: Pure business logic for cache-aware issue fetching
 // PURPOSE: Handles TTL validation, stale cache fallback, and URL construction
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.Issue
 import iw.core.model.{IssueData, CachedIssue}

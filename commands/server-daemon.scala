@@ -1,7 +1,7 @@
 // PURPOSE: Run CaskServer in daemon mode (background)
 // PURPOSE: Entry point for background server process
 
-package iw.core.dashboard
+package iw.dashboard
 
 object ServerDaemon:
   def main(args: Array[String]): Unit =

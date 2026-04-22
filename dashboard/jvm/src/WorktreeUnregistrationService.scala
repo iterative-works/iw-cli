@@ -1,7 +1,7 @@
 // PURPOSE: Pure functions for unregistering worktrees from server state
 // PURPOSE: Provides unregister and pruneNonExistent operations for worktree cleanup
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.ServerState
 import iw.core.model.Issue

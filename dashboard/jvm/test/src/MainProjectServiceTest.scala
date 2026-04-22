@@ -9,12 +9,12 @@ import iw.core.model.{
   WorktreeRegistration,
   ProjectRegistration
 }
-import iw.core.dashboard.application.*
-import iw.core.dashboard.domain.*
+import iw.dashboard.application.*
+import iw.dashboard.domain.*
 import java.time.Instant
 import munit.FunSuite
 import iw.core.model.WorktreeRegistration
-import iw.core.dashboard.application.MainProjectService
+import iw.dashboard.application.MainProjectService
 
 class MainProjectServiceTest extends FunSuite:
   test("deriveFromWorktrees with empty list returns empty list"):

@@ -1,7 +1,7 @@
 // PURPOSE: Application service for worktree list synchronization and change detection
 // PURPOSE: Provides diff logic to detect additions, deletions, and reorders, and generates HTMX OOB swap HTML
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{
   WorktreeRegistration,
@@ -14,10 +14,7 @@ import iw.core.model.{
   PullRequestData,
   ReviewState
 }
-import iw.core.dashboard.presentation.views.{
-  WorktreeCardRenderer,
-  HtmxCardConfig
-}
+import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 

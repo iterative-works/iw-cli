@@ -1,7 +1,7 @@
 // PURPOSE: Domain model representing a main project directory from which worktrees are created
 // PURPOSE: Contains project metadata including path, name, tracker type, and team identifier
 
-package iw.core.dashboard.domain
+package iw.dashboard.domain
 
 import iw.core.model.ProjectPath
 

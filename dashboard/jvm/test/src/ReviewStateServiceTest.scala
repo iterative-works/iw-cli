@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.dashboard.ReviewStateService
+import iw.dashboard.ReviewStateService
 import iw.core.model.{
   ReviewState,
   ReviewArtifact,

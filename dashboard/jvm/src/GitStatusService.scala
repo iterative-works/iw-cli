@@ -1,7 +1,7 @@
 // PURPOSE: Application service for git status detection
 // PURPOSE: Pure business logic with injected command execution
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.GitStatus
 

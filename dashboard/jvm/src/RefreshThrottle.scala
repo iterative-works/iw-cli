@@ -1,7 +1,7 @@
 // PURPOSE: Rate limiting for per-worktree background refresh operations
 // PURPOSE: Prevents API hammering by enforcing 30s minimum interval between refreshes
 
-package iw.core.dashboard
+package iw.dashboard
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit

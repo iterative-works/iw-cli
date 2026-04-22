@@ -1,7 +1,7 @@
 // PURPOSE: Shared HTML page layout component for dashboard pages
 // PURPOSE: Renders complete HTML shell with DOCTYPE, head, CSS/JS links, and body wrapper
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
 import scalatags.Text.tags2.title as titleTag

@@ -15,7 +15,7 @@ import iw.core.model.{
   Badge,
   TaskList
 }
-import iw.core.dashboard.WorktreeListView
+import iw.dashboard.WorktreeListView
 import java.time.Instant
 import iw.core.model.Check
 import iw.core.model.Issue

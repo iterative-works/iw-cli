@@ -3,8 +3,8 @@
 
 package iw.tests
 
-import iw.core.dashboard.domain.MainProject
-import iw.core.dashboard.presentation.views.ProjectDetailsView
+import iw.dashboard.domain.MainProject
+import iw.dashboard.presentation.views.ProjectDetailsView
 import java.time.Instant
 import munit.FunSuite
 

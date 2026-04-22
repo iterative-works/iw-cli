@@ -1,9 +1,9 @@
 // PURPOSE: Presentation layer for rendering main projects section with create buttons
 // PURPOSE: Generates HTML for main project cards showing tracker info and per-project worktree creation
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
-import iw.core.dashboard.domain.MainProject
+import iw.dashboard.domain.MainProject
 import scalatags.Text.all.*
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets

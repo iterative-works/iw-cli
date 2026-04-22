@@ -4,7 +4,7 @@
 package iw.tests
 
 import iw.core.model.WorktreeRegistration
-import iw.core.dashboard.application.MainProjectService
+import iw.dashboard.application.MainProjectService
 import java.time.Instant
 import munit.FunSuite
 

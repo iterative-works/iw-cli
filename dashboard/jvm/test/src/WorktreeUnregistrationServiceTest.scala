@@ -16,7 +16,7 @@ import iw.core.model.{
   PRState
 }
 import java.time.Instant
-import iw.core.dashboard.WorktreeUnregistrationService
+import iw.dashboard.WorktreeUnregistrationService
 import iw.core.model.Issue
 
 class WorktreeUnregistrationServiceTest extends FunSuite:

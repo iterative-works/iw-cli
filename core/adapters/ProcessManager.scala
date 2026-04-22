@@ -112,7 +112,7 @@ object ProcessManager:
         coreFiles ++
         Seq(
           "--main-class",
-          "iw.core.dashboard.ServerDaemon",
+          "iw.dashboard.ServerDaemon",
           "--",
           statePath,
           port.toString,

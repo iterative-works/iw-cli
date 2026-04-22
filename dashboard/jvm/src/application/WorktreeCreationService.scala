@@ -1,11 +1,11 @@
 // PURPOSE: Pure business logic for worktree creation orchestration
 // PURPOSE: Coordinates issue fetching, git worktree creation, tmux session setup, and registration
 
-package iw.core.dashboard.application
+package iw.dashboard.application
 
 import iw.core.model.{ProjectConfiguration, IssueId, WorktreePath, IssueData}
-import iw.core.dashboard.domain.{WorktreeCreationResult, WorktreeCreationError}
-import iw.core.dashboard.infrastructure.CreationLockRegistry
+import iw.dashboard.domain.{WorktreeCreationResult, WorktreeCreationError}
+import iw.dashboard.infrastructure.CreationLockRegistry
 
 object WorktreeCreationService:
   /** Creates a worktree for the given issue ID.

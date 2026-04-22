@@ -1,10 +1,10 @@
 // PURPOSE: Presentation layer for rendering worktree creation error state
 // PURPOSE: Generates HTML for error messages with retry and dismiss actions
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
-import iw.core.dashboard.domain.UserFriendlyError
+import iw.dashboard.domain.UserFriendlyError
 
 object CreationErrorView:
   /** Render error state after worktree creation failure.

@@ -1,7 +1,7 @@
 // PURPOSE: Infrastructure layer for persisting server state to JSON file
 // PURPOSE: Handles atomic writes, directory creation, and JSON serialization/deserialization
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{ServerState, ServerStateCodec}
 import iw.core.model.ServerStateCodec.{given, *}

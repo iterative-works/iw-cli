@@ -1,7 +1,7 @@
 // PURPOSE: Pure business logic for project registration operations
 // PURPOSE: Handles creating and updating project registrations without I/O
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{ServerState, ProjectRegistration}
 import java.time.Instant

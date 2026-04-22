@@ -5,9 +5,9 @@ package iw.core.application
 
 import munit.FunSuite
 import iw.core.model.{Issue, IssueData, IssueTrackerType, ProjectConfiguration}
-import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
-import iw.core.dashboard.application.WorktreeCreationService
-import iw.core.dashboard.infrastructure.CreationLockRegistry
+import iw.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
+import iw.dashboard.application.WorktreeCreationService
+import iw.dashboard.infrastructure.CreationLockRegistry
 import iw.core.adapters.{GitWorktreeAdapter, ProcessAdapter, TmuxAdapter}
 import java.time.Instant
 
@@ -397,7 +397,7 @@ class WorktreeCreationServiceTest extends FunSuite:
   // Group D: Tests for createWithLock
 
   override def beforeEach(context: BeforeEach): Unit =
-    iw.core.dashboard.infrastructure.CreationLockRegistry.clear()
+    iw.dashboard.infrastructure.CreationLockRegistry.clear()
 
   test("createWithLock acquires lock before creation"):
     val fetchIssue = (id: String) => Right(testIssueData)
@@ -430,7 +430,7 @@ class WorktreeCreationServiceTest extends FunSuite:
         Right(())
 
     // First creation acquires lock
-    iw.core.dashboard.infrastructure.CreationLockRegistry.tryAcquire("IW-79")
+    iw.dashboard.infrastructure.CreationLockRegistry.tryAcquire("IW-79")
 
     // Second creation should fail with CreationInProgress
     val result = WorktreeCreationService.createWithLock(
@@ -473,7 +473,7 @@ class WorktreeCreationServiceTest extends FunSuite:
 
     // Lock should be released after successful creation
     assert(
-      !iw.core.dashboard.infrastructure.CreationLockRegistry.isLocked("IW-79"),
+      !iw.dashboard.infrastructure.CreationLockRegistry.isLocked("IW-79"),
       "Lock should be released after successful creation"
     )
 
@@ -497,6 +497,6 @@ class WorktreeCreationServiceTest extends FunSuite:
     assert(result.isLeft, "Creation should fail")
     // Lock should be released even on failure
     assert(
-      !iw.core.dashboard.infrastructure.CreationLockRegistry.isLocked("IW-79"),
+      !iw.dashboard.infrastructure.CreationLockRegistry.isLocked("IW-79"),
       "Lock should be released even after failed creation"
     )

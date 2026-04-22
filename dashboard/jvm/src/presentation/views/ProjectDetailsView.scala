@@ -1,7 +1,7 @@
 // PURPOSE: Presentation layer for rendering project details page with filtered worktree cards
 // PURPOSE: Displays project metadata, breadcrumb navigation, and worktree cards for a single project
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import iw.core.model.{
   WorktreeRegistration,
@@ -11,7 +11,7 @@ import iw.core.model.{
   PullRequestData,
   ReviewState
 }
-import iw.core.dashboard.domain.MainProject
+import iw.dashboard.domain.MainProject
 import scalatags.Text.all.*
 import scalatags.Text.tags2.nav
 import java.time.Instant

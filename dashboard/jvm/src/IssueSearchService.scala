@@ -1,10 +1,10 @@
 // PURPOSE: Application service for searching issues across different trackers
 // PURPOSE: Implements ID-based search by parsing query and fetching issue details
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{IssueId, ProjectConfiguration, Issue}
-import iw.core.dashboard.IssueSearchResult
+import iw.dashboard.IssueSearchResult
 
 object IssueSearchService:
   /** Search for issues by ID or text.

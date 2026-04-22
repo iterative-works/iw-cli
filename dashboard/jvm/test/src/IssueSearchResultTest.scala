@@ -4,7 +4,7 @@
 package iw.core.domain
 
 import munit.FunSuite
-import iw.core.dashboard.IssueSearchResult
+import iw.dashboard.IssueSearchResult
 
 class IssueSearchResultTest extends FunSuite:
 

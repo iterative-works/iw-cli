@@ -1,10 +1,10 @@
 // PURPOSE: Presentation layer for rendering worktree creation success state
 // PURPOSE: Generates HTML for success message with tmux command and copy button
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
-import iw.core.dashboard.domain.WorktreeCreationResult
+import iw.dashboard.domain.WorktreeCreationResult
 import iw.core.model.Issue
 
 object CreationSuccessView:

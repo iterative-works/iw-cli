@@ -1,7 +1,7 @@
 // PURPOSE: Application service for rendering the complete dashboard HTML
 // PURPOSE: Generates full HTML page with header, project cards, and styling
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{
   Issue,
@@ -28,8 +28,8 @@ import iw.core.adapters.{
   ConfigFileRepository,
   CommandRunner
 }
-import iw.core.dashboard.application.MainProjectService
-import iw.core.dashboard.presentation.views.{
+import iw.dashboard.application.MainProjectService
+import iw.dashboard.presentation.views.{
   MainProjectsView,
   PageLayout,
   ProjectSummary

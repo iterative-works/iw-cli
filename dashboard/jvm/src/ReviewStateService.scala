@@ -1,7 +1,7 @@
 // PURPOSE: Application service for review state loading and parsing
 // PURPOSE: Pure business logic with file I/O injection pattern
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{
   ReviewState,

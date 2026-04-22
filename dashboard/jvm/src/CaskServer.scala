@@ -1,7 +1,7 @@
 // PURPOSE: Infrastructure layer for HTTP server using Cask framework
 // PURPOSE: Provides dashboard HTML route and health check endpoint on port 9876
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.adapters.{
   ConfigFileRepository,
@@ -24,7 +24,7 @@ import iw.core.model.{
   IssueData,
   WorktreeStatus
 }
-import iw.core.dashboard.{
+import iw.dashboard.{
   ServerStateService,
   DashboardService,
   WorktreeRegistrationService,
@@ -37,12 +37,9 @@ import iw.core.dashboard.{
   WorktreeListSync,
   CardRenderResult
 }
-import iw.core.dashboard.application.{
-  WorktreeCreationService,
-  MainProjectService
-}
-import iw.core.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
-import iw.core.dashboard.presentation.views.{
+import iw.dashboard.application.{WorktreeCreationService, MainProjectService}
+import iw.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
+import iw.dashboard.presentation.views.{
   ArtifactView,
   CreateWorktreeModal,
   SearchResultsView,
@@ -132,7 +129,7 @@ class CaskServer(
     // Get the main project from worktrees, or fall back to registered projects
     val mainProjectOpt = projects.headOption.orElse {
       state.projects.values.find(_.projectName == projectName).map { reg =>
-        iw.core.dashboard.domain.MainProject(
+        iw.dashboard.domain.MainProject(
           path = os.Path(reg.path),
           projectName = reg.projectName,
           trackerType = reg.trackerType,
@@ -244,7 +241,7 @@ class CaskServer(
         // Review state from cache is always valid (errors are not cached)
         val reviewStateResult =
           state.reviewStateCache.get(issueId).map(cached => Right(cached.state))
-        val projectName = iw.core.dashboard.domain.MainProject
+        val projectName = iw.dashboard.domain.MainProject
           .deriveMainProjectPath(worktree.path)
           .map(path => os.Path(path).last)
 

@@ -1,7 +1,7 @@
 // PURPOSE: Shared worktree card rendering logic used by all card display contexts
 // PURPOSE: Single source of truth for card HTML structure to prevent feature drift
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import iw.core.model.{
   WorktreeRegistration,
@@ -14,7 +14,7 @@ import iw.core.model.{
 }
 import scalatags.Text.all.*
 import java.time.Instant
-import iw.core.dashboard.WorktreeListView
+import iw.dashboard.WorktreeListView
 import iw.core.output.TimestampFormatter
 
 /** Configuration for HTMX attributes on cards.

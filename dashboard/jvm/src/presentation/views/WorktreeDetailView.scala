@@ -1,7 +1,7 @@
 // PURPOSE: Presentation layer for rendering the worktree detail page
 // PURPOSE: Full-page view showing all available context for a single worktree
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import iw.core.model.{
   WorktreeRegistration,
@@ -14,7 +14,7 @@ import iw.core.model.{
 import scalatags.Text.all.*
 import scalatags.Text.tags2.nav
 import java.time.Instant
-import iw.core.dashboard.WorktreeListView
+import iw.dashboard.WorktreeListView
 
 object WorktreeDetailView:
   /** Render the full worktree detail page body content.

@@ -2,7 +2,7 @@
 // PURPOSE: Verifies list synchronization logic for detecting additions, deletions, and reorders
 package iw.tests
 
-import iw.core.dashboard.WorktreeListSync
+import iw.dashboard.WorktreeListSync
 import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue}
 import java.time.Instant
 import iw.core.model.Issue

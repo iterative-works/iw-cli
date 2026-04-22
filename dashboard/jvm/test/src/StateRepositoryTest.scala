@@ -15,7 +15,7 @@ import iw.core.model.{
   PRState,
   CachedPR
 }
-import iw.core.dashboard.StateRepository
+import iw.dashboard.StateRepository
 import java.time.Instant
 import java.nio.file.{Files, Path, Paths}
 

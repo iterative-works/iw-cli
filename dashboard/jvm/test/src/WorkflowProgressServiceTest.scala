@@ -10,7 +10,7 @@ import iw.core.model.{
   CachedProgress,
   PhaseIndexEntry
 }
-import iw.core.dashboard.WorkflowProgressService
+import iw.dashboard.WorkflowProgressService
 
 class WorkflowProgressServiceTest extends FunSuite:
 

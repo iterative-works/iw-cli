@@ -1,7 +1,7 @@
 // PURPOSE: Application service for PR detection with caching
 // PURPOSE: Pure business logic with injected command execution and tool detection
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{PullRequestData, PRState, CachedPR}
 import java.time.Instant

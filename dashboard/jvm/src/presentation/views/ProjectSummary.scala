@@ -1,9 +1,9 @@
 // PURPOSE: View model pairing a main project with computed summary statistics
 // PURPOSE: Provides pure functions for computing worktree count and attention count per project
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
-import iw.core.dashboard.domain.MainProject
+import iw.dashboard.domain.MainProject
 import iw.core.model.{CachedReviewState, WorktreeRegistration}
 
 /** View model combining a main project with summary statistics.

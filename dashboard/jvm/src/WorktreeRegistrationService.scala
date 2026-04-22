@@ -1,7 +1,7 @@
 // PURPOSE: Pure business logic for worktree registration operations
 // PURPOSE: Handles creating, updating registrations and timestamp management without I/O
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{ServerState, WorktreeRegistration}
 import java.time.Instant

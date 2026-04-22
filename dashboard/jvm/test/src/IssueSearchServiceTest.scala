@@ -11,8 +11,8 @@ import iw.core.model.{
   Issue,
   ApiToken
 }
-import iw.core.dashboard.IssueSearchResult
-import iw.core.dashboard.IssueSearchService
+import iw.dashboard.IssueSearchResult
+import iw.dashboard.IssueSearchService
 
 class IssueSearchServiceTest extends FunSuite:
 

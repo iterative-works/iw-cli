@@ -1,7 +1,7 @@
 // PURPOSE: Domain model for tracking in-progress worktree creation operations
 // PURPOSE: Used to prevent concurrent creation attempts for the same issue
 
-package iw.core.dashboard.domain
+package iw.dashboard.domain
 
 import java.time.Instant
 

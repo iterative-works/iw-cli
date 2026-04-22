@@ -1,7 +1,7 @@
 // PURPOSE: Presentation layer for rendering artifact viewing pages with markdown content
 // PURPOSE: Provides full HTML pages for artifact display and error pages with back navigation
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
 import iw.core.model.Issue

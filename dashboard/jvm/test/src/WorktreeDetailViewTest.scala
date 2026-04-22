@@ -16,7 +16,7 @@ import iw.core.model.{
   ReviewArtifact,
   Badge
 }
-import iw.core.dashboard.presentation.views.WorktreeDetailView
+import iw.dashboard.presentation.views.WorktreeDetailView
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import munit.FunSuite

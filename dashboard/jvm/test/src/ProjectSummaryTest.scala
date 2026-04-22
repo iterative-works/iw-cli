@@ -3,8 +3,8 @@
 
 package iw.tests
 
-import iw.core.dashboard.domain.MainProject
-import iw.core.dashboard.presentation.views.ProjectSummary
+import iw.dashboard.domain.MainProject
+import iw.dashboard.presentation.views.ProjectSummary
 import iw.core.model.{CachedReviewState, ReviewState, WorktreeRegistration}
 import munit.FunSuite
 import java.time.Instant

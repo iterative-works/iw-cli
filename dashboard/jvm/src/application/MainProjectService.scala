@@ -1,10 +1,10 @@
 // PURPOSE: Application service for deriving main projects from registered worktrees
 // PURPOSE: Handles project path derivation, config loading, and deduplication logic
 
-package iw.core.dashboard.application
+package iw.dashboard.application
 
 import iw.core.model.{WorktreeRegistration, ProjectRegistration}
-import iw.core.dashboard.domain.MainProject
+import iw.dashboard.domain.MainProject
 import iw.core.adapters.ConfigFileRepository
 import iw.core.model.{ProjectConfiguration, Constants, TrackerUrlBuilder}
 

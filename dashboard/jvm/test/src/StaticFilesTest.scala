@@ -8,7 +8,7 @@ import sttp.client4.quick.*
 import sttp.client4.Response
 import java.nio.file.{Files, Paths}
 import scala.util.Random
-import iw.core.dashboard.CaskServer
+import iw.dashboard.CaskServer
 
 class StaticFilesTest extends FunSuite:
 

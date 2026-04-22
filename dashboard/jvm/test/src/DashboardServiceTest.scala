@@ -17,7 +17,7 @@ import iw.core.model.{
   WorktreeRegistration,
   ProjectRegistration
 }
-import iw.core.dashboard.{
+import iw.dashboard.{
   DashboardService,
   IssueCacheService,
   RefreshThrottle,

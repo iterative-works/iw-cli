@@ -6,7 +6,7 @@ package iw.core.application
 import munit.FunSuite
 import iw.core.model.{ServerState, ProjectRegistration}
 import java.time.Instant
-import iw.core.dashboard.ProjectRegistrationService
+import iw.dashboard.ProjectRegistrationService
 
 class ProjectRegistrationServiceTest extends FunSuite:
 

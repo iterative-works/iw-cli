@@ -3,8 +3,8 @@
 
 package iw.tests
 
-import iw.core.dashboard.{WorktreeCardService, RefreshThrottle}
-import iw.core.dashboard.CardRenderResult
+import iw.dashboard.{WorktreeCardService, RefreshThrottle}
+import iw.dashboard.CardRenderResult
 import iw.core.model.{WorktreeRegistration, IssueData, CachedIssue}
 import iw.core.model.{
   Issue,

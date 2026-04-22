@@ -3,10 +3,7 @@
 
 package iw.tests
 
-import iw.core.dashboard.presentation.views.{
-  WorktreeCardRenderer,
-  HtmxCardConfig
-}
+import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import iw.core.model.{WorktreeRegistration, IssueData}
 import java.time.Instant
 

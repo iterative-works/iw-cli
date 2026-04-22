@@ -1,7 +1,7 @@
 // PURPOSE: Presentation layer for rendering worktree creation loading state
 // PURPOSE: Generates HTML for loading spinner and message
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
 

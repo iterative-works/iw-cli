@@ -4,7 +4,7 @@
 package iw.core.domain
 
 import munit.FunSuite
-import iw.core.dashboard.domain.WorktreeCreationResult
+import iw.dashboard.domain.WorktreeCreationResult
 
 class WorktreeCreationResultTest extends FunSuite:
 

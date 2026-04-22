@@ -1,10 +1,10 @@
 // PURPOSE: Presentation layer for rendering issue search results
 // PURPOSE: Generates HTML for search result items and empty state message
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
-import iw.core.dashboard.IssueSearchResult
+import iw.dashboard.IssueSearchResult
 import iw.core.model.Issue
 
 object SearchResultsView:

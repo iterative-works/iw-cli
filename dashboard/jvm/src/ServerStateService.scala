@@ -1,7 +1,7 @@
 // PURPOSE: Centralized service for managing server state with thread-safe operations
 // PURPOSE: Holds state in memory, synchronizes writes, and provides per-entry update API
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{
   ServerState,
@@ -12,7 +12,7 @@ import iw.core.model.{
   CachedReviewState,
   ProjectRegistration
 }
-import iw.core.dashboard.StateRepository
+import iw.dashboard.StateRepository
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.atomic.AtomicReference
 

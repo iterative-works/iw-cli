@@ -4,7 +4,7 @@
 package iw.tests
 
 import munit.FunSuite
-import iw.core.dashboard.domain.*
+import iw.dashboard.domain.*
 import java.time.Instant
 import iw.core.model.CachedIssue
 import iw.core.model.CachedPR

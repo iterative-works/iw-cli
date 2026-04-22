@@ -1,7 +1,7 @@
 // PURPOSE: Value object representing the result of worktree creation
 // PURPOSE: Contains all information needed to show success state to user
 
-package iw.core.dashboard.domain
+package iw.dashboard.domain
 
 case class WorktreeCreationResult(
     issueId: String,

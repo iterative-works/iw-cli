@@ -1,7 +1,7 @@
 // PURPOSE: Domain error types for worktree creation failures
 // PURPOSE: Represents all possible error scenarios with specific context
 
-package iw.core.dashboard.domain
+package iw.dashboard.domain
 
 enum WorktreeCreationError:
   case DirectoryExists(path: String)

@@ -1,7 +1,7 @@
 // PURPOSE: Presentation layer for rendering worktree list with Scalatags
 // PURPOSE: Coordinates card rendering and handles list-level concerns like staggered loading
 
-package iw.core.dashboard
+package iw.dashboard
 
 import iw.core.model.{
   WorktreeRegistration,
@@ -11,10 +11,7 @@ import iw.core.model.{
   PullRequestData,
   ReviewState
 }
-import iw.core.dashboard.presentation.views.{
-  WorktreeCardRenderer,
-  HtmxCardConfig
-}
+import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration

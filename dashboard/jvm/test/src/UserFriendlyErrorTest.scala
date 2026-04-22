@@ -4,7 +4,7 @@
 package iw.core.domain
 
 import munit.FunSuite
-import iw.core.dashboard.domain.UserFriendlyError
+import iw.dashboard.domain.UserFriendlyError
 
 class UserFriendlyErrorTest extends FunSuite:
 

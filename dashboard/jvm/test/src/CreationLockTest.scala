@@ -5,7 +5,7 @@ package iw.core.domain
 
 import munit.FunSuite
 import java.time.Instant
-import iw.core.dashboard.domain.CreationLock
+import iw.dashboard.domain.CreationLock
 
 class CreationLockTest extends FunSuite:
 

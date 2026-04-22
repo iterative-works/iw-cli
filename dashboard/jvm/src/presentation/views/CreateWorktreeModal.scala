@@ -1,7 +1,7 @@
 // PURPOSE: Presentation layer for rendering create worktree modal dialog
 // PURPOSE: Generates modal HTML with search input and HTMX integration for issue search
 
-package iw.core.dashboard.presentation.views
+package iw.dashboard.presentation.views
 
 import scalatags.Text.all.*
 

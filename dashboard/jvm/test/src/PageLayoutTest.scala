@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.core.dashboard.presentation.views.PageLayout
+import iw.dashboard.presentation.views.PageLayout
 import scalatags.Text.all.*
 
 class PageLayoutTest extends munit.FunSuite:
