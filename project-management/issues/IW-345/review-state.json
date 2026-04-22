@@ -37,95 +37,22 @@
       "path": "project-management/issues/IW-345/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T15:33:01.539450822Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-22T20:23:17.955002302Z",
+  "status": "analysis_ready",
   "display": {
-    "text": "Phase 03: Awaiting Review",
-    "type": "warning",
-    "subtext": "Frontend pipeline + fat-jar assembly + integration tests"
+    "text": "Phase 03 merged — starting Phase 04",
+    "type": "info",
+    "subtext": "Command integration + dev mode"
   },
-  "message": "Phase 03 implementation started",
-  "activity": "waiting",
+  "message": "Phase 03 PR #368 merged; beginning Phase 04 context generation",
+  "activity": "working",
   "workflow_type": "waterfall",
-  "available_actions": [
-    {
-      "id": "create-tasks",
-      "label": "Generate Tasks",
-      "skill": "wf-create-tasks"
-    },
-    {
-      "id": "implement",
-      "label": "Start Implementation",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "implement",
-      "label": "Start Implementation",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "implement",
-      "label": "Continue",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "view-pr",
-      "label": "View Pull Request",
-      "skill": "external-link"
-    },
-    {
-      "id": "implement",
-      "label": "Continue",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "view-pr",
-      "label": "View Pull Request",
-      "skill": "external-link"
-    },
-    {
-      "id": "implement",
-      "label": "Continue",
-      "skill": "wf-implement"
-    },
-    {
-      "id": "view-pr",
-      "label": "View Pull Request",
-      "skill": "external-link"
-    }
-  ],
+  "available_actions": [],
   "git_sha": "9fc7115",
-  "needs_attention": true,
   "phase_checkpoints": {
     "3": {
       "context_sha": "context_sha=3a4b36e9960f36c379b29225eeee97bb41e103db"
     }
   },
-  "badges": [
-    {
-      "label": "In Progress",
-      "type": "info"
-    },
-    {
-      "label": "Review Needed",
-      "type": "warning"
-    },
-    {
-      "label": "In Progress",
-      "type": "info"
-    },
-    {
-      "label": "Review Needed",
-      "type": "warning"
-    },
-    {
-      "label": "In Progress",
-      "type": "info"
-    },
-    {
-      "label": "Review Needed",
-      "type": "warning"
-    }
-  ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/368"
+  "badges": []
 }
