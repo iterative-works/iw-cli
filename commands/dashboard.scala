@@ -2,8 +2,14 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
-import iw.core.dashboard.{CaskServer, StateRepository}
-import iw.core.dashboard.domain.SampleDataGenerator
+// SYNC: Keep these versions identical to `dashboard.mvnDeps` in `build.mill`
+// and to the scoped deps in `commands/server-daemon.scala`. Transitional until Phase 4.
+//> using dep com.lihaoyi::cask:0.11.3
+//> using dep com.lihaoyi::scalatags:0.13.1
+//> using dep com.vladsch.flexmark:flexmark-all:0.64.8
+
+import iw.dashboard.{CaskServer, StateRepository}
+import iw.dashboard.domain.SampleDataGenerator
 import iw.core.adapters.ServerConfigRepository
 import iw.core.output.Output
 import iw.core.model.ServerConfig

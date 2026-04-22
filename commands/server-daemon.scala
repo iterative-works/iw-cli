@@ -1,7 +1,13 @@
 // PURPOSE: Run CaskServer in daemon mode (background)
 // PURPOSE: Entry point for background server process
 
-package iw.core.dashboard
+// SYNC: Keep these versions identical to `dashboard.mvnDeps` in `build.mill`
+// and to the scoped deps in `commands/dashboard.scala`. Transitional until Phase 4.
+//> using dep com.lihaoyi::cask:0.11.3
+//> using dep com.lihaoyi::scalatags:0.13.1
+//> using dep com.vladsch.flexmark:flexmark-all:0.64.8
+
+package iw.dashboard
 
 object ServerDaemon:
   def main(args: Array[String]): Unit =

@@ -72,8 +72,13 @@ def runUnitTests(): Boolean =
       // Pass entire core directory to scala-cli to include subdirectories like presentation/views
       // Use streaming to show output in real-time
       val command = Seq("scala-cli", "test", coreDir.toString)
-      val exitCode = ProcessAdapter.runStreaming(command)
-      exitCode == 0
+      val coreExitCode = ProcessAdapter.runStreaming(command)
+
+      Output.section("Running Dashboard Unit Tests")
+      val millCommand = Seq((installDir / "mill").toString, "dashboard.test")
+      val dashboardExitCode = ProcessAdapter.runStreaming(millCommand)
+
+      coreExitCode == 0 && dashboardExitCode == 0
 
 def runCommandCompileCheck(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
@@ -92,11 +97,18 @@ def runCommandCompileCheck(): Boolean =
       Output.section("Checking Command Compilation")
       Output.info(s"Compiling ${commandFiles.length} commands...")
 
+      val dashboardSrcDir = installDir / "dashboard" / "jvm" / "src"
+      // Transitional: these scripts import iw.dashboard.* types until Phase 4 rewrites them.
+      val dashboardBridgeCommands = Set("dashboard.scala", "server-daemon.scala")
+
       val results = commandFiles.sorted.map { commandFile =>
         val commandName = commandFile.last
-        // Compile each command with the core module (suppress output unless there's an error)
+        val extraSources =
+          if dashboardBridgeCommands.contains(commandName) && os.exists(dashboardSrcDir)
+          then Seq(dashboardSrcDir.toString)
+          else Seq.empty
         val result = ProcessAdapter.run(
-          Seq("scala-cli", "compile", coreDir.toString, commandFile.toString, "--quiet")
+          Seq("scala-cli", "compile", coreDir.toString) ++ extraSources ++ Seq(commandFile.toString, "--quiet")
         )
 
         if result.exitCode == 0 then
