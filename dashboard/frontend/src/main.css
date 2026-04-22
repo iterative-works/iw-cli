@@ -1,0 +1,5 @@
+/* PURPOSE: Dashboard frontend styles — imports Tailwind CSS and scans Scala templates for class names */
+/* PURPOSE: The @source directive ensures Tailwind purges only CSS classes not found in server-side templates */
+
+@import "tailwindcss";
+@source "../jvm/src/**/*.scala";

@@ -50,6 +50,7 @@ import iw.dashboard.presentation.views.{
   PageLayout
 }
 import java.time.Instant
+import scala.util.Using
 
 class CaskServer(
     statePath: String,
@@ -608,35 +609,44 @@ class CaskServer(
 
   @cask.get("/static/:filename")
   def staticFiles(filename: String): cask.Response[Array[Byte]] =
-    // Resolve static files from installation directory (IW_CORE_DIR) or CWD fallback
-    val coreDir = sys.env
-      .get("IW_CORE_DIR")
-      .map(os.Path(_))
-      .getOrElse(os.pwd / ".iw" / "core")
-    val staticDir = coreDir / "dashboard" / "resources" / "static"
-    val filePath = staticDir / filename
+    serveClasspathResource(s"/static/$filename")
 
-    // Check if file exists
-    if os.exists(filePath) && os.isFile(filePath) then
-      // Read file content
-      val content = os.read.bytes(filePath)
+  @cask.get("/assets/:filename")
+  def assetFiles(filename: String): cask.Response[Array[Byte]] =
+    serveClasspathResource(s"/assets/$filename")
 
-      // Determine Content-Type based on file extension
-      val contentType = filename match
-        case f if f.endsWith(".css") => "text/css; charset=UTF-8"
-        case f if f.endsWith(".js")  => "application/javascript; charset=UTF-8"
-        case _                       => "application/octet-stream"
-
-      cask.Response(
-        data = content,
-        headers = Seq("Content-Type" -> contentType)
-      )
+  private def serveClasspathResource(
+      resourcePath: String
+  ): cask.Response[Array[Byte]] =
+    // Strip the known leading prefix (/static/ or /assets/) and verify the
+    // remainder is a single filename with no traversal segments. Anything
+    // containing '/', '\\', or '..' after the prefix is rejected. We return 404
+    // rather than 400 so callers cannot distinguish a rejected traversal from
+    // a missing resource.
+    val remainder = resourcePath match
+      case p if p.startsWith("/static/") => p.stripPrefix("/static/")
+      case p if p.startsWith("/assets/") => p.stripPrefix("/assets/")
+      case p                             => p
+    if remainder.isEmpty || remainder.contains("..") ||
+      remainder.contains('/') || remainder.contains('\\')
+    then cask.Response(data = Array.empty[Byte], statusCode = 404)
     else
-      // File not found
-      cask.Response(
-        data = Array.empty[Byte],
-        statusCode = 404
-      )
+      Option(this.getClass.getResourceAsStream(resourcePath)) match
+        case None =>
+          cask.Response(data = Array.empty[Byte], statusCode = 404)
+        case Some(stream) =>
+          val content = Using.resource(stream)(_.readAllBytes())
+          val contentType = resourcePath match
+            case p if p.endsWith(".css") =>
+              "text/css; charset=UTF-8"
+            case p if p.endsWith(".js") =>
+              "application/javascript; charset=UTF-8"
+            case _ =>
+              "application/octet-stream"
+          cask.Response(
+            data = content,
+            headers = Seq("Content-Type" -> contentType)
+          )
 
   @cask.get("/api/status")
   def status(): ujson.Value =
