@@ -39,19 +39,29 @@
     {
       "label": "Phase 4 Context",
       "path": "project-management/issues/IW-345/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-345/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T20:34:13.140862811Z",
-  "status": "context_ready",
+  "last_updated": "2026-04-22T20:39:26.036386412Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Phase 4: Context Ready",
-    "type": "info",
+    "text": "Phase 4: Tasks Ready",
+    "type": "success",
     "subtext": "Command integration + dev mode"
   },
-  "message": "Phase 4 context ready for review",
-  "activity": "working",
+  "message": "Phase 4 tasks ready",
+  "activity": "waiting",
   "workflow_type": "waterfall",
-  "available_actions": [],
+  "available_actions": [
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
+    }
+  ],
   "git_sha": "9fc7115",
   "phase_checkpoints": {
     "3": {
