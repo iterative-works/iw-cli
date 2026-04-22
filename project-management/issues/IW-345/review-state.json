@@ -29,14 +29,14 @@
       "path": "project-management/issues/IW-345/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T06:50:39.468430380Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-22T07:34:16.350068921Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 2: Tasks Ready",
-    "type": "success",
+    "text": "Phase 02: Implementing",
+    "type": "progress",
     "subtext": "Dashboard JVM module — move, rename, test migration"
   },
-  "message": "Phase 2 tasks ready",
+  "message": "Phase 02 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -86,6 +86,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/366"
