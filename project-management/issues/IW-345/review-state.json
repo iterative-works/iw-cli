@@ -29,11 +29,11 @@
       "path": "project-management/issues/IW-345/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T07:34:16.350068921Z",
-  "status": "implementing",
+  "last_updated": "2026-04-22T08:16:53.762132242Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 02: Implementing",
-    "type": "progress",
+    "text": "Phase 02: Awaiting Review",
+    "type": "warning",
     "subtext": "Dashboard JVM module — move, rename, test migration"
   },
   "message": "Phase 02 implementation started",
@@ -69,6 +69,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "9fc7115",
@@ -90,7 +95,11 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/366"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/367"
 }
