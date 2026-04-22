@@ -1,5 +1,5 @@
 // PURPOSE: Mill build definition — produces build/iw-core.jar from core/
-// PURPOSE: Defines the core ScalaModule and iwCoreJar top-level task
+// PURPOSE: Defines the core and dashboard ScalaModules and iwCoreJar top-level task
 package build
 import mill.*
 import mill.scalalib.*
@@ -10,7 +10,6 @@ object core extends ScalaModule {
 
   def sources = Task.Sources(
     moduleDir / os.up / "core" / "adapters",
-    moduleDir / os.up / "core" / "dashboard",
     moduleDir / os.up / "core" / "model",
     moduleDir / os.up / "core" / "output",
     moduleDir / os.up / "core" / "IssueCreateParser.scala",
@@ -21,13 +20,28 @@ object core extends ScalaModule {
     mvn"com.softwaremill.sttp.client4::core:4.0.15",
     mvn"com.lihaoyi::upickle:4.4.2",
     mvn"com.lihaoyi::os-lib:0.11.6",
-    // Dashboard-only deps; currently bundled here pending a dedicated dashboard module.
-    mvn"com.lihaoyi::cask:0.11.3",
-    mvn"com.lihaoyi::scalatags:0.13.1",
     mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
   )
 
   // Test sources are compiled by scala-cli; Mill packages compiled classes only.
+}
+
+object dashboard extends ScalaModule {
+  def scalaVersion = "3.3.7"
+  def moduleDeps = Seq(core)
+  def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "src")
+  def resources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "resources")
+  def mvnDeps = Seq(
+    mvn"com.lihaoyi::cask:0.11.3",
+    mvn"com.lihaoyi::scalatags:0.13.1",
+    mvn"works.iterative::scalatags-webawesome:3.2.1.1",
+    mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
+  )
+
+  object test extends ScalaTests with TestModule.Munit {
+    def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "test" / "src")
+    def mvnDeps = Seq(mvn"org.scalameta::munit::1.2.1")
+  }
 }
 
 // Materialises `core.jar` at `build/iw-core.jar` for launcher discoverability.

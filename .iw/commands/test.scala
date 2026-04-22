@@ -72,8 +72,13 @@ def runUnitTests(): Boolean =
       // Pass entire core directory to scala-cli to include subdirectories like presentation/views
       // Use streaming to show output in real-time
       val command = Seq("scala-cli", "test", coreDir.toString)
-      val exitCode = ProcessAdapter.runStreaming(command)
-      exitCode == 0
+      val coreExitCode = ProcessAdapter.runStreaming(command)
+
+      Output.section("Running Dashboard Unit Tests")
+      val millCommand = Seq((installDir / "mill").toString, "dashboard.test")
+      val dashboardExitCode = ProcessAdapter.runStreaming(millCommand)
+
+      coreExitCode == 0 && dashboardExitCode == 0
 
 def runCommandCompileCheck(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
