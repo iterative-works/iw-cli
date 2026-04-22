@@ -50,6 +50,7 @@ import iw.dashboard.presentation.views.{
   PageLayout
 }
 import java.time.Instant
+import scala.util.Using
 
 class CaskServer(
     statePath: String,
@@ -617,19 +618,35 @@ class CaskServer(
   private def serveClasspathResource(
       resourcePath: String
   ): cask.Response[Array[Byte]] =
-    Option(this.getClass.getResourceAsStream(resourcePath)) match
-      case None =>
-        cask.Response(data = Array.empty[Byte], statusCode = 404)
-      case Some(stream) =>
-        val content = stream.readAllBytes()
-        val contentType = resourcePath match
-          case p if p.endsWith(".css") => "text/css; charset=UTF-8"
-          case p if p.endsWith(".js") => "application/javascript; charset=UTF-8"
-          case _                      => "application/octet-stream"
-        cask.Response(
-          data = content,
-          headers = Seq("Content-Type" -> contentType)
-        )
+    // Strip the known leading prefix (/static/ or /assets/) and verify the
+    // remainder is a single filename with no traversal segments. Anything
+    // containing '/', '\\', or '..' after the prefix is rejected. We return 404
+    // rather than 400 so callers cannot distinguish a rejected traversal from
+    // a missing resource.
+    val remainder = resourcePath match
+      case p if p.startsWith("/static/") => p.stripPrefix("/static/")
+      case p if p.startsWith("/assets/") => p.stripPrefix("/assets/")
+      case p                             => p
+    if remainder.isEmpty || remainder.contains("..") ||
+      remainder.contains('/') || remainder.contains('\\')
+    then cask.Response(data = Array.empty[Byte], statusCode = 404)
+    else
+      Option(this.getClass.getResourceAsStream(resourcePath)) match
+        case None =>
+          cask.Response(data = Array.empty[Byte], statusCode = 404)
+        case Some(stream) =>
+          val content = Using.resource(stream)(_.readAllBytes())
+          val contentType = resourcePath match
+            case p if p.endsWith(".css") =>
+              "text/css; charset=UTF-8"
+            case p if p.endsWith(".js") =>
+              "application/javascript; charset=UTF-8"
+            case _ =>
+              "application/octet-stream"
+          cask.Response(
+            data = content,
+            headers = Seq("Content-Type" -> contentType)
+          )
 
   @cask.get("/api/status")
   def status(): ujson.Value =

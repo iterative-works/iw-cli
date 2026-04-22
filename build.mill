@@ -56,7 +56,7 @@ object dashboard extends ScalaModule {
     def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "itest" / "src")
     def mvnDeps = Seq(
       mvn"org.scalameta::munit::1.2.1",
-      mvn"com.softwaremill.sttp.client4::core:4.0.15",
+      mvn"com.softwaremill.sttp.client4::core:4.0.15"
     )
   }
 }
@@ -106,7 +106,6 @@ def iwCoreJar(): Command[PathRef] = Task.Command {
 }
 
 // Materialises the dashboard fat jar at build/iw-dashboard.jar for launcher discoverability.
-// Phase 4 will replace iwCoreJar's stage-and-repack with this artifact and rewrite the launcher.
 def iwDashboardJar(): Command[PathRef] = Task.Command {
   val target = dashboard.moduleDir / os.up / "build" / "iw-dashboard.jar"
   os.makeDir.all(target / os.up)

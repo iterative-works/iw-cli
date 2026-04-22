@@ -83,3 +83,4 @@
 - AC22 Frontend build pipeline (Yarn 4 via Corepack, Vite 8, Tailwind v4) functional locally → `[setup]` Corepack/Node verification; `[setup]` Yarn patch pin; `[integration]` `./mill frontend.viteBuild` clean-tree run.
 - AC23 Reproducibility from clean clone with token set → `[integration]` clean-clone reproducibility run.
 - AC24 Pre-push hook still green (unchanged scope) → `[test]` baseline pre-push; `[test]` post-change pre-push; `[integration]` post-change pre-push run.
+**Phase Status:** Complete

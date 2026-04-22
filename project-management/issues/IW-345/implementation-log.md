@@ -121,3 +121,81 @@ R	core/test/*.scala (47 files) → dashboard/jvm/test/src/*.scala
 ```
 
 ---
+
+
+## Phase 3: Frontend pipeline + fat-jar assembly + integration tests (2026-04-22)
+
+**Layer:** L2 + L3 — Bundle assets, embed in jar, prove end-to-end
+
+**What was built:**
+- Frontend source tree at `dashboard/frontend/`: `package.json` (Yarn 4.9.2 via Corepack, Vite 8, Tailwind v4 via `@tailwindcss/vite`, Web Awesome Pro 3.2.1, htmx ^2), `.yarnrc.yml` (npmScopes entry for `@web.awesome.me` scope with `${WEBAWESOME_NPM_TOKEN}` substitution, `nodeLinker: node-modules`, `enableGlobalCache: false`), `vite.config.js` (entry `src/main.js`, `dist/assets/` output, `server.cors: true`), `src/main.js` (9 cherry-picked Web Awesome components: button, tag, icon, input, textarea, tree, tree-item, card, page), `src/main.css` (`@import "tailwindcss"` + `@source "../jvm/src/**/*.scala"`), `yarn.lock` committed for reproducibility.
+- Mill `object frontend extends Module` in `build.mill` with `viteBuild: T[PathRef]` — runs `yarn install --immutable` + `yarn build`, copies `dist/` into `Task.dest / "dist"`, declares `Task.Sources` over frontend inputs + Scala templates for change tracking.
+- `dashboard.resources` override folds `frontend.viteBuild()` output alongside `dashboard/jvm/resources/` — both land at classpath root of the assembled jar.
+- `dashboard.mainClass = Some("iw.dashboard.ServerDaemon")` for `java -jar` discoverability.
+- `object itest extends ScalaTests with TestModule.Munit` inner module on `dashboard` at `dashboard/jvm/itest/src/` — munit 1.2.1 + sttp-client4 4.0.15. Sources resolution uses `os.up / os.up` anchor from the nested module dir.
+- Top-level `iwDashboardJar(): Command[PathRef]` — copies `dashboard.assembly()` to `build/iw-dashboard.jar`, matching Phase 1's `iwCoreJar` pattern for launcher discoverability.
+- `dashboard/jvm/itest/src/CaskServerItest.scala` — 15 tests total: in-process Cask launch (home page renders, references `/static/dashboard.css` + `/assets/main.js`), static asset resolution (`/static/dashboard.css` + `/static/dashboard.js` return 200 from classpath), `/assets/` Vite bundle resolution, 404 handling for both routes, path-traversal rejection via raw `HttpURLConnection` that preserves `%2F` on the wire (for both `/static/` and `/assets/`), jar-contents assertions (Main-Class manifest, required zip entries).
+- `CaskServer.scala` updates: `/static/:filename` handler switched from filesystem (`IW_CORE_DIR/dashboard/resources/static/`) to classpath via `getResourceAsStream`; new `/assets/:filename` handler for Vite output; shared `serveClasspathResource` helper with path-traversal guard (strips known prefix, rejects `..`, `/`, `\`) and `Using.resource` stream closure.
+- `.iw/commands/test.scala`: new `itest` case invoking `./mill dashboard.itest.test`, added to `all` flow chain, `showUsage` updated.
+- `.github/workflows/ci.yml`: new `dashboard-build` job (`needs: compile`, exposes `WEBAWESOME_NPM_TOKEN` via `env:`, runs `./mill iwDashboardJar` + `./mill dashboard.itest.test` with 15-minute step timeouts).
+- `.gitignore`: `dashboard/frontend/{node_modules,dist,.yarn}/`.
+
+**Deviations from Phase 3 context plan:**
+1. **`dashboard.resources` override shape.** The context suggested `Seq(PathRef(jvmResources), frontend.viteBuild())`; final implementation follows Mill 1.1.x multi-source idioms after iteration.
+2. **Integration test scope.** The optional "subprocess smoke test" was deliberately skipped — verifying jar contents (manifest + zip entries) suffices without requiring `ServerDaemon` CLI arg changes (Phase 4 territory).
+3. **Path-traversal test technique.** sttp's `uri"..."` interpolator normalises `%2F`, which meant the straightforward traversal test could pass via "route not matched" 404 rather than exercising the guard. Switched to `java.net.URI(...).toURL` + `HttpURLConnection` to preserve `%2F` on the wire. Meta-verification (temporarily removing the guard) confirmed Java's classloader rejects `..` segments in `getResourceAsStream` as a second barrier — the test thus locks in regression coverage against future refactors that remove either the guard or the classloader barrier.
+
+**Dependencies on other layers:**
+- **Phase 1:** Mill 1.1.5 + Node 20 + Corepack already in CI image; `iwCoreJar` stays untouched (Phase 3 coexistence contract preserves it).
+- **Phase 2:** `dashboard` Mill module (`moduleDeps = Seq(core)`) extended with `resources` override + `mainClass` + `object itest`; dashboard-only `mvnDeps` (cask, scalatags, scalatags-webawesome) remain as in Phase 2.
+- **Phase 4 (will consume):** `build/iw-dashboard.jar` is the artifact Phase 4's launcher rewrite will spawn via `java -jar`. `iwCoreJar` retirement and `commands/{dashboard,server-daemon}.scala` scoped `//> using dep` cleanup are atomic Phase 4 concerns.
+
+**CLARIFY resolutions:**
+- **CLARIFY 1 (registry hostname):** `https://registry.webawesome.com` with scope `@web.awesome.me`, `npmAlwaysAuth: true`, `npmAuthToken: "${WEBAWESOME_NPM_TOKEN}"`.
+- **CLARIFY 2 (import path idiom):** `/dist/components/<name>/<name>.js` confirmed against installed package's `exports` field.
+- **CLARIFY 10 (component cherry-pick):** 9 components (button, tag, icon, input, textarea, tree, tree-item, card, page) derived from `rg '<wa-[a-z-]+' dashboard/jvm/src/presentation/`.
+- **CLARIFY 11 (Tailwind `@source` scanning `.scala`):** verified Tailwind v4 picks up Scala template class names; no explicit extract hook needed.
+- **CLARIFY 14 (mainClass override):** added explicitly — `dashboard.assembly` leaves `Main-Class` blank otherwise.
+- **CLARIFY 16 (CI secret):** `WEBAWESOME_NPM_TOKEN` provisioning in GitHub Actions is an action item coordinated with Michal out of band; `dashboard-build` job will fail-fast on `yarn install` auth until the secret is present.
+
+**Testing:**
+- Integration tests: 15 tests added in `dashboard.itest.testForked` — 8 HTTP-level (home page, static/assets resolution, 404, path traversal × 2) + 5 jar-contents (Main-Class manifest + required zip entries) + 2 more coverage cases.
+- Unit tests: 192/192 dashboard.test SUCCESS; scala-cli core tests unchanged.
+- Regression: `./iw dashboard --help` in-process path still works; pre-push hook green (format + compile + unit tests + 33 commands).
+- Build verification: `./mill frontend.viteBuild` from clean produces `out/frontend/viteBuild.dest/assets/{main.js, main.css}`; `./mill iwDashboardJar` produces 41 MB `build/iw-dashboard.jar` in 29s; `unzip -l` confirms both `assets/*` (Vite) and `static/*` (pre-existing) prefixes; `Main-Class: iw.dashboard.ServerDaemon` in manifest.
+- Clean-clone reproducibility: `rm -rf out/ build/ dashboard/frontend/{node_modules,dist}/` then `./mill iwDashboardJar && ./mill dashboard.itest.testForked` succeeds end to end.
+- Grep invariants: `rg WEBAWESOME_NPM_TOKEN dashboard/frontend/` — single hit in `.yarnrc.yml` (env-var substitution, not literal); `rg webawesome-pro dashboard/frontend/src/` — 9 component imports.
+
+**Code review:**
+- Iterations: 3 (full loop).
+- Review file: `review-phase-03-20260422-170721.md`.
+- Iteration 1 critical issues (all resolved in iteration 2): path traversal in `serveClasspathResource` (filename param unvalidated), InputStream from `getResourceAsStream` not closed (resource leak), `freePort()` TOCTOU race (flaky CI under `testForked` parallelism).
+- Iteration 2 critical issues (all resolved in iteration 3): path-traversal test could have passed for the wrong reason due to sttp URI normalisation (switched to raw `HttpURLConnection`), server thread silently swallowed non-`BindException` errors (added `AtomicReference[Throwable]` capture + re-throw). Also bundled: `/assets/` traversal parallel test, `Random.nextLong().abs` replaced with `Files.createTempDirectory`, unused import removal, test helpers made `private`, trailing comma in `itest` `mvnDeps`, temporal-phase comment on `iwDashboardJar` removed.
+- Deferred (documented, not addressed this phase): `CaskServer` god object (pre-existing, architectural), missing security headers (`X-Content-Type-Options`, `X-Frame-Options`) — follow-up design decision, `Cache-Control` headers on static asset responses, 404 body contract alignment with JSON error shape used elsewhere, jar-contents test consolidation via `withJar` bracket, `frontend` module placement (top-level vs `dashboard.frontend` nested).
+
+**Contract for next phases:**
+- `build/iw-dashboard.jar` at repo root is the artifact Phase 4's launcher rewrite (`commands/dashboard.scala`, `commands/server-daemon.scala`) will spawn via `java -jar`. Jar includes `iw.core.*` + `iw.dashboard.*` compile classes + runtime deps + `dashboard/jvm/resources/**` (at classpath root) + `frontend.viteBuild()` Vite output (at classpath root). `Main-Class` in manifest is `iw.dashboard.ServerDaemon`.
+- `iwCoreJar` remains the artifact `iw-run` consumes until Phase 4 atomically retires it and flips the launcher.
+- `serveClasspathResource` guard + `Using.resource` closure are production code worth preserving across future `CaskServer` refactors.
+- `.iw/commands/test.scala` `itest` case: `./iw ./test itest` runs `./mill dashboard.itest.test`; bare `./iw ./test` runs `unit + itest + compile + e2e`.
+- `dashboard-build` CI job fails fast if `WEBAWESOME_NPM_TOKEN` repo secret is absent — provisioning is an out-of-band action item with Michal.
+- Pre-push hook intentionally does NOT run itest or frontend build (expensive); CI carries the itest signal.
+
+**Files changed:**
+```
+M	.github/workflows/ci.yml
+M	.gitignore
+M	.iw/commands/test.scala
+M	build.mill
+A	dashboard/frontend/.yarnrc.yml
+A	dashboard/frontend/package.json
+A	dashboard/frontend/src/main.css
+A	dashboard/frontend/src/main.js
+A	dashboard/frontend/vite.config.js
+A	dashboard/frontend/yarn.lock
+A	dashboard/jvm/itest/src/CaskServerItest.scala
+M	dashboard/jvm/src/CaskServer.scala
+M	dashboard/jvm/src/presentation/views/PageLayout.scala
+```
+
+---
