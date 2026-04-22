@@ -35,16 +35,20 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-345/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-345/phase-04-context.md"
     }
   ],
-  "last_updated": "2026-04-22T20:23:17.955002302Z",
-  "status": "analysis_ready",
+  "last_updated": "2026-04-22T20:34:13.140862811Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 03 merged — starting Phase 04",
+    "text": "Phase 4: Context Ready",
     "type": "info",
     "subtext": "Command integration + dev mode"
   },
-  "message": "Phase 03 PR #368 merged; beginning Phase 04 context generation",
+  "message": "Phase 4 context ready for review",
   "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [],
@@ -52,6 +56,9 @@
   "phase_checkpoints": {
     "3": {
       "context_sha": "context_sha=3a4b36e9960f36c379b29225eeee97bb41e103db"
+    },
+    "4": {
+      "context_sha": "context_sha=5650d9c7b6fe6ba2322859df06fd2da23b5fafc6"
     }
   },
   "badges": []
