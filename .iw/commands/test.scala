@@ -97,11 +97,20 @@ def runCommandCompileCheck(): Boolean =
       Output.section("Checking Command Compilation")
       Output.info(s"Compiling ${commandFiles.length} commands...")
 
+      // Dashboard bridge commands import iw.dashboard.* which lives outside core/
+      val dashboardSrcDir = installDir / "dashboard" / "jvm" / "src"
+      val dashboardBridgeCommands = Set("dashboard.scala", "server-daemon.scala")
+
       val results = commandFiles.sorted.map { commandFile =>
         val commandName = commandFile.last
+        // Dashboard bridge commands need dashboard sources in addition to core
+        val extraSources =
+          if dashboardBridgeCommands.contains(commandName) && os.exists(dashboardSrcDir)
+          then Seq(dashboardSrcDir.toString)
+          else Seq.empty
         // Compile each command with the core module (suppress output unless there's an error)
         val result = ProcessAdapter.run(
-          Seq("scala-cli", "compile", coreDir.toString, commandFile.toString, "--quiet")
+          Seq("scala-cli", "compile", coreDir.toString) ++ extraSources ++ Seq(commandFile.toString, "--quiet")
         )
 
         if result.exitCode == 0 then

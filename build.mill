@@ -44,10 +44,17 @@ object dashboard extends ScalaModule {
   }
 }
 
-// Materialises `core.jar` at `build/iw-core.jar` for launcher discoverability.
+// Materialises combined core+dashboard classes at `build/iw-core.jar` for launcher discoverability.
 def iwCoreJar(): Command[PathRef] = Task.Command {
   val target = core.moduleDir / os.up / "build" / "iw-core.jar"
   os.makeDir.all(target / os.up)
-  os.copy.over(core.jar().path, target)
+  val staging = Task.dest / "staging"
+  os.makeDir.all(staging)
+  // Unpack core classes
+  os.proc("jar", "xf", core.jar().path.toString).call(cwd = staging)
+  // Unpack dashboard classes on top
+  os.proc("jar", "xf", dashboard.jar().path.toString).call(cwd = staging)
+  // Repack into the target jar
+  os.proc("jar", "cf", target.toString, ".").call(cwd = staging)
   PathRef(target)
 }
