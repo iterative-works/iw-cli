@@ -31,17 +31,21 @@
     {
       "label": "Phase 3 Context",
       "path": "project-management/issues/IW-345/phase-03-context.md"
+    },
+    {
+      "label": "Phase 3 Tasks",
+      "path": "project-management/issues/IW-345/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T08:57:53.735440027Z",
-  "status": "context_ready",
+  "last_updated": "2026-04-22T11:55:41.615316121Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Phase 3: Context Ready",
-    "type": "info",
+    "text": "Phase 3: Tasks Ready",
+    "type": "success",
     "subtext": "Frontend pipeline + fat-jar assembly + integration tests"
   },
-  "message": "Phase 3 context ready for review",
-  "activity": "working",
+  "message": "Phase 3 tasks ready",
+  "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -78,6 +82,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "9fc7115",
