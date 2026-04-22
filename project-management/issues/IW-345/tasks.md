@@ -2,18 +2,18 @@
 
 **Issue:** IW-345
 **Created:** 2026-04-21
-**Status:** 1/4 phases complete (25%)
+**Status:** 2/4 phases complete (50%)
 
 ## Phase Index
 
 - [x] Phase 1: Mill bootstrap + core jar production (Est: 3-5h) → `phase-01-context.md`
-- [ ] Phase 2: Dashboard JVM module — move, rename, test migration (Est: 4-7h) → `phase-02-context.md`
+- [x] Phase 2: Dashboard JVM module — move, rename, test migration (Est: 4-7h) → `phase-02-context.md`
 - [ ] Phase 3: Frontend pipeline + fat-jar assembly + integration tests (Est: 5-9h) → `phase-03-context.md`
 - [ ] Phase 4: Command integration + dev mode (Est: 3-5h) → `phase-04-context.md`
 
 ## Progress Tracker
 
-**Completed:** 1/4 phases
+**Completed:** 2/4 phases
 **Estimated Total:** 15-26 hours
 **Time Spent:** 0 hours
 
