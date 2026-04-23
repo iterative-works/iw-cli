@@ -45,14 +45,14 @@
       "path": "project-management/issues/IW-345/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T20:39:26.036386412Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-23T14:31:30.167797979Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 4: Tasks Ready",
-    "type": "success",
+    "text": "Phase 04: Implementing",
+    "type": "progress",
     "subtext": "Command integration + dev mode"
   },
-  "message": "Phase 4 tasks ready",
+  "message": "Phase 04 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -71,5 +71,10 @@
       "context_sha": "context_sha=5650d9c7b6fe6ba2322859df06fd2da23b5fafc6"
     }
   },
-  "badges": []
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
