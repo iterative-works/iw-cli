@@ -2,14 +2,6 @@
 // PURPOSE: Command to start the iw dashboard server and open it in a browser
 // PURPOSE: Handles health checks, server startup, and platform-specific browser opening
 
-// SYNC: Keep these versions identical to `dashboard.mvnDeps` in `build.mill`
-// and to the scoped deps in `commands/server-daemon.scala`. Transitional until Phase 4.
-//> using dep com.lihaoyi::cask:0.11.3
-//> using dep com.lihaoyi::scalatags:0.13.1
-//> using dep com.vladsch.flexmark:flexmark-all:0.64.8
-
-import iw.dashboard.{CaskServer, StateRepository}
-import iw.dashboard.domain.SampleDataGenerator
 import iw.core.adapters.ServerConfigRepository
 import iw.core.output.Output
 import iw.core.model.ServerConfig
@@ -53,6 +45,16 @@ def parseArgs(
   val statePath = parsedArgs.statePath
   val sampleData = parsedArgs.sampleData
   val devMode = parsedArgs.devMode
+
+  // IW_DASHBOARD_JAR is set by iw-run's ensure_dashboard_jar via Mill query.
+  val dashboardJar = sys.env.getOrElse(
+    "IW_DASHBOARD_JAR", {
+      Output.error(
+        "IW_DASHBOARD_JAR not set — invoke via ./iw dashboard, not directly"
+      )
+      sys.exit(1)
+    }
+  )
 
   val homeDir = sys.env.get("HOME") match
     case Some(home) => home
@@ -104,26 +106,23 @@ def parseArgs(
     val finalStatePath = statePath.getOrElse(defaultStatePath)
     (finalStatePath, defaultConfigPath, false, sampleData)
 
-  // If sample data flag is set, generate and persist sample data
+  // If sample data flag is set, generate and persist sample data via SampleDataCli
   if effectiveSampleData then
     Output.info("Generating sample data...")
-    val sampleState = SampleDataGenerator.generateSampleState()
-    Output.info(s"Generated state with ${sampleState.worktrees.size} worktrees")
-    val repository = StateRepository(effectiveStatePath)
-    repository.write(sampleState) match
-      case Right(_) =>
-        Output.success(s"Sample data written to $effectiveStatePath")
-        // Verify the write by reading back
-        repository.read() match
-          case Right(readBack) =>
-            Output.success(
-              s"Verified: Read back ${readBack.worktrees.size} worktrees from file"
-            )
-          case Left(err) =>
-            Output.warning(s"Failed to verify write: $err")
-      case Left(err) =>
-        Output.error(s"Failed to write sample data: $err")
-        sys.exit(1)
+    val sampleCmd = Seq(
+      "java",
+      "-cp",
+      dashboardJar,
+      "iw.dashboard.SampleDataCli",
+      effectiveStatePath
+    )
+    val samplePb = new ProcessBuilder(sampleCmd*)
+    samplePb.inheritIO()
+    val sampleProcess = samplePb.start()
+    val exitCode = sampleProcess.waitFor()
+    if exitCode != 0 then
+      Output.error(s"Sample data generation failed (exit $exitCode)")
+      sys.exit(1)
 
   // Read or create default config
   val config =
@@ -141,8 +140,14 @@ def parseArgs(
     Output.info("Starting dashboard server...")
     if statePath.isDefined || effectiveSampleData then
       Output.info(s"Using state file: $effectiveStatePath")
-    // Start server in current process (foreground for Phase 1)
-    startServerAndOpenBrowser(effectiveStatePath, port, url, effectiveDevMode)
+    startServerAndOpenBrowser(
+      effectiveStatePath,
+      port,
+      url,
+      config.hosts,
+      dashboardJar,
+      effectiveDevMode
+    )
   else
     Output.info(s"Server already running at $url")
     openBrowser(url)
@@ -157,24 +162,34 @@ def startServerAndOpenBrowser(
     statePath: String,
     port: Int,
     url: String,
+    hosts: Seq[String],
+    dashboardJar: String,
     devMode: Boolean = false
 ): Unit =
-  // Start server in a separate thread
-  val serverThread = new Thread(() => {
-    CaskServer.start(statePath, port, devMode = devMode)
-  })
-  serverThread.setDaemon(false)
-  serverThread.start()
+  val cmd = Seq(
+    "java",
+    "-jar",
+    dashboardJar,
+    statePath,
+    port.toString,
+    hosts.mkString(",")
+  ) ++ (if devMode then Seq("--dev") else Seq.empty)
 
-  // Wait for server to be ready
-  if waitForServer(s"$url/health", timeoutSeconds = 5) then
+  val pb = new ProcessBuilder(cmd*)
+  // Foreground mode: child stdout/stderr inherit parent TTY.
+  // VITE_DEV_URL inherits from the parent process environment.
+  pb.inheritIO()
+  val process = pb.start()
+
+  // Wait for server to be ready, open browser, then block until child exits
+  if waitForServer(s"$url/health", timeoutSeconds = 30) then
     Output.success(s"Server started successfully at $url")
     openBrowser(url)
     Output.info("Press Ctrl+C to stop the server")
-    // Keep main thread alive
-    serverThread.join()
+    process.waitFor()
   else
-    Output.error("Server failed to start within 5 seconds")
+    Output.error("Server failed to start within 30 seconds")
+    process.destroy()
     sys.exit(1)
 
 def waitForServer(healthUrl: String, timeoutSeconds: Int): Boolean =
@@ -206,7 +221,7 @@ def openBrowser(url: String): Unit =
       Output.warning(s"Unable to detect platform. Please open $url manually")
     case Some(cmd) =>
       Try {
-        val pb = new ProcessBuilder(cmd: _*)
+        val pb = new ProcessBuilder(cmd*)
         pb.start()
       } match
         case Success(_) =>
@@ -234,6 +249,7 @@ def printHelp(): Unit =
     |  - Automatically enables sample data
     |  - Uses dynamically assigned port (avoids conflicts)
     |  - Production files are NEVER modified or accessed
+    |  - Pass VITE_DEV_URL=http://localhost:5173 to serve assets from Vite dev server
     |
     |Isolation Guarantees:
     |  When using --dev mode, your production data remains untouched:
@@ -247,6 +263,7 @@ def printHelp(): Unit =
     |  ./iw dashboard --dev              # Start in isolated dev mode with sample data
     |  ./iw dashboard --sample-data      # Start with sample data in production location
     |  ./iw dashboard --state-path /tmp/test.json  # Use custom state file
+    |  VITE_DEV_URL=http://localhost:5173 ./iw dashboard --dev  # Dev mode with Vite HMR
     |""".stripMargin)
 
 def findAvailablePort(): Int =

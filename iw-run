@@ -11,8 +11,7 @@ export IW_COMMANDS_DIR="${IW_COMMANDS_DIR:-$INSTALL_DIR/commands}"
 export IW_CORE_DIR="${IW_CORE_DIR:-$INSTALL_DIR/core}"
 COMMANDS_DIR="$IW_COMMANDS_DIR"
 CORE_DIR="$IW_CORE_DIR"
-CORE_JAR="${IW_CORE_JAR:-$INSTALL_DIR/build/iw-core.jar}"
-export IW_CORE_JAR="$CORE_JAR"
+CORE_JAR=""
 
 # Project directory where iw was invoked (passed as IW_PROJECT_DIR or current dir)
 PROJECT_DIR="${IW_PROJECT_DIR:-$(pwd)}"
@@ -24,40 +23,46 @@ if ! command -v scala-cli &> /dev/null; then
     exit 1
 fi
 
-# Build the core library jar from $CORE_DIR sources.
-# Writes to $CORE_JAR.
-build_core_jar() {
-    echo "Rebuilding core jar..." >&2
-    mkdir -p "$(dirname "$CORE_JAR")"
-    (cd "$INSTALL_DIR" && ./mill iwCoreJar)
-}
-
-# Returns 0 (true) if the jar is missing or any core/**/*.scala is newer.
-# Returns 1 (false) if the jar exists and is at least as new as every source.
-core_jar_stale() {
-    [ ! -f "$CORE_JAR" ] && return 0
-
-    local newer
-    newer=$(find "$CORE_DIR" -name "*.scala" \
-        -not -path "*/test/*" \
-        -not -path "*/.scala-build/*" \
-        -newer "$CORE_JAR" \
-        -print -quit 2>/dev/null)
-
-    [ -n "$newer" ]
-}
-
-# Ensure $CORE_JAR exists and is up to date; rebuild if stale.
-ensure_core_jar() {
-    if core_jar_stale; then
-        build_core_jar
+# Query Mill for a task's output path. Triggers Mill's rebuild-if-stale
+# decision and returns the resolved absolute path. Exits on Mill failure.
+mill_jar_path() {
+    local task="$1"
+    local raw
+    raw="$(cd "$INSTALL_DIR" && ./mill show "$task")" || {
+        echo "ERROR: Mill failed to resolve $task" >&2
+        exit 1
+    }
+    local resolved
+    resolved="$(printf '%s' "$raw" | jq -r '.' | sed -E 's#^ref:v[0-9]+:[a-f0-9]+:##')"
+    if [[ -z "$resolved" ]]; then
+        echo "ERROR: Mill returned empty path for $task" >&2
+        exit 1
     fi
+    if [[ ! -f "$resolved" || "$resolved" != *.jar ]]; then
+        echo "ERROR: Mill path for $task is not a readable .jar: $resolved" >&2
+        exit 1
+    fi
+    printf '%s' "$resolved"
 }
 
-# Bootstrap: pre-compile the core library jar for offline use
+# Ensure $CORE_JAR is up to date. Mill's source-graph analysis decides
+# whether a rebuild is needed; no shell-side mtime scan required.
+ensure_core_jar() {
+    CORE_JAR="$(mill_jar_path core.jar)"
+    export IW_CORE_JAR="$CORE_JAR"
+}
+
+# Ensure $DASHBOARD_JAR is up to date. Called only on dashboard-launching
+# command paths to avoid Mill overhead on non-dashboard commands.
+ensure_dashboard_jar() {
+    DASHBOARD_JAR="$(mill_jar_path dashboard.assembly)"
+    export IW_DASHBOARD_JAR="$DASHBOARD_JAR"
+}
+
+# Bootstrap: pre-compile the core library jar via Mill for offline use
 bootstrap() {
     echo "Bootstrapping iw-cli installation at $INSTALL_DIR..." >&2
-    build_core_jar
+    ensure_core_jar
     echo "Bootstrap complete. iw-cli is ready for offline use." >&2
 }
 
@@ -685,6 +690,11 @@ execute_command() {
         fi
 
         check_version_requirement "$cmd_file"
+
+        # Dashboard and server commands need the assembly jar; avoid Mill query cost for other commands
+        if [[ "$actual_name" == "dashboard" || "$actual_name" == "server" ]]; then
+            ensure_dashboard_jar
+        fi
 
         # Change to project directory for command execution
         cd "$PROJECT_DIR"

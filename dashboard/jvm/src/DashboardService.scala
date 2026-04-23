@@ -32,7 +32,8 @@ import iw.dashboard.application.MainProjectService
 import iw.dashboard.presentation.views.{
   MainProjectsView,
   PageLayout,
-  ProjectSummary
+  ProjectSummary,
+  AssetContext
 }
 import scalatags.Text.all.*
 import java.time.Instant
@@ -52,8 +53,8 @@ object DashboardService:
     *   Current review state cache
     * @param sshHost
     *   SSH hostname for Zed editor remote connections
-    * @param devMode
-    *   Whether to show DEV MODE banner (default: false)
+    * @param assetContext
+    *   Asset routing context (dev vs prod mode)
     * @return
     *   HTML page as string
     */
@@ -62,7 +63,7 @@ object DashboardService:
       registeredProjects: Map[String, ProjectRegistration] = Map.empty,
       reviewStateCache: Map[String, CachedReviewState],
       sshHost: String,
-      devMode: Boolean = false
+      assetContext: AssetContext
   ): String =
 
     // Sort worktrees by issue ID (alphabetical ascending)
@@ -121,7 +122,7 @@ object DashboardService:
     PageLayout.render(
       title = "iw Dashboard",
       bodyContent = bodyContent,
-      devMode = devMode
+      assetContext = assetContext
     )
 
   /** Fetch issue data for a single worktree from cache only (non-blocking).

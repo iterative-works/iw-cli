@@ -1,5 +1,5 @@
-// PURPOSE: Mill build definition — produces build/iw-core.jar from core/
-// PURPOSE: Defines the core, dashboard, and frontend modules; iwCoreJar and iwDashboardJar top-level tasks
+// PURPOSE: Mill build definition — defines the core, dashboard, and frontend modules
+// PURPOSE: iw-run queries core.jar and dashboard.assembly directly via ./mill show
 package build
 import mill.*
 import mill.scalalib.*
@@ -26,9 +26,8 @@ object core extends ScalaModule {
   // Test sources are compiled by scala-cli; Mill packages compiled classes only.
 }
 
-// SYNC: mvnDeps mirror scoped `//> using dep` entries in
-// `commands/dashboard.scala` and `commands/server-daemon.scala`.
-// Keep version strings identical across all three until the Phase 4 launcher rewrite.
+// SYNC: mvnDeps mirror scoped `//> using dep` entries in `commands/dashboard.scala`.
+// Keep version strings identical across both files.
 object dashboard extends ScalaModule {
   def scalaVersion = "3.3.7"
   def moduleDeps = Seq(core)
@@ -48,8 +47,10 @@ object dashboard extends ScalaModule {
   )
 
   object test extends ScalaTests with TestModule.Munit {
-    def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "test" / "src")
+    def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "test" / "src")
     def mvnDeps = Seq(mvn"org.scalameta::munit::1.2.1")
+    // Disable server communication in unit tests to prevent touching production dashboard
+    override def forkEnv = super.forkEnv() ++ Map("IW_SERVER_DISABLED" -> "1")
   }
 
   object itest extends ScalaTests with TestModule.Munit {
@@ -89,26 +90,3 @@ object frontend extends Module {
   }
 }
 
-// Produces a single jar merging core + dashboard classes so `iw-run`'s
-// scala-cli bridge can resolve both `iw.core.*` and `iw.dashboard.*` from one
-// classpath entry. Transitional until Phase 4 replaces the bridge with
-// `dashboard.assembly`; Mill has no first-class multi-module fat-jar task at
-// this phase, so stage-and-repack is the minimal solution.
-def iwCoreJar(): Command[PathRef] = Task.Command {
-  val target = core.moduleDir / os.up / "build" / "iw-core.jar"
-  os.makeDir.all(target / os.up)
-  val staging = Task.dest / "staging"
-  os.makeDir.all(staging)
-  os.proc("jar", "xf", core.jar().path.toString).call(cwd = staging)
-  os.proc("jar", "xf", dashboard.jar().path.toString).call(cwd = staging)
-  os.proc("jar", "cf", target.toString, ".").call(cwd = staging)
-  PathRef(target)
-}
-
-// Materialises the dashboard fat jar at build/iw-dashboard.jar for launcher discoverability.
-def iwDashboardJar(): Command[PathRef] = Task.Command {
-  val target = dashboard.moduleDir / os.up / "build" / "iw-dashboard.jar"
-  os.makeDir.all(target / os.up)
-  os.copy.over(dashboard.assembly().path, target)
-  PathRef(target)
-}

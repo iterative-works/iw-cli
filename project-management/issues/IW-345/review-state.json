@@ -45,14 +45,14 @@
       "path": "project-management/issues/IW-345/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-04-22T20:39:26.036386412Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-04-23T16:09:28.072230972Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 4: Tasks Ready",
-    "type": "success",
+    "text": "Phase 04: Awaiting Review",
+    "type": "warning",
     "subtext": "Command integration + dev mode"
   },
-  "message": "Phase 4 tasks ready",
+  "message": "Phase 04 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -60,6 +60,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "9fc7115",
@@ -71,5 +76,16 @@
       "context_sha": "context_sha=5650d9c7b6fe6ba2322859df06fd2da23b5fafc6"
     }
   },
-  "badges": []
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
+    }
+  ],
+  "needs_attention": true,
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/369"
 }

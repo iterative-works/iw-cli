@@ -47,7 +47,8 @@ import iw.dashboard.presentation.views.{
   CreationErrorView,
   ProjectDetailsView,
   WorktreeDetailView,
-  PageLayout
+  PageLayout,
+  AssetContext
 }
 import java.time.Instant
 import scala.util.Using
@@ -57,8 +58,9 @@ class CaskServer(
     port: Int,
     hosts: Seq[String],
     startedAt: Instant,
-    devMode: Boolean = false
+    devMode: DevModeConfig = DevModeConfig.Off
 ) extends cask.MainRoutes:
+  private val assetContext = AssetContext(devMode)
   private val repository = StateRepository(statePath)
   private val stateService = new ServerStateService(repository)
   private val refreshThrottle = RefreshThrottle()
@@ -98,7 +100,7 @@ class CaskServer(
       registeredProjects = state.projects,
       reviewStateCache = state.reviewStateCache,
       sshHost = effectiveSshHost,
-      devMode = devMode
+      assetContext = assetContext
     )
 
     cask.Response(
@@ -147,7 +149,7 @@ class CaskServer(
         val html = PageLayout.render(
           title = s"$projectName - Not Found",
           bodyContent = bodyContent,
-          devMode = devMode
+          assetContext = assetContext
         )
         cask.Response(
           data = html,
@@ -192,7 +194,7 @@ class CaskServer(
         val html = PageLayout.render(
           title = s"$projectName - iw Dashboard",
           bodyContent = bodyContent,
-          devMode = devMode
+          assetContext = assetContext
         )
 
         cask.Response(
@@ -214,7 +216,7 @@ class CaskServer(
         val html = PageLayout.render(
           title = s"$issueId - Not Found",
           bodyContent = bodyContent,
-          devMode = devMode
+          assetContext = assetContext
         )
         cask.Response(
           data = html,
@@ -261,7 +263,7 @@ class CaskServer(
         val html = PageLayout.render(
           title = s"$issueId - iw Dashboard",
           bodyContent = bodyContent,
-          devMode = devMode
+          assetContext = assetContext
         )
 
         cask.Response(
@@ -1533,10 +1535,29 @@ object CaskServer:
       statePath: String,
       port: Int = 9876,
       hosts: Seq[String] = Seq("localhost"),
-      devMode: Boolean = false
+      devMode: Boolean = false,
+      viteDevUrl: Option[String] = None
   ): Unit =
+    val resolved = DevModeConfig.resolve(devMode, viteDevUrl) match
+      case Left(err) =>
+        System.err.println(s"ERROR: $err")
+        System.err.println("Refusing to start dashboard.")
+        sys.exit(1)
+      case Right(DevModeConfig.Off) if devMode && viteDevUrl.isEmpty =>
+        System.err.println(
+          "WARNING: --dev was passed but VITE_DEV_URL is not set; " +
+            "continuing with bundled assets (dev mode inactive)."
+        )
+        DevModeConfig.Off
+      case Right(cfg) => cfg
+
+    resolved match
+      case DevModeConfig.On(url) =>
+        System.err.println(s"Dev mode: serving assets from $url")
+      case DevModeConfig.Off => ()
+
     val startedAt = Instant.now()
-    val server = new CaskServer(statePath, port, hosts, startedAt, devMode)
+    val server = new CaskServer(statePath, port, hosts, startedAt, resolved)
 
     // Create builder and add listener for each host
     val builder = hosts.foldLeft(io.undertow.Undertow.builder) { (b, host) =>

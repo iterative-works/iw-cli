@@ -10,7 +10,7 @@ import java.nio.file.{Files, Paths}
 import java.io.File
 import scala.util.Random
 import iw.core.model.{Issue, Check}
-import iw.dashboard.{CaskServer, StateRepository}
+import iw.dashboard.{CaskServer, StateRepository, DevModeConfig}
 
 class CaskServerTest extends FunSuite:
 
@@ -643,20 +643,26 @@ class CaskServerTest extends FunSuite:
     val startedAt = java.time.Instant.now()
 
     try
-      // Test devMode = true
+      // Test with dev mode active
       val serverWithDevMode =
-        new CaskServer(statePath, port, hosts, startedAt, devMode = true)
+        new CaskServer(
+          statePath,
+          port,
+          hosts,
+          startedAt,
+          DevModeConfig.On("http://localhost:5173")
+        )
       assert(
         Option(serverWithDevMode).isDefined,
-        "Server should be created with devMode=true"
+        "Server should be created with dev mode active"
       )
 
-      // Test devMode = false (default)
+      // Test with dev mode inactive (default)
       val serverWithoutDevMode =
-        new CaskServer(statePath, port, hosts, startedAt, devMode = false)
+        new CaskServer(statePath, port, hosts, startedAt, DevModeConfig.Off)
       assert(
         Option(serverWithoutDevMode).isDefined,
-        "Server should be created with devMode=false"
+        "Server should be created with dev mode inactive"
       )
 
     finally

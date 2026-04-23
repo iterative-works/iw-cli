@@ -77,29 +77,12 @@ class ServerClientTest extends FunSuite:
   // Project registration tests (IW-148 Phase 3)
 
   test("registerProject returns Right(()) when server is disabled"):
-    val result = withEnv("IW_SERVER_DISABLED", "true") {
-      ServerClient.registerProject(
-        projectName = "my-app",
-        path = "/some/path",
-        trackerType = "GitHub",
-        team = "iterative-works",
-        trackerUrl = None
-      )
-    }
+    // IW_SERVER_DISABLED=1 is set via build.mill forkEnv for dashboard.test
+    val result = ServerClient.registerProject(
+      projectName = "my-app",
+      path = "/some/path",
+      trackerType = "GitHub",
+      team = "iterative-works",
+      trackerUrl = None
+    )
     assertEquals(result, Right(()))
-
-  /** Run a block with an environment variable temporarily set.
-    *
-    * Uses reflection to modify the process environment for testing.
-    */
-  private def withEnv[A](key: String, value: String)(block: => A): A =
-    val field = System.getenv().getClass.getDeclaredField("m")
-    field.setAccessible(true)
-    val mutableEnv =
-      field.get(System.getenv()).asInstanceOf[java.util.Map[String, String]]
-    val previous = Option(mutableEnv.put(key, value))
-    try block
-    finally
-      previous match
-        case Some(v) => mutableEnv.put(key, v)
-        case None    => mutableEnv.remove(key)

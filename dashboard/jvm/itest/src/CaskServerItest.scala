@@ -8,7 +8,7 @@ import sttp.client4.quick.*
 import java.nio.file.{Files, Paths}
 import java.util.concurrent.atomic.AtomicReference
 import java.util.zip.ZipFile
-import iw.dashboard.CaskServer
+import iw.dashboard.{CaskServer, DevModeConfig}
 
 class CaskServerItest extends FunSuite:
 
@@ -75,6 +75,69 @@ class CaskServerItest extends FunSuite:
       fail(s"Test server failed to start after $maxAttempts attempts: $lastErr")
     boundPort
 
+  // Helper: start CaskServer in dev mode. We instantiate CaskServer directly
+  // with a DevModeConfig to supply the dev URL without going through the
+  // CaskServer.start argument path.
+  private def startTestServerDevMode(statePath: String, devUrl: String): Int =
+    val maxAttempts = 5
+    var attempts = 0
+    var boundPort = -1
+    var lastErr: Throwable = null
+    val startupError = new AtomicReference[Throwable](null)
+
+    while boundPort < 0 && attempts < maxAttempts do
+      val candidatePort = freePort()
+      val serverThread = new Thread(() =>
+        try
+          val startedAt = java.time.Instant.now()
+          val server = new CaskServer(
+            statePath,
+            candidatePort,
+            Seq("localhost"),
+            startedAt,
+            DevModeConfig.On(devUrl)
+          )
+          val builder = io.undertow.Undertow.builder
+            .addHttpListener(candidatePort, "localhost")
+          builder.setHandler(server.defaultHandler).build.start()
+        catch
+          case _: java.net.BindException => ()
+          case t: Throwable              => startupError.set(t)
+      )
+      serverThread.setDaemon(true)
+      serverThread.start()
+
+      val deadline = System.currentTimeMillis() + 10000L
+      var ready = false
+      while !ready && System.currentTimeMillis() < deadline
+        && startupError.get == null
+      do
+        val isReady =
+          try
+            quickRequest
+              .get(uri"http://localhost:$candidatePort/health")
+              .send()
+              .code
+              .code == 200
+          catch case _: Exception => false
+        if isReady then ready = true
+        else Thread.sleep(100)
+
+      Option(startupError.get).foreach(t => throw t)
+
+      if ready then boundPort = candidatePort
+      else
+        attempts += 1
+        lastErr = new RuntimeException(
+          s"Dev mode test server failed to start on port $candidatePort"
+        )
+
+    if boundPort < 0 then
+      fail(
+        s"Dev mode test server failed to start after $maxAttempts attempts: $lastErr"
+      )
+    boundPort
+
   // Helper: find a free ephemeral port. There is an inherent TOCTOU window
   // between close and the subsequent bind; startTestServer wraps callers in a
   // retry loop to handle transient collisions.
@@ -138,6 +201,43 @@ class CaskServerItest extends FunSuite:
       assert(
         body.contains("/assets/main.js"),
         "body should reference /assets/main.js (Vite frontend bundle)"
+      )
+    finally cleanup(statePath)
+
+  test(
+    "GET / in dev mode serves HTML referencing Vite dev server URL not /assets/main.js"
+  ):
+    val statePath = createTempStatePath()
+    try
+      val devUrl = "http://localhost:5173"
+      val port = startTestServerDevMode(statePath, devUrl)
+      val body = quickRequest.get(uri"http://localhost:$port/").send().body
+      assert(body.contains("<html"), "body should contain <html")
+      assert(
+        body.contains(s"$devUrl/src/main.js"),
+        s"body should reference $devUrl/src/main.js in dev mode"
+      )
+      assert(
+        !body.contains("/assets/main.js"),
+        "body should NOT reference /assets/main.js in dev mode"
+      )
+    finally cleanup(statePath)
+
+  test(
+    "GET / in prod mode body contains <html and references /assets/main.js (regression)"
+  ):
+    val statePath = createTempStatePath()
+    try
+      val port = startTestServer(statePath)
+      val body = quickRequest.get(uri"http://localhost:$port/").send().body
+      assert(body.contains("<html"), "body should contain <html")
+      assert(
+        body.contains("/assets/main.js"),
+        "body should reference /assets/main.js in prod mode (regression)"
+      )
+      assert(
+        !body.contains("localhost:5173"),
+        "body should NOT reference Vite dev URL in prod mode"
       )
     finally cleanup(statePath)
 
@@ -283,12 +383,12 @@ class CaskServerItest extends FunSuite:
   // -----------------------------------------------------------------------
 
   test(
-    "build/iw-dashboard.jar has Main-Class: iw.dashboard.ServerDaemon in manifest"
+    "dashboard fat jar has Main-Class: iw.dashboard.ServerDaemon in manifest"
   ):
     val jarPath = resolveJarPath()
     assume(
       Files.exists(jarPath),
-      s"$jarPath not found — run ./mill iwDashboardJar first"
+      s"$jarPath not found — run ./mill dashboard.assembly first"
     )
     val zip = new ZipFile(jarPath.toFile)
     try
@@ -301,11 +401,11 @@ class CaskServerItest extends FunSuite:
       )
     finally zip.close()
 
-  test("build/iw-dashboard.jar contains assets/main.js (Vite JS bundle)"):
+  test("dashboard fat jar contains assets/main.js (Vite JS bundle)"):
     val jarPath = resolveJarPath()
     assume(
       Files.exists(jarPath),
-      s"$jarPath not found — run ./mill iwDashboardJar first"
+      s"$jarPath not found — run ./mill dashboard.assembly first"
     )
     val zip = new ZipFile(jarPath.toFile)
     try
@@ -313,11 +413,11 @@ class CaskServerItest extends FunSuite:
       assert(entry != null, "Jar should contain assets/main.js")
     finally zip.close()
 
-  test("build/iw-dashboard.jar contains assets/main.css (Vite CSS bundle)"):
+  test("dashboard fat jar contains assets/main.css (Vite CSS bundle)"):
     val jarPath = resolveJarPath()
     assume(
       Files.exists(jarPath),
-      s"$jarPath not found — run ./mill iwDashboardJar first"
+      s"$jarPath not found — run ./mill dashboard.assembly first"
     )
     val zip = new ZipFile(jarPath.toFile)
     try
@@ -325,11 +425,11 @@ class CaskServerItest extends FunSuite:
       assert(entry != null, "Jar should contain assets/main.css")
     finally zip.close()
 
-  test("build/iw-dashboard.jar contains static/dashboard.css"):
+  test("dashboard fat jar contains static/dashboard.css"):
     val jarPath = resolveJarPath()
     assume(
       Files.exists(jarPath),
-      s"$jarPath not found — run ./mill iwDashboardJar first"
+      s"$jarPath not found — run ./mill dashboard.assembly first"
     )
     val zip = new ZipFile(jarPath.toFile)
     try
@@ -337,11 +437,11 @@ class CaskServerItest extends FunSuite:
       assert(entry != null, "Jar should contain static/dashboard.css")
     finally zip.close()
 
-  test("build/iw-dashboard.jar contains static/dashboard.js"):
+  test("dashboard fat jar contains static/dashboard.js"):
     val jarPath = resolveJarPath()
     assume(
       Files.exists(jarPath),
-      s"$jarPath not found — run ./mill iwDashboardJar first"
+      s"$jarPath not found — run ./mill dashboard.assembly first"
     )
     val zip = new ZipFile(jarPath.toFile)
     try
@@ -353,8 +453,12 @@ class CaskServerItest extends FunSuite:
   // Helper
   // -----------------------------------------------------------------------
 
-  /** Resolve the path to build/iw-dashboard.jar by walking up from cwd to find
-    * the project root.
+  /** Resolve the path to the dashboard fat jar produced by ./mill
+    * dashboard.assembly.
+    *
+    * The fat jar lives under Mill's output directory at
+    * out/dashboard/assembly.dest/. Walking up from the working directory finds
+    * the project root by looking for build.mill.
     */
   private def resolveJarPath(): java.nio.file.Path =
     val cwd = Paths.get(System.getProperty("user.dir"))
@@ -363,4 +467,21 @@ class CaskServerItest extends FunSuite:
       .take(10)
       .find(p => Files.exists(p.resolve("build.mill")))
       .getOrElse(cwd)
-    root.resolve("build/iw-dashboard.jar")
+    // Mill places the assembly output under out/dashboard/assembly.dest/
+    val assemblyDest = root.resolve("out/dashboard/assembly.dest")
+    if Files.exists(assemblyDest) then
+      // Find the jar inside the dest directory
+      import java.nio.file.attribute.BasicFileAttributes
+      val jarOpt = java.nio.file.Files
+        .find(
+          assemblyDest,
+          1,
+          (p, _) => p.getFileName.toString.endsWith(".jar")
+        )
+        .findFirst()
+      if jarOpt.isPresent then jarOpt.get()
+      else assemblyDest.resolve("out.jar") // fallback; triggers assume() skip
+    else
+      root.resolve(
+        "out/dashboard/assembly.dest/out.jar"
+      ) // non-existent; assume() skips
