@@ -92,35 +92,25 @@ object ProcessManager:
       hosts: Seq[String]
   ): Either[String, Long] =
     Try {
-      // Use scala-cli to run the server-daemon script with core library
       val hostsArg = hosts.mkString(",")
-      val coreDir = os.Path(
-        sys.env.getOrElse("IW_CORE_DIR", (os.pwd / ".iw" / "core").toString)
-      )
-      val coreFiles = os
-        .walk(coreDir)
-        .filter(p => p.ext == "scala" && !p.toString.contains("/test/"))
-        .map(_.toString)
-        .toSeq
-
-      val commandsDir = os.Path(
-        sys.env
-          .getOrElse("IW_COMMANDS_DIR", (os.pwd / ".iw" / "commands").toString)
-      )
-      val daemonScript = (commandsDir / "server-daemon.scala").toString
-      val command = Seq("scala-cli", "run", daemonScript) ++
-        coreFiles ++
-        Seq(
-          "--main-class",
-          "iw.dashboard.ServerDaemon",
-          "--",
-          statePath,
-          port.toString,
-          hostsArg
+      val dashboardJar = sys.env.getOrElse(
+        "IW_DASHBOARD_JAR",
+        sys.error(
+          "IW_DASHBOARD_JAR not set — iw-run must call ensure_dashboard_jar before spawning server"
         )
+      )
+
+      val command = Seq(
+        "java",
+        "-jar",
+        dashboardJar,
+        statePath,
+        port.toString,
+        hostsArg
+      )
 
       val logFile = new java.io.File(serverLogPath(statePath))
-      val processBuilder = new ProcessBuilder(command: _*)
+      val processBuilder = new ProcessBuilder(command*)
       processBuilder.redirectOutput(ProcessBuilder.Redirect.to(logFile))
       processBuilder.redirectErrorStream(true)
 

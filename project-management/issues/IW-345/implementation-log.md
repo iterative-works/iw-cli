@@ -199,3 +199,107 @@ M	dashboard/jvm/src/presentation/views/PageLayout.scala
 ```
 
 ---
+
+## Phase 4: Command integration + dev mode (2026-04-23)
+
+**Layer:** L4 — User-facing cutover
+
+**What was built:**
+- `dashboard/jvm/src/DevModeConfig.scala` — pure enum `DevModeConfig { Off | On(viteDevUrl) }` with `resolve(devFlag, viteDevUrlEnv): Either[String, DevModeConfig]` and a private URI validator. Double-gate semantics: both `--dev` flag AND non-empty `VITE_DEV_URL` required; scheme must equal `http`; host must be exactly `localhost` or `127.0.0.1` (IPv6 `[::1]` rejected per DM-IPV6).
+- `dashboard/jvm/src/presentation/views/AssetUrl.scala` — `AssetContext(devMode)` case class + `AssetUrl(path, ctx): String` companion object. Prod returns `/assets/<path>`; dev returns `<viteDevUrl>/src/<path>`. `isDevMode` helper on `AssetContext` keeps `DevModeConfig` details out of presentation-layer callers.
+- `dashboard/jvm/src/ServerDaemon.scala` — new `java -jar` main entry point. Reads `VITE_DEV_URL` at the shell boundary and passes `Option[String]` to `CaskServer.start`. Parses positional args `<statePath> <port> <hostsCsv> [--dev]`.
+- `dashboard/jvm/src/SampleDataCli.scala` — separate main (`iw.dashboard.SampleDataCli`) invoked via `java -cp` from the launcher to pre-populate sample state before spawning the server. Keeps demo/dev concerns out of the production `Main-Class`.
+- `dashboard/jvm/test/src/DevModeConfigTest.scala` (12 cases) — every branch of `resolve` incl. IPv6 rejection, substring-attack guard on `localhost.example.com`, private-IP rejection, malformed URIs.
+- `dashboard/jvm/test/src/AssetUrlTest.scala` (5 cases) — prod, dev, trailing-slash, subdirectory path, both modes.
+- `test/dashboard-dev-gate.bats` — loopback-only + http-only user-facing refusals; pre-builds jar in `setup_file`, PID-tracked cleanup.
+- `test/dashboard-jar-launch.bats` — `--help` CLI surface smoke.
+- `test/dashboard-rebuild-gate.bats` — verifies `ensure_dashboard_jar` fires only on dashboard-launching command paths.
+- `dashboard/frontend/start-dev.sh` — executable convenience wrapper that runs `yarn install --immutable && yarn dev --port 5173 --host localhost`.
+
+**Modified:**
+- `core/adapters/ProcessManager.scala` — `spawnServerProcess` rewritten: scala-cli indirection replaced with `Seq("java", "-jar", IW_DASHBOARD_JAR, statePath, port, hostsCsv)`. FQCN string literal `iw.dashboard.ServerDaemon` and `--main-class` flag removed (manifest-driven). Log redirect + PID return semantics preserved. Scala 3 splat `command*` used.
+- `commands/dashboard.scala` — `startServerAndOpenBrowser` rewritten: `ProcessBuilder` + `inheritIO` spawns `java -jar "$IW_DASHBOARD_JAR"`; sample-data branch shells out to `java -cp "$IW_DASHBOARD_JAR" iw.dashboard.SampleDataCli`. Three `//> using dep` lines (cask/scalatags/flexmark) + SYNC comment removed. `iw.dashboard.*` imports gone.
+- `commands/server-daemon.scala` — DELETED. No callers after `ProcessManager.spawnServerProcess` flipped to `java -jar`.
+- `iw-run` — `mill_jar_path` helper introduced. `ensure_core_jar` and new `ensure_dashboard_jar` both query Mill via `./mill show <task>`. Mtime-scan gate retired. `ensure_dashboard_jar` scoped to `dashboard || server` dispatch arms only. Path existence + `.jar` suffix check guards against future Mill output format drift.
+- `dashboard/jvm/src/CaskServer.scala` — constructor parameter `devMode: Boolean` replaced with `devMode: DevModeConfig`; `assetContext: AssetContext` added. `start()` now accepts `viteDevUrl: Option[String]` (read at shell boundary by `ServerDaemon.main`). `DevModeConfig.resolve` handles validation; refusal `sys.exit(1)`.
+- `dashboard/jvm/src/DashboardService.scala` — `assetContext: AssetContext` as constructor parameter; `renderDashboard` takes it explicitly (no default).
+- `dashboard/jvm/src/presentation/views/PageLayout.scala` — `render` signature swaps `devMode: Boolean` for `assetContext: AssetContext`. Hardcoded `/assets/main.js` replaced with `AssetUrl("main.js", assetContext)`. `DevModeConfig` import dropped; banner check now `assetContext.isDevMode`.
+- `build.mill` — `iwCoreJar` + `iwDashboardJar` `Task.Command`s deleted. Stale SYNC comment rewritten to describe current state. `dashboard.test` gains `forkEnv = Map("IW_SERVER_DISABLED" -> "1")` so `ServerClientTest` runs in the fork.
+- `.github/workflows/ci.yml` — `dashboard-build` job invokes `./mill dashboard.assembly` (previously `./mill iwDashboardJar`).
+- `CLAUDE.md` + `README.md` — two-build-tool boundary, Node 20 / Yarn 4 / Mill 1.1.5 / `WEBAWESOME_NPM_TOKEN` contributor requirements, dev-mode workflow.
+- `dashboard/jvm/test/src/ServerClientTest.scala` — reflection/`assume` hack removed; test runs in `IW_SERVER_DISABLED=1` fork env.
+- Misc test updates: `CaskServerTest`, `DashboardServiceTest`, `PageLayoutTest`, `CaskServerItest` updated for new signatures.
+- `.iw/commands/test.scala` — transitional `dashboardBridgeCommands` logic removed (no longer need to pass `dashboard/jvm/src/` as extra sources when compiling `commands/dashboard.scala`).
+- `dashboard/jvm/test/src/SampleDataTest.scala` → `core/test/SampleDataTest.scala` — moved; previously depended on a dashboard-domain import that no longer exists.
+
+**Dependencies on other layers:**
+- Phase 1: Mill 1.1.5 + `./mill` wrapper.
+- Phase 2: `dashboard/jvm/` layout + `iw.dashboard.*` package.
+- Phase 3: `dashboard.assembly` fat jar with `Main-Class: iw.dashboard.ServerDaemon` + Vite asset payload at classpath root.
+
+**Testing:**
+- Unit: 193/193 green across core + dashboard modules.
+- Integration: dashboard.itest.testForked all green; NEW dev-mode rendering case in `CaskServerItest` asserts `GET /` in dev mode contains `http://localhost:5173/src/main.js`, prod mode contains `/assets/main.js`.
+- E2E: 6/6 new BATS cases pass (`dashboard-dev-gate.bats`, `dashboard-jar-launch.bats`, `dashboard-rebuild-gate.bats`); broader suite unchanged.
+
+**Code review:**
+- Iterations: 3.
+- Review files:
+  - `project-management/issues/IW-345/review-phase-04-20260423-151001.md` (iter 1)
+  - `project-management/issues/IW-345/review-phase-04-20260423-160325.md` (iter 2 + iter 3 summary)
+- Iter 1 critical issues (all resolved in iter 2):
+  - `./iw server start` broken — `ensure_dashboard_jar` called only for `dashboard`; fix: extend guard to cover `server`.
+  - `ServerClientTest` silently skipped via `assume(IW_SERVER_DISABLED)` — fix: `forkEnv` in `build.mill`, remove `assume`.
+  - `dashboard-dev-gate.bats` 30s timeout wrapping Mill builds + broken `pkill` teardown — fix: `setup_file` pre-build + PID-tracked cleanup.
+- Iter 2 remaining warnings (all addressed in iter 3):
+  - Scala 2 vararg splat `_*` → `*` in `ProcessManager.scala` and `commands/dashboard.scala`.
+  - `AssetContext.isDevMode` `!=` → pattern match for exhaustiveness.
+  - `mill_jar_path` path existence + `.jar` suffix guard added.
+- Deferred (documented, not Phase 4 regressions):
+  - Pre-existing test-placement issues (`CaskServerTest` in unit scope; `ServerClientTest.isHealthy` starting real server).
+  - `hosts` comma-join per-host validation.
+  - `SampleDataCli` path-traversal guard.
+  - `AssetContext.prod` visibility tightening.
+  - `CaskServer.start` warning path could be lifted into `ServerDaemon.main` (refactoring suggestion).
+
+**Contract locked in:**
+- `IW_DASHBOARD_JAR` env var is the protocol between `iw-run` and `ProcessManager.spawnServerProcess`/`commands/dashboard.scala`. Never read anywhere else; never constructed outside `ensure_dashboard_jar`.
+- `iw.dashboard.ServerDaemon` and `iw.dashboard.SampleDataCli` class names are stable public APIs (referenced by string literal in command scripts).
+- `VITE_DEV_URL` env var read only in `ServerDaemon.main`; downstream code receives `Option[String]` or resolved `DevModeConfig`.
+- Mill `core.jar` and `dashboard.assembly` are the canonical build artefacts; no more `build/iw-*.jar` staging.
+
+**Files changed:**
+```
+M	.github/workflows/ci.yml
+M	.iw/commands/test.scala
+M	CLAUDE.md
+M	README.md
+M	build.mill
+M	commands/dashboard.scala
+D	commands/server-daemon.scala
+M	core/adapters/ProcessManager.scala
+A	core/test/SampleDataTest.scala
+A	dashboard/frontend/start-dev.sh
+M	dashboard/jvm/itest/src/CaskServerItest.scala
+M	dashboard/jvm/src/CaskServer.scala
+M	dashboard/jvm/src/DashboardService.scala
+A	dashboard/jvm/src/DevModeConfig.scala
+A	dashboard/jvm/src/SampleDataCli.scala
+A	dashboard/jvm/src/ServerDaemon.scala
+A	dashboard/jvm/src/presentation/views/AssetUrl.scala
+M	dashboard/jvm/src/presentation/views/PageLayout.scala
+A	dashboard/jvm/test/src/AssetUrlTest.scala
+M	dashboard/jvm/test/src/CaskServerTest.scala
+M	dashboard/jvm/test/src/DashboardServiceTest.scala
+A	dashboard/jvm/test/src/DevModeConfigTest.scala
+M	dashboard/jvm/test/src/PageLayoutTest.scala
+M	dashboard/jvm/test/src/SampleDataGeneratorTest.scala
+D	dashboard/jvm/test/src/SampleDataTest.scala
+M	dashboard/jvm/test/src/ServerClientTest.scala
+M	iw-run
+A	test/dashboard-dev-gate.bats
+A	test/dashboard-jar-launch.bats
+A	test/dashboard-rebuild-gate.bats
+```
+
+---

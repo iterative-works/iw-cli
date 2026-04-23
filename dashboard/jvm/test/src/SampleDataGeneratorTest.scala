@@ -110,8 +110,8 @@ class SampleDataGeneratorTest extends FunSuite:
 
   test("generated state serializes correctly via StateRepository"):
     import iw.dashboard.StateRepository
-    import iw.tests.Fixtures
-    val tempDir = Fixtures.createTempDir("sample-data-test")
+    val tempDir =
+      os.Path(java.nio.file.Files.createTempDirectory("sample-data-test"))
     try
       val statePath = (tempDir / "state.json").toString
       val repository = StateRepository(statePath)

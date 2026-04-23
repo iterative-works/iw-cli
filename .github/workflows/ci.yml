@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Assemble dashboard jar
-        run: ./mill iwDashboardJar
+        run: ./mill dashboard.assembly
         timeout-minutes: 15
       - name: Run dashboard integration tests
         run: ./mill dashboard.itest.testForked

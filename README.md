@@ -51,6 +51,15 @@ If not specified, defaults to "latest".
 - **tmux** (optional): For session management
 - **curl**: For downloading releases
 
+#### Dashboard contributor requirements
+
+Additional prerequisites for working on the dashboard module:
+
+- **Node 20+** with `corepack enable` (drives Yarn 4 via the `packageManager` field in `package.json`)
+- **Yarn 4** — installed automatically by Corepack; no separate install needed
+- **Mill 1.1.5** — the committed `./mill` wrapper downloads it on first use
+- **`WEBAWESOME_NPM_TOKEN`** — set in env before running `yarn install`; needed to fetch licensed UI components
+
 ## Commands
 
 | Command | Description |

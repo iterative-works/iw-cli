@@ -3,7 +3,7 @@
 
 package iw.core.test
 
-import iw.dashboard.presentation.views.PageLayout
+import iw.dashboard.presentation.views.{PageLayout, AssetContext}
 import scalatags.Text.all.*
 
 class PageLayoutTest extends munit.FunSuite:
@@ -14,7 +14,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test Page",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.startsWith("<!DOCTYPE html>"))
@@ -27,7 +27,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.startsWith("<!DOCTYPE html>"))
@@ -36,7 +36,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     // Check for main HTMX script
@@ -52,7 +52,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("href=\"/static/dashboard.css\""))
@@ -62,7 +62,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("src=\"/static/dashboard.js\""))
@@ -72,7 +72,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = content,
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("class=\"container\""))
@@ -83,7 +83,8 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = true
+      assetContext =
+        AssetContext(iw.dashboard.DevModeConfig.On("http://localhost:5173"))
     )
 
     assert(html.contains("dev-mode-banner"))
@@ -93,7 +94,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(!html.contains("dev-mode-banner"))
@@ -103,7 +104,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("hx-ext=\"response-targets\""))
@@ -112,7 +113,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Dashboard - Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("<title>Dashboard - Test</title>"))
@@ -121,7 +122,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("charset="))
@@ -130,7 +131,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("viewport"))
@@ -139,7 +140,7 @@ class PageLayoutTest extends munit.FunSuite:
     val html = PageLayout.render(
       title = "Test",
       bodyContent = div(),
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     val cssPos = html.indexOf("/static/dashboard.css")

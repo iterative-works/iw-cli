@@ -24,8 +24,10 @@ import iw.dashboard.{
   GitStatusService,
   PullRequestCacheService,
   WorkflowProgressService,
-  ReviewStateService
+  ReviewStateService,
+  DevModeConfig
 }
+import iw.dashboard.presentation.views.AssetContext
 import iw.core.adapters.{GitHubClient, LinearClient}
 import java.time.Instant
 
@@ -90,7 +92,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = reviewStateCache,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Verify dashboard was rendered (basic check)
@@ -103,7 +106,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty, // No cached review state
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Verify dashboard was rendered without errors
@@ -113,7 +117,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Verify empty state is rendered
@@ -149,7 +154,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2, worktree3),
       reviewStateCache = reviewStateCache,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Verify dashboard was rendered (root page shows project cards, not individual worktrees)
@@ -182,7 +188,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = reviewStateCache, // Wrong issue ID
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Dashboard should render without the cached review state
@@ -201,7 +208,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Dashboard should render successfully (no crash)
@@ -223,7 +231,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("<!DOCTYPE html>"))
@@ -238,7 +247,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Dashboard should render successfully
@@ -254,7 +264,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Dashboard should render successfully
@@ -270,7 +281,8 @@ class DashboardServiceTest extends FunSuite:
     val _ = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty, // Start with empty cache
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
   // SSH Host Configuration Tests (IW-74 Phase 1)
@@ -280,7 +292,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "my-server.example.com"
+      sshHost = "my-server.example.com",
+      assetContext = AssetContext.prod
     )
 
     // Should render without errors
@@ -291,7 +304,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "test-server.local"
+      sshHost = "test-server.local",
+      assetContext = AssetContext.prod
     )
 
     // Verify SSH host input field is present
@@ -303,7 +317,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "my-host"
+      sshHost = "my-host",
+      assetContext = AssetContext.prod
     )
 
     // Verify form has correct structure
@@ -321,7 +336,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "test-server"
+      sshHost = "test-server",
+      assetContext = AssetContext.prod
     )
 
     assert(
@@ -334,7 +350,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "test-server"
+      sshHost = "test-server",
+      assetContext = AssetContext.prod
     )
 
     assert(
@@ -344,13 +361,13 @@ class DashboardServiceTest extends FunSuite:
 
   // Dev Mode Banner Tests (IW-82 Phase 4)
 
-  test("renderDashboard with devMode=true renders DEV MODE banner"):
+  test("renderDashboard with dev mode active renders DEV MODE banner"):
     val worktree = createWorktree("IW-82-TEST-1")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
       sshHost = "localhost",
-      devMode = true
+      assetContext = AssetContext(DevModeConfig.On("http://localhost:5173"))
     )
 
     // Verify banner div is rendered
@@ -360,13 +377,15 @@ class DashboardServiceTest extends FunSuite:
     )
     assert(html.contains(">DEV MODE<"), "Should contain DEV MODE text in div")
 
-  test("renderDashboard with devMode=false does NOT render DEV MODE banner"):
+  test(
+    "renderDashboard with dev mode inactive does NOT render DEV MODE banner"
+  ):
     val worktree = createWorktree("IW-82-TEST-2")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
       sshHost = "localhost",
-      devMode = false
+      assetContext = AssetContext.prod
     )
 
     // Verify banner div is NOT rendered (CSS class definition is OK to exist)
@@ -379,23 +398,23 @@ class DashboardServiceTest extends FunSuite:
       "Should NOT contain DEV MODE text in body"
     )
 
-  test("renderDashboard with devMode=false by default does NOT render banner"):
+  test("renderDashboard with prod assetContext does NOT render banner"):
     val worktree = createWorktree("IW-82-TEST-3")
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
-      // devMode not specified, should default to false
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Verify banner div is NOT rendered (CSS class definition is OK to exist)
     assert(
       !html.contains("<div class=\"dev-mode-banner\">"),
-      "Should NOT contain dev-mode-banner div element when devMode not specified"
+      "Should NOT contain dev-mode-banner div element in prod mode"
     )
     assert(
       !html.contains(">DEV MODE<"),
-      "Should NOT contain DEV MODE text in body when devMode not specified"
+      "Should NOT contain DEV MODE text in body in prod mode"
     )
 
   test(
@@ -406,7 +425,7 @@ class DashboardServiceTest extends FunSuite:
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
       sshHost = "localhost",
-      devMode = true
+      assetContext = AssetContext(DevModeConfig.On("http://localhost:5173"))
     )
 
     // Verify external CSS is linked (styles are in dashboard.css, not inline)
@@ -421,7 +440,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     assert(
@@ -433,7 +453,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     assert(
@@ -445,7 +466,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Should not have inline <style> tag with CSS rules
@@ -457,7 +479,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // The script tag for /static/dashboard.js is ok, but inline script with visibilitychange is not
@@ -483,7 +506,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree1, worktree2),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Verify main projects section is rendered (even if empty due to missing configs)
@@ -501,7 +525,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Root page renders project cards, not worktree list
@@ -521,7 +546,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Root page renders project cards, not individual worktree cards
@@ -537,7 +563,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List(worktree),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     // Root page no longer polls for worktree changes
@@ -569,7 +596,8 @@ class DashboardServiceTest extends FunSuite:
       worktrees = List.empty,
       registeredProjects = Map("/home/user/projects/my-project" -> registered),
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("<!DOCTYPE html>"))
@@ -582,7 +610,8 @@ class DashboardServiceTest extends FunSuite:
     val html = DashboardService.renderDashboard(
       worktrees = List.empty,
       reviewStateCache = Map.empty,
-      sshHost = "localhost"
+      sshHost = "localhost",
+      assetContext = AssetContext.prod
     )
 
     assert(html.contains("<!DOCTYPE html>"))

@@ -13,12 +13,16 @@ object PageLayout:
     *   Page title for the <title> tag
     * @param bodyContent
     *   Scalatags fragment to insert in body
-    * @param devMode
-    *   Whether to show dev mode banner
+    * @param assetContext
+    *   Asset routing context (dev vs prod mode)
     * @return
     *   Complete HTML document as string with DOCTYPE
     */
-  def render(title: String, bodyContent: Frag, devMode: Boolean): String =
+  def render(
+      title: String,
+      bodyContent: Frag,
+      assetContext: AssetContext
+  ): String =
     val doctype = "<!DOCTYPE html>"
     val htmlContent = html(
       head(
@@ -45,14 +49,18 @@ object PageLayout:
         // Dashboard JS
         tag("script")(src := "/static/dashboard.js"),
         // Frontend bundle: Web Awesome Pro components, Tailwind CSS, htmx
-        tag("script")(src := "/assets/main.js", attr("type") := "module")
+        tag("script")(
+          src := AssetUrl("main.js", assetContext),
+          attr("type") := "module"
+        )
       ),
       body(
         attr("hx-ext") := "response-targets",
         div(
           cls := "container",
           // Dev mode banner (conditional)
-          if devMode then div(cls := "dev-mode-banner", "DEV MODE")
+          if assetContext.isDevMode then
+            div(cls := "dev-mode-banner", "DEV MODE")
           else (),
           // Page content
           bodyContent
