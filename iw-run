@@ -28,7 +28,7 @@ fi
 mill_jar_path() {
     local task="$1"
     local raw
-    raw="$(cd "$INSTALL_DIR" && ./mill show "$task")" || {
+    raw="$(cd "$INSTALL_DIR" && ./mill --ticker false show "$task")" || {
         echo "ERROR: Mill failed to resolve $task" >&2
         exit 1
     }
