@@ -28,10 +28,15 @@ fi
 mill_jar_path() {
     local task="$1"
     local raw
-    raw="$(cd "$INSTALL_DIR" && ./mill --ticker false show "$task")" || {
+    local err_file
+    err_file="$(mktemp)"
+    if ! raw="$(cd "$INSTALL_DIR" && ./mill --ticker false show "$task" 2>"$err_file")"; then
         echo "ERROR: Mill failed to resolve $task" >&2
+        cat "$err_file" >&2
+        rm -f "$err_file"
         exit 1
-    }
+    fi
+    rm -f "$err_file"
     local resolved
     resolved="$(printf '%s' "$raw" | jq -r '.' | sed -E 's#^ref:v[0-9]+:[a-f0-9]+:##')"
     if [[ -z "$resolved" ]]; then
