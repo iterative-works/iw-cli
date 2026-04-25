@@ -15,14 +15,14 @@ teardown() {
 }
 
 @test "non-dashboard command does not trigger Mill dashboard query" {
-    # Running iw status should not produce any 'dashboard.assembly' Mill lines
-    run "$PROJECT_ROOT/iw" status 2>&1
-    [[ "$output" != *"dashboard.assembly"* ]]
+    # Running iw status must not call ensure_dashboard_jar.
+    IW_TRACE=1 run "$PROJECT_ROOT/iw" status 2>&1
+    [[ "$output" != *"mill_jar_path dashboard.assembly"* ]]
 }
 
 @test "iw dashboard --help triggers Mill dashboard.assembly query" {
-    # Running iw dashboard should call ensure_dashboard_jar which queries Mill
-    run "$PROJECT_ROOT/iw" dashboard --help 2>&1
+    # Running iw dashboard must call ensure_dashboard_jar which queries Mill.
+    IW_TRACE=1 run "$PROJECT_ROOT/iw" dashboard --help 2>&1
     [ "$status" -eq 0 ]
-    [[ "$output" == *"dashboard.assembly"* ]]
+    [[ "$output" == *"mill_jar_path dashboard.assembly"* ]]
 }

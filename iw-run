@@ -23,10 +23,19 @@ if ! command -v scala-cli &> /dev/null; then
     exit 1
 fi
 
+# Optional trace hook for tests. When IW_TRACE=1, emit one stable line to
+# stderr per Mill query so callers can verify the rebuild gate without
+# relying on Mill's own log output.
+trace() {
+    [[ "${IW_TRACE:-}" == "1" ]] && echo "[iw-run] $*" >&2
+    return 0
+}
+
 # Query Mill for a task's output path. Triggers Mill's rebuild-if-stale
 # decision and returns the resolved absolute path. Exits on Mill failure.
 mill_jar_path() {
     local task="$1"
+    trace "mill_jar_path $task"
     local raw
     local err_file
     err_file="$(mktemp)"
@@ -50,16 +59,26 @@ mill_jar_path() {
     printf '%s' "$resolved"
 }
 
-# Ensure $CORE_JAR is up to date. Mill's source-graph analysis decides
-# whether a rebuild is needed; no shell-side mtime scan required.
+# Ensure $CORE_JAR is up to date. If $IW_CORE_JAR is preset and points to a
+# readable .jar, honour it (lets tests and consumers pre-provision the jar);
+# otherwise let Mill's source-graph analysis decide whether to rebuild.
 ensure_core_jar() {
+    if [[ -n "${IW_CORE_JAR:-}" && -f "$IW_CORE_JAR" && "$IW_CORE_JAR" == *.jar ]]; then
+        CORE_JAR="$IW_CORE_JAR"
+        return
+    fi
     CORE_JAR="$(mill_jar_path core.jar)"
     export IW_CORE_JAR="$CORE_JAR"
 }
 
 # Ensure $DASHBOARD_JAR is up to date. Called only on dashboard-launching
-# command paths to avoid Mill overhead on non-dashboard commands.
+# command paths to avoid Mill overhead on non-dashboard commands. Honours a
+# preset $IW_DASHBOARD_JAR pointing at a readable .jar.
 ensure_dashboard_jar() {
+    if [[ -n "${IW_DASHBOARD_JAR:-}" && -f "$IW_DASHBOARD_JAR" && "$IW_DASHBOARD_JAR" == *.jar ]]; then
+        DASHBOARD_JAR="$IW_DASHBOARD_JAR"
+        return
+    fi
     DASHBOARD_JAR="$(mill_jar_path dashboard.assembly)"
     export IW_DASHBOARD_JAR="$DASHBOARD_JAR"
 }
