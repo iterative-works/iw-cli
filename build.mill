@@ -1,0 +1,92 @@
+// PURPOSE: Mill build definition — defines the core, dashboard, and frontend modules
+// PURPOSE: iw-run queries core.jar and dashboard.assembly directly via ./mill show
+package build
+import mill.*
+import mill.scalalib.*
+
+// SYNC: mvnDeps mirror `core/project.scala`'s `//> using dep` entries. Keep both in sync by hand.
+object core extends ScalaModule {
+  def scalaVersion = "3.3.7"
+
+  def sources = Task.Sources(
+    moduleDir / os.up / "core" / "adapters",
+    moduleDir / os.up / "core" / "model",
+    moduleDir / os.up / "core" / "output",
+    moduleDir / os.up / "core" / "IssueCreateParser.scala",
+  )
+
+  def mvnDeps = Seq(
+    mvn"com.typesafe:config:1.4.5",
+    mvn"com.softwaremill.sttp.client4::core:4.0.15",
+    mvn"com.lihaoyi::upickle:4.4.2",
+    mvn"com.lihaoyi::os-lib:0.11.6",
+    mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
+  )
+
+  // Test sources are compiled by scala-cli; Mill packages compiled classes only.
+}
+
+// SYNC: mvnDeps mirror scoped `//> using dep` entries in `commands/dashboard.scala`.
+// Keep version strings identical across both files.
+object dashboard extends ScalaModule {
+  def scalaVersion = "3.3.7"
+  def moduleDeps = Seq(core)
+  def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "src")
+  def mainClass = Some("iw.dashboard.ServerDaemon")
+
+  def jvmResources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "resources")
+
+  def resources = Task {
+    jvmResources() ++ Seq(frontend.viteBuild())
+  }
+
+  def mvnDeps = Seq(
+    mvn"com.lihaoyi::cask:0.11.3",
+    mvn"com.lihaoyi::scalatags:0.13.1",
+    mvn"works.iterative::scalatags-webawesome:3.2.1.1",
+  )
+
+  object test extends ScalaTests with TestModule.Munit {
+    def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "test" / "src")
+    def mvnDeps = Seq(mvn"org.scalameta::munit::1.2.1")
+    // Disable server communication in unit tests to prevent touching production dashboard
+    override def forkEnv = super.forkEnv() ++ Map("IW_SERVER_DISABLED" -> "1")
+  }
+
+  object itest extends ScalaTests with TestModule.Munit {
+    def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "itest" / "src")
+    def mvnDeps = Seq(
+      mvn"org.scalameta::munit::1.2.1",
+      mvn"com.softwaremill.sttp.client4::core:4.0.15"
+    )
+  }
+}
+
+// Frontend build pipeline — Yarn + Vite + Tailwind produce dist/assets/ consumed by dashboard.resources.
+object frontend extends Module {
+
+  def frontendDir = Task.Sources(
+    moduleDir / os.up / "dashboard" / "frontend" / "package.json",
+    moduleDir / os.up / "dashboard" / "frontend" / "yarn.lock",
+    moduleDir / os.up / "dashboard" / "frontend" / "vite.config.js",
+    moduleDir / os.up / "dashboard" / "frontend" / "src",
+    moduleDir / os.up / "dashboard" / "frontend" / ".yarnrc.yml",
+  )
+
+  // Tailwind @source scans Scala sources; changes there must re-trigger viteBuild.
+  def scalaTemplates = Task.Sources(
+    moduleDir / os.up / "dashboard" / "jvm" / "src"
+  )
+
+  def viteBuild: T[PathRef] = Task {
+    val srcDir = moduleDir / os.up / "dashboard" / "frontend"
+    frontendDir()
+    scalaTemplates()
+    // Run yarn install + yarn build with inherited env (WEBAWESOME_NPM_TOKEN).
+    // Output goes directly to Task.dest so Mill owns it for change-detection.
+    os.proc("yarn", "install", "--immutable").call(cwd = srcDir, stdout = os.Inherit, stderr = os.Inherit)
+    os.proc("yarn", "build", "--outDir", Task.dest.toString).call(cwd = srcDir, stdout = os.Inherit, stderr = os.Inherit)
+    PathRef(Task.dest)
+  }
+}
+

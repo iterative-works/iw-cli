@@ -7,7 +7,8 @@ iw-cli is a project-local CLI tool for managing git worktrees and issue tracker 
 ## Tech Stack
 
 - **Language**: Scala 3
-- **Build**: scala-cli
+- **Build**: scala-cli (core, commands) + Mill 1.1.5 (dashboard)
+- **Frontend toolchain**: Node 20, Yarn 4 via Corepack, Vite 8, Tailwind v4
 - **Bootstrap**: Shell script that downloads/runs the tool
 
 ## Architecture
@@ -18,8 +19,17 @@ iw-cli/
 ├── iw-run                    # main launcher
 ├── iw-bootstrap              # consumer bootstrap (downloads releases)
 ├── VERSION                   # current version
+├── build.mill                # Mill build definition (dashboard + core)
+├── mill                      # Mill wrapper script
+├── .mill-version             # pinned Mill version
 ├── commands/                 # shared scala-cli command scripts
-├── core/                     # core library (model, adapters, output, dashboard)
+├── core/                     # core library (model, adapters, output)
+├── dashboard/
+│   ├── jvm/src/              # dashboard server (Scala)
+│   ├── jvm/test/src/         # dashboard unit tests
+│   ├── jvm/itest/src/        # dashboard integration tests
+│   ├── jvm/resources/        # bundled frontend assets
+│   └── frontend/             # Vite/Tailwind frontend sources
 ├── test/                     # BATS E2E tests
 ├── scripts/                  # release and packaging scripts
 ├── .iw/
@@ -51,6 +61,34 @@ current source, use the project-local `build-iw-cli-skills` skill at
 `build/published-skills/` for copying into the dev-docs plugin, supports
 incremental updates via a `.last-built` SHA marker, and is the canonical
 way to keep the published skills in sync with iw-cli changes.
+
+## Dashboard development
+
+`./iw dashboard` queries Mill for jar paths via `./mill show` (jars live under
+`out/`, not `build/`). The active dev loop bypasses `./iw dashboard` entirely
+and uses two terminals:
+
+1. Start the Vite dev server:
+   ```bash
+   cd dashboard/frontend && ./start-dev.sh
+   ```
+   Requires `WEBAWESOME_NPM_TOKEN` in env and Node 20+ with `corepack enable`.
+
+2. Start the dashboard with dev-mode asset routing:
+   ```bash
+   VITE_DEV_URL=http://localhost:5173 ./iw dashboard --dev
+   ```
+   Both `--dev` flag AND non-empty `VITE_DEV_URL` are required to activate
+   dev routing. Either alone has no effect (with a warning for `--dev` alone).
+
+To run dashboard server tests:
+```bash
+./mill dashboard.test          # unit tests
+./mill dashboard.itest.testForked  # integration tests
+```
+
+Two build tools exist because scala-cli has no first-class JS story; Mill
+handles the dashboard module which includes Vite frontend bundling.
 
 ## Server Configuration
 

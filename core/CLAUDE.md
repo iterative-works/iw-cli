@@ -47,7 +47,7 @@ In command scripts (`commands/*.scala`):
 import iw.core.model.*      // Pure domain types
 import iw.core.adapters.*   // I/O operations
 import iw.core.output.*     // CLI formatting
-// Do NOT import iw.core.dashboard.*
+// Do NOT import iw.dashboard.*
 ```
 
 Within core modules - dependencies flow inward:

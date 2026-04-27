@@ -32,14 +32,16 @@ setup() {
     export IW_CORE_DIR="$TEST_DIR/.iw-install/core"
     export IW_PROJECT_DIR="$TEST_DIR"
 
-    # Point at the shared, pre-built core jar from the repo root and sync the
-    # copied sources' mtimes to it so core_jar_stale stays false (otherwise the
-    # copy's fresh mtimes would trigger a rebuild into the shared jar path,
-    # clobbering it for other tests in the suite).
-    if [ -f "$BATS_TEST_DIRNAME/../build/iw-core.jar" ]; then
-        export IW_CORE_JAR="$BATS_TEST_DIRNAME/../build/iw-core.jar"
-        find "$TEST_DIR/.iw-install/core" -name '*.scala' \
-            -exec touch -r "$IW_CORE_JAR" {} +
+    # Resolve the Mill-built core jar from the repo and pre-export it so the
+    # copied iw-run honours the preset path instead of trying to invoke Mill
+    # in this temp dir (which has no build.mill).
+    local repo_root
+    repo_root="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+    local core_jar
+    core_jar="$(cd "$repo_root" && ./mill --ticker false show core.jar 2>/dev/null \
+        | jq -r '.' | sed -E 's#^ref:v[0-9]+:[a-f0-9]+:##')"
+    if [ -n "$core_jar" ] && [ -f "$core_jar" ]; then
+        export IW_CORE_JAR="$core_jar"
     fi
 
     # Create minimal config

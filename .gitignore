@@ -16,9 +16,17 @@ release/
 # Staged output for publishing skills to dev-docs
 build/
 
+# Mill build output
+out/
+
 # IDE
 .idea/
 .vscode/
+
+# Frontend build artifacts
+dashboard/frontend/node_modules/
+dashboard/frontend/dist/
+dashboard/frontend/.yarn/
 
 # OS
 .DS_Store

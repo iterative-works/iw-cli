@@ -10,7 +10,7 @@ ENV LANG=en_US.UTF-8
 
 # System packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates git tmux jq unzip \
+    curl ca-certificates git tmux jq unzip xz-utils \
     python3 locales \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
@@ -41,6 +41,20 @@ COPY deps/cs /usr/local/bin/cs
 # Scalafix
 RUN cs install scalafix --install-dir /usr/local/bin
 
+# Node 20 - pre-downloaded for the dashboard frontend build pipeline
+COPY deps/node.tar.xz /tmp/node.tar.xz
+RUN tar xJf /tmp/node.tar.xz -C /opt \
+    && rm /tmp/node.tar.xz \
+    && ln -s /opt/node-v20.* /opt/node
+ENV PATH="/opt/node/bin:${PATH}"
+
+# Corepack (ships with Node 20)
+RUN corepack enable
+
+# Mill 1.1.5 - pre-downloaded
+COPY deps/mill /usr/local/bin/mill
+RUN chmod +x /usr/local/bin/mill && mill --version
+
 # BATS (Bash Automated Testing System)
 ARG BATS_VERSION=1.12.0
 RUN git clone --depth 1 --branch "v${BATS_VERSION}" https://github.com/bats-core/bats-core.git /tmp/bats-core \
@@ -48,4 +62,4 @@ RUN git clone --depth 1 --branch "v${BATS_VERSION}" https://github.com/bats-core
     && rm -rf /tmp/bats-core
 
 # Verify all tools are available
-RUN java -version && scala-cli version && scalafix --version && bats --version && tmux -V && jq --version && python3 --version && gh --version
+RUN java -version && scala-cli version && scalafix --version && bats --version && tmux -V && jq --version && python3 --version && gh --version && node --version && corepack --version && mill --version
