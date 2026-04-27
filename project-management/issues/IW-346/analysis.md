@@ -41,7 +41,7 @@ The bootstrap flow stays identical from the user's perspective: `iw-bootstrap` d
 **Components:**
 - New build step before staging: invoke Mill from `$PROJECT_ROOT` to produce `out/core/jar.dest/out.jar` and `out/dashboard/assembly.dest/out.jar`. Resolve their paths via `./mill show core.jar` and `./mill show dashboard.assembly` (same protocol `iw-run` uses) so we never hardcode Mill's internal layout.
 - New tarball directory `build/` containing the two resolved jars renamed to `iw-core.jar` and `iw-dashboard.jar`.
-- Decision point on `core/` source: keep, drop, or trim. (See CLARIFY below.)
+- Per Decision 1: copy only `core/project.scala` (not the rest of `core/`).
 - Verification tail: `tar -tzf` listing should show `build/iw-core.jar` and `build/iw-dashboard.jar` for visual sanity in CI logs.
 
 **Responsibilities:**
@@ -60,7 +60,7 @@ The bootstrap flow stays identical from the user's perspective: `iw-bootstrap` d
 - `ensure_core_jar()` (`iw-run:65-72`): extend resolution order to (1) `$IW_CORE_JAR` env, (2) `$INSTALL_DIR/build/iw-core.jar` if it exists, (3) `mill_jar_path core.jar`. Set `IW_CORE_JAR` after resolving so child processes inherit it.
 - `ensure_dashboard_jar()` (`iw-run:77-84`): same pattern with `$INSTALL_DIR/build/iw-dashboard.jar`.
 - `bootstrap()` (`iw-run:87-91`): when both pre-built jars are present, print a "ready" message without invoking Mill. When dev mode (jars absent), behave as today.
-- Three command-execution paths at lines 565, 644, 729 currently pass both `"$CORE_DIR/project.scala"` AND `--jar "$CORE_JAR"` to `scala-cli run`. The role of `project.scala` at runtime needs investigation — see CLARIFY 2.
+- Per Decision 2: leave the three command-execution paths at lines 565, 644, 729 unchanged — `project.scala` continues to provide the deps manifest, `--jar` provides the compiled classes.
 
 **Responsibilities:**
 - Detect installed-tarball layout vs dev-checkout layout transparently. No new flag, no user-visible behavior change.
@@ -90,7 +90,7 @@ The bootstrap flow stays identical from the user's perspective: `iw-bootstrap` d
 
 **Components:**
 - Provisioning for Mill + Node + Yarn + `WEBAWESOME_NPM_TOKEN` so `./mill dashboard.assembly` succeeds in the release job. Today, `release.yml` runs on `ubuntu-latest` with only `temurin:21` and `scala-cli` (`release.yml:13-19`); it has none of these.
-- Two viable provisioning strategies — see CLARIFY 4.
+- Per Decision 4: switch the workflow to `self-hosted` + `iw-cli-ci` container, mirroring `ci.yml:dashboard-build`.
 - Step ordering: install toolchain → run `./iw ./test` (still on ubuntu-latest, as today) → invoke `package-release.sh` (which now triggers Mill builds). Or alternatively, build jars in a dedicated step and pass them via `IW_*_JAR` env to `package-release.sh` to keep the script's responsibilities narrow.
 - The existing `dashboard-build` job in `ci.yml:68-85` is the working reference: it uses `ghcr.io/iterative-works/iw-cli-ci:latest` with `WEBAWESOME_NPM_TOKEN` from secrets.
 
@@ -106,7 +106,7 @@ The bootstrap flow stays identical from the user's perspective: `iw-bootstrap` d
 ### Test Layer (`test/bootstrap.bats`)
 
 **Components:**
-- Update structural assertions in test "release package contains required structure" (`test/bootstrap.bats:73-93`) to require `build/iw-core.jar` and `build/iw-dashboard.jar`; adjust or remove `core/Config.scala` / `core/project.scala` assertions based on the CLARIFY 1 decision.
+- Update structural assertions in test "release package contains required structure" (`test/bootstrap.bats:73-93`) to require `build/iw-core.jar` and `build/iw-dashboard.jar`; drop the `core/Config.scala` assertion (Decision 1 stops shipping it), keep the `core/project.scala` assertion.
 - Update test "iw-run --bootstrap pre-compiles successfully" (`test/bootstrap.bats:42-54`) — with jars pre-shipped, `--bootstrap` no longer "compiles"; assertion strings need adjustment.
 - The hardcoded `0.1.0-dev` filename pattern (lines 13, 29, 44, 58, 66, 75-91) is already stale (current VERSION is 0.5.0). Don't broaden scope to fix unless trivially adjacent — note in the implementation as a separate concern.
 - New invariant test: extract tarball, then run `PATH=/usr/bin:/bin ./iw-run --list` (i.e. without Mill on PATH) and confirm success. This is the regression that protects against re-introducing the latent bug.
@@ -155,107 +155,63 @@ The bootstrap flow stays identical from the user's perspective: `iw-bootstrap` d
 - `package-release.sh` ↔ `./mill` (release-time): `mill show core.jar` and `mill show dashboard.assembly` produce the source paths to copy into `build/`.
 - `iw-run` ↔ `$INSTALL_DIR/build/` (install-time): file-existence check determines whether to use the pre-built jar or fall back to Mill.
 - `iw-run` ↔ `scala-cli` (every command): unchanged — still invokes `scala-cli run … --jar "$CORE_JAR" …` for command execution.
-- CI `release.yml` ↔ Mill toolchain: new dependency relationship that needs a provisioning strategy (CLARIFY 4).
+- CI `release.yml` ↔ Mill toolchain: provisioned via the `iw-cli-ci` container (Decision 4).
 
-## Technical Risks & Uncertainties
+## Resolved Decisions
 
-### CLARIFY 1: Should `core/` source remain in the tarball alongside the jars?
+### Decision 1: Ship only `core/project.scala` (drop the rest of `core/` source)
 
-The issue body explicitly leaves this open ("or decide to drop it"). It matters because three command-execution paths in `iw-run` currently pass `"$CORE_DIR/project.scala"` to `scala-cli run` (lines 565, 644, 729), and hook compilation scenarios may load source files at runtime.
+**Resolution:** Option C — the tarball will contain `core/project.scala` (the `//> using dep` deps file) and nothing else from `core/`. The compiled jar at `build/iw-core.jar` is the single source of truth for code; `project.scala` stays only because the existing `scala-cli run … --jar` invocation pattern at `iw-run:565, 644, 729` still passes it as the deps manifest.
 
-**Questions to answer:**
-1. What does `scala-cli run … "$CORE_DIR/project.scala" --jar "$CORE_JAR"` actually use `project.scala` for? Pure dependency resolution (the `//> using dep` directives), or does it also need the Scala source to recompile something at command-invocation time?
-2. Does any command path read `core/**/*.scala` or `core/**/*.css` at runtime (e.g. for hook discovery, template loading, or asset serving)?
-3. Are there hook compilation scenarios in `commands/` or `.iw/commands/` that depend on `$CORE_DIR` containing source?
+**Implementation gates this decision adds to Phase 1:**
+- 5-minute audit of `commands/` and `core/` to confirm nothing reads `core/**/*.{scala,css,js}` at runtime (hook discovery, template loading, asset serving). If the audit surfaces any such path, raise it before completing Phase 1.
+- `package-release.sh` switches from rsyncing all of `core/` to copying only `core/project.scala` into the staged tarball.
+- `test/bootstrap.bats:80-91` updates: drop the `core/Config.scala` assertion; keep `core/project.scala`; add `build/iw-core.jar` and `build/iw-dashboard.jar`.
 
-**Options:**
-- **Option A: Keep `core/` source alongside jars.** Tarball stays larger by ~`du -sh core/` worth of bytes, but maximum compatibility — every existing command path keeps working with no further change.
-  - Pros: zero risk of breakage; matches issue body's "still include core/ source" suggestion.
-  - Cons: ships duplicate content (source + compiled jar); doesn't fully realize the "ship built artifacts" goal; creates two sources of truth.
-- **Option B: Drop `core/` source entirely; replace `$CORE_DIR/project.scala` references.** Requires extracting just `project.scala` (or replacing it with a stub that lists deps) so scala-cli still has the `//> using dep` directives.
-  - Pros: minimal tarball; single source of truth (the jar); cleaner release surface.
-  - Cons: requires verifying every `scala-cli run` invocation still works; may need a synthesized `project.scala` shipped separately; risk of breaking hook compilation.
-- **Option C: Ship only `core/project.scala` (the using-deps file), drop everything else.** Smallest viable surface that keeps the existing `--jar + project.scala` invocation pattern working.
-  - Pros: small tarball; known to satisfy the existing `scala-cli run` calls; minimal change to launcher.
-  - Cons: requires confirmation that nothing else under `core/` is read at runtime (hook discovery, CSS, JS).
-
-**Impact:** Affects tarball size, launcher complexity, and the test layer's structural assertions. Recommend Option C as the minimum-risk middle ground, but only after answering question 2 — if anything reads `core/**` at runtime, that path needs to be re-examined.
+**Consequences for CLARIFY 2:** Pre-decided — we are keeping `project.scala` as the deps manifest, so CLARIFY 2 collapses to "Option A". No changes to the `scala-cli run` invocation pattern in `iw-run`.
 
 ---
 
-### CLARIFY 2: What is the runtime role of `core/project.scala` in command execution?
+### Decision 2: Keep `project.scala` as the deps manifest; no launcher changes
 
-Three sites (`iw-run:565, 644, 729`) invoke `scala-cli run -q --suppress-outdated-dependency-warning <cmd-file> "$CORE_DIR/project.scala" --jar "$CORE_JAR" -- "$@"`. Both the source file AND the compiled jar are passed.
+**Resolution:** Option A — pre-decided by Decision 1. The three `scala-cli run … "$CORE_DIR/project.scala" --jar "$CORE_JAR"` invocations at `iw-run:565, 644, 729` remain unchanged. `project.scala` continues to provide the `//> using dep` directives for runtime classpath resolution, while `build/iw-core.jar` provides the compiled core classes.
 
-**Questions to answer:**
-1. Is `project.scala` purely the source of `//> using dep` directives so scala-cli resolves the runtime classpath, while `--jar` provides the compiled core classes (avoiding recompile)?
-2. If so, can `project.scala` be a tiny standalone file (deps only, no actual code) without breaking anything?
-3. Does removing the `project.scala` argument and passing only `--jar` work if we also pass `--dep` flags equivalent to the using-deps?
-
-**Options:**
-- **Option A: Keep `project.scala` as the deps manifest, ship it alongside the jar.** No launcher change needed.
-- **Option B: Translate using-deps to `--dep` flags in `iw-run`, drop `project.scala`.** More launcher complexity but eliminates the source-file dependency.
-- **Option C: Ship a synthesized `deps.scala` shim alongside the jar in `build/` that contains only the `//> using` directives.** Splits the dev artifact from the release artifact cleanly.
-
-**Impact:** Tightly coupled to CLARIFY 1. Resolve them together.
+**Implication:** No changes required to the launcher's command-execution paths in this issue.
 
 ---
 
-### CLARIFY 3: Should `iw-run` distinguish dev-checkout vs installed-tarball explicitly, or rely solely on file presence?
+### Decision 3: Pure file-presence check (no sentinel, no escape hatch)
 
-Today the launcher script is identical in both contexts. With pre-built jars in installed tarballs, the auto-detect "if `$INSTALL_DIR/build/iw-core.jar` exists, use it" is implicit.
+**Resolution:** Option A — `iw-run` decides "installed tarball" by checking whether `$INSTALL_DIR/build/iw-core.jar` (and `iw-dashboard.jar` for dashboard paths) exists. If yes, use it; otherwise fall through to the Mill query. No sentinel file, no `IW_PREFER_MILL` env var.
 
-**Questions to answer:**
-1. Are there scenarios where a developer has stale `build/iw-core.jar` files in their dev checkout that they DON'T want auto-picked-up? (E.g. testing a deliberately-old jar, debugging a build issue.)
-2. Should there be an `IW_PREFER_MILL=1` escape hatch for the dev-stale case?
-3. Is the check "this looks like an installed tarball" better expressed by a sentinel file (e.g. `INSTALLED_TARBALL` marker) than by jar presence?
+**Load-bearing convention this locks in:** "Mill writes to `out/`, scala-cli to `.scala-build/`, releases write to `build/`." Nothing else in the repo writes to `build/` today; we keep it that way. Document this convention in a comment block near `ensure_core_jar` / `ensure_dashboard_jar` in `iw-run`.
 
-**Options:**
-- **Option A: Pure file-presence check, no sentinel.** Simplest; relies on the convention that `build/` only exists in tarballs (Mill writes to `out/`, not `build/`).
-- **Option B: Sentinel file (`build/INSTALLED`).** Explicit but adds packaging overhead.
-- **Option C: File presence + `IW_PREFER_MILL` escape hatch.** Belt-and-suspenders.
-
-**Impact:** Affects launcher complexity and the contract documented for contributors. Recommend Option A — the convention of "Mill writes to `out/`, releases write to `build/`" is already implicit and grepping the repo confirms `build/` is not used by any current build tool.
+**Escape hatch (already exists, not new):** `IW_CORE_JAR=/explicit/path` and `IW_DASHBOARD_JAR=/explicit/path` continue to win over both `build/*.jar` and the Mill query. A developer with deliberately-stale `build/` can either delete the dir or set the env var.
 
 ---
 
-### CLARIFY 4: Should `release.yml` switch to the `iw-cli-ci` container, or provision Mill/Node/Yarn on `ubuntu-latest`?
+### Decision 4: Switch `release.yml` to `self-hosted` + `iw-cli-ci` container
 
-The release workflow currently runs on `ubuntu-latest` (`release.yml:13`) — a fast, cached, hosted runner. Adding Mill + Node 20 + Corepack + Yarn 4 + `WEBAWESOME_NPM_TOKEN` to it is feasible but duplicates what `ghcr.io/iterative-works/iw-cli-ci:latest` already provides. CI's `dashboard-build` job (`ci.yml:68-85`) already uses that container with the token.
+**Resolution:** Option A — `release.yml` will run on `self-hosted` using `ghcr.io/iterative-works/iw-cli-ci:latest`, mirroring the CI workflow's `dashboard-build` job (`ci.yml:68-85`). `WEBAWESOME_NPM_TOKEN` is read from secrets in the build job that invokes Mill (Vite consumes it at build time; the resulting `dashboard.assembly` jar contains compiled assets, not the token).
 
-**Questions to answer:**
-1. Is the `iw-cli-ci` container available to `release.yml` (which currently uses GitHub-hosted runners, not self-hosted)? CI runs on `self-hosted` (`ci.yml:17, 30, 41, 53, 70`).
-2. Is the self-hosted runner reliable enough to gate releases on?
-3. What's the rough delta in release-job duration between (a) `ubuntu-latest` + provisioning steps and (b) `self-hosted` + container?
+**Concrete YAML changes for `release.yml`:**
+- `runs-on: ubuntu-latest` → `runs-on: self-hosted`
+- Add `container:` block with `image: ghcr.io/iterative-works/iw-cli-ci:latest` and `credentials:` (matching the `dashboard-build` pattern).
+- Drop the `coursier/setup-action@v1` step (toolchain is in the container).
+- Drop the explicit tmux/jq/bats install (already in the container).
+- Add `WEBAWESOME_NPM_TOKEN` to the env of the build/package step.
 
-**Options:**
-- **Option A: Switch `release.yml` to `self-hosted` + `iw-cli-ci` container.** Reuses the working CI environment verbatim; fewer divergent code paths.
-  - Pros: single source of truth for the build toolchain; matches `dashboard-build`.
-  - Cons: couples release reliability to self-hosted runner uptime; changes the release-job runtime characteristics.
-- **Option B: Keep `ubuntu-latest`, add provisioning steps.** More YAML, but isolation from self-hosted infra.
-  - Pros: release publishing doesn't depend on private infra.
-  - Cons: provisioning duplication; longer release-job runtime; need to manage `WEBAWESOME_NPM_TOKEN` separately.
-- **Option C: Hybrid — build jars in a `self-hosted` job, package + publish in `ubuntu-latest` job, pass jars via artifacts between jobs.** Maximum decoupling.
-  - Pros: release publishing stays on hosted runner; build leverages existing CI image.
-  - Cons: most YAML; more moving parts.
-
-**Impact:** Affects release reliability, CI maintenance burden, and the failure mode if the self-hosted runner is down at release time. Recommend Option A unless self-hosted runner availability is a known concern.
+**Risk accepted:** Release publishing now depends on the self-hosted runner being up at tag-push time. Acceptable trade-off; can evolve to Option C (split self-hosted build / hosted publish) later if reliability bites.
 
 ---
 
-### CLARIFY 5: Do we need `build.mill` and `./mill` inside the tarball at all?
+### Decision 5: Don't ship `build.mill` or `./mill` in the tarball
 
-Once jars are pre-built, the launcher can skip Mill entirely on installed tarballs (per CLARIFY 3 / Option A). But if for any reason Mill is invoked (developer extracts tarball into their workspace, then makes edits), it would fail without `build.mill` and `./mill`.
+**Resolution:** Option A — installed tarballs do not contain `./mill`, `.mill-version`, or `build.mill`. The launcher's Mill fallback path is reachable only in dev checkouts. Combined with Decision 1 (drop most of `core/` source), this establishes a clear contract: **installed tarballs are read-only artifacts; for development, clone the repo.**
 
-**Questions to answer:**
-1. Is "developer extracts tarball into a workspace and runs builds from it" a supported scenario, or is dev-from-checkout the only documented path?
-2. If unsupported, is the failure mode clear enough?
+**Documentation requirement:** `RELEASE.md` must state this explicitly. Add a short section under the tarball-contents description.
 
-**Options:**
-- **Option A: Don't ship Mill artifacts.** Smallest tarball; clear "installed tarball ≠ dev workspace" boundary.
-- **Option B: Ship `./mill`, `.mill-version`, `build.mill`.** Tarball ~MB larger; preserves the option to rebuild from extracted source if `core/` is also shipped.
-
-**Impact:** Tarball size + clarity of the contract. Recommend Option A; document explicitly that installed tarballs are read-only artifacts.
+**Failure mode if violated:** A user who extracts a tarball into a workspace and tries `./mill` gets "command not found" — a clear signal rather than a confusing partial-build error.
 
 ---
 
@@ -375,10 +331,10 @@ None at install time. Possibly a new (optional) `IW_PREFER_MILL` env var if CLAR
 **Impact:** Medium (developer sees stale behavior, debugging confusion)
 **Mitigation:** The convention of "Mill writes to `out/`, releases write to `build/`" is already implicit; document it explicitly in the launcher comment block. If the risk materializes, add CLARIFY 3 Option C escape hatch.
 
-### Risk 3: Dropping `core/` source from the tarball breaks an undocumented runtime code path
-**Likelihood:** Medium (depends on CLARIFY 1/2 outcomes)
+### Risk 3: Dropping most of `core/` source breaks an undocumented runtime code path
+**Likelihood:** Medium
 **Impact:** High (breaks installed users on first command)
-**Mitigation:** Resolve CLARIFY 1 and 2 BEFORE implementation. Conservative default: keep `core/` source (Option A) until a follow-up task explicitly verifies all runtime paths.
+**Mitigation:** Decision 1 keeps `core/project.scala`; the audit gate (5-minute scan of `commands/` and `core/` for runtime reads of `core/**/*.{scala,css,js}`) must pass before Phase 1 completes. If anything else under `core/` is read at runtime, surface it before merging Phase 1.
 
 ### Risk 4: `WEBAWESOME_NPM_TOKEN` leaks into tarball or build logs
 **Likelihood:** Low
@@ -401,7 +357,7 @@ None at install time. Possibly a new (optional) `IW_PREFER_MILL` env var if CLAR
 **Ordering Rationale:**
 - Each layer's correctness depends on the previous layer producing a stable artifact.
 - Phases 4 and 5 can be interleaved (write the BATS test, run it locally, push to CI) but tests should land before CI changes are merged so the CI job has the new assertions to protect against regressions.
-- The CLARIFY decisions (especially 1/2 about `core/` source) gate Packaging and Launcher — resolve them before starting Phase 1 implementation.
+- All five CLARIFY markers were resolved (Decisions 1-5) before implementation; see "Technical Risks & Uncertainties" section for the recorded decisions.
 
 ## Documentation Requirements
 
@@ -417,6 +373,6 @@ None at install time. Possibly a new (optional) `IW_PREFER_MILL` env var if CLAR
 **Analysis Status:** Ready for Review
 
 **Next Steps:**
-1. Resolve CLARIFY markers with Michal (especially 1, 2, and 4 — they have the largest effort delta).
+1. ✅ All CLARIFY markers resolved (Decisions 1-5 recorded above).
 2. Run **wf-create-tasks** with IW-346.
 3. Run **wf-implement** for layer-by-layer implementation, starting with Phase 1 (Packaging + Launcher).
