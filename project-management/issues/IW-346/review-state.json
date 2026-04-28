@@ -19,17 +19,21 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-346/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-346/phase-02-context.md"
     }
   ],
-  "last_updated": "2026-04-28T07:30:49.974305034Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-28T08:22:33.974679588Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 01: Awaiting Review",
-    "type": "warning",
-    "subtext": "Packaging + Launcher + Bootstrap"
+    "text": "Phase 02: Context Ready",
+    "type": "info",
+    "subtext": "CI + Tests + Docs"
   },
-  "message": "Phase 01 implementation started",
-  "activity": "waiting",
+  "message": "Phase 02 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -61,8 +65,8 @@
   "git_sha": "4bf9207",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=63c5f153296a9ff36bace5e660044a8706910b86"
+    "2": {
+      "context_sha": "context_sha=47ce7673b4f33558186b4ae24e555a5c76d8b096"
     }
   },
   "badges": [
