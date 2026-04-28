@@ -33,14 +33,23 @@ trace() {
 
 # Query Mill for a task's output path. Triggers Mill's rebuild-if-stale
 # decision and returns the resolved absolute path. Exits on Mill failure.
+# Refuses to run if Mill is not available in $INSTALL_DIR (e.g. an extracted
+# release tarball) so the user gets a clear message instead of bash's
+# "No such file or directory".
 mill_jar_path() {
     local task="$1"
     trace "mill_jar_path $task"
+    if [[ ! -x "$INSTALL_DIR/mill" ]]; then
+        echo "Error: pre-built jars not found at $INSTALL_DIR/build/ and Mill is not available at $INSTALL_DIR/mill" >&2
+        echo "       Either extract a release tarball that ships build/iw-core.jar and build/iw-dashboard.jar," >&2
+        echo "       or run from a dev checkout where ./mill is present." >&2
+        exit 1
+    fi
     local raw
     local err_file
     err_file="$(mktemp)"
     if ! raw="$(cd "$INSTALL_DIR" && ./mill --ticker false show "$task" 2>"$err_file")"; then
-        echo "ERROR: Mill failed to resolve $task" >&2
+        echo "Error: Mill failed to resolve $task" >&2
         cat "$err_file" >&2
         rm -f "$err_file"
         exit 1
@@ -49,45 +58,75 @@ mill_jar_path() {
     local resolved
     resolved="$(printf '%s' "$raw" | jq -r '.' | sed -E 's#^ref:v[0-9]+:[a-f0-9]+:##')"
     if [[ -z "$resolved" ]]; then
-        echo "ERROR: Mill returned empty path for $task" >&2
+        echo "Error: Mill returned empty path for $task" >&2
         exit 1
     fi
     if [[ ! -f "$resolved" || "$resolved" != *.jar ]]; then
-        echo "ERROR: Mill path for $task is not a readable .jar: $resolved" >&2
+        echo "Error: Mill path for $task is not a readable .jar: $resolved" >&2
         exit 1
     fi
     printf '%s' "$resolved"
 }
 
-# Ensure $CORE_JAR is up to date. If $IW_CORE_JAR is preset and points to a
-# readable .jar, honour it (lets tests and consumers pre-provision the jar);
-# otherwise let Mill's source-graph analysis decide whether to rebuild.
+# Resolve the core library jar in three tiers:
+#   1. $IW_CORE_JAR env override (tests / consumer pre-provisioning).
+#   2. $INSTALL_DIR/build/iw-core.jar — pre-built jar shipped in a release tarball.
+#   3. Mill (./mill show core.jar) — dev checkout fallback; rebuilds on stale inputs.
+# The same three-tier order applies to ensure_dashboard_jar.
+#
+# Build-output convention used across this tool:
+#   - Mill writes to     out/                (dev checkout, e.g. out/core/jar.dest/out.jar)
+#   - scala-cli writes to .scala-build/      (per-script bloop caches)
+#   - Releases write to  build/              (literal staging path inside the tarball)
+#
+# Resolution is pure file presence — no sentinel files, no IW_PREFER_MILL flag.
+# The env override (rung 1) is the only escape hatch.
+#
+# Contract: on return, $CORE_JAR is a readable absolute path to a .jar, and
+# $IW_CORE_JAR is exported to the same value so child scala-cli processes
+# (and any nested iw-run invocations) inherit it.
 ensure_core_jar() {
     if [[ -n "${IW_CORE_JAR:-}" && -f "$IW_CORE_JAR" && "$IW_CORE_JAR" == *.jar ]]; then
         CORE_JAR="$IW_CORE_JAR"
+        return
+    fi
+    if [[ -f "$INSTALL_DIR/build/iw-core.jar" ]]; then
+        CORE_JAR="$INSTALL_DIR/build/iw-core.jar"
+        export IW_CORE_JAR="$CORE_JAR"
         return
     fi
     CORE_JAR="$(mill_jar_path core.jar)"
     export IW_CORE_JAR="$CORE_JAR"
 }
 
-# Ensure $DASHBOARD_JAR is up to date. Called only on dashboard-launching
-# command paths to avoid Mill overhead on non-dashboard commands. Honours a
-# preset $IW_DASHBOARD_JAR pointing at a readable .jar.
+# Resolve the dashboard assembly jar using the same three-tier order as
+# ensure_core_jar. Called only on dashboard-launching command paths to avoid
+# Mill overhead on other commands.
 ensure_dashboard_jar() {
     if [[ -n "${IW_DASHBOARD_JAR:-}" && -f "$IW_DASHBOARD_JAR" && "$IW_DASHBOARD_JAR" == *.jar ]]; then
         DASHBOARD_JAR="$IW_DASHBOARD_JAR"
+        return
+    fi
+    if [[ -f "$INSTALL_DIR/build/iw-dashboard.jar" ]]; then
+        DASHBOARD_JAR="$INSTALL_DIR/build/iw-dashboard.jar"
+        export IW_DASHBOARD_JAR="$DASHBOARD_JAR"
         return
     fi
     DASHBOARD_JAR="$(mill_jar_path dashboard.assembly)"
     export IW_DASHBOARD_JAR="$DASHBOARD_JAR"
 }
 
-# Bootstrap: pre-compile the core library jar via Mill for offline use
+# Bootstrap: ensure the core jar is resolvable. In a release tarball that
+# already ships build/iw-core.jar, this is a no-op (rung 2). In a dev checkout,
+# this drives Mill (rung 3) to compile the jar.
 bootstrap() {
     echo "Bootstrapping iw-cli installation at $INSTALL_DIR..." >&2
     ensure_core_jar
-    echo "Bootstrap complete. iw-cli is ready for offline use." >&2
+    if [[ -f "$INSTALL_DIR/build/iw-core.jar" ]]; then
+        echo "iw-cli is ready (pre-built jars present at $INSTALL_DIR/build/)." >&2
+    else
+        echo "Bootstrap complete. iw-cli is ready for offline use." >&2
+    fi
 }
 
 # Read the installed version from the VERSION file

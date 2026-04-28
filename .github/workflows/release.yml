@@ -10,24 +10,24 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/iterative-works/iw-cli-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: coursier/setup-action@v1
-        with:
-          jvm: temurin:21
-          apps: scala-cli
-      - uses: coursier/cache-action@v6
-
-      - name: Install E2E test dependencies
-        run: |
-          sudo apt-get install -y tmux jq
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          sudo /tmp/bats-core/install.sh /usr/local
 
       - name: Run all tests
         run: ./iw ./test
         timeout-minutes: 20
+        env:
+          # Defensive parity with ci.yml:test. The current test suite does not
+          # invoke a Mill-driven dashboard build, so this token is unused today,
+          # but keeping it in env means future tests that exercise dashboard
+          # assembly will not silently fail in release CI.
+          WEBAWESOME_NPM_TOKEN: ${{ secrets.WEBAWESOME_NPM_TOKEN }}
 
       - name: Extract version from tag
         id: version
@@ -43,6 +43,8 @@ jobs:
 
       - name: Build release tarball
         run: scripts/package-release.sh "${{ steps.version.outputs.version }}"
+        env:
+          WEBAWESOME_NPM_TOKEN: ${{ secrets.WEBAWESOME_NPM_TOKEN }}
 
       - name: Upload to versioned release
         env:
