@@ -180,3 +180,63 @@ M	scripts/package-release.sh
 
 (The three deletions plus the consolidated rewrite of `commands/review-state.scala` net to roughly a −70 line reduction across the four `commands/review-state*` files.)
 
+## Phase 2: Implementation summary
+
+**Date:** 2026-04-28
+
+### `.github/workflows/release.yml`
+
+- Changed `runs-on: ubuntu-latest` to `runs-on: self-hosted`.
+- Added `container:` block with `ghcr.io/iterative-works/iw-cli-ci:latest` and `credentials` (mirroring `ci.yml:dashboard-build`).
+- Removed `coursier/setup-action@v1`, `coursier/cache-action@v6`, and the `Install E2E test dependencies` (apt-get tmux jq + bats source-build) steps — all provided by the container.
+- Added `WEBAWESOME_NPM_TOKEN` env var to both the `Run all tests` step (defensive parity with `ci.yml:test`) and the `Build release tarball` step (load-bearing — `package-release.sh` drives `./mill … show dashboard.assembly` which invokes Vite to fetch Web Awesome Pro assets).
+- All other steps (`actions/checkout@v4`, version extraction, `Upload to versioned release`, `Update vlatest release`) kept verbatim — no regressions in publish flow.
+
+### `test/bootstrap.bats`
+
+- **BATS hardcoded-version drift: FIXED in this phase.** The parameterisation fell out trivially since all structural assertion lines were being updated anyway. Three variables (`VERSION`, `TARBALL_NAME`, `PACKAGE_DIR`) replace every `0.1.0-dev` literal. The test suite is now functional for any version matching `VERSION` file content.
+- Structure test: dropped `core/Config.scala` assertion (Phase 1 Decision 1 stops shipping it); kept `core/project.scala`; added `build/iw-core.jar` and `build/iw-dashboard.jar` presence assertions plus non-empty (`-s`) assertions for both jars; added `build/` directory assertion.
+- Bootstrap test: replaced `*"Bootstrap complete"*` with `*"pre-built jars present"*` — stricter contract check confirming tarball bootstrap uses rung 2 (not Mill).
+- Added new `"iw-run works without Mill on PATH (bundled jars only)"` regression test. **Iteration 1 redesign (post-review):** instead of narrowing `PATH` to a curated allow-list of binaries (which risked tautology if Mill happened to live in `/usr/bin` or `/bin`, and was fragile because the launcher uses ~13 external tools), the test now installs a fail-loudly `mill` stub at the head of `PATH`. The stub touches a marker file and exits non-zero on any invocation. The test asserts `[ "$(command -v mill)" = "$stub_bin/mill" ]` as a precondition, then runs `./iw-run --list` and `./iw-run --bootstrap` and asserts the marker file does NOT exist after each. This directly verifies the contract ("launcher must not invoke mill when build/*.jar is present") rather than relying on `mill` being absent from PATH.
+
+### `RELEASE.md`
+
+- Step 2 tarball description updated to list `iw-run`, `iw-bootstrap`, `commands`, `build/iw-core.jar`, `build/iw-dashboard.jar`, and `core/project.scala (deps manifest)`.
+- Added a prerequisites block for local `package-release.sh` runs listing Mill, Node 20, Yarn, and `WEBAWESOME_NPM_TOKEN`.
+- Added a paragraph listing the two `build/` jars with their purposes (for auditors).
+- Added new "Tarball Contract" section (between "Distribution Model" and "Troubleshooting") covering the read-only-artifact nature, three-tier resolution order, dev-checkout guidance, and the `./mill` failure-mode signal.
+- "Release tarball too large" troubleshooting list updated to Phase 1 layout; added explicit callout of files the tarball must NOT contain (`./mill`, `.mill-version`, `build.mill`, `out/`, `.bsp/`, `dashboard/jvm/`, `dashboard/frontend/`).
+- "Pre-compilation fails" entry reframed as "Bootstrap reports missing jars" — on an installed tarball `--bootstrap` is verify-only; guidance to re-extract the tarball added; dev-checkout failure diagnosis moved to a sub-section.
+
+### Verification
+
+**Local BATS run (2026-04-28):**
+- Built `release/iw-cli-0.5.0.tar.gz` via `./scripts/package-release.sh 0.5.0` — succeeded; tarball contains both `build/iw-core.jar` (1,118,844 bytes) and `build/iw-dashboard.jar` (42,336,827 bytes).
+- Ran `bats test/bootstrap.bats` — **all 5 tests pass:**
+  - `ok 1 iw-run lists commands from installation directory`
+  - `ok 2 iw-run --bootstrap pre-compiles successfully`
+  - `ok 3 iw-run executes commands from installation directory`
+  - `ok 4 release package contains required structure`
+  - `ok 5 iw-run works without Mill on PATH (bundled jars only)`
+
+**Release-candidate tag dry run:** deferred — requires pushing to GitHub. This is a post-merge action. Per Risk 1 mitigation, the RC dry run (`v0.5.1-rc1` tag or `workflow_dispatch`) must be executed before any production release tag is pushed.
+
+### Code review
+
+- Iterations: 1 (no critical issues)
+- Review file: `review-phase-02-20260428-145331.md`
+- 0 critical, 3 warnings, 6 suggestions; 13/15 acceptance items met (the 2 unmet are verification gates explicitly pending — CI green and RC tag dry-run).
+- Iteration 1 fixes (3 warnings addressed):
+  - **W1: regression-test redesign.** Replaced PATH-narrowing with a fail-loudly `mill` stub + marker file. See `test/bootstrap.bats` notes above. Re-ran `bats test/bootstrap.bats` after redesign — all 5 tests still pass.
+  - **W2: dropped `local saved_path` and manual `PATH` restore** in the regression test (BATS already scopes `PATH=` per-test).
+  - **W3: added a comment** above the `WEBAWESOME_NPM_TOKEN` env block on `Run all tests` documenting it as defensive parity with `ci.yml:test`, so a future maintainer doesn't drop it as "dead env."
+- Suggestions deferred to follow-ups: RELEASE.md overlap between "Tarball Contract" and "Release tarball too large" lists; bullet vs. inline list for tarball contents; quoting actual error string from the launcher in the troubleshooting entry; broader test coverage for non-trivial commands from a tarball-only install; placeholders vs. literal version in step 3 example.
+
+### Files changed (Phase 2)
+
+```
+M	.github/workflows/release.yml
+M	test/bootstrap.bats
+M	RELEASE.md
+```
+
