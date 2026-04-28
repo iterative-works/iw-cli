@@ -2,16 +2,16 @@
 
 **Issue:** IW-346
 **Created:** 2026-04-27
-**Status:** 1/2 phases complete (50%)
+**Status:** 2/2 phases complete (100%)
 
 ## Phase Index
 
 - [x] Phase 1: Packaging + Launcher + Bootstrap (Est: 2.5-5.5h) → `phase-01-context.md`
-- [ ] Phase 2: CI + Tests + Docs (Est: 3-6h) → `phase-02-context.md`
+- [x] Phase 2: CI + Tests + Docs (Est: 3-6h) → `phase-02-context.md`
 
 ## Progress Tracker
 
-**Completed:** 1/2 phases
+**Completed:** 2/2 phases
 **Estimated Total:** 5.5-11.5 hours
 **Time Spent:** 0 hours
 
