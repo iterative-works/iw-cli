@@ -17,30 +17,30 @@ This is a Layer 1 ("Fix the Annoying Stuff") parent under #343 — the value is 
 
 ### High-Level Approach
 
-Add a pure `RepoUrlBuilder` in `core/model/` mirroring the shape of the existing `TrackerUrlBuilder`, derive the URL from `ProjectConfiguration` (and optionally the current branch from `GitStatus`), and plumb it through to `WorktreeCardRenderer` as a new optional parameter rendered next to the existing issue-id link.
+Add a pure `RepoUrlBuilder` in `core/model/` mirroring `TrackerUrlBuilder`, deriving a repo-root URL from `ProjectConfiguration` only (no branch). Rename the misnamed `youtrackBaseUrl` accessor to `trackerBaseUrl` so both builders read from a clearly-named field. Plumb the URL through to `WorktreeCardRenderer` as a new optional parameter, rendered as a persistent button near the issue-id link.
 
-For the PR-link visibility, first **diagnose the root cause** before changing behaviour. The current code already returns stale cache entries via `PullRequestCacheService.getCachedOnly`, so the most likely cause is that on initial render after server start no PR has been fetched yet. The minimal fix is to ensure (a) any cached PR data — fresh or stale — flows through to the renderer, (b) staleness is preserved as a flag rather than being dropped at the `prData.map(_.pr)` boundary in `WorktreeListSync.scala`, and (c) a background fetch is kicked off on first cache miss so the next refresh has data. The renderer always renders the PR section when data exists and shows a `· stale` badge mirroring the existing `stale-indicator` convention.
+For PR-link visibility: rather than patching the cache, first run a time-boxed investigation pass to characterise the wider caching-architecture problem (caches populate only on dashboard visit; CLI tools see nothing for unvisited worktrees; first-visit fetch lags ~30 s). Capture the findings in a write-up and open a separate parent issue for the cache rework. Within IW-347, the only behavioural change to PR display is presentational: thread the existing staleness signal (`!CachedPR.isValid(cached, now)`) through to the renderer via a new `PrDisplayData(pr, isStale)` view model, and render a `· stale` badge whenever the cache happens to hold stale data. No fetch or eviction policy changes.
 
 ### Why This Approach
 
 - Mirroring `TrackerUrlBuilder` keeps URL construction pure, testable, and consistent with existing conventions.
-- Threading staleness through as a small value object (e.g. `PrDisplayData(pr, isStale)`) instead of overloading `PullRequestData` keeps the domain model unchanged for callers that don't care about display concerns.
-- Pushing the cache-timing fix toward "always show last known data" rather than "fetch synchronously on render" keeps render paths fast and matches the existing fall-back-to-stale pattern.
+- Renaming `youtrackBaseUrl` → `trackerBaseUrl` removes a known misnomer flagged by a previous code review; the on-disk file format is unchanged, so the rename is purely internal cleanup.
+- Putting `PrDisplayData` in `iw.dashboard.presentation.views` (not `core/model/`) keeps display concerns out of the domain layer; the staleness check is computed by the existing `CachedPR.isValid` and made into a presentation-ready value at the application boundary.
+- Deferring the cache-architecture fix to its own issue avoids shipping a band-aid that masks a deeper problem and ensures the user-visible CLI gap is addressed at the root.
 
 ## Architecture Design
 
 ### Domain Layer (`core/model/`)
 
 **Components:**
-- `RepoUrlBuilder` — pure object with `buildRepoUrl(config: ProjectConfiguration, branch: Option[String]): Option[String]`, mirroring `TrackerUrlBuilder` shape.
-- Optional small value object (e.g. `PrDisplayData(pr: PullRequestData, isStale: Boolean)`) — see CLARIFY 4 for the alternative of adding a parameter to the renderer instead.
+- `RepoUrlBuilder` — pure object with `buildRepoUrl(config: ProjectConfiguration): Option[String]`, mirroring `TrackerUrlBuilder` shape.
+- Rename: accessor `ProjectConfiguration.youtrackBaseUrl` → `trackerBaseUrl` (and `ProjectConfiguration.create`'s parameter), per CLARIFY 2. HOCON file key (`tracker.baseUrl`) is unchanged.
 
 **Responsibilities:**
-- Construct repo web URLs for GitHub and GitLab from `ProjectConfiguration.repository` and (for self-hosted GitLab) `youtrackBaseUrl`.
-- Decide URL target shape (branch page vs. repo root vs. compare view) — see CLARIFY 1.
-- Return `None` when configuration is insufficient (e.g. `repository` not set, or tracker type is one we don't know how to map).
+- Construct repo root URLs for GitHub and GitLab from `ProjectConfiguration.repository` and (for self-hosted GitLab) `trackerBaseUrl`.
+- Render whenever `repository.isDefined`, regardless of `trackerType`; return `None` when `repository` is not set.
 
-**Estimated Effort:** 0.5–1.5h
+**Estimated Effort:** 1.0–2.0h (includes the `trackerBaseUrl` rename sweep)
 **Complexity:** Straightforward
 
 ---
@@ -49,30 +49,30 @@ For the PR-link visibility, first **diagnose the root cause** before changing be
 
 **Components:**
 - Update `WorktreeCardService` (or wherever card data is composed) to compute the repo URL via `RepoUrlBuilder` and forward it to the renderer.
-- Update `WorktreeListSync.scala` lines 136 and 224 (the two call sites that currently do `prData.map(_.pr)`) to forward staleness, either as `PrDisplayData` or as a parallel `Boolean` parameter.
-- Investigate the cache-timing root cause (CLARIFY 3) and apply the minimal fix — most likely a "fire-and-forget background fetch on first miss" in the cache-only render path.
+- Update `WorktreeListSync.scala` lines 136 and 224 (the two call sites that currently do `prData.map(_.pr)`): map `Option[CachedPR]` + `now` → `Option[PrDisplayData(pr, isStale)]` using `CachedPR.isValid`, and forward to the renderer.
+- **No fetch / eviction policy changes** in IW-347 (CLARIFY 3 deferred the cache-architecture work to a separate parent issue).
 
 **Responsibilities:**
-- Orchestrate config + git status + cached PR into the data the renderer needs.
+- Orchestrate config + cached PR into the data the renderer needs.
 - Preserve staleness signal end-to-end instead of dropping it on the way to view code.
-- Trigger PR fetches such that the cache is populated by the next refresh tick.
 
-**Estimated Effort:** 1.5–3h
-**Complexity:** Moderate (range driven by cache-timing investigation; see CLARIFY 3)
+**Estimated Effort:** 0.75–1.5h
+**Complexity:** Straightforward (no behavioural change to caching itself)
 
 ---
 
 ### Presentation Layer (`dashboard/jvm/src/presentation/views/`)
 
 **Components:**
-- New "repo link" section in `WorktreeCardRenderer.renderCard`, rendered near the issue-id link.
+- New `PrDisplayData(pr: PullRequestData, isStale: Boolean)` view model in `iw.dashboard.presentation.views`.
+- `renderCard` parameter change: `prData: Option[PullRequestData]` → `prData: Option[PrDisplayData]`.
 - New optional `repoUrl: Option[String]` parameter on `renderCard`.
-- New optional staleness signal for PR data — either `prData: Option[PrDisplayData]` or an additional `prIsStale: Boolean` parameter.
-- Stale badge on the PR section reusing the `stale-indicator` text/CSS pattern that already exists for issue-data staleness (line 215–220 of the renderer).
+- New "repo link" section rendered near the issue-id link.
+- Stale badge on the PR section reusing the `stale-indicator` text/CSS pattern (line 215–220 of the renderer).
 
 **Responsibilities:**
 - Render the repo link as a persistent button when URL is available; do nothing when None.
-- Always render the PR section when PR data is present (already true) and add a `· stale` indicator when the cache entry is past its TTL.
+- Always render the PR section when PR data is present (already true) and add a `· stale` indicator when `prData.get.isStale` is true.
 
 **Estimated Effort:** 0.5–1.5h
 **Complexity:** Straightforward
@@ -96,12 +96,13 @@ For the PR-link visibility, first **diagnose the root cause** before changing be
 ### Testing Layer
 
 **Components:**
-- Unit tests for `RepoUrlBuilder` — table-driven across all four `IssueTrackerType` values plus the "no repository configured" case.
-- Renderer tests asserting the repo link is present when URL is provided and absent when not, and the stale-PR badge appears only when `isStale` is true.
-- Integration test for the cache-timing fix — exercise the path where the first render finds an empty cache and confirm a subsequent render has PR data.
+- Unit tests for `RepoUrlBuilder` — table-driven across all four `IssueTrackerType` values plus the "no repository configured" case, GitLab self-hosted with `trackerBaseUrl`, and nested GitLab paths.
+- Renderer tests asserting the repo link is present when URL is provided and absent when not, and the stale-PR badge appears only when `prData.get.isStale` is true.
+- Unit/integration tests covering the staleness mapping in `WorktreeListSync` (stale `CachedPR` produces `PrDisplayData(_, isStale=true)`; fresh `CachedPR` produces `isStale=false`).
+- Update existing tests broken by the `youtrackBaseUrl` → `trackerBaseUrl` rename (`core/test/ConfigFileTest.scala`, `test/config.bats:137`).
 
-**Estimated Effort:** 0.5–1.5h
-**Complexity:** Straightforward (per-layer unit tests are easy; the integration test depends on the cache-timing fix shape — see CLARIFY 3)
+**Estimated Effort:** 0.75–1.5h
+**Complexity:** Straightforward
 
 ---
 
@@ -110,8 +111,8 @@ For the PR-link visibility, first **diagnose the root cause** before changing be
 ### Patterns
 
 - Pure URL builder mirroring `TrackerUrlBuilder` — keeps domain layer free of I/O.
-- Functional core / imperative shell — URL derivation in `model/`, composition in `dashboard/`.
-- Optional value object (`PrDisplayData`) over flag-parameter sprawl — but flagged under CLARIFY 4 for explicit decision.
+- Functional core / imperative shell — URL derivation in `model/`, view-model construction and composition in `dashboard/`.
+- Presentation-layer view model (`PrDisplayData`) keeps display concerns out of `core/model/` while still providing a self-describing renderer input.
 
 ### Technology Choices
 
@@ -121,152 +122,149 @@ For the PR-link visibility, first **diagnose the root cause** before changing be
 
 ### Integration Points
 
-- `RepoUrlBuilder` consumes `ProjectConfiguration` (already loaded by dashboard at startup) and optionally a branch name from `GitStatus`.
-- `WorktreeCardService`/`WorktreeListSync` thread the URL and PR display data into `WorktreeCardRenderer.renderCard`.
-- The cache-timing fix lives entirely on the dashboard side; no new external integrations.
+- `RepoUrlBuilder` consumes `ProjectConfiguration` (already loaded by dashboard at startup).
+- `WorktreeListSync` maps `Option[CachedPR] + now` → `Option[PrDisplayData]` and threads it (plus `repoUrl`) into `WorktreeCardRenderer.renderCard`.
+- No fetch / cache policy changes in this issue.
 
-## Technical Risks & Uncertainties
+## Resolved Clarifications
 
-### CLARIFY: Repo URL target shape per tracker type
+### Resolved: Repo URL target shape per tracker type
 
-For GitHub and GitLab the `repository` field gives `owner/repo`, but the link could point to several useful targets.
+**Decision:** Repo root only (the simplest target). Branch pages and compare views may be added later.
 
-**Questions to answer:**
-1. Should the link go to the branch page (`/tree/{branch}`), the repo root, or the compare-to-main view (`/compare/main...{branch}`)?
-2. Should we render the repo link when `trackerType` is Linear or YouTrack but `repository` is set (i.e. tracker decoupled from code host)?
-3. Should the link auto-fall-back to repo root when the branch is unknown (no `gitStatus`)?
+- `RepoUrlBuilder.buildRepoUrl(config: ProjectConfiguration): Option[String]` — no branch parameter.
+- GitHub: `https://github.com/{owner}/{repo}`
+- GitLab (gitlab.com or self-hosted via `trackerBaseUrl` — see CLARIFY 2 resolution): `{baseUrl}/{owner}/{repo}` (or `{group}/{subgroup}/{project}` for nested GitLab paths).
+- Render the repo link whenever `repository.isDefined`, regardless of `trackerType` (so a Linear- or YouTrack-tracked project with code on GitHub/GitLab still gets the link).
 
-**Options:**
-- **Option A — Branch page when known, repo root otherwise:** most informative; degrades cleanly. Requires reading `gitStatus.branchName` (already in the renderer signature). Branch URL: `https://github.com/{owner}/{repo}/tree/{branch}`.
-- **Option B — Always repo root:** simplest; URL doesn't change per worktree. Loses the "open this branch on GitHub" affordance.
-- **Option C — Compare-to-main when no PR exists, branch page when PR exists, repo root as fallback:** richest UX; more branching logic in the builder.
-
-**Impact:** Affects `RepoUrlBuilder` signature (does it take a branch or not?), the renderer call site, and test coverage.
+**Implications for downstream items:**
+- This forces CLARIFY 5 toward a no-branch builder API — resolved together below.
+- Drops ~0.5h from the domain layer estimate and ~0.25h from tests.
 
 ---
 
-### CLARIFY: Source of git host base URL for self-hosted GitLab
+### Resolved: Source of git host base URL for self-hosted GitLab
 
-`TrackerUrlBuilder` reuses `youtrackBaseUrl` as the GitLab base URL — a known overload of a misnamed field.
+**Decision:** Mirror the existing overload (one field used as base URL for both YouTrack and self-hosted GitLab), and rename the misnamed accessor `youtrackBaseUrl` → `trackerBaseUrl` as part of this issue. No backward-compat alias.
 
-**Questions to answer:**
-1. Should `RepoUrlBuilder` mirror that overload for consistency, or introduce a dedicated `gitlabBaseUrl` config field?
-2. Is there appetite to rename `youtrackBaseUrl` to a tracker-agnostic name in this issue, or defer to a follow-up?
+- HOCON file key (`tracker.baseUrl`) is already clean — no file-format change.
+- Rename touches: `core/model/Config.scala` (accessor + `ProjectConfiguration.create` factory parameter), `core/model/TrackerUrlBuilder.scala`, `commands/config.scala` (CLI alias map), `commands/issue.scala`, `commands/init.scala`, `core/test/ConfigFileTest.scala`, BATS test `test/config.bats:137`.
+- Regenerate `docs/api/Config.md` and `docs/api/YouTrackClient.md` after the rename.
+- `RepoUrlBuilder` consumes `config.trackerBaseUrl` for self-hosted GitLab, with `https://gitlab.com` as the fallback (mirrors `TrackerUrlBuilder`).
 
-**Options:**
-- **Option A — Mirror the existing overload:** zero config-schema change, consistent with current code.
-- **Option B — Add a new `repoBaseUrl` field, fall back to `youtrackBaseUrl` if unset:** cleaner naming, no breakage.
-- **Option C — Read from `git remote get-url origin`:** requires I/O (adapter) — breaks the "pure builder" property and adds failure modes for offline/missing remote.
-
-**Impact:** Layer purity, config schema, follow-up cleanup work.
+**Estimate impact:** +0.5–1h to the domain/infra phase for the mechanical rename.
 
 ---
 
-### CLARIFY: Root cause of "missing PR link due to cache timing"
+### Resolved: Root cause of "missing PR link due to cache timing"
 
-The brief gives two hypotheses; resolving this changes the application-layer fix shape and effort.
+**Decision:** Investigate first; do **not** ship a behavioural fix as part of IW-347.
 
-**Questions to answer:**
-1. Is there a reproduction case for "PR exists but link is missing" after the cache should already be populated?
-2. Does any code path actively evict cached PR entries (search for `.remove(`, `.invalidate(`, etc. on the PR cache)?
-3. Should the dashboard kick a background PR fetch on first cache miss, or is the periodic refresh tick sufficient?
+The observed "PR link missing" symptom is one face of a wider caching-architecture problem reported by Michal:
 
-**Options:**
-- **Option A — First-render miss is the only cause; trigger a background fetch on cache miss:** small change in `WorktreeCardService` or wherever the cache-only path runs.
-- **Option B — Active eviction is removing entries; remove or fix the eviction:** different, smaller change in cache code, no fetch triggering needed.
-- **Option C — Both:** combine A and B if both contribute.
+- The PR / issue / git-status caches are **dashboard-bound** — they populate only when the dashboard is visited.
+- CLI tools that read worktree state for worktrees the user has not visited on the dashboard see no cached data at all.
+- Even on the dashboard, the **first** view of a not-yet-cached worktree blocks/lags for ~30 s while data is fetched on demand.
+- There is no background fill or scheduled warm-up independent of dashboard visits.
 
-**Impact:** Application-layer effort range (1.5h vs. 3h), shape of integration test, and whether any timing-related tests need adjustment.
+This is a deeper design issue than what IW-347 was scoped for, and a one-line "kick a background fetch on first cache miss" patch would mask the root cause without addressing the CLI-visibility gap.
 
----
+**Action under IW-347:**
+1. Time-box a ~1 h investigation pass: grep cache code (`PullRequestCacheService`, `IssueCacheService`, `GitStatusService`, `RefreshThrottle`, `ServerStateService`), document who writes the caches, when, and what triggers refreshes; reproduce the user-visible symptoms (CLI shows nothing for unvisited worktree; first dashboard visit lags ~30 s; PR link flicker).
+2. **Surface findings to Michal** as a write-up under `project-management/issues/IW-347/cache-investigation.md`. Do not change code.
+3. **Open a separate parent issue** for the cache-architecture rework (background warm-up, CLI-driven cache population, decoupling from dashboard visits). Link IW-347 as one of its motivating cases.
+4. Phase 2 of IW-347 then narrows to: **renderer-only** stale-PR badge plumbing — preserve the staleness flag end-to-end so that *whenever* the cache happens to hold stale data, the user sees it labelled as such. No changes to fetch/eviction policy.
 
-### CLARIFY: How to thread PR staleness to the renderer
-
-The renderer currently has `prData: Option[PullRequestData]` and `isStale` only refers to issue data. We need PR-staleness too.
-
-**Questions to answer:**
-1. Add a `PrDisplayData(pr, isStale)` value object in `core/model/`, or pass `prIsStale: Boolean` alongside `prData`?
-2. Does the value-object approach pollute the domain with display concerns?
-
-**Options:**
-- **Option A — `PrDisplayData` value object in `core/model/`:** explicit, self-describing, easy to extend if other display flags accrue. Minor domain pollution.
-- **Option B — Parallel `Boolean` parameter on `renderCard`:** smallest change, parameter-list grows but renderer already has 11 params.
-- **Option C — Reuse `CachedPR` directly:** the renderer would compute staleness itself from `fetchedAt`, but this leaks cache concerns into presentation.
-
-**Impact:** Where the staleness check lives, renderer signature, and whether this introduces a new domain type.
+**Phase plan impact:**
+- Phase 1 (repo link) unchanged.
+- Phase 2 shrinks to: staleness-flag plumbing in `WorktreeListSync.scala:136`/`:224`, renderer stale badge, integration test for "stale cache renders with badge". Estimate: 1.25–2.25 h. Investigation pass: 0.75–1.25 h, separate from Phase 2 estimate.
+- Total IW-347 estimate revised downward (see Total Estimates section).
 
 ---
 
-### CLARIFY: Branch-name source for repo URL
+### Resolved: How to thread PR staleness to the renderer
 
-`WorktreeRegistration` does not carry a branch name (verified — it has `issueId`, `path`, `trackerType`, `team`, timestamps). The renderer already receives `gitStatus: Option[GitStatus]` which has `branchName`.
+**Decision:** Introduce a presentation-layer view model `PrDisplayData(pr: PullRequestData, isStale: Boolean)` in package `iw.dashboard.presentation.views` (next to `WorktreeCardRenderer`). Do **not** put it in `core/model/`.
 
-**Questions to answer:**
-1. Confirm the renderer should source branch from `gitStatus.branchName` when present, falling back to repo root URL when `gitStatus` is None.
-2. Should `RepoUrlBuilder.buildRepoUrl` take `branch: Option[String]` or two separate methods (`buildRepoRootUrl`, `buildBranchUrl`)?
+**Rationale:**
+- Staleness is computed by the existing pure function `CachedPR.isValid(cached, now)` — no new domain logic needed.
+- The decision (`isStale = !CachedPR.isValid(cached, now)`) is *made* in the application layer, where `WorktreeListSync` holds the `Option[CachedPR]` and the current `Instant`.
+- What the renderer consumes is "PR data + how to display it" — a presentation concern, not a domain concept. Keeping the type next to the view avoids polluting `core/model/`.
 
-**Options:**
-- **Option A — Single `buildRepoUrl(config, branch: Option[String])`:** caller passes `gitStatus.map(_.branchName)`, builder picks the right URL.
-- **Option B — Two methods, caller picks:** simpler builder per-method, slightly more logic in caller.
+**Data flow:**
+```
+WorktreeListSync (application layer)
+  Option[CachedPR] + now  →  Option[PrDisplayData(pr, isStale)]
+                              ↓
+WorktreeCardRenderer.renderCard(prData: Option[PrDisplayData], …)
+```
 
-**Impact:** Builder API shape, test table structure.
+**Renderer change:** `prData: Option[PullRequestData]` becomes `prData: Option[PrDisplayData]`. Stale variant adds a `· stale` indicator on the existing PR section, mirroring the existing `stale-indicator` styling.
+
+---
+
+### Resolved: Branch-name source for repo URL
+
+**Decision:** Collapsed by CLARIFY 1's "repo root only" choice.
+
+`RepoUrlBuilder.buildRepoUrl(config: ProjectConfiguration): Option[String]` takes no branch parameter. No branch sourcing required at any layer.
 
 ---
 
 ## Total Estimates
 
-**Per-Layer Breakdown:**
-- Domain Layer: 0.5–1.5h
-- Application/Infrastructure Layer: 1.5–3h
-- Presentation Layer: 0.5–1.5h
-- Frontend Layer: 0.25–0.75h
-- Testing Layer: 0.5–1.5h
+**Per-Layer Breakdown (IW-347 implementation):**
+- Domain Layer (`RepoUrlBuilder` + `trackerBaseUrl` rename): 1.0–2.0h
+- Application/Infrastructure Layer (URL plumbing + `PrDisplayData` mapping; no fetch/eviction changes): 0.75–1.5h
+- Presentation Layer (repo link + stale-PR badge): 0.5–1.5h
+- Frontend Layer (CSS): 0.25–0.75h
+- Testing Layer: 0.75–1.5h
 
-**Total Range:** 3.25 – 8.25 hours
+**Out-of-band investigation pass (no code, deliverable is a write-up):**
+- Cache-architecture investigation: 0.75–1.25h → produces `project-management/issues/IW-347/cache-investigation.md`, motivates a separate parent issue.
 
-**Confidence:** Medium
+**Total Range:** 3.25 – 7.25 hours of implementation, plus 0.75–1.25 h investigation.
+
+**Confidence:** Medium-High (post-clarification)
 
 **Reasoning:**
-- Domain and presentation work is mechanical and well-scoped.
-- Application range is wide because it depends on the cache-timing root cause (CLARIFY 3) — could be a one-line background-fetch trigger or a slightly larger eviction fix.
-- Testing range is wide because the integration test for the cache fix depends on the fix shape.
+- Most ranges narrowed after clarifications; only the rename adds variance because of the touch radius.
 - No new dependencies, no schema migrations, no protocol changes.
+- Cache architecture work is explicitly deferred to a separate issue; IW-347 ships only the parts that are safe without that wider rework.
 
 ## Recommended Phase Plan
 
-Total mid-point ~5.7h, low-end 3.25h. With the 3h phase-size floor, no individual layer except the application layer reaches the floor on its own, so we merge into two phases that respect dependency order (domain → infra → application → presentation, with frontend and tests folded into the phase that exercises them).
+After CLARIFY 3 narrowed Phase 2 to renderer-only stale-badge plumbing, the implementation becomes small enough that splitting it across two phases would create churn rather than clarity. The investigation pass, by contrast, is a distinct deliverable (a write-up that motivates a separate parent issue) and benefits from being kept separate so it can land first.
 
-- **Phase 1: Repo link end-to-end (Domain + Presentation + Frontend + tests for repo link)**
-  - Includes: `RepoUrlBuilder` in `core/model/`, plumbing through `WorktreeCardService`/`WorktreeListSync`, renderer addition, CSS, unit tests for builder and renderer.
-  - Estimate: 1.75–4.25h
-  - Rationale: Pure-additive vertical slice for the new repo link. Self-contained, easy to review as one PR. Below the 3h floor only at the very low end — acceptable because merging it with Phase 2 would create a too-large PR mixing unrelated concerns (URL building vs. cache investigation).
+- **Phase 1: Cache-architecture investigation (write-up only, no code)**
+  - Includes: grep cache code (`PullRequestCacheService`, `IssueCacheService`, `GitStatusService`, `RefreshThrottle`, `ServerStateService`); document who writes the caches, when, and what triggers refreshes; reproduce the symptoms (CLI shows nothing for unvisited worktrees; first dashboard visit lags ~30 s; PR link flicker).
+  - Deliverable: `project-management/issues/IW-347/cache-investigation.md` plus a draft for a new parent issue covering background warm-up / CLI-driven cache population.
+  - Estimate: 0.75–1.25h
+  - Rationale: Below the usual 3h phase floor, but it is a discovery phase that produces a write-up rather than code; the floor reasoning is about review/PR overhead, which doesn't apply.
 
-- **Phase 2: PR link visibility fix (Application/Infra + staleness plumbing + integration test)**
-  - Includes: cache-timing investigation and fix, `PrDisplayData` (or boolean flag) plumbed through `WorktreeListSync.scala:136` and `:224`, renderer stale-PR badge, integration test.
-  - Estimate: 2.5–5h (excluding the renderer addition for the stale badge if Phase 1 already lands the parameter; if not, add ~0.5h)
-  - Rationale: Distinct concern (data-flow correctness vs. UI addition). Investigation-heavy, benefits from its own review focus. Comfortably above the floor.
+- **Phase 2: Repo link + stale-PR badge (Domain + App/Infra plumbing + Presentation + Frontend + Tests)**
+  - Includes: `RepoUrlBuilder` in `core/model/`, the `youtrackBaseUrl` → `trackerBaseUrl` rename and its callers/tests, URL plumbing through `WorktreeCardService`, `PrDisplayData` view model in `iw.dashboard.presentation.views`, staleness mapping in `WorktreeListSync.scala:136`/`:224`, renderer additions (repo-link section + stale-PR badge), CSS, unit + integration tests.
+  - Estimate: 3.25–7.25h
+  - Rationale: Single self-contained PR; both card additions land together so reviewers see the full card change in one place. Comfortably above the floor.
 
-**Total phases:** 2 (for total estimate 3.25–8.25 hours)
-
-Note: if CLARIFY 3 resolves to "active eviction bug" (Option B) the application work shrinks substantially; in that case consider folding everything into a single phase. Defer that decision until investigation is done.
+**Total phases:** 2 (1 investigation + 1 implementation, for an aggregate 4.0–8.5 hours).
 
 ## Testing Strategy
 
 ### Per-Layer Testing
 
 **Domain Layer:**
-- Unit: table-driven tests for `RepoUrlBuilder.buildRepoUrl` covering GitHub, GitLab (gitlab.com), GitLab (self-hosted via `youtrackBaseUrl`), Linear (no repo or repo set — verify CLARIFY 1 outcome), YouTrack (same), and the "missing repository" None case.
-- Branch-aware variants: with and without a branch, verifying the chosen URL shape from CLARIFY 1.
+- Unit: table-driven tests for `RepoUrlBuilder.buildRepoUrl` covering: GitHub (`repository` set), GitLab on gitlab.com, GitLab self-hosted via `trackerBaseUrl`, GitLab nested groups (`group/subgroup/project`), Linear with `repository` set (renders), YouTrack with `repository` set (renders), and the "missing repository" None case.
+- Rename coverage: ensure `core/test/ConfigFileTest.scala` exercises the `trackerBaseUrl` accessor; update the BATS test `test/config.bats:137` to use the new name.
 
 **Application Layer:**
-- Unit: tests for the staleness-preservation change at `WorktreeListSync.scala:136`/`:224`.
-- Integration: cache-miss-then-refresh scenario for the PR-link fix.
+- Unit: tests for the staleness mapping in `WorktreeListSync.scala:136`/`:224` — fresh `CachedPR` produces `PrDisplayData(_, isStale=false)`, stale `CachedPR` produces `PrDisplayData(_, isStale=true)`, missing cache produces `None`.
 
 **Presentation Layer:**
 - Unit: renderer tests asserting:
   - Repo link rendered when `repoUrl = Some(...)`, absent when `None`.
-  - PR section rendered when `prData = Some(...)` regardless of staleness.
-  - `· stale` indicator on PR section iff `isStale = true`.
+  - PR section rendered when `prData = Some(...)` regardless of `isStale`.
+  - `· stale` indicator on PR section iff `prData.get.isStale == true`.
 
 **Frontend Layer:**
 - Visual smoke check via the dev server (no automated tests typical for CSS-only changes).
@@ -276,7 +274,7 @@ Note: if CLARIFY 3 resolves to "active eviction bug" (Option B) the application 
 - Add minimal builders for the four tracker types if not already present.
 
 **Regression Coverage:**
-- Existing renderer tests must continue to pass (PR section already optional; no behavioural change for callers that don't pass a repo URL).
+- Existing renderer tests must continue to pass after the `prData` parameter type change — update fixtures to wrap `PullRequestData` in `PrDisplayData(pr, isStale=false)` where they currently pass it bare.
 - Card refresh polling cadence must be unaffected.
 
 ## Deployment Considerations
@@ -285,7 +283,7 @@ Note: if CLARIFY 3 resolves to "active eviction bug" (Option B) the application 
 None.
 
 ### Configuration Changes
-None required. Existing `repository` and `youtrackBaseUrl` fields are reused. If CLARIFY 2 picks Option B (new field), that becomes additive and optional with safe fall-back.
+No HOCON file-format change. The on-disk key remains `tracker.baseUrl`. The Scala accessor on `ProjectConfiguration` is renamed `youtrackBaseUrl` → `trackerBaseUrl`; the CLI alias `iw config get youtrackBaseUrl` is removed (no backward-compat). Existing user config files continue to work without modification.
 
 ### Rollout Strategy
 Single PR per phase. No feature flag needed — both changes are purely additive UI/behavioural improvements.
@@ -299,47 +297,53 @@ Standard `git revert` of each phase's PR. No data migration to undo.
 None — all referenced infrastructure (`ProjectConfiguration`, `PullRequestCacheService`, `WorktreeCardRenderer`) already exists.
 
 ### Layer Dependencies
-- Phase 1: Domain → Application/Infra plumbing → Presentation → Frontend (sequential within the phase).
-- Phase 2: Investigation → Application/Infra fix → Presentation (stale badge) → Tests.
-- Phases are independent and could be parallelised, but landing Phase 1 first is recommended because it's lower-risk.
+- Phase 1 (investigation): no code dependencies; pure discovery.
+- Phase 2 (implementation): Domain (`RepoUrlBuilder` + rename) → Application/Infra plumbing (URL + `PrDisplayData` mapping) → Presentation (renderer changes) → Frontend (CSS) → Tests.
+- Phase 1's deliverable does not block Phase 2 — they can land in either order — but running the investigation first is recommended so any cache-architecture insight has a chance to inform Phase 2's tests or scope.
 
 ### External Blockers
 None.
 
 ## Risks & Mitigations
 
-### Risk 1: Cache-timing root cause is more complex than expected
+### Risk 1: Cache investigation surfaces a problem larger than the parent-issue write-up can capture
 **Likelihood:** Medium
-**Impact:** Medium
-**Mitigation:** Time-box investigation to 1h. If root cause isn't clear, surface to Michal with hypothesis and reproduction steps before continuing.
+**Impact:** Low (only delays opening the follow-up issue, doesn't block IW-347)
+**Mitigation:** Time-box investigation to 1.25h. If the architecture is more entangled than expected, the write-up flags open questions and the follow-up issue's analysis phase explores them in depth.
 
-### Risk 2: GitLab self-hosted users with `youtrackBaseUrl` overloaded for tracker, not repo host
-**Likelihood:** Low (current code already overloads this for GitLab tracker URLs, so any user who has it set is already implicitly using it for GitLab)
+### Risk 2: `trackerBaseUrl` rename misses a caller and breaks the build
+**Likelihood:** Low (rename is mechanical; compiler catches any direct reference; touch radius is bounded — 6 Scala source files + 2 test files + 2 generated docs).
+**Impact:** Low (compile-time failure, immediate feedback)
+**Mitigation:** Run `scala-cli compile --scalac-option -Werror core/` and `./mill dashboard.test` after the rename; regenerate `docs/api/Config.md` and `docs/api/YouTrackClient.md`.
+
+### Risk 3: GitLab self-hosted user has `tracker.baseUrl` set but it points to their YouTrack, not their GitLab
+**Likelihood:** Low (current code already overloads this field for GitLab tracker URLs, so any GitLab-on-self-hosted user already has it set to the GitLab base URL)
 **Impact:** Low (worst case: repo link points to wrong host; user sees broken link, no data corruption)
-**Mitigation:** Mirror `TrackerUrlBuilder` behaviour exactly. Document in code comment. Surface the rename question separately (CLARIFY 2).
+**Mitigation:** Mirror `TrackerUrlBuilder` behaviour exactly. Document in code comment.
 
-### Risk 3: `PrDisplayData` value object pollutes domain layer
-**Likelihood:** Low
-**Impact:** Low
-**Mitigation:** If concerned, prefer Option B in CLARIFY 4 (parallel boolean parameter) — keeps the domain pristine at the cost of one more renderer parameter.
+### Risk 4: Renderer parameter type change (`prData: Option[PullRequestData]` → `Option[PrDisplayData]`) breaks existing callers
+**Likelihood:** Medium (multiple call sites in `WorktreeListView`, `WorktreeListSync`, `ProjectDetailsView`, `WorktreeDetailView`, plus tests)
+**Impact:** Low (compile-time failure, all sites must be updated)
+**Mitigation:** Update all callers in a single change; default callers that don't have a `CachedPR` to `PrDisplayData(pr, isStale = false)`.
 
 ---
 
 ## Implementation Sequence
 
-**Recommended Layer Order (within each phase):**
+**Phase 1 (investigation):** standalone; no implementation order to manage.
 
-1. **Domain Layer** — `RepoUrlBuilder` first; pure logic with no dependencies; foundation for all other layers.
-2. **Application/Infrastructure Layer** — wire the builder into card composition; investigate and fix cache timing.
-3. **Presentation Layer** — add renderer parameters and the new card sections.
-4. **Frontend Layer** — CSS to make the new elements look right.
+**Phase 2 (implementation) — Recommended Layer Order:**
+
+1. **Domain Layer** — `RepoUrlBuilder` + the `youtrackBaseUrl` → `trackerBaseUrl` rename in one go (rename is a prerequisite for clean references in the new builder).
+2. **Application/Infrastructure Layer** — `PrDisplayData` view model + staleness mapping in `WorktreeListSync`; URL plumbing in `WorktreeCardService`.
+3. **Presentation Layer** — `renderCard` parameter changes (new `repoUrl`, `prData` type change), repo-link section, stale-PR badge.
+4. **Frontend Layer** — CSS for the new elements.
 5. **Tests** — written alongside each layer (TDD), not after.
 
 **Ordering Rationale:**
 - Domain types must exist before anything can use them.
 - Renderer parameter additions require call sites already updated, so application layer comes before presentation in the implementation sequence (even though presentation is "above" application architecturally).
 - Frontend CSS comes last — needs the rendered HTML to style against.
-- Phase 1 (repo link) is purely additive and lower-risk; recommend implementing before Phase 2 (cache-timing investigation).
 
 ## Documentation Requirements
 
@@ -351,9 +355,9 @@ None.
 
 ---
 
-**Analysis Status:** Ready for Review
+**Analysis Status:** Clarifications resolved — ready for task generation.
 
 **Next Steps:**
-1. Resolve CLARIFY markers with Michal (especially CLARIFY 1, 3, 4 — the others have safe defaults).
-2. Run **wf-create-tasks** with IW-347.
-3. Run **wf-implement** for layer-by-layer implementation.
+1. Run **wf-create-tasks** with IW-347.
+2. Run **wf-implement** for the investigation phase first, then the implementation phase.
+3. After Phase 1 (investigation) lands its write-up, open the follow-up parent issue for the cache-architecture rework.
