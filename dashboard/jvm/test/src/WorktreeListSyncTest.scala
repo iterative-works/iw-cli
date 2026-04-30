@@ -114,6 +114,7 @@ class WorktreeListSyncTest extends munit.FunSuite:
       None,
       now,
       "localhost",
+      None,
       None
     )
 
@@ -161,7 +162,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       None,
       0, // position 0 means afterbegin (top)
       now,
-      "localhost"
+      "localhost",
+      None
     )
 
     // Should contain both delete and add
@@ -227,7 +229,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      List("IW-2") // IW-2 exists (will be deleted), IW-1 is new
+      List("IW-2"), // IW-2 exists (will be deleted), IW-1 is new
+      _ => None
     )
 
     // Should contain addition OOB for IW-1 (IW-1 < IW-2, so no predecessor)
@@ -254,7 +257,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       Instant.now(),
       "localhost",
-      List.empty
+      List.empty,
+      _ => None
     )
 
     assertEquals(html, "")
@@ -315,6 +319,7 @@ class WorktreeListSyncTest extends munit.FunSuite:
       None,
       now,
       "localhost",
+      None,
       None
     )
 
@@ -353,7 +358,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       None,
       now,
       "localhost",
-      Some("IW-100")
+      Some("IW-100"),
+      None
     )
 
     assert(
@@ -409,7 +415,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      currentIds
+      currentIds,
+      _ => None
     )
 
     assert(
@@ -465,7 +472,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      currentIds
+      currentIds,
+      _ => None
     )
 
     assert(
@@ -516,7 +524,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      currentIds
+      currentIds,
+      _ => None
     )
 
     assert(
@@ -585,7 +594,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      currentIds
+      currentIds,
+      _ => None
     )
 
     assert(
@@ -668,7 +678,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      currentIds
+      currentIds,
+      _ => None
     )
 
     assert(
@@ -722,7 +733,8 @@ class WorktreeListSyncTest extends munit.FunSuite:
       Map.empty,
       now,
       "localhost",
-      currentIds
+      currentIds,
+      _ => None
     )
 
     // Should contain deletion for IW-150
@@ -735,4 +747,274 @@ class WorktreeListSyncTest extends munit.FunSuite:
     assert(
       html.contains("hx-swap-oob=\"afterend:#card-IW-100\""),
       "should insert IW-175 after IW-100"
+    )
+
+  // ============================================================================
+  // Staleness mapping: CachedPR → PrDisplayData
+  // ============================================================================
+
+  test("generateAdditionOob with fresh CachedPR produces no stale indicator"):
+    val now = Instant.now()
+    val registration = WorktreeRegistration(
+      "IW-200",
+      "/path/to/worktree",
+      "github",
+      "team",
+      now,
+      now
+    )
+    val issueData = IssueData(
+      "IW-200",
+      "Test Issue",
+      "Open",
+      None,
+      None,
+      "https://example.com/IW-200",
+      now
+    )
+    val cached = CachedIssue(issueData)
+    val pr = iw.core.model.PullRequestData(
+      "https://github.com/org/repo/pull/42",
+      iw.core.model.PRState.Open,
+      42,
+      "My PR"
+    )
+    // Fresh: fetched at `now`, so age is 0 minutes < TTL
+    val freshPrCache = iw.core.model.CachedPR(pr, now)
+
+    val html = WorktreeListSync.generateAdditionOob(
+      registration,
+      Some(cached),
+      None,
+      Some(freshPrCache),
+      None,
+      now,
+      "localhost",
+      None,
+      None
+    )
+
+    assert(html.contains("pr-link"), "should show PR section")
+    assert(
+      !html.contains("stale-indicator"),
+      "fresh PR should have no stale indicator"
+    )
+
+  test("generateAdditionOob with expired CachedPR produces stale indicator"):
+    val now = Instant.now()
+    val registration = WorktreeRegistration(
+      "IW-201",
+      "/path/to/worktree",
+      "github",
+      "team",
+      now,
+      now
+    )
+    val issueData = IssueData(
+      "IW-201",
+      "Test Issue",
+      "Open",
+      None,
+      None,
+      "https://example.com/IW-201",
+      now
+    )
+    val cached = CachedIssue(issueData)
+    val pr = iw.core.model.PullRequestData(
+      "https://github.com/org/repo/pull/43",
+      iw.core.model.PRState.Open,
+      43,
+      "Stale PR"
+    )
+    // Expired: fetched 10 minutes ago, exceeds default TTL of 2 minutes
+    val oldTime = now.minusSeconds(600)
+    val stalePrCache = iw.core.model.CachedPR(pr, oldTime)
+
+    val html = WorktreeListSync.generateAdditionOob(
+      registration,
+      Some(cached),
+      None,
+      Some(stalePrCache),
+      None,
+      now,
+      "localhost",
+      None,
+      None
+    )
+
+    assert(html.contains("pr-link"), "should show PR section even when stale")
+    assert(
+      html.contains("stale-indicator"),
+      "expired PR should have stale indicator"
+    )
+
+  test("generateAdditionOob with None prCache produces no PR section"):
+    val now = Instant.now()
+    val registration = WorktreeRegistration(
+      "IW-202",
+      "/path/to/worktree",
+      "github",
+      "team",
+      now,
+      now
+    )
+    val issueData = IssueData(
+      "IW-202",
+      "Test Issue",
+      "Open",
+      None,
+      None,
+      "https://example.com/IW-202",
+      now
+    )
+    val cached = CachedIssue(issueData)
+
+    val html = WorktreeListSync.generateAdditionOob(
+      registration,
+      Some(cached),
+      None,
+      None, // no PR cache
+      None,
+      now,
+      "localhost",
+      None,
+      None
+    )
+
+    assert(
+      !html.contains("pr-link"),
+      "should not show PR section when no PR cache"
+    )
+
+  test("generateReorderOob with expired CachedPR produces stale indicator"):
+    val now = Instant.now()
+    val registration = WorktreeRegistration(
+      "IW-203",
+      "/path/to/worktree",
+      "github",
+      "team",
+      now,
+      now
+    )
+    val issueData = IssueData(
+      "IW-203",
+      "Test Issue",
+      "Open",
+      None,
+      None,
+      "https://example.com/IW-203",
+      now
+    )
+    val cached = CachedIssue(issueData)
+    val pr = iw.core.model.PullRequestData(
+      "https://github.com/org/repo/pull/44",
+      iw.core.model.PRState.Open,
+      44,
+      "Reorder PR"
+    )
+    // Expired: fetched 10 minutes ago, exceeds default TTL of 2 minutes
+    val oldTime = now.minusSeconds(600)
+    val stalePrCache = iw.core.model.CachedPR(pr, oldTime)
+
+    val html = WorktreeListSync.generateReorderOob(
+      registration,
+      Some(cached),
+      None,
+      Some(stalePrCache),
+      None,
+      0,
+      now,
+      "localhost",
+      None
+    )
+
+    assert(html.contains("pr-link"), "should show PR section even when stale")
+    assert(
+      html.contains("stale-indicator"),
+      "expired PR should have stale indicator"
+    )
+
+  test("generateReorderOob with fresh CachedPR produces no stale indicator"):
+    val now = Instant.now()
+    val registration = WorktreeRegistration(
+      "IW-204",
+      "/path/to/worktree",
+      "github",
+      "team",
+      now,
+      now
+    )
+    val issueData = IssueData(
+      "IW-204",
+      "Test Issue",
+      "Open",
+      None,
+      None,
+      "https://example.com/IW-204",
+      now
+    )
+    val cached = CachedIssue(issueData)
+    val pr = iw.core.model.PullRequestData(
+      "https://github.com/org/repo/pull/45",
+      iw.core.model.PRState.Open,
+      45,
+      "Fresh Reorder PR"
+    )
+    // Fresh: fetched at `now`, age 0 < default 2-minute TTL
+    val freshPrCache = iw.core.model.CachedPR(pr, now)
+
+    val html = WorktreeListSync.generateReorderOob(
+      registration,
+      Some(cached),
+      None,
+      Some(freshPrCache),
+      None,
+      0,
+      now,
+      "localhost",
+      None
+    )
+
+    assert(html.contains("pr-link"), "should show PR section")
+    assert(
+      !html.contains("stale-indicator"),
+      "fresh PR should have no stale indicator on reorder"
+    )
+
+  test("generateReorderOob with None prCache produces no PR section"):
+    val now = Instant.now()
+    val registration = WorktreeRegistration(
+      "IW-205",
+      "/path/to/worktree",
+      "github",
+      "team",
+      now,
+      now
+    )
+    val issueData = IssueData(
+      "IW-205",
+      "Test Issue",
+      "Open",
+      None,
+      None,
+      "https://example.com/IW-205",
+      now
+    )
+    val cached = CachedIssue(issueData)
+
+    val html = WorktreeListSync.generateReorderOob(
+      registration,
+      Some(cached),
+      None,
+      None,
+      None,
+      0,
+      now,
+      "localhost",
+      None
+    )
+
+    assert(
+      !html.contains("pr-link"),
+      "should not show PR section when no PR cache on reorder"
     )

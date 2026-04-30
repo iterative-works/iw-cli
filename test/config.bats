@@ -134,8 +134,8 @@ EOF
     [[ "$output" == *"Unknown configuration field"* ]]
 }
 
-@test "config get youtrackBaseUrl when unset returns error" {
-    # Setup: create GitHub config (without youtrackBaseUrl)
+@test "config get trackerBaseUrl when unset returns error" {
+    # Setup: create GitHub config (without trackerBaseUrl)
     mkdir -p .iw
     cat > .iw/config.conf << 'EOF'
 tracker {
@@ -149,7 +149,7 @@ project {
 EOF
 
     # Run command
-    run "$PROJECT_ROOT/iw" config get youtrackBaseUrl
+    run "$PROJECT_ROOT/iw" config get trackerBaseUrl
 
     # Assert
     [ "$status" -eq 1 ]

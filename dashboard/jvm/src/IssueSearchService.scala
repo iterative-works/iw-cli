@@ -161,7 +161,7 @@ object IssueSearchService:
 
       case "youtrack" =>
         // YouTrack URL format: https://youtrack.example.com/issue/PROJ-123
-        config.youtrackBaseUrl match
+        config.trackerBaseUrl match
           case Some(baseUrl) =>
             val cleanBaseUrl = baseUrl.stripSuffix("/")
             s"$cleanBaseUrl/issue/$issueId"
@@ -172,7 +172,7 @@ object IssueSearchService:
       case "gitlab" =>
         // GitLab URL format: https://gitlab.com/{group}/{project}/-/issues/{number}
         val number = extractGitHubIssueNumber(issueId) // Same extraction logic
-        val baseUrl = config.youtrackBaseUrl
+        val baseUrl = config.trackerBaseUrl
           .getOrElse("https://gitlab.com")
           .stripSuffix("/")
         config.repository match

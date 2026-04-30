@@ -17,7 +17,11 @@ import iw.core.model.{
   Issue,
   IssueId
 }
-import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
+import iw.dashboard.presentation.views.{
+  WorktreeCardRenderer,
+  HtmxCardConfig,
+  PrDisplayData
+}
 import scalatags.Text.all.*
 import java.time.Instant
 import scala.util.Try
@@ -89,7 +93,9 @@ object WorktreeCardService:
       sshHost: String,
       fetchIssue: String => Either[String, Issue],
       buildUrl: (String, String, Option[String]) => String,
-      fetchPR: () => Either[String, Option[PullRequestData]] = () => Right(None)
+      fetchPR: () => Either[String, Option[PullRequestData]] = () =>
+        Right(None),
+      repoUrl: Option[String] = None
   ): CardRenderResult =
     worktrees.get(issueId) match
       case None =>
@@ -151,24 +157,27 @@ object WorktreeCardService:
             fetchPR() match {
               case Right(Some(pr)) =>
                 val cached = CachedPR(pr, now)
-                (Some(pr), Some(cached))
+                (Some(PrDisplayData(pr, isStale = false)), Some(cached))
               case Right(None) =>
                 // No PR found - fall back to cached if available
                 prCache.get(issueId) match {
-                  case Some(cached) => (Some(cached.pr), Some(cached))
-                  case None         => (None, None)
+                  case Some(cached) =>
+                    (Some(PrDisplayData.fromCached(cached, now)), Some(cached))
+                  case None => (None, None)
                 }
               case Left(_) =>
                 // Fetch failed - fall back to cached if available
                 prCache.get(issueId) match {
-                  case Some(cached) => (Some(cached.pr), Some(cached))
-                  case None         => (None, None)
+                  case Some(cached) =>
+                    (Some(PrDisplayData.fromCached(cached, now)), Some(cached))
+                  case None => (None, None)
                 }
             }
           else
             prCache.get(issueId) match {
-              case Some(cached) => (Some(cached.pr), Some(cached))
-              case None         => (None, None)
+              case Some(cached) =>
+                (Some(PrDisplayData.fromCached(cached, now)), Some(cached))
+              case None => (None, None)
             }
 
         // Use fresh review state if available, otherwise use cached
@@ -199,7 +208,8 @@ object WorktreeCardService:
                 reviewStateResult,
                 now,
                 sshHost,
-                HtmxCardConfig.polling
+                HtmxCardConfig.polling,
+                repoUrl
               )
               .render
           case None =>

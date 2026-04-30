@@ -14,7 +14,11 @@ import iw.core.model.{
   PullRequestData,
   ReviewState
 }
-import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
+import iw.dashboard.presentation.views.{
+  WorktreeCardRenderer,
+  HtmxCardConfig,
+  PrDisplayData
+}
 import scalatags.Text.all.*
 import java.time.Instant
 
@@ -120,7 +124,8 @@ object WorktreeListSync:
       reviewState: Option[CachedReviewState],
       now: Instant,
       sshHost: String,
-      predecessorId: Option[String]
+      predecessorId: Option[String],
+      repoUrl: Option[String]
   ): String =
     // Render card without OOB attribute (using polling config)
     val cardHtml = issueData match
@@ -133,11 +138,12 @@ object WorktreeListSync:
           isStale = isStale,
           progress.map(_.progress),
           gitStatus = None,
-          prData.map(_.pr),
+          prData.map(PrDisplayData.fromCached(_, now)),
           reviewState.map(c => Right(c.state)),
           now,
           sshHost,
-          HtmxCardConfig.polling
+          HtmxCardConfig.polling,
+          repoUrl
         )
       case None =>
         WorktreeCardRenderer.renderSkeletonCard(
@@ -206,7 +212,8 @@ object WorktreeListSync:
       reviewState: Option[CachedReviewState],
       position: Int,
       now: Instant,
-      sshHost: String
+      sshHost: String,
+      repoUrl: Option[String]
   ): String =
     val deleteHtml = generateDeletionOob(registration.issueId)
 
@@ -221,11 +228,12 @@ object WorktreeListSync:
           isStale = isStale,
           progress.map(_.progress),
           gitStatus = None,
-          prData.map(_.pr),
+          prData.map(PrDisplayData.fromCached(_, now)),
           reviewState.map(c => Right(c.state)),
           now,
           sshHost,
-          HtmxCardConfig.polling
+          HtmxCardConfig.polling,
+          repoUrl
         )
       case None =>
         WorktreeCardRenderer.renderSkeletonCard(
@@ -280,7 +288,8 @@ object WorktreeListSync:
       reviewStateCache: Map[String, CachedReviewState],
       now: Instant,
       sshHost: String,
-      currentIds: List[String]
+      currentIds: List[String],
+      repoUrlFor: String => Option[String]
   ): String =
     if changes.additions.isEmpty && changes.deletions.isEmpty && changes.reorders.isEmpty
     then
@@ -299,7 +308,8 @@ object WorktreeListSync:
             reviewStateCache.get(issueId),
             now,
             sshHost,
-            predecessorId
+            predecessorId,
+            repoUrlFor(issueId)
           )
         }
       }
@@ -317,7 +327,8 @@ object WorktreeListSync:
             reviewStateCache.get(issueId),
             0, // Move to top
             now,
-            sshHost
+            sshHost,
+            repoUrlFor(issueId)
           )
         }
       }
