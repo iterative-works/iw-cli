@@ -19,17 +19,21 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-347/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-347/phase-02-context.md"
     }
   ],
-  "last_updated": "2026-04-30T06:42:52.666762763Z",
-  "status": "phase_merged",
+  "last_updated": "2026-04-30T06:52:30.423500789Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 01: Merged",
-    "type": "success",
-    "subtext": "Cache-architecture investigation"
+    "text": "Phase 2: Context Ready",
+    "type": "info",
+    "subtext": "Repo link + stale-PR badge"
   },
-  "message": "Phase 01 implementation started",
-  "activity": "waiting",
+  "message": "Phase 2 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -61,8 +65,8 @@
   "git_sha": "bc3d449",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=3485a4687d1288e026122970a820dce2466ec74d"
+    "2": {
+      "context_sha": "context_sha=2b075f4963326d2dbe73f6b35b8c5e31a1b7133e"
     }
   },
   "badges": [
