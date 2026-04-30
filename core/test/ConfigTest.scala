@@ -895,6 +895,46 @@ class ConfigTest extends munit.FunSuite:
     val remote = GitRemote("https://bitbucket.org/owner/repo.git")
     assert(remote.extractRepositoryPath.isLeft)
 
+  // ========== ssh:// protocol URL form ==========
+
+  test("GitRemote parses ssh:// URL with non-default port"):
+    val remote = GitRemote("ssh://git@gitlab.e-bs.cz:2224/CMI/iscmi.git")
+    assertEquals(remote.host, Right("gitlab.e-bs.cz"))
+
+  test("GitRemote parses ssh:// URL without port"):
+    val remote = GitRemote("ssh://git@github.com/owner/repo.git")
+    assertEquals(remote.host, Right("github.com"))
+
+  test("GitRemote parses ssh:// URL without user"):
+    val remote = GitRemote("ssh://gitlab.com/owner/repo.git")
+    assertEquals(remote.host, Right("gitlab.com"))
+
+  test("GitRemote extracts owner/repo from GitHub ssh:// URL"):
+    val remote = GitRemote("ssh://git@github.com/iterative-works/iw-cli.git")
+    assertEquals(remote.repositoryOwnerAndName, Right("iterative-works/iw-cli"))
+
+  test("GitRemote extracts repo from self-hosted GitLab ssh:// URL with port"):
+    val remote = GitRemote("ssh://git@gitlab.e-bs.cz:2224/CMI/iscmi.git")
+    assertEquals(remote.extractGitLabRepository, Right("CMI/iscmi"))
+
+  test("GitRemote extracts nested groups from ssh:// URL with port"):
+    val remote =
+      GitRemote("ssh://git@gitlab.e-bs.cz:2224/group/subgroup/project.git")
+    assertEquals(
+      remote.extractGitLabRepository,
+      Right("group/subgroup/project")
+    )
+
+  test("extractRepositoryPath succeeds for self-hosted GitLab ssh:// URL"):
+    val remote = GitRemote("ssh://git@gitlab.e-bs.cz:2224/CMI/iscmi.git")
+    assertEquals(remote.extractRepositoryPath, Right("CMI/iscmi"))
+
+  test("TrackerDetector suggests YouTrack for gitlab.e-bs.cz ssh:// remote"):
+    val suggestion = TrackerDetector.suggestTracker(
+      GitRemote("ssh://git@gitlab.e-bs.cz:2224/CMI/iscmi.git")
+    )
+    assertEquals(suggestion, Some(IssueTrackerType.YouTrack))
+
   // ========== YouTrack with optional repository ==========
 
   test(
