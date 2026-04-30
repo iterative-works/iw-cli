@@ -39,6 +39,7 @@ import iw.dashboard.{
 }
 import iw.dashboard.application.{WorktreeCreationService, MainProjectService}
 import iw.dashboard.domain.{WorktreeCreationError, WorktreeCreationResult}
+import iw.core.model.RepoUrlBuilder
 import iw.dashboard.presentation.views.{
   ArtifactView,
   CreateWorktreeModal,
@@ -48,7 +49,8 @@ import iw.dashboard.presentation.views.{
   ProjectDetailsView,
   WorktreeDetailView,
   PageLayout,
-  AssetContext
+  AssetContext,
+  PrDisplayData
 }
 import java.time.Instant
 import scala.util.Using
@@ -76,6 +78,23 @@ class CaskServer(
 
   private def resolveEffectiveSshHost(sshHost: Option[String]): String =
     sshHost.getOrElse(java.net.InetAddress.getLocalHost().getHostName())
+
+  /** Lookup function from issueId to repo URL.
+    *
+    * Reads each worktree's `.iw/config.conf` and runs the URL through
+    * `RepoUrlBuilder`. Returns `None` for unknown issue IDs or worktrees
+    * without a `repository` field. The read is best-effort: if the config file
+    * is missing or malformed, the lookup yields `None`.
+    */
+  private def repoUrlForWorktree(
+      worktrees: Map[String, iw.core.model.WorktreeRegistration]
+  ): String => Option[String] = issueId =>
+    worktrees.get(issueId).flatMap { wt =>
+      val path = os.Path(
+        wt.path
+      ) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+      ConfigFileRepository.read(path).flatMap(RepoUrlBuilder.buildRepoUrl)
+    }
 
   @cask.get("/")
   def dashboard(sshHost: Option[String] = None): cask.Response[String] =
@@ -169,16 +188,26 @@ class CaskServer(
           val progress =
             DashboardService.fetchProgressForWorktree(wt, state.progressCache)
           val gitStatus = DashboardService.fetchGitStatusForWorktree(wt)
-          val prData = DashboardService.fetchPRForWorktreeCachedOnly(
-            wt,
-            state.prCache,
-            now
-          )
+          val prData =
+            state.prCache.get(wt.issueId).map(PrDisplayData.fromCached(_, now))
           val reviewStateResult = state.reviewStateCache
             .get(wt.issueId)
             .map(cached => Right(cached.state))
+          val wtConfigPath = os.Path(
+            wt.path
+          ) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
+          val wtConfig = ConfigFileRepository.read(wtConfigPath)
+          val repoUrl = wtConfig.flatMap(RepoUrlBuilder.buildRepoUrl)
 
-          (wt, issueData, progress, gitStatus, prData, reviewStateResult)
+          (
+            wt,
+            issueData,
+            progress,
+            gitStatus,
+            prData,
+            reviewStateResult,
+            repoUrl
+          )
         }
 
         // Render page body using ProjectDetailsView
@@ -334,7 +363,7 @@ class CaskServer(
 
       case Some(worktree) =>
         // Load project configuration from worktree's path (not os.pwd)
-        // This ensures we get the correct tracker settings (e.g., youtrackBaseUrl)
+        // This ensures we get the correct tracker settings (e.g., trackerBaseUrl)
         val configPath = os.Path(
           worktree.path
         ) / Constants.Paths.IwDir / Constants.Paths.ConfigFileName
@@ -362,6 +391,7 @@ class CaskServer(
         // Render the card
         val now = Instant.now()
         val sshHost = java.net.InetAddress.getLocalHost().getHostName()
+        val repoUrl = config.flatMap(RepoUrlBuilder.buildRepoUrl)
         val result = WorktreeCardService.renderCard(
           issueId,
           state.worktrees,
@@ -374,7 +404,8 @@ class CaskServer(
           sshHost,
           fetchFn,
           urlBuilder,
-          fetchPRFn
+          fetchPRFn,
+          repoUrl
         )
 
         // Update all caches with freshly fetched data
@@ -437,6 +468,7 @@ class CaskServer(
 
         val now = Instant.now()
         val effectiveSshHost = resolveEffectiveSshHost(sshHost)
+        val repoUrl = config.flatMap(RepoUrlBuilder.buildRepoUrl)
         val result = WorktreeCardService.renderCard(
           issueId,
           state.worktrees,
@@ -449,7 +481,8 @@ class CaskServer(
           effectiveSshHost,
           fetchFn,
           urlBuilder,
-          fetchPRFn
+          fetchPRFn,
+          repoUrl
         )
 
         result.fetchedIssue.foreach { cachedIssue =>
@@ -549,7 +582,8 @@ class CaskServer(
       state.reviewStateCache,
       now,
       sshHost,
-      currentIds
+      currentIds,
+      repoUrlForWorktree(state.worktrees)
     )
 
     cask.Response(
@@ -595,7 +629,8 @@ class CaskServer(
       state.reviewStateCache,
       now,
       sshHost,
-      currentIds
+      currentIds,
+      repoUrlForWorktree(state.worktrees)
     )
 
     cask.Response(
@@ -1304,7 +1339,7 @@ class CaskServer(
             s"https://github.com/issues/${issueId.value}"
       case "youtrack" =>
         val baseUrl =
-          config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+          config.trackerBaseUrl.getOrElse("https://youtrack.example.com")
         s"$baseUrl/issue/${issueId.value}"
       case _ =>
         s"https://example.com/issue/${issueId.value}"
@@ -1343,7 +1378,7 @@ class CaskServer(
 
         case "youtrack" =>
           val baseUrl = config
-            .flatMap(_.youtrackBaseUrl)
+            .flatMap(_.trackerBaseUrl)
             .getOrElse("https://youtrack.example.com")
           ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
             case Some(token) =>
@@ -1382,7 +1417,7 @@ class CaskServer(
               s"https://github.com/issues/$issueId"
         case "youtrack" =>
           val baseUrl = config
-            .flatMap(_.youtrackBaseUrl)
+            .flatMap(_.trackerBaseUrl)
             .getOrElse("https://youtrack.example.com")
           s"$baseUrl/issue/$issueId"
         case _ =>
@@ -1418,7 +1453,7 @@ class CaskServer(
 
         case "youtrack" =>
           val baseUrl =
-            config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+            config.trackerBaseUrl.getOrElse("https://youtrack.example.com")
           ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
             case Some(token) =>
               YouTrackClient.fetchIssue(issueId, baseUrl, token)
@@ -1456,7 +1491,7 @@ class CaskServer(
 
         case IssueTrackerType.YouTrack =>
           val baseUrl =
-            config.youtrackBaseUrl.getOrElse("https://youtrack.example.com")
+            config.trackerBaseUrl.getOrElse("https://youtrack.example.com")
           ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
             case Some(token) =>
               YouTrackClient.listRecentIssues(
@@ -1499,7 +1534,7 @@ class CaskServer(
 
         case IssueTrackerType.YouTrack =>
           (
-            config.youtrackBaseUrl,
+            config.trackerBaseUrl,
             ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken)
           ) match
             case (Some(baseUrl), Some(token)) =>

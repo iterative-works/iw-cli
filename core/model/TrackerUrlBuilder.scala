@@ -18,11 +18,11 @@ object TrackerUrlBuilder:
       case IssueTrackerType.Linear =>
         Some(s"https://linear.app/${config.team.toLowerCase}")
       case IssueTrackerType.YouTrack =>
-        config.youtrackBaseUrl.map(baseUrl =>
+        config.trackerBaseUrl.map(baseUrl =>
           s"${baseUrl.stripSuffix("/")}/issues/${config.team}"
         )
       case IssueTrackerType.GitLab =>
         config.repository.map(repo =>
-          val baseUrl = config.youtrackBaseUrl.getOrElse("https://gitlab.com")
+          val baseUrl = config.trackerBaseUrl.getOrElse("https://gitlab.com")
           s"${baseUrl.stripSuffix("/")}/$repo/-/issues"
         )

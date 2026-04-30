@@ -25,7 +25,7 @@ case class ProjectConfiguration(
   team: String,                        // Team ID (Linear/YouTrack) or empty (GitHub/GitLab)
   projectName: String,                 // Project name for worktree directories
   version: Option[String] = Some("latest"),
-  youtrackBaseUrl: Option[String] = None,
+  trackerBaseUrl: Option[String] = None,
   repository: Option[String] = None,   // GitHub/GitLab: owner/repo format
   teamPrefix: Option[String] = None    // GitHub/GitLab: prefix for issue IDs (e.g., "IWCLI")
 )
