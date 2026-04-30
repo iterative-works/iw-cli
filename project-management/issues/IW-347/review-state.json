@@ -21,11 +21,11 @@
       "path": "project-management/issues/IW-347/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-04-29T20:57:16.178355329Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-04-30T06:42:52.666762763Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 01: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 01: Merged",
+    "type": "success",
     "subtext": "Cache-architecture investigation"
   },
   "message": "Phase 01 implementation started",
@@ -73,6 +73,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/374"
