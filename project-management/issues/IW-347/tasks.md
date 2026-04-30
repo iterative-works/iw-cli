@@ -2,16 +2,16 @@
 
 **Issue:** IW-347
 **Created:** 2026-04-29
-**Status:** 0/2 phases complete (0%)
+**Status:** 1/2 phases complete (50%)
 
 ## Phase Index
 
-- [ ] Phase 1: Cache-architecture investigation (Est: 0.75–1.25h) → `phase-01-context.md`
+- [x] Phase 1: Cache-architecture investigation (Est: 0.75–1.25h) → `phase-01-context.md`
 - [ ] Phase 2: Repo link + stale-PR badge (Est: 3.25–7.25h) → `phase-02-context.md`
 
 ## Progress Tracker
 
-**Completed:** 0/2 phases
+**Completed:** 1/2 phases
 **Estimated Total:** 4.0–8.5 hours
 **Time Spent:** 0 hours
 
