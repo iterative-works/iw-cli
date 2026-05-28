@@ -440,6 +440,6 @@ EOF
     [[ "$output" == *"tracker.teamPrefix"* ]]
     [[ "$output" == *"version"* ]]
     [[ "$output" == *"tracker.baseUrl"* ]]
-    # Check that aliases are mentioned
-    [[ "$output" == *"Aliases"* ]]
+    # Check that short-form aliases section is mentioned
+    [[ "$output" == *"aliases"* ]]
 }
