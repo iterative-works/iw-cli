@@ -127,7 +127,7 @@ case class ProjectConfiguration(
   def projectName: String = project.name
   def repository: Option[String] = tracker.repository
   def teamPrefix: Option[String] = tracker.teamPrefix
-  def youtrackBaseUrl: Option[String] = tracker.baseUrl
+  def trackerBaseUrl: Option[String] = tracker.baseUrl
 
   /** Team identifier for server registration. GitHub and GitLab use the
     * repository (owner/repo) as the team identifier. Linear and YouTrack use
@@ -146,7 +146,7 @@ object ProjectConfiguration:
       team: String = "",
       projectName: String,
       version: Option[String] = Some("latest"),
-      youtrackBaseUrl: Option[String] = None,
+      trackerBaseUrl: Option[String] = None,
       repository: Option[String] = None,
       teamPrefix: Option[String] = None
   ): ProjectConfiguration =
@@ -156,7 +156,7 @@ object ProjectConfiguration:
         team,
         repository,
         teamPrefix,
-        youtrackBaseUrl
+        trackerBaseUrl
       ),
       project = ProjectConfig(projectName),
       version = version
@@ -205,7 +205,7 @@ object ConfigSerializer:
       config.repository.map(repo => s"""repository = "$repo""""),
       if config.team.nonEmpty then Some(s"team = ${config.team}") else None,
       config.teamPrefix.map(p => s"""teamPrefix = "$p""""),
-      config.youtrackBaseUrl.map(url => s"""baseUrl = "$url"""")
+      config.trackerBaseUrl.map(url => s"""baseUrl = "$url"""")
     ).flatten
     val trackerDetails = trackerFields.mkString("\n  ")
 
@@ -245,8 +245,16 @@ object ConfigSerializer:
         val repositoryEither: Either[String, Option[String]] =
           if config.hasPath(Constants.ConfigKeys.TrackerRepository) then
             val repo = config.getString(Constants.ConfigKeys.TrackerRepository)
-            if !repo.contains('/') || repo.split('/').exists(_.isEmpty) then
+            val segments = repo.split('/').toSeq
+            val safeSegment = """[A-Za-z0-9._-]+""".r
+            val isSafe =
+              (s: String) => s != "." && s != ".." && safeSegment.matches(s)
+            if segments.length < 2 || segments.exists(_.isEmpty) then
               Left("repository must be in owner/repo format")
+            else if segments.exists(s => !isSafe(s)) then
+              Left(
+                "repository segments may only contain letters, digits, '.', '_', '-'"
+              )
             else Right(Some(repo))
           else Right(None)
 
@@ -264,21 +272,25 @@ object ConfigSerializer:
             Some(config.getString(Constants.ConfigKeys.Version))
           else Some("latest")
 
-        val youtrackBaseUrl =
+        val trackerBaseUrlEither: Either[String, Option[String]] =
           if config.hasPath(Constants.ConfigKeys.TrackerBaseUrl) then
-            Some(config.getString(Constants.ConfigKeys.TrackerBaseUrl))
-          else None
+            val raw = config.getString(Constants.ConfigKeys.TrackerBaseUrl)
+            if raw.startsWith("https://") || raw.startsWith("http://") then
+              Right(Some(raw))
+            else Left("trackerBaseUrl must start with http:// or https://")
+          else Right(None)
 
         for
           repository <- repositoryEither
           teamPrefix <- teamPrefixEither
+          trackerBaseUrl <- trackerBaseUrlEither
         yield ProjectConfiguration(
           tracker = TrackerConfig(
             trackerType,
             team,
             repository,
             teamPrefix,
-            youtrackBaseUrl
+            trackerBaseUrl
           ),
           project = ProjectConfig(projectName),
           version = version

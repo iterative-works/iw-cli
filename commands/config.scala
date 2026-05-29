@@ -35,7 +35,7 @@ def handleGet(field: String): Unit =
         "team" -> List("tracker", "team"),
         "repository" -> List("tracker", "repository"),
         "teamPrefix" -> List("tracker", "teamPrefix"),
-        "youtrackBaseUrl" -> List("tracker", "baseUrl"),
+        "trackerBaseUrl" -> List("tracker", "baseUrl"),
         "projectName" -> List("project", "name")
       )
 
@@ -115,9 +115,9 @@ def showUsage(): Unit =
   Output.info("  project.name         Project name")
   Output.info("  version              Tool version")
   Output.info("")
-  Output.info("Aliases for backward compatibility:")
+  Output.info("Short-form field aliases:")
   Output.info(
-    "  trackerType, team, repository, teamPrefix, youtrackBaseUrl, projectName"
+    "  trackerType, team, repository, teamPrefix, trackerBaseUrl, projectName"
   )
   sys.exit(1)
 

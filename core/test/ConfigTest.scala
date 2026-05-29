@@ -198,6 +198,47 @@ class ConfigTest extends munit.FunSuite:
         .contains("repository must be in owner/repo format")
     )
 
+  test(
+    "ConfigSerializer rejects repository segments containing unsafe characters"
+  ):
+    val hocon = """
+      tracker {
+        type = github
+        repository = "owner/../../../etc/passwd"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft, s"Expected Left, got: $result")
+    assert(
+      result.left
+        .getOrElse("")
+        .contains(
+          "repository segments may only contain letters, digits, '.', '_', '-'"
+        )
+    )
+
+  test("ConfigSerializer rejects trackerBaseUrl with non-http(s) scheme"):
+    val hocon = """
+      tracker {
+        type = gitlab
+        repository = "owner/repo"
+        baseUrl = "javascript:alert(1)//"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft, s"Expected Left, got: $result")
+    assert(
+      result.left
+        .getOrElse("")
+        .contains("trackerBaseUrl must start with http:// or https://")
+    )
+
   test("ConfigSerializer still handles Linear config correctly"):
     val hocon = """
       tracker {
@@ -640,7 +681,7 @@ class ConfigTest extends munit.FunSuite:
       repository = Some("owner/project"),
       projectName = "test-project",
       teamPrefix = Some("PROJ"),
-      youtrackBaseUrl = Some("https://gitlab.company.com")
+      trackerBaseUrl = Some("https://gitlab.company.com")
     )
     val hocon = ConfigSerializer.toHocon(config)
     assert(hocon.contains("type = gitlab"))
@@ -678,7 +719,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(config.trackerType, IssueTrackerType.GitLab)
     assertEquals(config.repository, Some("owner/project"))
     assertEquals(config.teamPrefix, Some("PROJ"))
-    assertEquals(config.youtrackBaseUrl, None)
+    assertEquals(config.trackerBaseUrl, None)
 
   test("ConfigSerializer deserializes GitLab config with optional baseUrl"):
     val hocon = """
@@ -696,7 +737,7 @@ class ConfigTest extends munit.FunSuite:
     assert(result.isRight)
     val config = result.getOrElse(fail("Expected Right"))
     assertEquals(config.trackerType, IssueTrackerType.GitLab)
-    assertEquals(config.youtrackBaseUrl, Some("https://gitlab.company.com"))
+    assertEquals(config.trackerBaseUrl, Some("https://gitlab.company.com"))
 
   test("ConfigSerializer deserializes GitLab config with nested groups"):
     val hocon = """
@@ -791,7 +832,7 @@ class ConfigTest extends munit.FunSuite:
       repository = Some("owner/project"),
       projectName = "test-project",
       teamPrefix = Some("PROJ"),
-      youtrackBaseUrl = Some("https://gitlab.company.com")
+      trackerBaseUrl = Some("https://gitlab.company.com")
     )
     val hocon = ConfigSerializer.toHocon(original)
     val result = ConfigSerializer.fromHocon(hocon)
@@ -800,7 +841,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.trackerType, original.trackerType)
     assertEquals(roundTripped.repository, original.repository)
     assertEquals(roundTripped.teamPrefix, original.teamPrefix)
-    assertEquals(roundTripped.youtrackBaseUrl, original.youtrackBaseUrl)
+    assertEquals(roundTripped.trackerBaseUrl, original.trackerBaseUrl)
 
   test("ConfigSerializer round-trip for GitLab config with nested groups"):
     val original = ProjectConfiguration.create(
@@ -917,7 +958,7 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(config.trackerType, IssueTrackerType.YouTrack)
     assertEquals(config.team, "TEST")
     assertEquals(config.repository, Some("iterative-works/kanon"))
-    assertEquals(config.youtrackBaseUrl, Some("https://youtrack.example.com"))
+    assertEquals(config.trackerBaseUrl, Some("https://youtrack.example.com"))
 
   test("ConfigSerializer round-trip for YouTrack config with repository"):
     val original = ProjectConfiguration.create(
@@ -925,7 +966,7 @@ class ConfigTest extends munit.FunSuite:
       team = "TEST",
       projectName = "test-project",
       repository = Some("iterative-works/kanon"),
-      youtrackBaseUrl = Some("https://youtrack.example.com")
+      trackerBaseUrl = Some("https://youtrack.example.com")
     )
     val hocon = ConfigSerializer.toHocon(original)
     val result = ConfigSerializer.fromHocon(hocon)
@@ -934,4 +975,4 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.trackerType, original.trackerType)
     assertEquals(roundTripped.team, original.team)
     assertEquals(roundTripped.repository, original.repository)
-    assertEquals(roundTripped.youtrackBaseUrl, original.youtrackBaseUrl)
+    assertEquals(roundTripped.trackerBaseUrl, original.trackerBaseUrl)

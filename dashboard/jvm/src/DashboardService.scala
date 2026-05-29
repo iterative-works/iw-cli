@@ -154,7 +154,7 @@ object DashboardService:
   /** Fetch issue data for a single worktree using cache or API.
     *
     * Loads config from the worktree's path to get correct tracker settings
-    * (e.g., youtrackBaseUrl for YouTrack, repository for GitHub).
+    * (e.g., trackerBaseUrl for YouTrack, repository for GitHub).
     *
     * @param wt
     *   Worktree registration
@@ -228,7 +228,7 @@ object DashboardService:
           val tokenOpt =
             ApiToken.fromEnv(iw.core.model.Constants.EnvVars.YouTrackApiToken)
           val baseUrl = config
-            .flatMap(_.youtrackBaseUrl)
+            .flatMap(_.trackerBaseUrl)
             .getOrElse("https://youtrack.example.com")
           val issueIdResult = IssueId.parse(issueId)
 
@@ -293,12 +293,12 @@ object DashboardService:
       // Pass appropriate config value based on tracker type
       val configValue = trackerType.toLowerCase match
         case "github"   => config.flatMap(_.repository)
-        case "youtrack" => config.flatMap(_.youtrackBaseUrl)
+        case "youtrack" => config.flatMap(_.trackerBaseUrl)
         case "gitlab"   =>
           // GitLab needs both repository and optional baseUrl
           // Format: "repository" or "repository|baseUrl"
           config.flatMap(_.repository).map { repo =>
-            config.flatMap(_.youtrackBaseUrl) match
+            config.flatMap(_.trackerBaseUrl) match
               case Some(baseUrl) => s"$repo|$baseUrl"
               case None          => repo
           }

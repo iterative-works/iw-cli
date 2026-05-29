@@ -95,7 +95,7 @@ def askForTrackerType(): IssueTrackerType =
           askForTrackerType()
 
   // For GitHub, extract repository from git remote and get team prefix; for others, get team
-  val (team, repository, teamPrefix, youtrackBaseUrl) = trackerType match
+  val (team, repository, teamPrefix, trackerBaseUrl) = trackerType match
     case IssueTrackerType.GitHub =>
       // Use provided repository or auto-detect from git remote
       val ownerRepo = repositoryArg match
@@ -239,7 +239,7 @@ def askForTrackerType(): IssueTrackerType =
     projectName = projectName,
     repository = repository,
     teamPrefix = teamPrefix,
-    youtrackBaseUrl = youtrackBaseUrl
+    trackerBaseUrl = trackerBaseUrl
   )
 
   // Write configuration

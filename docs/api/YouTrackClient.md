@@ -47,7 +47,7 @@ ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
   case None =>
     Left(s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set")
   case Some(token) =>
-    config.youtrackBaseUrl match
+    config.trackerBaseUrl match
       case Some(baseUrl) =>
         YouTrackClient.fetchIssue(issueId, baseUrl, token)
       case None =>
@@ -56,7 +56,7 @@ ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
 // Creating an issue
 ApiToken.fromEnv(Constants.EnvVars.YouTrackApiToken) match
   case Some(token) =>
-    val baseUrl = config.youtrackBaseUrl.getOrElse {
+    val baseUrl = config.trackerBaseUrl.getOrElse {
       Output.error("YouTrack base URL not configured")
       sys.exit(1)
     }

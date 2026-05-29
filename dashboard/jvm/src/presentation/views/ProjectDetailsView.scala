@@ -8,7 +8,6 @@ import iw.core.model.{
   IssueData,
   WorkflowProgress,
   GitStatus,
-  PullRequestData,
   ReviewState
 }
 import iw.dashboard.domain.MainProject
@@ -44,8 +43,9 @@ object ProjectDetailsView:
             Option[(IssueData, Boolean, Boolean)],
             Option[WorkflowProgress],
             Option[GitStatus],
-            Option[PullRequestData],
-            Option[Either[String, ReviewState]]
+            Option[PrDisplayData],
+            Option[Either[String, ReviewState]],
+            Option[String] // repoUrl
         )
       ],
       now: Instant,
@@ -119,7 +119,8 @@ object ProjectDetailsView:
                   progress,
                   gitStatus,
                   prData,
-                  reviewStateResult
+                  reviewStateResult,
+                  repoUrl
                 ) =>
               renderWorktreeCard(
                 wt,
@@ -129,7 +130,8 @@ object ProjectDetailsView:
                 prData,
                 reviewStateResult,
                 now,
-                sshHost
+                sshHost,
+                repoUrl
               )
           }
         )
@@ -164,10 +166,11 @@ object ProjectDetailsView:
       issueData: Option[(IssueData, Boolean, Boolean)],
       progress: Option[WorkflowProgress],
       gitStatus: Option[GitStatus],
-      prData: Option[PullRequestData],
+      prData: Option[PrDisplayData],
       reviewStateResult: Option[Either[String, ReviewState]],
       now: Instant,
-      sshHost: String
+      sshHost: String,
+      repoUrl: Option[String] = None
   ): Frag =
     issueData match
       case None =>
@@ -191,7 +194,8 @@ object ProjectDetailsView:
           reviewStateResult,
           now,
           sshHost,
-          HtmxCardConfig.dashboard
+          HtmxCardConfig.dashboard,
+          repoUrl
         )
 
   /** Capitalize first letter of tracker type for display.

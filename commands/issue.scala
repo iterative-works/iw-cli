@@ -170,7 +170,7 @@ private def createYouTrackIssue(
     description: String,
     config: ProjectConfiguration
 ): Unit =
-  val baseUrl = config.youtrackBaseUrl.getOrElse {
+  val baseUrl = config.trackerBaseUrl.getOrElse {
     Output.error(
       s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}"
     )
@@ -252,7 +252,7 @@ def fetchIssue(
             s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set"
           )
         case Some(token) =>
-          config.youtrackBaseUrl match
+          config.trackerBaseUrl match
             case Some(baseUrl) =>
               YouTrackClient.fetchIssue(issueId, baseUrl, token)
             case None =>
