@@ -1,18 +1,26 @@
+//| mvnDeps:
+//|   - com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION
 // PURPOSE: Mill build definition — defines the core, dashboard, and frontend modules
 // PURPOSE: iw-run queries core.jar and dashboard.assembly directly via ./mill show
 package build
 import mill.*
 import mill.scalalib.*
+import mill.contrib.scoverage.{ScoverageModule, ScoverageReport}
+
+// Single source of truth for the scoverage instrumentation version. Every
+// ScoverageModule and the aggregating ScoverageReport must agree on this
+// version, otherwise the aggregate report task fails on a version mismatch.
+val ScoverageVersion = "2.1.0"
 
 // SYNC: mvnDeps mirror `core/project.scala`'s `//> using dep` entries. Keep both in sync by hand.
-object core extends ScalaModule {
+object core extends ScalaModule with ScoverageModule {
   def scalaVersion = "3.3.7"
+  def scoverageVersion = ScoverageVersion
 
   def sources = Task.Sources(
     moduleDir / os.up / "core" / "adapters",
     moduleDir / os.up / "core" / "model",
     moduleDir / os.up / "core" / "output",
-    moduleDir / os.up / "core" / "IssueCreateParser.scala",
   )
 
   def mvnDeps = Seq(
@@ -23,13 +31,21 @@ object core extends ScalaModule {
     mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
   )
 
-  // Test sources are compiled by scala-cli; Mill packages compiled classes only.
+  object test extends ScoverageTests with TestModule.Munit {
+    def sources = Task.Sources(moduleDir / os.up / os.up / "core" / "test")
+    def resources = Task.Sources(moduleDir / os.up / os.up / "core" / "test" / "resources")
+    def mvnDeps = Seq(mvn"org.scalameta::munit::1.2.1")
+    override def forkArgs = super.forkArgs() ++ Seq(
+      "--add-opens=java.base/java.util=ALL-UNNAMED"
+    )
+  }
 }
 
 // SYNC: mvnDeps mirror scoped `//> using dep` entries in `commands/dashboard.scala`.
 // Keep version strings identical across both files.
-object dashboard extends ScalaModule {
+object dashboard extends ScalaModule with ScoverageModule {
   def scalaVersion = "3.3.7"
+  def scoverageVersion = ScoverageVersion
   def moduleDeps = Seq(core)
   def sources = Task.Sources(moduleDir / os.up / "dashboard" / "jvm" / "src")
   def mainClass = Some("iw.dashboard.ServerDaemon")
@@ -46,14 +62,14 @@ object dashboard extends ScalaModule {
     mvn"works.iterative::scalatags-webawesome:3.2.1.1",
   )
 
-  object test extends ScalaTests with TestModule.Munit {
+  object test extends ScoverageTests with TestModule.Munit {
     def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "test" / "src")
     def mvnDeps = Seq(mvn"org.scalameta::munit::1.2.1")
     // Disable server communication in unit tests to prevent touching production dashboard
     override def forkEnv = super.forkEnv() ++ Map("IW_SERVER_DISABLED" -> "1")
   }
 
-  object itest extends ScalaTests with TestModule.Munit {
+  object itest extends ScoverageTests with TestModule.Munit {
     def sources = Task.Sources(moduleDir / os.up / os.up / "dashboard" / "jvm" / "itest" / "src")
     def mvnDeps = Seq(
       mvn"org.scalameta::munit::1.2.1",
@@ -90,3 +106,9 @@ object frontend extends Module {
   }
 }
 
+// Coverage aggregator — `./mill scoverage.htmlReportAll` builds the cross-module HTML report.
+// Per-module XML lives under out/<mod>/scoverage.xmlReport.dest/scoverage.xml.
+object scoverage extends ScoverageReport {
+  override def scalaVersion = "3.3.7"
+  override def scoverageVersion = ScoverageVersion
+}

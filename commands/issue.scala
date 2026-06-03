@@ -7,7 +7,7 @@
 import iw.core.model.*
 import iw.core.adapters.*
 import iw.core.output.*
-import iw.core.IssueCreateParser
+import iw.core.model.IssueCreateParser
 
 @main def issue(args: String*): Unit =
   // Handle subcommands

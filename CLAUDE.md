@@ -7,7 +7,7 @@ iw-cli is a project-local CLI tool for managing git worktrees and issue tracker 
 ## Tech Stack
 
 - **Language**: Scala 3
-- **Build**: scala-cli (core, commands) + Mill 1.1.5 (dashboard)
+- **Build**: Mill 1.1.5 (core + dashboard); scala-cli for command scripts
 - **Frontend toolchain**: Node 20, Yarn 4 via Corepack, Vite 8, Tailwind v4
 - **Bootstrap**: Shell script that downloads/runs the tool
 
@@ -101,17 +101,26 @@ See [docs/server-config.md](docs/server-config.md) for full documentation on:
 
 ## Testing
 
+See [docs/testing.md](docs/testing.md) for the test pyramid (unit + tool contract + E2E smoke),
+coverage workflow, and the rebalance plan currently in flight.
+
 Run all tests (unit + E2E):
 ```bash
 ./iw ./test
 ```
 
-Run only unit tests (Scala/munit):
+Run only unit tests (Mill / munit):
 ```bash
-./iw ./test unit
+./iw ./test unit       # core.test + dashboard.test via Mill
 ```
 
 Run only E2E tests (BATS):
 ```bash
 ./iw ./test e2e
+```
+
+Coverage (scoverage):
+```bash
+./mill __.scoverage.xmlReport      # per-module XML
+./mill scoverage.htmlReportAll     # aggregated HTML report
 ```

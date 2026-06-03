@@ -65,6 +65,71 @@ jobs:
         run: ./iw ./test
         timeout-minutes: 30
 
+      # Generates per-module Scoverage XML reports for the summary table below
+      # and the aggregated HTML report for the coverage-report artifact. Implicit
+      # `if: success()` keeps coverage off red runs where the numbers would mislead.
+      - name: Run coverage
+        run: ./mill __.scoverage.xmlReport && ./mill scoverage.htmlReportAll
+
+      # Parses the per-module Scoverage XML reports and writes a Markdown
+      # summary table to the job summary page. The extract_coverage function
+      # isolates the XML shape so a Scoverage vs JaCoCo swap costs one function.
+      - name: Coverage summary
+        if: always()
+        run: |
+          set -euo pipefail
+
+          extract_coverage() {
+            local xml="$1"
+            if [[ ! -f "$xml" ]]; then
+              echo "0 0 0.00"
+              return
+            fi
+            local invoked total rate
+            invoked=$(grep -m1 'statements-invoked=' "$xml" \
+              | grep -oP 'statements-invoked="\K[0-9]+' || echo "0")
+            total=$(grep -m1 'statement-count=' "$xml" \
+              | grep -oP 'statement-count="\K[0-9]+' || echo "0")
+            rate=$(grep -m1 'statement-rate=' "$xml" \
+              | grep -oP 'statement-rate="\K[0-9.]+' || echo "0.00")
+            echo "${invoked} ${total} ${rate}"
+          }
+
+          {
+            echo "## Coverage summary"
+            echo ""
+            echo "| Module | Statements covered | Statements total | Coverage % |"
+            echo "|--------|-------------------|-----------------|------------|"
+
+            modules=(
+              "core:out/core/scoverage/xmlReport.dest/scoverage.xml"
+              "dashboard:out/dashboard/scoverage/xmlReport.dest/scoverage.xml"
+            )
+
+            for entry in "${modules[@]}"; do
+              module="${entry%%:*}"
+              xml="${entry##*:}"
+              read -r invoked total rate <<< "$(extract_coverage "$xml")"
+              echo "| \`${module}\` | ${invoked} | ${total} | ${rate}% |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Per-module XML + aggregated HTML retained for 14 days. if-no-files-found: warn
+      # because the upstream "Run coverage" step has no if: always() (intentional —
+      # coverage on a red build is misleading), so test failures produce no XML and
+      # an `error` guard would double-red the run.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            out/core/scoverage/xmlReport.dest/scoverage.xml
+            out/dashboard/scoverage/xmlReport.dest/scoverage.xml
+            out/scoverage/htmlReportAll.dest/**
+          if-no-files-found: warn
+          retention-days: 14
+
   dashboard-build:
     needs: compile
     runs-on: self-hosted

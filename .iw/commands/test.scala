@@ -65,30 +65,15 @@ def showUsage(): Unit =
 
 def runUnitTests(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
-  val testDir = installDir / "core" / "test"
-  val coreDir = installDir / "core"
+  val millPath = (installDir / "mill").toString
 
-  if !os.exists(testDir) then
-    Output.info("No unit tests found (missing core/test/)")
-    true
-  else
-    val testFiles = os.list(testDir).filter(_.ext == "scala")
-    if testFiles.isEmpty then
-      Output.info("No unit test files found")
-      true
-    else
-      Output.section("Running Unit Tests")
+  Output.section("Running Core Unit Tests")
+  val coreExitCode = ProcessAdapter.runStreaming(Seq(millPath, "core.test"))
 
-      // Pass entire core directory to scala-cli to include subdirectories like presentation/views
-      // Use streaming to show output in real-time
-      val command = Seq("scala-cli", "test", coreDir.toString)
-      val coreExitCode = ProcessAdapter.runStreaming(command)
+  Output.section("Running Dashboard Unit Tests")
+  val dashboardExitCode = ProcessAdapter.runStreaming(Seq(millPath, "dashboard.test"))
 
-      Output.section("Running Dashboard Unit Tests")
-      val millCommand = Seq((installDir / "mill").toString, "dashboard.test")
-      val dashboardExitCode = ProcessAdapter.runStreaming(millCommand)
-
-      coreExitCode == 0 && dashboardExitCode == 0
+  coreExitCode == 0 && dashboardExitCode == 0
 
 def runIntegrationTests(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))

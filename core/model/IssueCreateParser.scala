@@ -1,7 +1,7 @@
 // PURPOSE: Parser for issue create command arguments
 // PURPOSE: Handles --title (required) and --description (optional) flags for issue creation
 
-package iw.core
+package iw.core.model
 
 /** Structured issue creation request from parsed command arguments.
   *
