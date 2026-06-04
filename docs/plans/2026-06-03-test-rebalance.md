@@ -134,7 +134,7 @@ Decision: proceed to Phases 2 and 3 in parallel.
 Each is a small PR shipping one cluster. Apply only after Phase 1 decision gate.
 
 - [x] 3.1 `version-check.bats` (15t, 41s) → ~~all 15 to munit (pure semver); delete file~~. Adjusted: the functions under test (`read_iw_version`, `compare_versions`, `check_version_requirement`) live in `iw-run` (bash, launcher-only — can't depend on Scala for its own pre-launch check). Porting would create parallel impls that can drift. **Done by removing the `helpers/bloop-cleanup` load + `stop_test_bloop` teardown (the file never invokes scala-cli; the cleanup was defensive dead code).** Result: **51s → 0.9s** (~57×), all 15 tests still pass, direct coverage of the bash logic preserved.
-- [ ] 3.2 `schema.bats` (6t, 0s) → munit (JSON validity); delete file.
+- [x] 3.2 `schema.bats` (6t, 0s) → munit. New `core/test/ReviewStateSchemaTest.scala` (6 tests, ~50ms) walks up to the repo root via `build.mill` marker and asserts: schema file exists, parses as JSON, declares Draft-07, `required` is exactly `{version, issue_id, artifacts, last_updated}`, `properties` includes all v2 keys, and every fixture under `core/test/resources/review-state/*.json` parses. `test/schema.bats` deleted.
 - [ ] 3.3 `dashboard-rebuild-gate.bats` (2t, 2s) → delete (tests Mill, not us). **−1 file, −1 failure.**
 - [ ] 3.4 `doctor.bats` (38t, 44s) → ~5 E2E smoke + 30 unit on check functions. **Expect 44s → ~8s.**
 - [ ] 3.5 `infra-plugin/*` (5f, 34t, 566s) → 1 smoke per concern + bulk to munit + delete scala-cli-testing scenarios (those moved to contract suite §2.5). **Expect 566s → ~25s.**
