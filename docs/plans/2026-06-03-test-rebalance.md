@@ -4,7 +4,7 @@
 # Test Rebalance + Scoverage Plan
 
 **Started:** 2026-06-03
-**Status:** Phase 0 complete; Phase 1 pilot complete (review-state slice); ready for Phase 2 or 3
+**Status:** Phase 0 complete; Phase 1 pilot complete (review-state slice); Phase 2 complete (tool contract suite live); ready for Phase 3
 
 ## Why this plan exists
 
@@ -120,14 +120,14 @@ Decision: proceed to Phases 2 and 3 in parallel.
 
 **Goal:** new tier that pins our assumptions about external tools.
 
-- [ ] 2.1 New dir `test/contract/` with own setup helper
-- [ ] 2.2 `git_adapter_contract.bats` — worktree add/remove/list, push to file:// remote
-- [ ] 2.3 `gh_adapter_contract.bats` — `gh issue view --json`, `gh pr create` real CLI
-- [ ] 2.4 `glab_adapter_contract.bats` — parity with gh
-- [ ] 2.5 `scala_cli_contract.bats` — compile 3-line script importing `iw.core`; replaces ~20 plugin/project-cmds scenarios
-- [ ] 2.6 `mill_contract.bats` — `mill show core.jar` returns valid jar path
-- [ ] 2.7 `tmux_adapter_contract.bats` — gated by `IW_CONTRACT_TMUX=1`; absorbs `start-prompt.bats` failing scenarios
-- [ ] 2.8 CI: new contract job, nightly schedule + `contract` label on PRs
+- [x] 2.1 New dir `test/contract/` with own setup helper (`contract_helper.bash`: auth-detection + skip helpers + scratch tmpdir + throwaway git init)
+- [x] 2.2 `git_adapter_contract.bats` (7t) — rev-parse SHA shape, status --porcelain, worktree add/list/remove, push to file:// remote
+- [x] 2.3 `gh_adapter_contract.bats` (8t, 2 auth-gated) — --version, --help flag presence on issue view/list/create + pr checks; live JSON-shape on `iterative-works/iw-cli#1`
+- [x] 2.4 `glab_adapter_contract.bats` (6t, 1 fixture-gated) — --version, --help flag presence; live JSON-shape behind `IW_CONTRACT_GLAB_PROJECT`
+- [x] 2.5 `scala_cli_contract.bats` (4t) — `scala-cli run -q --jar core.jar` with `core/project.scala` resolves `iw.core.model.*`; `scala-cli compile --scalac-option -Werror core/` succeeds
+- [x] 2.6 `mill_contract.bats` (5t) — `./mill show core.jar` / `dashboard.assembly` return `ref:vN:<hash>:<path>.jar` strings that resolve to real files; `__.scoverage.xmlReport` enumerates per-module targets
+- [x] 2.7 `tmux_adapter_contract.bats` (5t, all `IW_CONTRACT_TMUX=1`-gated) — `-L <socket>` new-session/has-session/send-keys/capture-pane round-trip/kill-session
+- [x] 2.8 CI: new `contract` job, nightly cron + `contract`-labeled PRs only; `./iw ./test contract` runner subcommand added
 
 ## Phase 3 — Bulk BATS reductions (independent PRs after pilot validated)
 
@@ -196,3 +196,4 @@ only after Phase 1 decision gate. Phase 5 last.
 - 2026-06-03: plan committed as this file; Phase 0 ready to start.
 - 2026-06-03: Phase 0 complete. build.mill: scoverage 2.1.0 wired on core + dashboard; `core.test` Mill submodule sources `core/test/`. `.iw/commands/test.scala` switched to `./mill core.test + dashboard.test`. CI gains coverage steps (XML, summary, artifact). Docs updated (CLAUDE.md + new docs/testing.md). Refactor: `core/IssueCreateParser.scala` → `core/model/` (package `iw.core` → `iw.core.model`); 2 import updates. Baseline coverage: core 77.43%, dashboard 76.24%.
 - 2026-06-03: Phase 1 (review-state pilot) complete. Extracted `core/model/ReviewStateCliParser.scala` (pure parser, returns `Either[String, T]`); added 48 munit tests in `core/test/ReviewStateCliParserTest.scala`; refactored `commands/review-state.scala` to delegate. BATS slice 61 → 6 tests, 64.7s → 11.6s. New parser file 98.04% covered; affected-files aggregate 75.5% → 79.2%. Decision gate PASSED (with structural-win interpretation of coverage criterion). Pattern proven; Phase 2/3 can proceed in parallel.
+- 2026-06-04: Phase 2 (tool contract suite) complete. New `test/contract/` with shared `contract_helper.bash`; 6 contract files / 35 tests / ~8s default (~9s with all gates on): git (7), gh (8, 2 live-auth), glab (6, 1 fixture-gated), scala-cli (4), mill (5), tmux (5, all gated by `IW_CONTRACT_TMUX=1`). New `runContractTests` in `.iw/commands/test.scala` (`./iw ./test contract`). CI: workflow gains nightly cron + new `contract` job that runs only on schedule or PRs labeled `contract`. The `infra-plugin` / `infra-project-cmds` scala-cli-launching scenarios that took 924s in aggregate are now covered by the 4-test scala-cli contract in <2s — unlocks Phase 3.5/3.6.

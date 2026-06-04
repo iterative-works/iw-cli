@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
     branches: [main, 'IW-*']
+  schedule:
+    # 03:17 UTC nightly. Avoids the top-of-hour pile-up that hits GitHub Actions
+    # cron schedulers; minute-17 is the well-known "off the dogpile" slot.
+    - cron: '17 3 * * *'
 
 permissions:
   contents: read
@@ -147,4 +151,31 @@ jobs:
         timeout-minutes: 15
       - name: Run dashboard integration tests
         run: ./mill dashboard.itest.testForked
+        timeout-minutes: 15
+
+  # Tool contract suite: pins our assumptions about external tools (gh, glab,
+  # scala-cli, mill, tmux, git). Probes the real CLIs, so it's:
+  #   - off by default on PRs (would flake on auth-less forks; not worth gating PRs on)
+  #   - on for PRs explicitly labeled 'contract' (use when changing an adapter)
+  #   - on every night via the workflow-level schedule (drift detector)
+  contract:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'contract'))
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/iterative-works/iw-cli-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      WEBAWESOME_NPM_TOKEN: ${{ secrets.WEBAWESOME_NPM_TOKEN }}
+      # Provide gh auth via the workflow-level GITHUB_TOKEN so the JSON-shape
+      # tests don't skip on the nightly run.
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tool contract suite
+        run: ./iw ./test contract
         timeout-minutes: 15
