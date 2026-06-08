@@ -11,7 +11,8 @@ import iw.core.adapters.{
   ProcessAdapter,
   ProcessResult,
   ReviewStateAdapter,
-  ServerClient
+  ServerClient,
+  StateReader as StateReaderAdapter
 }
 import iw.core.model.{
   CICheckResult,
@@ -19,6 +20,7 @@ import iw.core.model.{
   GitRemote,
   RecoveryAction,
   ReviewStateUpdater,
+  ServerState,
   StagingCheck,
   WorktreeStatus
 }
@@ -203,6 +205,9 @@ object LiveServerOps extends ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
     ServerClient.getWorktreeStatus(issueId)
 
+object LiveStateReader extends StateReader:
+  def read(): Either[String, ServerState] = StateReaderAdapter.read()
+
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
   val fs: FileSystem = LiveFileSystem
@@ -214,6 +219,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val hooks: HookOps = LiveHookOps
   val stdin: Stdin = LiveStdin
   val server: ServerOps = LiveServerOps
+  val state: StateReader = LiveStateReader
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

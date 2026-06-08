@@ -14,6 +14,7 @@ import iw.core.commands.{
   Process,
   ReviewStateOps,
   ServerOps,
+  StateReader,
   Stdin,
   TrackerOps
 }
@@ -24,6 +25,7 @@ import iw.core.model.{
   RecoveryAction,
   ReviewStateUpdater,
   ReviewStateValidator,
+  ServerState,
   StagingCheck,
   WorktreeStatus
 }
@@ -448,6 +450,14 @@ final class FakeHookOps extends HookOps:
     actionsRef.set(list)
   def recoveryActions: List[RecoveryAction] = actionsRef.get()
 
+/** On-disk state-file fake. Tests inject a ServerState via `setState`. */
+final class FakeStateReader extends StateReader:
+  private val stateRef: AtomicReference[Either[String, ServerState]] =
+    AtomicReference(Right(ServerState(worktrees = Map.empty)))
+  def setState(state: ServerState): Unit = stateRef.set(Right(state))
+  def setFailure(err: String): Unit = stateRef.set(Left(err))
+  def read(): Either[String, ServerState] = stateRef.get()
+
 /** Dashboard server fake. Test scripts a single result for getWorktreeStatus
   * (per-issue overrides aren't needed yet; can be added when a command needs).
   */
@@ -477,7 +487,8 @@ final class FakeCommandEnv(
     val clock: FakeClock,
     val hooks: FakeHookOps,
     val stdin: FakeStdin,
-    val server: FakeServerOps
+    val server: FakeServerOps,
+    val state: FakeStateReader
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -496,6 +507,7 @@ object FakeCommandEnv:
     val hooks = FakeHookOps()
     val stdin = FakeStdin()
     val server = FakeServerOps()
+    val state = FakeStateReader()
     new FakeCommandEnv(
       cwd,
       console,
@@ -507,5 +519,6 @@ object FakeCommandEnv:
       clock,
       hooks,
       stdin,
-      server
+      server,
+      state
     )

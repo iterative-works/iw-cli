@@ -10,6 +10,7 @@ import iw.core.model.{
   GitRemote,
   RecoveryAction,
   ReviewStateUpdater,
+  ServerState,
   StagingCheck,
   WorktreeStatus
 }
@@ -147,6 +148,10 @@ trait HookOps:
 trait ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus]
 
+/** Persistent state-file reader (the server's on-disk state.json). */
+trait StateReader:
+  def read(): Either[String, ServerState]
+
 trait CommandEnv:
   def cwd: os.Path
   def console: Console
@@ -159,3 +164,4 @@ trait CommandEnv:
   def hooks: HookOps
   def stdin: Stdin
   def server: ServerOps
+  def state: StateReader
