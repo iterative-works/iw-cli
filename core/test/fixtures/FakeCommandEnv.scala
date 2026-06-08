@@ -5,17 +5,21 @@ package iw.core.test.fixtures
 
 import iw.core.adapters.ProcessResult
 import iw.core.commands.{
+  Clock,
   CommandEnv,
   Console,
   FileSystem,
   GitOps,
+  HookOps,
   Process,
   ReviewStateOps,
   TrackerOps
 }
 import iw.core.model.{
+  CICheckResult,
   ForgeType,
   GitRemote,
+  RecoveryAction,
   ReviewStateUpdater,
   ReviewStateValidator,
   StagingCheck
@@ -308,8 +312,48 @@ final class FakeTracker extends TrackerOps:
     mergeCalls += MergeCall(forge, prUrl, gitlabHost)
     mergeResultRef.get()
 
+  private val mergeWithDeleteResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val mergeWithDeleteCalls: mutable.ArrayBuffer[MergeCall] =
+    mutable.ArrayBuffer.empty
+  private val checkStatusQueue
+      : mutable.Queue[Either[String, List[CICheckResult]]] =
+    mutable.Queue.empty
+  private val checkStatusDefault
+      : AtomicReference[Either[String, List[CICheckResult]]] =
+    AtomicReference(Right(Nil))
+  private val checkStatusCalls: mutable.ArrayBuffer[Int] =
+    mutable.ArrayBuffer.empty
+
+  def setMergeWithDeleteResult(result: Either[String, Unit]): Unit =
+    mergeWithDeleteResultRef.set(result)
+  def setCheckStatuses(result: Either[String, List[CICheckResult]]): Unit =
+    checkStatusDefault.set(result)
+  def queueCheckStatuses(results: Either[String, List[CICheckResult]]*): Unit =
+    checkStatusQueue ++= results
+  def checkStatusCallCount: Int = checkStatusCalls.size
+
+  def mergeWithDelete(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  ): Either[String, Unit] =
+    mergeWithDeleteCalls += MergeCall(forge, prUrl, gitlabHost)
+    mergeWithDeleteResultRef.get()
+
+  def fetchCheckStatuses(
+      forge: ForgeType,
+      prNumber: Int,
+      repository: String,
+      gitlabHost: Option[String]
+  ): Either[String, List[CICheckResult]] =
+    checkStatusCalls += prNumber
+    if checkStatusQueue.nonEmpty then checkStatusQueue.dequeue()
+    else checkStatusDefault.get()
+
   def prCallList: List[PrCall] = prCalls.toList
   def mergeCallList: List[MergeCall] = mergeCalls.toList
+  def mergeWithDeleteCallList: List[MergeCall] = mergeWithDeleteCalls.toList
 
 /** Wraps FakeFileSystem and runs the real `ReviewStateUpdater.merge` +
   * `ReviewStateValidator.validate` pipeline. Mirrors `ReviewStateAdapter` but
@@ -334,6 +378,54 @@ final class FakeReviewStateOps(fs: FakeFileSystem) extends ReviewStateOps:
       _ <- fs.write(path, merged)
     yield ()
 
+  def readPrUrl(path: os.Path): Either[String, String] =
+    for
+      json <- fs.read(path)
+      url <-
+        try
+          val parsed = ujson.read(json)
+          if parsed.obj.contains("pr_url") && !parsed("pr_url").isNull then
+            Right(parsed("pr_url").str)
+          else
+            Left(
+              "No pr_url found in review-state.json. Run 'iw phase-pr' first."
+            )
+        catch
+          case e: Exception =>
+            Left(
+              s"Failed to read pr_url from review-state.json: ${e.getMessage}"
+            )
+    yield url
+
+/** Advance manually-controlled wall clock and record sleeps. Tests can pre-load
+  * a sequence of `now` values to step through polling iterations without
+  * blocking the suite.
+  */
+final class FakeClock(initial: Long = 0L) extends Clock:
+  private val nowRef: AtomicReference[Long] = AtomicReference(initial)
+  private val sleeps: mutable.ArrayBuffer[Long] = mutable.ArrayBuffer.empty
+  private val nowQueue: mutable.Queue[Long] = mutable.Queue.empty
+
+  def setNow(value: Long): Unit = nowRef.set(value)
+  def advance(deltaMs: Long): Unit = nowRef.updateAndGet(_ + deltaMs)
+  def queueNowSequence(values: Long*): Unit = nowQueue ++= values
+  def sleepCalls: List[Long] = sleeps.toList
+
+  def now: Long =
+    if nowQueue.nonEmpty then nowQueue.dequeue()
+    else nowRef.get()
+
+  def sleep(ms: Long): Unit =
+    sleeps += ms
+
+/** Plug-in-hook fake. Tests set the list explicitly; no reflection. */
+final class FakeHookOps extends HookOps:
+  private val actionsRef: AtomicReference[List[RecoveryAction]] =
+    AtomicReference(Nil)
+  def setRecoveryActions(list: List[RecoveryAction]): Unit =
+    actionsRef.set(list)
+  def recoveryActions: List[RecoveryAction] = actionsRef.get()
+
 /** Default-wired fake env for tests. Construct with the desired starting git
   * state; mutate the individual fakes for finer scenarios.
   */
@@ -344,7 +436,9 @@ final class FakeCommandEnv(
     val git: FakeGit,
     val reviewState: FakeReviewStateOps,
     val process: FakeProcess,
-    val tracker: FakeTracker
+    val tracker: FakeTracker,
+    val clock: FakeClock,
+    val hooks: FakeHookOps
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -359,4 +453,16 @@ object FakeCommandEnv:
     val reviewState = FakeReviewStateOps(fs)
     val process = FakeProcess()
     val tracker = FakeTracker()
-    new FakeCommandEnv(cwd, console, fs, git, reviewState, process, tracker)
+    val clock = FakeClock()
+    val hooks = FakeHookOps()
+    new FakeCommandEnv(
+      cwd,
+      console,
+      fs,
+      git,
+      reviewState,
+      process,
+      tracker,
+      clock,
+      hooks
+    )

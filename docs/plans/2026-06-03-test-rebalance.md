@@ -148,7 +148,7 @@ Each is a small PR shipping one cluster. Apply only after Phase 1 decision gate.
 - [x] 4.2 Pilot command: `commands/phase-start.scala` is now a 7-line shim delegating to `iw.core.commands.PhaseStart.run(args, LiveCommandEnv.default).exitCode`. Logic lives in `core/commands/PhaseStart.scala` as `run(args, env): CommandResult`, threaded as a `for`-comprehension over the env capabilities. `commands/phase-start.scala` keeps PURPOSE/USAGE headers; iw-run discovery still works.
 - [x] 4.3 `core/test/PhaseStartHarnessTest.scala` covers 11 scenarios (happy path JSON, branch switching, push-before-create ordering, missing args, invalid number, already-on-phase-branch, branch-conflict, --issue-id override, review-state present, review-state absent, push failure). Inline expected-output assertions for readability (deferred true golden files until the second migration shows what scales). Wall time: ~0.1s for 11 tests vs ~45s for the 10 equivalent BATS tests (~450× per test). All 10 BATS scenarios still pass against the shim.
 - [ ] 4.4 Apply pattern to remaining commands incrementally — see sub-plan below
-- [ ] 4.5 Resolve the 3 `phase-merge.bats` failures during 4.4 (most likely the scenarios become unit tests, real git interaction moves to git contract)
+- [x] 4.5 The 3 `phase-merge.bats` failures resolved during 4.4.4: the scenarios are now harness tests with deterministic recovery-hook control via `FakeHookOps`; the slimmed BATS smoke covers the happy round-trip only
 
 ### 4.4 sub-plan — command migration order
 
@@ -183,7 +183,7 @@ Batch A — phase command family (4.4.1–4.4.4): familiar shape, extends existi
 - [x] 4.4.1 `phase-commit` — extends `GitOps` (stageFiles, commit, diffNameOnly, getStagingCheck); harness = 11 tests; BATS 10 → 2 smokes
 - [x] 4.4.2 `phase-advance` — adds `Process` capability; extends `GitOps` (checkoutBranch, fetchAndReset, getRemoteUrl); harness = 10 tests; BATS 3 → 1 smoke. Reads config via `FileSystem` + pure `ConfigSerializer.fromHocon` (defers `ConfigOps` to 4.4.19/20)
 - [x] 4.4.3 `phase-pr` — adds `TrackerOps` capability (forge-agnostic createPullRequest + mergeSquashAndDelete); harness = 11 tests; BATS 4 → 1 smoke
-- [ ] 4.4.4 `phase-merge` — adds `HookOps`; **resolves 4.5** (the 3 phase-merge.bats failures become harness tests)
+- [x] 4.4.4 `phase-merge` — adds `Clock` (now/sleep), `HookOps` (recoveryActions), extends `TrackerOps` (mergeWithDelete, fetchCheckStatuses) + `ReviewStateOps` (readPrUrl); harness = 14 tests; BATS 17 → 1 smoke. **Resolves 4.5** — the 3 failing tests now live in the harness with deterministic hook control
 
 Batch B — lightweight readers (4.4.5–4.4.10):
 - [ ] 4.4.5 `version` — trivial; pure version-string read

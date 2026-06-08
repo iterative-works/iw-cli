@@ -7,11 +7,19 @@ import iw.core.adapters.{
   GitAdapter,
   GitHubClient,
   GitLabClient,
+  HookDiscovery,
   ProcessAdapter,
   ProcessResult,
   ReviewStateAdapter
 }
-import iw.core.model.{ForgeType, GitRemote, ReviewStateUpdater, StagingCheck}
+import iw.core.model.{
+  CICheckResult,
+  ForgeType,
+  GitRemote,
+  RecoveryAction,
+  ReviewStateUpdater,
+  StagingCheck
+}
 
 object LiveConsole extends Console:
   def out(line: String): Unit = System.out.println(line)
@@ -76,6 +84,8 @@ object LiveReviewStateOps extends ReviewStateOps:
       input: ReviewStateUpdater.UpdateInput
   ): Either[String, Unit] =
     ReviewStateAdapter.update(path, input)
+  def readPrUrl(path: os.Path): Either[String, String] =
+    ReviewStateAdapter.readPrUrl(path)
 
 object LiveProcess extends Process:
   def commandExists(command: String): Boolean =
@@ -134,6 +144,52 @@ object LiveTrackerOps extends TrackerOps:
     if result.exitCode == 0 then Right(())
     else Left(s"Failed to merge PR: ${result.stderr}")
 
+  def mergeWithDelete(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  ): Either[String, Unit] =
+    val (cmd, args, env) = forge match
+      case ForgeType.GitHub =>
+        (
+          "gh",
+          GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq,
+          Map.empty[String, String]
+        )
+      case ForgeType.GitLab =>
+        (
+          "glab",
+          GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq,
+          gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty)
+        )
+    val result = ProcessAdapter.run(cmd +: args, env = env)
+    if result.exitCode == 0 then Right(())
+    else Left(s"Failed to merge PR: ${result.stderr}")
+
+  def fetchCheckStatuses(
+      forge: ForgeType,
+      prNumber: Int,
+      repository: String,
+      gitlabHost: Option[String]
+  ): Either[String, List[CICheckResult]] =
+    forge match
+      case ForgeType.GitHub =>
+        GitHubClient.fetchCheckStatuses(prNumber, repository)
+      case ForgeType.GitLab =>
+        GitLabClient.fetchCheckStatuses(
+          prNumber,
+          repository,
+          execCommand = GitLabClient.execCommandWithHost(gitlabHost)
+        )
+
+object LiveClock extends Clock:
+  def now: Long = System.currentTimeMillis()
+  def sleep(ms: Long): Unit = Thread.sleep(ms)
+
+object LiveHookOps extends HookOps:
+  def recoveryActions: List[RecoveryAction] =
+    HookDiscovery.collectValues[RecoveryAction]
+
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
   val fs: FileSystem = LiveFileSystem
@@ -141,6 +197,8 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val reviewState: ReviewStateOps = LiveReviewStateOps
   val process: Process = LiveProcess
   val tracker: TrackerOps = LiveTrackerOps
+  val clock: Clock = LiveClock
+  val hooks: HookOps = LiveHookOps
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

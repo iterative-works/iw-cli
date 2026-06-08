@@ -4,7 +4,14 @@
 package iw.core.commands
 
 import iw.core.adapters.ProcessResult
-import iw.core.model.{ForgeType, GitRemote, ReviewStateUpdater, StagingCheck}
+import iw.core.model.{
+  CICheckResult,
+  ForgeType,
+  GitRemote,
+  RecoveryAction,
+  ReviewStateUpdater,
+  StagingCheck
+}
 
 /** Result of running a command: exit code only. Stdout/stderr flow through
   * `CommandEnv.console` so tests can introspect them via a fake console.
@@ -67,6 +74,7 @@ trait ReviewStateOps:
       path: os.Path,
       input: ReviewStateUpdater.UpdateInput
   ): Either[String, Unit]
+  def readPrUrl(path: os.Path): Either[String, String]
 
 /** Subprocess execution boundary. Mirrors `ProcessAdapter`. */
 trait Process:
@@ -94,12 +102,38 @@ trait TrackerOps:
       gitlabHost: Option[String]
   ): Either[String, Unit]
 
+  def mergeWithDelete(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  ): Either[String, Unit]
+
+  def fetchCheckStatuses(
+      forge: ForgeType,
+      prNumber: Int,
+      repository: String,
+      gitlabHost: Option[String]
+  ): Either[String, List[CICheckResult]]
+
 /** Bundle of all capabilities a command needs.
   *
   * Commands take a `CommandEnv` and return `CommandResult`. Production code
   * constructs `LiveCommandEnv`; tests construct an env composed of in-memory
   * fakes from `core/test/fixtures/`.
   */
+/** Wall-clock + sleep boundary. The fake lets tests advance time without
+  * actually waiting, and inspect how much sleep was requested.
+  */
+trait Clock:
+  def now: Long
+  def sleep(ms: Long): Unit
+
+/** Plugin-hook discovery boundary. Live impl reads `IW_HOOK_CLASSES` and
+  * reflectively scans for typed values; fakes hold a static list.
+  */
+trait HookOps:
+  def recoveryActions: List[RecoveryAction]
+
 trait CommandEnv:
   def cwd: os.Path
   def console: Console
@@ -108,3 +142,5 @@ trait CommandEnv:
   def reviewState: ReviewStateOps
   def process: Process
   def tracker: TrackerOps
+  def clock: Clock
+  def hooks: HookOps
