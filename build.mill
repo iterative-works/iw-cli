@@ -19,6 +19,7 @@ object core extends ScalaModule with ScoverageModule {
 
   def sources = Task.Sources(
     moduleDir / os.up / "core" / "adapters",
+    moduleDir / os.up / "core" / "commands",
     moduleDir / os.up / "core" / "model",
     moduleDir / os.up / "core" / "output",
   )
