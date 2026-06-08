@@ -10,9 +10,11 @@ import iw.core.commands.{
   FileSystem,
   GitOps,
   Process,
-  ReviewStateOps
+  ReviewStateOps,
+  TrackerOps
 }
 import iw.core.model.{
+  ForgeType,
   GitRemote,
   ReviewStateUpdater,
   ReviewStateValidator,
@@ -245,6 +247,70 @@ final class FakeProcess extends Process:
 
   def invocationList: List[Seq[String]] = invocations.toList
 
+/** Scriptable tracker fake. Records every
+  * createPullRequest/mergeSquashAndDelete call so tests can assert what was
+  * sent to the forge.
+  */
+final class FakeTracker extends TrackerOps:
+  final case class PrCall(
+      forge: ForgeType,
+      repository: String,
+      headBranch: String,
+      baseBranch: String,
+      title: String,
+      body: String,
+      gitlabHost: Option[String]
+  )
+  final case class MergeCall(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  )
+
+  private val prCalls: mutable.ArrayBuffer[PrCall] = mutable.ArrayBuffer.empty
+  private val mergeCalls: mutable.ArrayBuffer[MergeCall] =
+    mutable.ArrayBuffer.empty
+  private val createPrResultRef: AtomicReference[Either[String, String]] =
+    AtomicReference(Right("https://example.com/pr/1"))
+  private val mergeResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+
+  def setCreatePrResult(result: Either[String, String]): Unit =
+    createPrResultRef.set(result)
+  def setMergeResult(result: Either[String, Unit]): Unit =
+    mergeResultRef.set(result)
+
+  def createPullRequest(
+      forge: ForgeType,
+      repository: String,
+      headBranch: String,
+      baseBranch: String,
+      title: String,
+      body: String,
+      gitlabHost: Option[String]
+  ): Either[String, String] =
+    prCalls += PrCall(
+      forge,
+      repository,
+      headBranch,
+      baseBranch,
+      title,
+      body,
+      gitlabHost
+    )
+    createPrResultRef.get()
+
+  def mergeSquashAndDelete(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  ): Either[String, Unit] =
+    mergeCalls += MergeCall(forge, prUrl, gitlabHost)
+    mergeResultRef.get()
+
+  def prCallList: List[PrCall] = prCalls.toList
+  def mergeCallList: List[MergeCall] = mergeCalls.toList
+
 /** Wraps FakeFileSystem and runs the real `ReviewStateUpdater.merge` +
   * `ReviewStateValidator.validate` pipeline. Mirrors `ReviewStateAdapter` but
   * stays in-memory.
@@ -277,7 +343,8 @@ final class FakeCommandEnv(
     val fs: FakeFileSystem,
     val git: FakeGit,
     val reviewState: FakeReviewStateOps,
-    val process: FakeProcess
+    val process: FakeProcess,
+    val tracker: FakeTracker
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -291,4 +358,5 @@ object FakeCommandEnv:
     val git = FakeGit(initialBranch, initialHeadSha)
     val reviewState = FakeReviewStateOps(fs)
     val process = FakeProcess()
-    new FakeCommandEnv(cwd, console, fs, git, reviewState, process)
+    val tracker = FakeTracker()
+    new FakeCommandEnv(cwd, console, fs, git, reviewState, process, tracker)

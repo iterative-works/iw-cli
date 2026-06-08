@@ -4,7 +4,7 @@
 package iw.core.commands
 
 import iw.core.adapters.ProcessResult
-import iw.core.model.{GitRemote, ReviewStateUpdater, StagingCheck}
+import iw.core.model.{ForgeType, GitRemote, ReviewStateUpdater, StagingCheck}
 
 /** Result of running a command: exit code only. Stdout/stderr flow through
   * `CommandEnv.console` so tests can introspect them via a fake console.
@@ -73,6 +73,27 @@ trait Process:
   def commandExists(command: String): Boolean
   def run(command: Seq[String]): ProcessResult
 
+/** Forge-agnostic PR/MR operations. Live impl delegates to `GitHubClient` /
+  * `GitLabClient`; fakes script responses so command logic can be tested
+  * without hitting `gh` / `glab`.
+  */
+trait TrackerOps:
+  def createPullRequest(
+      forge: ForgeType,
+      repository: String,
+      headBranch: String,
+      baseBranch: String,
+      title: String,
+      body: String,
+      gitlabHost: Option[String]
+  ): Either[String, String]
+
+  def mergeSquashAndDelete(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  ): Either[String, Unit]
+
 /** Bundle of all capabilities a command needs.
   *
   * Commands take a `CommandEnv` and return `CommandResult`. Production code
@@ -86,3 +107,4 @@ trait CommandEnv:
   def git: GitOps
   def reviewState: ReviewStateOps
   def process: Process
+  def tracker: TrackerOps

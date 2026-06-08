@@ -5,11 +5,13 @@ package iw.core.commands
 
 import iw.core.adapters.{
   GitAdapter,
+  GitHubClient,
+  GitLabClient,
   ProcessAdapter,
   ProcessResult,
   ReviewStateAdapter
 }
-import iw.core.model.{GitRemote, ReviewStateUpdater, StagingCheck}
+import iw.core.model.{ForgeType, GitRemote, ReviewStateUpdater, StagingCheck}
 
 object LiveConsole extends Console:
   def out(line: String): Unit = System.out.println(line)
@@ -81,12 +83,64 @@ object LiveProcess extends Process:
   def run(command: Seq[String]): ProcessResult =
     ProcessAdapter.run(command)
 
+object LiveTrackerOps extends TrackerOps:
+  def createPullRequest(
+      forge: ForgeType,
+      repository: String,
+      headBranch: String,
+      baseBranch: String,
+      title: String,
+      body: String,
+      gitlabHost: Option[String]
+  ): Either[String, String] =
+    forge match
+      case ForgeType.GitHub =>
+        GitHubClient.createPullRequest(
+          repository,
+          headBranch,
+          baseBranch,
+          title,
+          body
+        )
+      case ForgeType.GitLab =>
+        GitLabClient.createMergeRequest(
+          repository,
+          headBranch,
+          baseBranch,
+          title,
+          body,
+          execCommand = GitLabClient.execCommandWithHost(gitlabHost)
+        )
+
+  def mergeSquashAndDelete(
+      forge: ForgeType,
+      prUrl: String,
+      gitlabHost: Option[String]
+  ): Either[String, Unit] =
+    val (cmd, args, env) = forge match
+      case ForgeType.GitHub =>
+        (
+          "gh",
+          Seq("pr", "merge", "--squash", "--delete-branch", prUrl),
+          Map.empty[String, String]
+        )
+      case ForgeType.GitLab =>
+        (
+          "glab",
+          Seq("mr", "merge", "--squash", prUrl),
+          gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty)
+        )
+    val result = ProcessAdapter.run(cmd +: args, env = env)
+    if result.exitCode == 0 then Right(())
+    else Left(s"Failed to merge PR: ${result.stderr}")
+
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
   val fs: FileSystem = LiveFileSystem
   val git: GitOps = LiveGitOps
   val reviewState: ReviewStateOps = LiveReviewStateOps
   val process: Process = LiveProcess
+  val tracker: TrackerOps = LiveTrackerOps
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)
