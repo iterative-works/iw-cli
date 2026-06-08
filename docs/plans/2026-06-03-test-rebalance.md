@@ -180,7 +180,7 @@ needs them; later commands extend them:
 **Migration order.**
 
 Batch A — phase command family (4.4.1–4.4.4): familiar shape, extends existing capabilities:
-- [ ] 4.4.1 `phase-commit` — extends `GitOps` (stageFiles, commit, diffNameOnly, getStagingCheck)
+- [x] 4.4.1 `phase-commit` — extends `GitOps` (stageFiles, commit, diffNameOnly, getStagingCheck); harness = 11 tests; BATS 10 → 2 smokes
 - [ ] 4.4.2 `phase-advance` — adds `Process` capability; extends `GitOps` (checkoutBranch, fetchAndReset, getRemoteUrl)
 - [ ] 4.4.3 `phase-pr` — adds `TrackerOps` capability (GitHub + GitLab forge clients)
 - [ ] 4.4.4 `phase-merge` — adds `HookOps`; **resolves 4.5** (the 3 phase-merge.bats failures become harness tests)

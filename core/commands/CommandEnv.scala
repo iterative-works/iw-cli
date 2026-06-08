@@ -3,7 +3,7 @@
 
 package iw.core.commands
 
-import iw.core.model.ReviewStateUpdater
+import iw.core.model.{ReviewStateUpdater, StagingCheck}
 
 /** Result of running a command: exit code only. Stdout/stderr flow through
   * `CommandEnv.console` so tests can introspect them via a fake console.
@@ -47,6 +47,13 @@ trait GitOps:
       message: String,
       dir: os.Path
   ): Either[String, String]
+  def getStagingCheck(dir: os.Path): Either[String, StagingCheck]
+  def stageFiles(paths: Seq[os.Path], dir: os.Path): Either[String, Unit]
+  def commit(message: String, dir: os.Path): Either[String, String]
+  def diffNameOnly(
+      baseline: String,
+      dir: os.Path
+  ): Either[String, List[String]]
 
 /** Review-state read/merge/validate/write boundary. Mirrors
   * `ReviewStateAdapter`.

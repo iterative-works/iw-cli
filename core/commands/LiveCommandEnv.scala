@@ -4,7 +4,7 @@
 package iw.core.commands
 
 import iw.core.adapters.{GitAdapter, ReviewStateAdapter}
-import iw.core.model.ReviewStateUpdater
+import iw.core.model.{ReviewStateUpdater, StagingCheck}
 
 object LiveConsole extends Console:
   def out(line: String): Unit = System.out.println(line)
@@ -45,6 +45,17 @@ object LiveGitOps extends GitOps:
       dir: os.Path
   ): Either[String, String] =
     GitAdapter.commitFileWithRetry(path, message, dir)
+  def getStagingCheck(dir: os.Path): Either[String, StagingCheck] =
+    GitAdapter.getStagingCheck(dir)
+  def stageFiles(paths: Seq[os.Path], dir: os.Path): Either[String, Unit] =
+    GitAdapter.stageFiles(paths, dir)
+  def commit(message: String, dir: os.Path): Either[String, String] =
+    GitAdapter.commit(message, dir)
+  def diffNameOnly(
+      baseline: String,
+      dir: os.Path
+  ): Either[String, List[String]] =
+    GitAdapter.diffNameOnly(baseline, dir)
 
 object LiveReviewStateOps extends ReviewStateOps:
   def update(

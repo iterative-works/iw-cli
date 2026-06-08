@@ -10,7 +10,7 @@ import iw.core.commands.{
   GitOps,
   ReviewStateOps
 }
-import iw.core.model.{ReviewStateUpdater, ReviewStateValidator}
+import iw.core.model.{ReviewStateUpdater, ReviewStateValidator, StagingCheck}
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.collection.mutable
@@ -72,11 +72,24 @@ final class FakeGit(
     AtomicReference(Right(()))
   private val createBranchResultRef
       : AtomicReference[Option[Either[String, Unit]]] = AtomicReference(None)
+  private val stagingCheckRef: AtomicReference[StagingCheck] =
+    AtomicReference(StagingCheck(Nil, Nil, Nil))
+  private val commitResultRef: AtomicReference[Option[Either[String, String]]] =
+    AtomicReference(None)
+  private val diffFilesRef: AtomicReference[List[String]] =
+    AtomicReference(Nil)
+  private val stagedPaths: mutable.ArrayBuffer[os.Path] =
+    mutable.ArrayBuffer.empty
 
   def setPushResult(result: Either[String, Unit]): Unit =
     pushResultRef.set(result)
   def setCreateBranchResult(result: Option[Either[String, Unit]]): Unit =
     createBranchResultRef.set(result)
+  def setStagingCheck(check: StagingCheck): Unit = stagingCheckRef.set(check)
+  def setCommitResult(result: Either[String, String]): Unit =
+    commitResultRef.set(Some(result))
+  def setDiffFiles(files: List[String]): Unit = diffFilesRef.set(files)
+  def stagedPathList: List[os.Path] = stagedPaths.toList
 
   def getCurrentBranch(dir: os.Path): Either[String, String] =
     Right(currentBranch.get())
@@ -128,6 +141,28 @@ final class FakeGit(
   def wasPushed(branch: String): Boolean = pushedBranches.contains(branch)
   def currentBranchName: String = currentBranch.get()
   def committedMessages: List[String] = commitMessages.toList
+
+  def getStagingCheck(dir: os.Path): Either[String, StagingCheck] =
+    Right(stagingCheckRef.get())
+
+  def stageFiles(paths: Seq[os.Path], dir: os.Path): Either[String, Unit] =
+    stagedPaths ++= paths
+    Right(())
+
+  def commit(message: String, dir: os.Path): Either[String, String] =
+    commitResultRef
+      .get()
+      .getOrElse:
+        commitMessages += message
+        val newSha = s"fake-commit-${commitMessages.size}"
+        headSha.set(newSha)
+        Right(newSha)
+
+  def diffNameOnly(
+      baseline: String,
+      dir: os.Path
+  ): Either[String, List[String]] =
+    Right(diffFilesRef.get())
 
 /** Wraps FakeFileSystem and runs the real `ReviewStateUpdater.merge` +
   * `ReviewStateValidator.validate` pipeline. Mirrors `ReviewStateAdapter` but
