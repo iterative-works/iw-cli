@@ -187,7 +187,7 @@ Batch A — phase command family (4.4.1–4.4.4): familiar shape, extends existi
 
 Batch B — lightweight readers (4.4.5–4.4.10):
 - [x] 4.4.5 `version` — trivial; harness = 2 tests (compact + verbose). No BATS existed. Version + system info passed in by shim (no new env capability)
-- [ ] 4.4.6 `project-context` — only `GitOps.getRemoteUrl`
+- [x] 4.4.6 `project-context` — only `GitOps.getRemoteUrl`; harness = 3 tests; BATS 4 → 1 smoke
 - [ ] 4.4.7 `review-state` — mostly already pure (CliParser extracted in pilot Phase 1); thin shim around existing logic
 - [ ] 4.4.8 `analyze` — adds nothing new; pure `Process.runInteractive`
 - [ ] 4.4.9 `status` — adds `ServerOps`
