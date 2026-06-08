@@ -33,3 +33,7 @@ dashboard/frontend/.yarn/
 .playwright-mcp/
 .mcp.json
 .github/deps/
+
+# Claude Code local state
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
