@@ -186,7 +186,7 @@ Batch A — phase command family (4.4.1–4.4.4): familiar shape, extends existi
 - [x] 4.4.4 `phase-merge` — adds `Clock` (now/sleep), `HookOps` (recoveryActions), extends `TrackerOps` (mergeWithDelete, fetchCheckStatuses) + `ReviewStateOps` (readPrUrl); harness = 14 tests; BATS 17 → 1 smoke. **Resolves 4.5** — the 3 failing tests now live in the harness with deterministic hook control
 
 Batch B — lightweight readers (4.4.5–4.4.10):
-- [ ] 4.4.5 `version` — trivial; pure version-string read
+- [x] 4.4.5 `version` — trivial; harness = 2 tests (compact + verbose). No BATS existed. Version + system info passed in by shim (no new env capability)
 - [ ] 4.4.6 `project-context` — only `GitOps.getRemoteUrl`
 - [ ] 4.4.7 `review-state` — mostly already pure (CliParser extracted in pilot Phase 1); thin shim around existing logic
 - [ ] 4.4.8 `analyze` — adds nothing new; pure `Process.runInteractive`
