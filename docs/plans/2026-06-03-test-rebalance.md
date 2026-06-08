@@ -147,8 +147,84 @@ Each is a small PR shipping one cluster. Apply only after Phase 1 decision gate.
 - [x] 4.1 Design `CommandEnv` trait + `Fake*` adapters. New `core/commands/` package houses the trait, `CommandResult`, capability sub-traits (`Console`, `FileSystem`, `GitOps`, `ReviewStateOps`), and `LiveCommandEnv` (delegates to existing adapters). Fakes live at `core/test/fixtures/FakeCommandEnv.scala` (`FakeConsole`, `FakeFileSystem`, `FakeGit`, `FakeReviewStateOps`). Scope was trimmed to capabilities phase-start actually needs — FakeProcess/FakeTracker/FakeTmux/FakeClock/FakeEnv will land when their first command migrates.
 - [x] 4.2 Pilot command: `commands/phase-start.scala` is now a 7-line shim delegating to `iw.core.commands.PhaseStart.run(args, LiveCommandEnv.default).exitCode`. Logic lives in `core/commands/PhaseStart.scala` as `run(args, env): CommandResult`, threaded as a `for`-comprehension over the env capabilities. `commands/phase-start.scala` keeps PURPOSE/USAGE headers; iw-run discovery still works.
 - [x] 4.3 `core/test/PhaseStartHarnessTest.scala` covers 11 scenarios (happy path JSON, branch switching, push-before-create ordering, missing args, invalid number, already-on-phase-branch, branch-conflict, --issue-id override, review-state present, review-state absent, push failure). Inline expected-output assertions for readability (deferred true golden files until the second migration shows what scales). Wall time: ~0.1s for 11 tests vs ~45s for the 10 equivalent BATS tests (~450× per test). All 10 BATS scenarios still pass against the shim.
-- [ ] 4.4 Apply pattern to remaining commands incrementally (one per PR); slim each BATS to ~1–2 smoke in same PR
+- [ ] 4.4 Apply pattern to remaining commands incrementally — see sub-plan below
 - [ ] 4.5 Resolve the 3 `phase-merge.bats` failures during 4.4 (most likely the scenarios become unit tests, real git interaction moves to git contract)
+
+### 4.4 sub-plan — command migration order
+
+**Cadence (locked 2026-06-07):** one commit per command on `chore/bump-version-0.6.0`; each commit
+includes (a) any new capability traits + Live + Fake impls, (b) the `core/commands/<Name>.scala`
+move, (c) the shim, (d) the `*HarnessTest.scala`, and (e) the slimmed BATS file (~1–2 round-trip
+smoke tests). Single bundled PR at the end.
+
+**Capability roadmap.** New capability surfaces are added on-demand by the command that first
+needs them; later commands extend them:
+
+| Capability | First-needed by | Notes |
+|---|---|---|
+| `Console`, `FileSystem`, `GitOps`† (subset), `ReviewStateOps` | phase-start (done) | landed in 4.1–4.3 |
+| `GitOps` extensions: `stageFiles`, `commit`, `diffNameOnly`, `getStagingCheck` | phase-commit | extend existing trait |
+| `Process` (`run`, `commandExists`, `runInteractive`) | phase-advance | new trait |
+| `GitOps` extensions: `checkoutBranch`, `fetchAndReset`, `hasUncommittedChanges`, `getRemoteUrl`, `pull`, `getHeadSha` | phase-pr / phase-merge | extend |
+| `TrackerOps` (GitHub/GitLab PR/MR create, check status, merge cmd builders) | phase-pr | new trait, polymorphic across forges |
+| `HookOps` (`collectValues[T]`) | phase-merge | new trait — also unblocks doctor refactor |
+| `ServerOps` (status get, register/unregister, last-seen update) | status | new trait |
+| `StateReader` capability | worktrees | new trait |
+| `TmuxOps` (sessionExists, attach, switch, send-keys, isInside) | open | new trait |
+| `Prompt` (ask, confirm) | rm | new trait |
+| `WorktreeOps` (add, remove via git worktree subcommands) | start | new trait |
+| `ConfigOps` (read/write project config) | init / config | new trait |
+
+†`GitOps` grows as needed; we don't pre-build the full surface.
+
+**Migration order.**
+
+Batch A — phase command family (4.4.1–4.4.4): familiar shape, extends existing capabilities:
+- [ ] 4.4.1 `phase-commit` — extends `GitOps` (stageFiles, commit, diffNameOnly, getStagingCheck)
+- [ ] 4.4.2 `phase-advance` — adds `Process` capability; extends `GitOps` (checkoutBranch, fetchAndReset, getRemoteUrl)
+- [ ] 4.4.3 `phase-pr` — adds `TrackerOps` capability (GitHub + GitLab forge clients)
+- [ ] 4.4.4 `phase-merge` — adds `HookOps`; **resolves 4.5** (the 3 phase-merge.bats failures become harness tests)
+
+Batch B — lightweight readers (4.4.5–4.4.10):
+- [ ] 4.4.5 `version` — trivial; pure version-string read
+- [ ] 4.4.6 `project-context` — only `GitOps.getRemoteUrl`
+- [ ] 4.4.7 `review-state` — mostly already pure (CliParser extracted in pilot Phase 1); thin shim around existing logic
+- [ ] 4.4.8 `analyze` — adds nothing new; pure `Process.runInteractive`
+- [ ] 4.4.9 `status` — adds `ServerOps`
+- [ ] 4.4.10 `worktrees` — adds `StateReader` capability
+
+Batch C — session/worktree family (4.4.11–4.4.15):
+- [ ] 4.4.11 `projects` — `StateReader` only
+- [ ] 4.4.12 `open` — adds `TmuxOps`
+- [ ] 4.4.13 `rm` — adds `Prompt` capability
+- [ ] 4.4.14 `register` — `ServerOps` + `GitOps`
+- [ ] 4.4.15 `start` — largest worktree command; adds `WorktreeOps`, exercises `TmuxOps` + `ServerOps` + `HookOps` together
+
+Batch D — tracker-heavy + interactive (4.4.16–4.4.22):
+- [ ] 4.4.16 `doctor` — adds `HookOps` integration (much already in `DoctorOutput`); extends `GitOps`
+- [ ] 4.4.17 `feedback` — `TrackerOps`
+- [ ] 4.4.18 `issue` — `TrackerOps` across 3 backends (Linear / GitHub / GitLab / YouTrack)
+- [ ] 4.4.19 `init` — adds `ConfigOps`; biggest interactive; 38 BATS tests today
+- [ ] 4.4.20 `config` — `ConfigOps`
+- [ ] 4.4.21 `dashboard` — `ServerConfigRepository` wrapping
+- [ ] 4.4.22 `server` — server lifecycle commands
+
+**Per-command checklist** (lift this into each commit's description):
+
+1. Identify capability surface the command touches.
+2. Extend `CommandEnv` traits / add new trait(s) under `core/commands/`. Update `LiveCommandEnv`.
+3. Add corresponding `Fake*` impl(s) under `core/test/fixtures/FakeCommandEnv.scala`.
+4. Move command body to `core/commands/<Name>.scala` returning `CommandResult`.
+5. Shrink `commands/<name>.scala` to a shim that calls `<Name>.run(args, LiveCommandEnv.default)`.
+6. Write `<Name>HarnessTest.scala` covering scenarios from the current BATS file.
+7. Reduce the BATS file to 1–2 smoke tests (full round-trip through scala-cli + live adapters).
+8. Run: `scala-cli compile --scalac-option -Werror core/`, `./mill core.test.testOnly '*HarnessTest'`, the slimmed BATS.
+9. Commit. Branch stays `chore/bump-version-0.6.0`.
+
+**Stop conditions.** If a command resists clean extraction (e.g. heavily intertwined prompts +
+side effects), pause and discuss before forcing it through. Some Batch D commands may need
+intermediate refactors (extracting interactive flow as a state machine in `model/`) before the
+harness pattern fits.
 
 ## Phase 5 — Cleanup
 
