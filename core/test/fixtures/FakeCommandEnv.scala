@@ -13,6 +13,7 @@ import iw.core.commands.{
   HookOps,
   Process,
   ReviewStateOps,
+  Stdin,
   TrackerOps
 }
 import iw.core.model.{
@@ -208,6 +209,9 @@ final class FakeGit(
     }
 
   def getRemoteUrl(dir: os.Path): Option[GitRemote] = remoteUrlRef.get()
+
+  def getHeadSha(dir: os.Path): Either[String, String] =
+    Right(headSha.get().take(7))
 
 /** Scriptable subprocess fake. By default `commandExists` returns true and
   * `run` returns an exit-0 empty result. Tests can scriptResponses by command
@@ -418,6 +422,13 @@ final class FakeClock(initial: Long = 0L) extends Clock:
   def sleep(ms: Long): Unit =
     sleeps += ms
 
+/** Stdin fake: tests set a payload via `setInput`; calls to `read()` return it.
+  */
+final class FakeStdin extends Stdin:
+  private val payloadRef: AtomicReference[String] = AtomicReference("")
+  def setInput(payload: String): Unit = payloadRef.set(payload)
+  def read(): String = payloadRef.get()
+
 /** Plug-in-hook fake. Tests set the list explicitly; no reflection. */
 final class FakeHookOps extends HookOps:
   private val actionsRef: AtomicReference[List[RecoveryAction]] =
@@ -438,7 +449,8 @@ final class FakeCommandEnv(
     val process: FakeProcess,
     val tracker: FakeTracker,
     val clock: FakeClock,
-    val hooks: FakeHookOps
+    val hooks: FakeHookOps,
+    val stdin: FakeStdin
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -455,6 +467,7 @@ object FakeCommandEnv:
     val tracker = FakeTracker()
     val clock = FakeClock()
     val hooks = FakeHookOps()
+    val stdin = FakeStdin()
     new FakeCommandEnv(
       cwd,
       console,
@@ -464,5 +477,6 @@ object FakeCommandEnv:
       process,
       tracker,
       clock,
-      hooks
+      hooks,
+      stdin
     )

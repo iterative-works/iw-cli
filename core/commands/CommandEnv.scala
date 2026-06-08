@@ -65,6 +65,7 @@ trait GitOps:
   def checkoutBranch(name: String, dir: os.Path): Either[String, Unit]
   def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit]
   def getRemoteUrl(dir: os.Path): Option[GitRemote]
+  def getHeadSha(dir: os.Path): Either[String, String]
 
 /** Review-state read/merge/validate/write boundary. Mirrors
   * `ReviewStateAdapter`.
@@ -80,6 +81,10 @@ trait ReviewStateOps:
 trait Process:
   def commandExists(command: String): Boolean
   def run(command: Seq[String]): ProcessResult
+
+/** Stdin boundary so commands that take piped input remain testable. */
+trait Stdin:
+  def read(): String
 
 /** Forge-agnostic PR/MR operations. Live impl delegates to `GitHubClient` /
   * `GitLabClient`; fakes script responses so command logic can be tested
@@ -144,3 +149,4 @@ trait CommandEnv:
   def tracker: TrackerOps
   def clock: Clock
   def hooks: HookOps
+  def stdin: Stdin

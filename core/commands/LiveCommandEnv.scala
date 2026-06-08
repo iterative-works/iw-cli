@@ -77,6 +77,8 @@ object LiveGitOps extends GitOps:
     GitAdapter.fetchAndReset(branch, dir)
   def getRemoteUrl(dir: os.Path): Option[GitRemote] =
     GitAdapter.getRemoteUrl(dir)
+  def getHeadSha(dir: os.Path): Either[String, String] =
+    GitAdapter.getHeadSha(dir)
 
 object LiveReviewStateOps extends ReviewStateOps:
   def update(
@@ -92,6 +94,9 @@ object LiveProcess extends Process:
     ProcessAdapter.commandExists(command)
   def run(command: Seq[String]): ProcessResult =
     ProcessAdapter.run(command)
+
+object LiveStdin extends Stdin:
+  def read(): String = scala.io.Source.stdin.mkString
 
 object LiveTrackerOps extends TrackerOps:
   def createPullRequest(
@@ -199,6 +204,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val tracker: TrackerOps = LiveTrackerOps
   val clock: Clock = LiveClock
   val hooks: HookOps = LiveHookOps
+  val stdin: Stdin = LiveStdin
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)
