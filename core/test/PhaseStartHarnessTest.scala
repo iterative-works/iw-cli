@@ -180,7 +180,7 @@ class PhaseStartHarnessTest extends munit.FunSuite:
 
   test("push failure prevents sub-branch creation") {
     val env = envWith()
-    env.git.pushResult = Left("Failed to push branch 'TEST-100': no remote")
+    env.git.setPushResult(Left("Failed to push branch 'TEST-100': no remote"))
 
     val result = PhaseStart.run(Seq("1"), env)
 

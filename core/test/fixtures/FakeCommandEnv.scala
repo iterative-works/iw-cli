@@ -12,6 +12,7 @@ import iw.core.commands.{
 }
 import iw.core.model.{ReviewStateUpdater, ReviewStateValidator}
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.collection.mutable
 
 /** Captures `out` and `err` lines into separate buffers so tests can assert
@@ -58,29 +59,37 @@ final class FakeGit(
     initialBranch: String,
     initialHeadSha: String
 ) extends GitOps:
-  private var currentBranch: String = initialBranch
-  private var headSha: String = initialHeadSha
+  private val currentBranch: AtomicReference[String] =
+    AtomicReference(initialBranch)
+  private val headSha: AtomicReference[String] = AtomicReference(initialHeadSha)
   private val branches: mutable.Set[String] = mutable.Set(initialBranch)
   private val pushedBranches: mutable.Set[String] = mutable.Set.empty
   private val commitMessages: mutable.ArrayBuffer[String] =
     mutable.ArrayBuffer.empty
 
   /** Behavior overrides for failure-injection scenarios. */
-  var pushResult: Either[String, Unit] = Right(())
-  var createBranchResult: Option[Either[String, Unit]] = None
+  private val pushResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val createBranchResultRef
+      : AtomicReference[Option[Either[String, Unit]]] = AtomicReference(None)
+
+  def setPushResult(result: Either[String, Unit]): Unit =
+    pushResultRef.set(result)
+  def setCreateBranchResult(result: Option[Either[String, Unit]]): Unit =
+    createBranchResultRef.set(result)
 
   def getCurrentBranch(dir: os.Path): Either[String, String] =
-    Right(currentBranch)
+    Right(currentBranch.get())
 
   def getFullHeadSha(dir: os.Path): Either[String, String] =
-    Right(headSha)
+    Right(headSha.get())
 
   def push(
       branch: String,
       dir: os.Path,
       setUpstream: Boolean
   ): Either[String, Unit] =
-    pushResult.map { _ =>
+    pushResultRef.get().map { _ =>
       pushedBranches += branch
       ()
     }
@@ -89,13 +98,15 @@ final class FakeGit(
       name: String,
       dir: os.Path
   ): Either[String, Unit] =
-    createBranchResult.getOrElse:
-      if branches.contains(name) then
-        Left(s"Failed to create branch '$name': already exists")
-      else
-        branches += name
-        currentBranch = name
-        Right(())
+    createBranchResultRef
+      .get()
+      .getOrElse:
+        if branches.contains(name) then
+          Left(s"Failed to create branch '$name': already exists")
+        else
+          branches += name
+          currentBranch.set(name)
+          Right(())
 
   def commitFileWithRetry(
       path: os.Path,
@@ -103,18 +114,19 @@ final class FakeGit(
       dir: os.Path
   ): Either[String, String] =
     commitMessages += message
-    headSha = s"fake-sha-after-${commitMessages.size}"
-    Right(headSha)
+    val newSha = s"fake-sha-after-${commitMessages.size}"
+    headSha.set(newSha)
+    Right(newSha)
 
   def setCurrentBranch(name: String): Unit =
-    currentBranch = name
+    currentBranch.set(name)
     branches += name
 
-  def setHeadSha(sha: String): Unit = headSha = sha
+  def setHeadSha(sha: String): Unit = headSha.set(sha)
   def addExistingBranch(name: String): Unit = branches += name
 
   def wasPushed(branch: String): Boolean = pushedBranches.contains(branch)
-  def currentBranchName: String = currentBranch
+  def currentBranchName: String = currentBranch.get()
   def committedMessages: List[String] = commitMessages.toList
 
 /** Wraps FakeFileSystem and runs the real `ReviewStateUpdater.merge` +
