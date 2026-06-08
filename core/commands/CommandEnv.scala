@@ -3,7 +3,8 @@
 
 package iw.core.commands
 
-import iw.core.model.{ReviewStateUpdater, StagingCheck}
+import iw.core.adapters.ProcessResult
+import iw.core.model.{GitRemote, ReviewStateUpdater, StagingCheck}
 
 /** Result of running a command: exit code only. Stdout/stderr flow through
   * `CommandEnv.console` so tests can introspect them via a fake console.
@@ -54,6 +55,9 @@ trait GitOps:
       baseline: String,
       dir: os.Path
   ): Either[String, List[String]]
+  def checkoutBranch(name: String, dir: os.Path): Either[String, Unit]
+  def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit]
+  def getRemoteUrl(dir: os.Path): Option[GitRemote]
 
 /** Review-state read/merge/validate/write boundary. Mirrors
   * `ReviewStateAdapter`.
@@ -63,6 +67,11 @@ trait ReviewStateOps:
       path: os.Path,
       input: ReviewStateUpdater.UpdateInput
   ): Either[String, Unit]
+
+/** Subprocess execution boundary. Mirrors `ProcessAdapter`. */
+trait Process:
+  def commandExists(command: String): Boolean
+  def run(command: Seq[String]): ProcessResult
 
 /** Bundle of all capabilities a command needs.
   *
@@ -76,3 +85,4 @@ trait CommandEnv:
   def fs: FileSystem
   def git: GitOps
   def reviewState: ReviewStateOps
+  def process: Process

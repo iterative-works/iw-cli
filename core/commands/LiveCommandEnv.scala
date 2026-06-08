@@ -3,8 +3,13 @@
 
 package iw.core.commands
 
-import iw.core.adapters.{GitAdapter, ReviewStateAdapter}
-import iw.core.model.{ReviewStateUpdater, StagingCheck}
+import iw.core.adapters.{
+  GitAdapter,
+  ProcessAdapter,
+  ProcessResult,
+  ReviewStateAdapter
+}
+import iw.core.model.{GitRemote, ReviewStateUpdater, StagingCheck}
 
 object LiveConsole extends Console:
   def out(line: String): Unit = System.out.println(line)
@@ -56,6 +61,12 @@ object LiveGitOps extends GitOps:
       dir: os.Path
   ): Either[String, List[String]] =
     GitAdapter.diffNameOnly(baseline, dir)
+  def checkoutBranch(name: String, dir: os.Path): Either[String, Unit] =
+    GitAdapter.checkoutBranch(name, dir)
+  def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit] =
+    GitAdapter.fetchAndReset(branch, dir)
+  def getRemoteUrl(dir: os.Path): Option[GitRemote] =
+    GitAdapter.getRemoteUrl(dir)
 
 object LiveReviewStateOps extends ReviewStateOps:
   def update(
@@ -64,11 +75,18 @@ object LiveReviewStateOps extends ReviewStateOps:
   ): Either[String, Unit] =
     ReviewStateAdapter.update(path, input)
 
+object LiveProcess extends Process:
+  def commandExists(command: String): Boolean =
+    ProcessAdapter.commandExists(command)
+  def run(command: Seq[String]): ProcessResult =
+    ProcessAdapter.run(command)
+
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
   val fs: FileSystem = LiveFileSystem
   val git: GitOps = LiveGitOps
   val reviewState: ReviewStateOps = LiveReviewStateOps
+  val process: Process = LiveProcess
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

@@ -3,14 +3,21 @@
 
 package iw.core.test.fixtures
 
+import iw.core.adapters.ProcessResult
 import iw.core.commands.{
   CommandEnv,
   Console,
   FileSystem,
   GitOps,
+  Process,
   ReviewStateOps
 }
-import iw.core.model.{ReviewStateUpdater, ReviewStateValidator, StagingCheck}
+import iw.core.model.{
+  GitRemote,
+  ReviewStateUpdater,
+  ReviewStateValidator,
+  StagingCheck
+}
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.collection.mutable
@@ -80,6 +87,14 @@ final class FakeGit(
     AtomicReference(Nil)
   private val stagedPaths: mutable.ArrayBuffer[os.Path] =
     mutable.ArrayBuffer.empty
+  private val checkoutResultRef: AtomicReference[Option[Either[String, Unit]]] =
+    AtomicReference(None)
+  private val fetchAndResetResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val remoteUrlRef: AtomicReference[Option[GitRemote]] =
+    AtomicReference(None)
+  private val resetBranches: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
 
   def setPushResult(result: Either[String, Unit]): Unit =
     pushResultRef.set(result)
@@ -90,6 +105,12 @@ final class FakeGit(
     commitResultRef.set(Some(result))
   def setDiffFiles(files: List[String]): Unit = diffFilesRef.set(files)
   def stagedPathList: List[os.Path] = stagedPaths.toList
+  def setCheckoutResult(result: Option[Either[String, Unit]]): Unit =
+    checkoutResultRef.set(result)
+  def setFetchAndResetResult(result: Either[String, Unit]): Unit =
+    fetchAndResetResultRef.set(result)
+  def setRemoteUrl(remote: Option[GitRemote]): Unit = remoteUrlRef.set(remote)
+  def resetBranchList: List[String] = resetBranches.toList
 
   def getCurrentBranch(dir: os.Path): Either[String, String] =
     Right(currentBranch.get())
@@ -164,6 +185,66 @@ final class FakeGit(
   ): Either[String, List[String]] =
     Right(diffFilesRef.get())
 
+  def checkoutBranch(name: String, dir: os.Path): Either[String, Unit] =
+    checkoutResultRef
+      .get()
+      .getOrElse:
+        if !branches.contains(name) then
+          Left(s"Failed to checkout branch '$name': not found")
+        else
+          currentBranch.set(name)
+          Right(())
+
+  def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit] =
+    fetchAndResetResultRef.get().map { _ =>
+      resetBranches += branch
+      ()
+    }
+
+  def getRemoteUrl(dir: os.Path): Option[GitRemote] = remoteUrlRef.get()
+
+/** Scriptable subprocess fake. By default `commandExists` returns true and
+  * `run` returns an exit-0 empty result. Tests can scriptResponses by command
+  * (exact-match on the first arg) or override globally.
+  */
+final class FakeProcess extends Process:
+  private val existingCommands: mutable.Set[String] =
+    mutable.Set("git", "gh", "glab", "scala-cli", "tmux")
+  private val responseScript: mutable.Map[Seq[String], ProcessResult] =
+    mutable.Map.empty
+  private val invocations: mutable.ArrayBuffer[Seq[String]] =
+    mutable.ArrayBuffer.empty
+  private val defaultResultRef: AtomicReference[ProcessResult] =
+    AtomicReference(ProcessResult(0, "", ""))
+
+  def setExistingCommands(names: Set[String]): Unit =
+    existingCommands.clear()
+    existingCommands ++= names
+  def markCommandMissing(name: String): Unit = existingCommands -= name
+  def setDefaultResult(result: ProcessResult): Unit =
+    defaultResultRef.set(result)
+
+  /** Pin a result for a specific command prefix. The longest matching prefix
+    * wins; useful for `gh pr list --merged` vs `gh pr list --open`.
+    */
+  def scriptResponse(commandPrefix: Seq[String], result: ProcessResult): Unit =
+    responseScript(commandPrefix) = result
+
+  def commandExists(command: String): Boolean =
+    existingCommands.contains(command)
+
+  def run(command: Seq[String]): ProcessResult =
+    invocations += command
+    val match_ = responseScript
+      .filter((prefix, _) => command.startsWith(prefix))
+      .toSeq
+      .sortBy(-_._1.length)
+      .headOption
+      .map(_._2)
+    match_.getOrElse(defaultResultRef.get())
+
+  def invocationList: List[Seq[String]] = invocations.toList
+
 /** Wraps FakeFileSystem and runs the real `ReviewStateUpdater.merge` +
   * `ReviewStateValidator.validate` pipeline. Mirrors `ReviewStateAdapter` but
   * stays in-memory.
@@ -195,7 +276,8 @@ final class FakeCommandEnv(
     val console: FakeConsole,
     val fs: FakeFileSystem,
     val git: FakeGit,
-    val reviewState: FakeReviewStateOps
+    val reviewState: FakeReviewStateOps,
+    val process: FakeProcess
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -208,4 +290,5 @@ object FakeCommandEnv:
     val fs = FakeFileSystem()
     val git = FakeGit(initialBranch, initialHeadSha)
     val reviewState = FakeReviewStateOps(fs)
-    new FakeCommandEnv(cwd, console, fs, git, reviewState)
+    val process = FakeProcess()
+    new FakeCommandEnv(cwd, console, fs, git, reviewState, process)

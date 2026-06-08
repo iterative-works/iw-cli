@@ -181,7 +181,7 @@ needs them; later commands extend them:
 
 Batch A — phase command family (4.4.1–4.4.4): familiar shape, extends existing capabilities:
 - [x] 4.4.1 `phase-commit` — extends `GitOps` (stageFiles, commit, diffNameOnly, getStagingCheck); harness = 11 tests; BATS 10 → 2 smokes
-- [ ] 4.4.2 `phase-advance` — adds `Process` capability; extends `GitOps` (checkoutBranch, fetchAndReset, getRemoteUrl)
+- [x] 4.4.2 `phase-advance` — adds `Process` capability; extends `GitOps` (checkoutBranch, fetchAndReset, getRemoteUrl); harness = 10 tests; BATS 3 → 1 smoke. Reads config via `FileSystem` + pure `ConfigSerializer.fromHocon` (defers `ConfigOps` to 4.4.19/20)
 - [ ] 4.4.3 `phase-pr` — adds `TrackerOps` capability (GitHub + GitLab forge clients)
 - [ ] 4.4.4 `phase-merge` — adds `HookOps`; **resolves 4.5** (the 3 phase-merge.bats failures become harness tests)
 
