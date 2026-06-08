@@ -81,6 +81,7 @@ trait ReviewStateOps:
 trait Process:
   def commandExists(command: String): Boolean
   def run(command: Seq[String]): ProcessResult
+  def runInteractive(command: Seq[String]): Int
 
 /** Stdin boundary so commands that take piped input remain testable. */
 trait Stdin:

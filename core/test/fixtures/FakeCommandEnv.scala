@@ -253,7 +253,16 @@ final class FakeProcess extends Process:
       .map(_._2)
     match_.getOrElse(defaultResultRef.get())
 
+  private val interactiveCalls: mutable.ArrayBuffer[Seq[String]] =
+    mutable.ArrayBuffer.empty
+  private val interactiveExitRef: AtomicReference[Int] = AtomicReference(0)
+  def setInteractiveExit(code: Int): Unit = interactiveExitRef.set(code)
+  def runInteractive(command: Seq[String]): Int =
+    interactiveCalls += command
+    interactiveExitRef.get()
+
   def invocationList: List[Seq[String]] = invocations.toList
+  def interactiveCallList: List[Seq[String]] = interactiveCalls.toList
 
 /** Scriptable tracker fake. Records every
   * createPullRequest/mergeSquashAndDelete call so tests can assert what was

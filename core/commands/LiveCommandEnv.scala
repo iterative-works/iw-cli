@@ -94,6 +94,8 @@ object LiveProcess extends Process:
     ProcessAdapter.commandExists(command)
   def run(command: Seq[String]): ProcessResult =
     ProcessAdapter.run(command)
+  def runInteractive(command: Seq[String]): Int =
+    ProcessAdapter.runInteractive(command)
 
 object LiveStdin extends Stdin:
   def read(): String = scala.io.Source.stdin.mkString
