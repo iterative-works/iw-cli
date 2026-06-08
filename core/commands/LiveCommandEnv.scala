@@ -10,7 +10,8 @@ import iw.core.adapters.{
   HookDiscovery,
   ProcessAdapter,
   ProcessResult,
-  ReviewStateAdapter
+  ReviewStateAdapter,
+  ServerClient
 }
 import iw.core.model.{
   CICheckResult,
@@ -18,7 +19,8 @@ import iw.core.model.{
   GitRemote,
   RecoveryAction,
   ReviewStateUpdater,
-  StagingCheck
+  StagingCheck,
+  WorktreeStatus
 }
 
 object LiveConsole extends Console:
@@ -197,6 +199,10 @@ object LiveHookOps extends HookOps:
   def recoveryActions: List[RecoveryAction] =
     HookDiscovery.collectValues[RecoveryAction]
 
+object LiveServerOps extends ServerOps:
+  def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
+    ServerClient.getWorktreeStatus(issueId)
+
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
   val fs: FileSystem = LiveFileSystem
@@ -207,6 +213,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val clock: Clock = LiveClock
   val hooks: HookOps = LiveHookOps
   val stdin: Stdin = LiveStdin
+  val server: ServerOps = LiveServerOps
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

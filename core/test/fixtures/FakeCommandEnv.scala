@@ -13,6 +13,7 @@ import iw.core.commands.{
   HookOps,
   Process,
   ReviewStateOps,
+  ServerOps,
   Stdin,
   TrackerOps
 }
@@ -23,7 +24,8 @@ import iw.core.model.{
   RecoveryAction,
   ReviewStateUpdater,
   ReviewStateValidator,
-  StagingCheck
+  StagingCheck,
+  WorktreeStatus
 }
 
 import java.util.concurrent.atomic.AtomicReference
@@ -446,6 +448,21 @@ final class FakeHookOps extends HookOps:
     actionsRef.set(list)
   def recoveryActions: List[RecoveryAction] = actionsRef.get()
 
+/** Dashboard server fake. Test scripts a single result for getWorktreeStatus
+  * (per-issue overrides aren't needed yet; can be added when a command needs).
+  */
+final class FakeServerOps extends ServerOps:
+  private val statusResultRef: AtomicReference[Either[String, WorktreeStatus]] =
+    AtomicReference(Left("Server communication is disabled"))
+  private val statusCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  def setWorktreeStatusResult(result: Either[String, WorktreeStatus]): Unit =
+    statusResultRef.set(result)
+  def statusCallList: List[String] = statusCalls.toList
+  def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
+    statusCalls += issueId
+    statusResultRef.get()
+
 /** Default-wired fake env for tests. Construct with the desired starting git
   * state; mutate the individual fakes for finer scenarios.
   */
@@ -459,7 +476,8 @@ final class FakeCommandEnv(
     val tracker: FakeTracker,
     val clock: FakeClock,
     val hooks: FakeHookOps,
-    val stdin: FakeStdin
+    val stdin: FakeStdin,
+    val server: FakeServerOps
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -477,6 +495,7 @@ object FakeCommandEnv:
     val clock = FakeClock()
     val hooks = FakeHookOps()
     val stdin = FakeStdin()
+    val server = FakeServerOps()
     new FakeCommandEnv(
       cwd,
       console,
@@ -487,5 +506,6 @@ object FakeCommandEnv:
       tracker,
       clock,
       hooks,
-      stdin
+      stdin,
+      server
     )

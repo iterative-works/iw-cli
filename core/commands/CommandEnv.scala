@@ -10,7 +10,8 @@ import iw.core.model.{
   GitRemote,
   RecoveryAction,
   ReviewStateUpdater,
-  StagingCheck
+  StagingCheck,
+  WorktreeStatus
 }
 
 /** Result of running a command: exit code only. Stdout/stderr flow through
@@ -140,6 +141,12 @@ trait Clock:
 trait HookOps:
   def recoveryActions: List[RecoveryAction]
 
+/** Dashboard server query boundary. Live impl hits the local server over HTTP;
+  * fakes script responses.
+  */
+trait ServerOps:
+  def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus]
+
 trait CommandEnv:
   def cwd: os.Path
   def console: Console
@@ -151,3 +158,4 @@ trait CommandEnv:
   def clock: Clock
   def hooks: HookOps
   def stdin: Stdin
+  def server: ServerOps

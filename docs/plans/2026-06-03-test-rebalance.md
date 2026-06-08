@@ -190,7 +190,7 @@ Batch B — lightweight readers (4.4.5–4.4.10):
 - [x] 4.4.6 `project-context` — only `GitOps.getRemoteUrl`; harness = 3 tests; BATS 4 → 1 smoke
 - [x] 4.4.7 `review-state` — dispatcher + validate/write/update; adds `Stdin` capability; extends `GitOps` with `getHeadSha` (abbreviated). Reuses `ReviewStateCliParser` + `ReviewStateBuilder` + `ReviewStateValidator`. Harness = 8 tests; BATS 6 → 2 smokes
 - [x] 4.4.8 `analyze` — extends `Process` with `runInteractive`; harness = 3 tests; BATS 3 → 1 smoke
-- [ ] 4.4.9 `status` — adds `ServerOps`
+- [x] 4.4.9 `status` — adds `ServerOps` (getWorktreeStatus); harness = 6 tests; BATS 4 → 1 smoke
 - [ ] 4.4.10 `worktrees` — adds `StateReader` capability
 
 Batch C — session/worktree family (4.4.11–4.4.15):
