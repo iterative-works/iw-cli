@@ -87,6 +87,8 @@ object LiveGitOps extends GitOps:
     GitAdapter.getRemoteUrl(dir)
   def getHeadSha(dir: os.Path): Either[String, String] =
     GitAdapter.getHeadSha(dir)
+  def hasUncommittedChanges(path: os.Path): Either[String, Boolean] =
+    GitAdapter.hasUncommittedChanges(path)
 
 object LiveReviewStateOps extends ReviewStateOps:
   def update(
@@ -220,6 +222,9 @@ object LiveServerOps extends ServerOps:
   ): Either[String, Unit] =
     ServerClient.updateLastSeen(issueId, path, trackerType, team)
 
+  def unregisterWorktree(issueId: String): Either[String, Unit] =
+    ServerClient.unregisterWorktree(issueId)
+
 object LiveStateReader extends StateReader:
   def read(): Either[String, ServerState] = StateReaderAdapter.read()
 
@@ -233,6 +238,24 @@ object LiveTmuxOps extends TmuxOps:
     TmuxAdapter.attachSession(name)
   def switchSession(name: String): Either[String, Unit] =
     TmuxAdapter.switchSession(name)
+  def killSession(name: String): Either[String, Unit] =
+    TmuxAdapter.killSession(name)
+  def isCurrentSession(name: String): Boolean =
+    TmuxAdapter.isCurrentSession(name)
+
+object LivePrompt extends Prompt:
+  def confirm(question: String, default: Boolean): Boolean =
+    iw.core.adapters.Prompt.confirm(question, default)
+
+object LiveWorktreeOps extends WorktreeOps:
+  def exists(path: os.Path, workDir: os.Path): Boolean =
+    iw.core.adapters.GitWorktreeAdapter.worktreeExists(path, workDir)
+  def remove(
+      path: os.Path,
+      workDir: os.Path,
+      force: Boolean
+  ): Either[String, Unit] =
+    iw.core.adapters.GitWorktreeAdapter.removeWorktree(path, workDir, force)
 
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
@@ -247,6 +270,8 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val server: ServerOps = LiveServerOps
   val state: StateReader = LiveStateReader
   val tmux: TmuxOps = LiveTmuxOps
+  val prompt: Prompt = LivePrompt
+  val worktree: WorktreeOps = LiveWorktreeOps
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

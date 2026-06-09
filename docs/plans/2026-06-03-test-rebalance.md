@@ -196,7 +196,7 @@ Batch B — lightweight readers (4.4.5–4.4.10):
 Batch C — session/worktree family (4.4.11–4.4.15):
 - [x] 4.4.11 `projects` — `StateReader` only
 - [x] 4.4.12 `open` — adds `TmuxOps`
-- [ ] 4.4.13 `rm` — adds `Prompt` capability
+- [x] 4.4.13 `rm` — adds `Prompt` capability (and `WorktreeOps`; earlier than planned because rm also needs it)
 - [ ] 4.4.14 `register` — `ServerOps` + `GitOps`
 - [ ] 4.4.15 `start` — largest worktree command; adds `WorktreeOps`, exercises `TmuxOps` + `ServerOps` + `HookOps` together
 

@@ -12,12 +12,14 @@ import iw.core.commands.{
   GitOps,
   HookOps,
   Process,
+  Prompt,
   ReviewStateOps,
   ServerOps,
   StateReader,
   Stdin,
   TmuxOps,
-  TrackerOps
+  TrackerOps,
+  WorktreeOps
 }
 import iw.core.model.{
   CICheckResult,
@@ -218,6 +220,13 @@ final class FakeGit(
 
   def getHeadSha(dir: os.Path): Either[String, String] =
     Right(headSha.get().take(7))
+
+  private val uncommittedRef: AtomicReference[Either[String, Boolean]] =
+    AtomicReference(Right(false))
+  def setUncommittedChanges(result: Either[String, Boolean]): Unit =
+    uncommittedRef.set(result)
+  def hasUncommittedChanges(path: os.Path): Either[String, Boolean] =
+    uncommittedRef.get()
 
 /** Scriptable subprocess fake. By default `commandExists` returns true and
   * `run` returns an exit-0 empty result. Tests can scriptResponses by command
@@ -507,6 +516,17 @@ final class FakeServerOps extends ServerOps:
     updateLastSeenCalls += UpdateLastSeenCall(issueId, path, trackerType, team)
     updateLastSeenResultRef.get()
 
+  private val unregisterResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val unregisterCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  def setUnregisterResult(result: Either[String, Unit]): Unit =
+    unregisterResultRef.set(result)
+  def unregisterCallList: List[String] = unregisterCalls.toList
+  def unregisterWorktree(issueId: String): Either[String, Unit] =
+    unregisterCalls += issueId
+    unregisterResultRef.get()
+
 /** Tmux session fake. Tracks created sessions, scripts
   * inside-tmux/current-session state, and records attach/switch calls.
   */
@@ -560,6 +580,58 @@ final class FakeTmuxOps extends TmuxOps:
     switchCalls += name
     switchResultRef.get()
 
+  private val killCalls: mutable.ArrayBuffer[String] = mutable.ArrayBuffer.empty
+  private val killResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  def setKillResult(result: Either[String, Unit]): Unit =
+    killResultRef.set(result)
+  def killCallList: List[String] = killCalls.toList
+  def killSession(name: String): Either[String, Unit] =
+    killCalls += name
+    val result = killResultRef.get()
+    if result.isRight then sessions -= name
+    result
+  def isCurrentSession(name: String): Boolean =
+    insideRef.get() && currentRef.get().contains(name)
+
+/** Yes/no prompt fake. Test pushes scripted answers in order; default is
+  * `false`.
+  */
+final class FakePrompt extends Prompt:
+  private val answers: mutable.Queue[Boolean] = mutable.Queue.empty
+  private val calls: mutable.ArrayBuffer[(String, Boolean)] =
+    mutable.ArrayBuffer.empty
+  def queueAnswers(vals: Boolean*): Unit = answers ++= vals
+  def callList: List[(String, Boolean)] = calls.toList
+  def confirm(question: String, default: Boolean): Boolean =
+    calls += ((question, default))
+    if answers.nonEmpty then answers.dequeue() else default
+
+/** Worktree filesystem fake. Tracks which paths the test "registered" as
+  * worktrees and records remove calls.
+  */
+final class FakeWorktreeOps extends WorktreeOps:
+  final case class RemoveCall(path: os.Path, workDir: os.Path, force: Boolean)
+  private val tracked: mutable.Set[os.Path] = mutable.Set.empty
+  private val removeCalls: mutable.ArrayBuffer[RemoveCall] =
+    mutable.ArrayBuffer.empty
+  private val removeResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  def addWorktree(path: os.Path): Unit = tracked += path
+  def setRemoveResult(result: Either[String, Unit]): Unit =
+    removeResultRef.set(result)
+  def removeCallList: List[RemoveCall] = removeCalls.toList
+  def exists(path: os.Path, workDir: os.Path): Boolean = tracked.contains(path)
+  def remove(
+      path: os.Path,
+      workDir: os.Path,
+      force: Boolean
+  ): Either[String, Unit] =
+    removeCalls += RemoveCall(path, workDir, force)
+    val result = removeResultRef.get()
+    if result.isRight then tracked -= path
+    result
+
 /** Default-wired fake env for tests. Construct with the desired starting git
   * state; mutate the individual fakes for finer scenarios.
   */
@@ -576,7 +648,9 @@ final class FakeCommandEnv(
     val stdin: FakeStdin,
     val server: FakeServerOps,
     val state: FakeStateReader,
-    val tmux: FakeTmuxOps
+    val tmux: FakeTmuxOps,
+    val prompt: FakePrompt,
+    val worktree: FakeWorktreeOps
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -597,6 +671,8 @@ object FakeCommandEnv:
     val server = FakeServerOps()
     val state = FakeStateReader()
     val tmux = FakeTmuxOps()
+    val prompt = FakePrompt()
+    val worktree = FakeWorktreeOps()
     new FakeCommandEnv(
       cwd,
       console,
@@ -610,5 +686,7 @@ object FakeCommandEnv:
       stdin,
       server,
       state,
-      tmux
+      tmux,
+      prompt,
+      worktree
     )

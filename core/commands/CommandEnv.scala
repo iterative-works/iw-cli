@@ -69,6 +69,7 @@ trait GitOps:
   def fetchAndReset(branch: String, dir: os.Path): Either[String, Unit]
   def getRemoteUrl(dir: os.Path): Option[GitRemote]
   def getHeadSha(dir: os.Path): Either[String, String]
+  def hasUncommittedChanges(path: os.Path): Either[String, Boolean]
 
 /** Review-state read/merge/validate/write boundary. Mirrors
   * `ReviewStateAdapter`.
@@ -155,6 +156,7 @@ trait ServerOps:
       trackerType: String,
       team: String
   ): Either[String, Unit]
+  def unregisterWorktree(issueId: String): Either[String, Unit]
 
 /** Tmux session boundary. Live impl invokes `tmux` via the system shell; fakes
   * track sessions in memory.
@@ -166,6 +168,25 @@ trait TmuxOps:
   def createSession(name: String, workDir: os.Path): Either[String, Unit]
   def attachSession(name: String): Either[String, Unit]
   def switchSession(name: String): Either[String, Unit]
+  def killSession(name: String): Either[String, Unit]
+  def isCurrentSession(name: String): Boolean
+
+/** Interactive yes/no prompt boundary. Live impl reads from stdin; fakes script
+  * scripted answers.
+  */
+trait Prompt:
+  def confirm(question: String, default: Boolean): Boolean
+
+/** Git worktree boundary. Live impl shells out to `git worktree`; fakes track
+  * worktrees in memory.
+  */
+trait WorktreeOps:
+  def exists(path: os.Path, workDir: os.Path): Boolean
+  def remove(
+      path: os.Path,
+      workDir: os.Path,
+      force: Boolean
+  ): Either[String, Unit]
 
 /** Persistent state-file reader (the server's on-disk state.json). */
 trait StateReader:
@@ -185,3 +206,5 @@ trait CommandEnv:
   def server: ServerOps
   def state: StateReader
   def tmux: TmuxOps
+  def prompt: Prompt
+  def worktree: WorktreeOps
