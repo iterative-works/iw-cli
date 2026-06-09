@@ -3,7 +3,7 @@
 
 package iw.core.test.fixtures
 
-import iw.core.adapters.ProcessResult
+import iw.core.adapters.{ProcessResult, SessionHookResult}
 import iw.core.commands.{
   Clock,
   CommandEnv,
@@ -16,6 +16,7 @@ import iw.core.commands.{
   ServerOps,
   StateReader,
   Stdin,
+  TmuxOps,
   TrackerOps
 }
 import iw.core.model.{
@@ -26,6 +27,7 @@ import iw.core.model.{
   ReviewStateUpdater,
   ReviewStateValidator,
   ServerState,
+  SessionContext,
   StagingCheck,
   WorktreeStatus
 }
@@ -446,9 +448,19 @@ final class FakeStdin extends Stdin:
 final class FakeHookOps extends HookOps:
   private val actionsRef: AtomicReference[List[RecoveryAction]] =
     AtomicReference(Nil)
+  private val sessionHookResultRef: AtomicReference[SessionHookResult] =
+    AtomicReference(SessionHookResult.NoHooks)
+  private val sessionHookCalls: mutable.ArrayBuffer[SessionContext] =
+    mutable.ArrayBuffer.empty
   def setRecoveryActions(list: List[RecoveryAction]): Unit =
     actionsRef.set(list)
+  def setSessionHookResult(result: SessionHookResult): Unit =
+    sessionHookResultRef.set(result)
+  def sessionHookCallList: List[SessionContext] = sessionHookCalls.toList
   def recoveryActions: List[RecoveryAction] = actionsRef.get()
+  def runSessionHooks(ctx: SessionContext): SessionHookResult =
+    sessionHookCalls += ctx
+    sessionHookResultRef.get()
 
 /** On-disk state-file fake. Tests inject a ServerState via `setState`. */
 final class FakeStateReader extends StateReader:
@@ -462,16 +474,91 @@ final class FakeStateReader extends StateReader:
   * (per-issue overrides aren't needed yet; can be added when a command needs).
   */
 final class FakeServerOps extends ServerOps:
+  final case class UpdateLastSeenCall(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  )
   private val statusResultRef: AtomicReference[Either[String, WorktreeStatus]] =
     AtomicReference(Left("Server communication is disabled"))
   private val statusCalls: mutable.ArrayBuffer[String] =
     mutable.ArrayBuffer.empty
+  private val updateLastSeenResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val updateLastSeenCalls: mutable.ArrayBuffer[UpdateLastSeenCall] =
+    mutable.ArrayBuffer.empty
   def setWorktreeStatusResult(result: Either[String, WorktreeStatus]): Unit =
     statusResultRef.set(result)
+  def setUpdateLastSeenResult(result: Either[String, Unit]): Unit =
+    updateLastSeenResultRef.set(result)
   def statusCallList: List[String] = statusCalls.toList
+  def updateLastSeenCallList: List[UpdateLastSeenCall] =
+    updateLastSeenCalls.toList
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
     statusCalls += issueId
     statusResultRef.get()
+  def updateLastSeen(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  ): Either[String, Unit] =
+    updateLastSeenCalls += UpdateLastSeenCall(issueId, path, trackerType, team)
+    updateLastSeenResultRef.get()
+
+/** Tmux session fake. Tracks created sessions, scripts
+  * inside-tmux/current-session state, and records attach/switch calls.
+  */
+final class FakeTmuxOps extends TmuxOps:
+  final case class CreateCall(name: String, workDir: os.Path)
+  private val insideRef: AtomicReference[Boolean] = AtomicReference(false)
+  private val currentRef: AtomicReference[Option[String]] = AtomicReference(
+    None
+  )
+  private val sessions: mutable.Set[String] = mutable.Set.empty
+  private val createCalls: mutable.ArrayBuffer[CreateCall] =
+    mutable.ArrayBuffer.empty
+  private val createResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val attachCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  private val switchCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  private val attachResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val switchResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+
+  def setInsideTmux(value: Boolean): Unit = insideRef.set(value)
+  def setCurrentSessionName(name: Option[String]): Unit = currentRef.set(name)
+  def addSession(name: String): Unit = sessions += name
+  def setCreateResult(result: Either[String, Unit]): Unit =
+    createResultRef.set(result)
+  def setAttachResult(result: Either[String, Unit]): Unit =
+    attachResultRef.set(result)
+  def setSwitchResult(result: Either[String, Unit]): Unit =
+    switchResultRef.set(result)
+
+  def createCallList: List[CreateCall] = createCalls.toList
+  def attachCallList: List[String] = attachCalls.toList
+  def switchCallList: List[String] = switchCalls.toList
+  def hasSession(name: String): Boolean = sessions.contains(name)
+
+  def isInsideTmux: Boolean = insideRef.get()
+  def currentSessionName: Option[String] = currentRef.get()
+  def sessionExists(name: String): Boolean = sessions.contains(name)
+  def createSession(name: String, workDir: os.Path): Either[String, Unit] =
+    createCalls += CreateCall(name, workDir)
+    val result = createResultRef.get()
+    if result.isRight then sessions += name
+    result
+  def attachSession(name: String): Either[String, Unit] =
+    attachCalls += name
+    attachResultRef.get()
+  def switchSession(name: String): Either[String, Unit] =
+    switchCalls += name
+    switchResultRef.get()
 
 /** Default-wired fake env for tests. Construct with the desired starting git
   * state; mutate the individual fakes for finer scenarios.
@@ -488,7 +575,8 @@ final class FakeCommandEnv(
     val hooks: FakeHookOps,
     val stdin: FakeStdin,
     val server: FakeServerOps,
-    val state: FakeStateReader
+    val state: FakeStateReader,
+    val tmux: FakeTmuxOps
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -508,6 +596,7 @@ object FakeCommandEnv:
     val stdin = FakeStdin()
     val server = FakeServerOps()
     val state = FakeStateReader()
+    val tmux = FakeTmuxOps()
     new FakeCommandEnv(
       cwd,
       console,
@@ -520,5 +609,6 @@ object FakeCommandEnv:
       hooks,
       stdin,
       server,
-      state
+      state,
+      tmux
     )

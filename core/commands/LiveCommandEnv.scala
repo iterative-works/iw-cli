@@ -12,7 +12,10 @@ import iw.core.adapters.{
   ProcessResult,
   ReviewStateAdapter,
   ServerClient,
-  StateReader as StateReaderAdapter
+  SessionHookResult,
+  SessionHooks,
+  StateReader as StateReaderAdapter,
+  TmuxAdapter
 }
 import iw.core.model.{
   CICheckResult,
@@ -21,6 +24,7 @@ import iw.core.model.{
   RecoveryAction,
   ReviewStateUpdater,
   ServerState,
+  SessionContext,
   StagingCheck,
   WorktreeStatus
 }
@@ -201,12 +205,34 @@ object LiveHookOps extends HookOps:
   def recoveryActions: List[RecoveryAction] =
     HookDiscovery.collectValues[RecoveryAction]
 
+  def runSessionHooks(ctx: SessionContext): SessionHookResult =
+    SessionHooks.run(ctx)
+
 object LiveServerOps extends ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
     ServerClient.getWorktreeStatus(issueId)
 
+  def updateLastSeen(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  ): Either[String, Unit] =
+    ServerClient.updateLastSeen(issueId, path, trackerType, team)
+
 object LiveStateReader extends StateReader:
   def read(): Either[String, ServerState] = StateReaderAdapter.read()
+
+object LiveTmuxOps extends TmuxOps:
+  def isInsideTmux: Boolean = TmuxAdapter.isInsideTmux
+  def currentSessionName: Option[String] = TmuxAdapter.currentSessionName
+  def sessionExists(name: String): Boolean = TmuxAdapter.sessionExists(name)
+  def createSession(name: String, workDir: os.Path): Either[String, Unit] =
+    TmuxAdapter.createSession(name, workDir)
+  def attachSession(name: String): Either[String, Unit] =
+    TmuxAdapter.attachSession(name)
+  def switchSession(name: String): Either[String, Unit] =
+    TmuxAdapter.switchSession(name)
 
 final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val console: Console = LiveConsole
@@ -220,6 +246,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val stdin: Stdin = LiveStdin
   val server: ServerOps = LiveServerOps
   val state: StateReader = LiveStateReader
+  val tmux: TmuxOps = LiveTmuxOps
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

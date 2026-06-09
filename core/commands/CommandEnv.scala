@@ -3,7 +3,7 @@
 
 package iw.core.commands
 
-import iw.core.adapters.ProcessResult
+import iw.core.adapters.{ProcessResult, SessionHookResult}
 import iw.core.model.{
   CICheckResult,
   ForgeType,
@@ -11,6 +11,7 @@ import iw.core.model.{
   RecoveryAction,
   ReviewStateUpdater,
   ServerState,
+  SessionContext,
   StagingCheck,
   WorktreeStatus
 }
@@ -141,12 +142,30 @@ trait Clock:
   */
 trait HookOps:
   def recoveryActions: List[RecoveryAction]
+  def runSessionHooks(ctx: SessionContext): SessionHookResult
 
 /** Dashboard server query boundary. Live impl hits the local server over HTTP;
   * fakes script responses.
   */
 trait ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus]
+  def updateLastSeen(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  ): Either[String, Unit]
+
+/** Tmux session boundary. Live impl invokes `tmux` via the system shell; fakes
+  * track sessions in memory.
+  */
+trait TmuxOps:
+  def isInsideTmux: Boolean
+  def currentSessionName: Option[String]
+  def sessionExists(name: String): Boolean
+  def createSession(name: String, workDir: os.Path): Either[String, Unit]
+  def attachSession(name: String): Either[String, Unit]
+  def switchSession(name: String): Either[String, Unit]
 
 /** Persistent state-file reader (the server's on-disk state.json). */
 trait StateReader:
@@ -165,3 +184,4 @@ trait CommandEnv:
   def stdin: Stdin
   def server: ServerOps
   def state: StateReader
+  def tmux: TmuxOps
