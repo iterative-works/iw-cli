@@ -225,6 +225,29 @@ object LiveServerOps extends ServerOps:
   def unregisterWorktree(issueId: String): Either[String, Unit] =
     ServerClient.unregisterWorktree(issueId)
 
+  def registerWorktree(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  ): Either[String, Unit] =
+    ServerClient.registerWorktree(issueId, path, trackerType, team)
+
+  def registerProject(
+      projectName: String,
+      path: String,
+      trackerType: String,
+      team: String,
+      trackerUrl: Option[String]
+  ): Either[String, Unit] =
+    ServerClient.registerProject(
+      projectName,
+      path,
+      trackerType,
+      team,
+      trackerUrl
+    )
+
 object LiveStateReader extends StateReader:
   def read(): Either[String, ServerState] = StateReaderAdapter.read()
 

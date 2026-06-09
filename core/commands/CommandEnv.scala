@@ -157,6 +157,19 @@ trait ServerOps:
       team: String
   ): Either[String, Unit]
   def unregisterWorktree(issueId: String): Either[String, Unit]
+  def registerWorktree(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  ): Either[String, Unit]
+  def registerProject(
+      projectName: String,
+      path: String,
+      trackerType: String,
+      team: String,
+      trackerUrl: Option[String]
+  ): Either[String, Unit]
 
 /** Tmux session boundary. Live impl invokes `tmux` via the system shell; fakes
   * track sessions in memory.

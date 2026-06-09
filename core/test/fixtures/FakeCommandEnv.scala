@@ -527,6 +527,64 @@ final class FakeServerOps extends ServerOps:
     unregisterCalls += issueId
     unregisterResultRef.get()
 
+  final case class RegisterWorktreeCall(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  )
+  final case class RegisterProjectCall(
+      projectName: String,
+      path: String,
+      trackerType: String,
+      team: String,
+      trackerUrl: Option[String]
+  )
+  private val registerWorktreeResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val registerProjectResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val registerWorktreeCalls: mutable.ArrayBuffer[RegisterWorktreeCall] =
+    mutable.ArrayBuffer.empty
+  private val registerProjectCalls: mutable.ArrayBuffer[RegisterProjectCall] =
+    mutable.ArrayBuffer.empty
+  def setRegisterWorktreeResult(result: Either[String, Unit]): Unit =
+    registerWorktreeResultRef.set(result)
+  def setRegisterProjectResult(result: Either[String, Unit]): Unit =
+    registerProjectResultRef.set(result)
+  def registerWorktreeCallList: List[RegisterWorktreeCall] =
+    registerWorktreeCalls.toList
+  def registerProjectCallList: List[RegisterProjectCall] =
+    registerProjectCalls.toList
+  def registerWorktree(
+      issueId: String,
+      path: String,
+      trackerType: String,
+      team: String
+  ): Either[String, Unit] =
+    registerWorktreeCalls += RegisterWorktreeCall(
+      issueId,
+      path,
+      trackerType,
+      team
+    )
+    registerWorktreeResultRef.get()
+  def registerProject(
+      projectName: String,
+      path: String,
+      trackerType: String,
+      team: String,
+      trackerUrl: Option[String]
+  ): Either[String, Unit] =
+    registerProjectCalls += RegisterProjectCall(
+      projectName,
+      path,
+      trackerType,
+      team,
+      trackerUrl
+    )
+    registerProjectResultRef.get()
+
 /** Tmux session fake. Tracks created sessions, scripts
   * inside-tmux/current-session state, and records attach/switch calls.
   */
