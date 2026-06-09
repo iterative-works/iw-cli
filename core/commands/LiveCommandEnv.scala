@@ -273,6 +273,28 @@ object LivePrompt extends Prompt:
 object LiveWorktreeOps extends WorktreeOps:
   def exists(path: os.Path, workDir: os.Path): Boolean =
     iw.core.adapters.GitWorktreeAdapter.worktreeExists(path, workDir)
+  def branchExists(branchName: String, workDir: os.Path): Boolean =
+    iw.core.adapters.GitWorktreeAdapter.branchExists(branchName, workDir)
+  def create(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path
+  ): Either[String, Unit] =
+    iw.core.adapters.GitWorktreeAdapter.createWorktree(
+      targetPath,
+      branchName,
+      workDir
+    )
+  def createForBranch(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path
+  ): Either[String, Unit] =
+    iw.core.adapters.GitWorktreeAdapter.createWorktreeForBranch(
+      targetPath,
+      branchName,
+      workDir
+    )
   def remove(
       path: os.Path,
       workDir: os.Path,

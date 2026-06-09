@@ -195,6 +195,17 @@ trait Prompt:
   */
 trait WorktreeOps:
   def exists(path: os.Path, workDir: os.Path): Boolean
+  def branchExists(branchName: String, workDir: os.Path): Boolean
+  def create(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path
+  ): Either[String, Unit]
+  def createForBranch(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path
+  ): Either[String, Unit]
   def remove(
       path: os.Path,
       workDir: os.Path,

@@ -198,7 +198,7 @@ Batch C — session/worktree family (4.4.11–4.4.15):
 - [x] 4.4.12 `open` — adds `TmuxOps`
 - [x] 4.4.13 `rm` — adds `Prompt` capability (and `WorktreeOps`; earlier than planned because rm also needs it)
 - [x] 4.4.14 `register` — `ServerOps` + `GitOps`
-- [ ] 4.4.15 `start` — largest worktree command; adds `WorktreeOps`, exercises `TmuxOps` + `ServerOps` + `HookOps` together
+- [x] 4.4.15 `start` — exercises `WorktreeOps` (already added in 4.4.13) + `TmuxOps` + `ServerOps` + `HookOps`
 
 Batch D — tracker-heavy + interactive (4.4.16–4.4.22):
 - [ ] 4.4.16 `doctor` — adds `HookOps` integration (much already in `DoctorOutput`); extends `GitOps`

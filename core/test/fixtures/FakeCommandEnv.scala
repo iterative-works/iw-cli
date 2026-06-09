@@ -670,16 +670,63 @@ final class FakePrompt extends Prompt:
   */
 final class FakeWorktreeOps extends WorktreeOps:
   final case class RemoveCall(path: os.Path, workDir: os.Path, force: Boolean)
+  final case class CreateCall(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path,
+      forExistingBranch: Boolean
+  )
   private val tracked: mutable.Set[os.Path] = mutable.Set.empty
+  private val branches: mutable.Set[String] = mutable.Set.empty
   private val removeCalls: mutable.ArrayBuffer[RemoveCall] =
+    mutable.ArrayBuffer.empty
+  private val createCalls: mutable.ArrayBuffer[CreateCall] =
     mutable.ArrayBuffer.empty
   private val removeResultRef: AtomicReference[Either[String, Unit]] =
     AtomicReference(Right(()))
+  private val createResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
   def addWorktree(path: os.Path): Unit = tracked += path
+  def addBranch(name: String): Unit = branches += name
   def setRemoveResult(result: Either[String, Unit]): Unit =
     removeResultRef.set(result)
+  def setCreateResult(result: Either[String, Unit]): Unit =
+    createResultRef.set(result)
   def removeCallList: List[RemoveCall] = removeCalls.toList
+  def createCallList: List[CreateCall] = createCalls.toList
   def exists(path: os.Path, workDir: os.Path): Boolean = tracked.contains(path)
+  def branchExists(branchName: String, workDir: os.Path): Boolean =
+    branches.contains(branchName)
+  def create(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path
+  ): Either[String, Unit] =
+    createCalls += CreateCall(
+      targetPath,
+      branchName,
+      workDir,
+      forExistingBranch = false
+    )
+    val result = createResultRef.get()
+    if result.isRight then
+      tracked += targetPath
+      branches += branchName
+    result
+  def createForBranch(
+      targetPath: os.Path,
+      branchName: String,
+      workDir: os.Path
+  ): Either[String, Unit] =
+    createCalls += CreateCall(
+      targetPath,
+      branchName,
+      workDir,
+      forExistingBranch = true
+    )
+    val result = createResultRef.get()
+    if result.isRight then tracked += targetPath
+    result
   def remove(
       path: os.Path,
       workDir: os.Path,
