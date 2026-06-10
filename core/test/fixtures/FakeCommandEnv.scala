@@ -3,7 +3,7 @@
 
 package iw.core.test.fixtures
 
-import iw.core.adapters.{ProcessResult, SessionHookResult}
+import iw.core.adapters.{CreatedIssue, ProcessResult, SessionHookResult}
 import iw.core.commands.{
   Clock,
   CommandEnv,
@@ -24,6 +24,7 @@ import iw.core.commands.{
 import iw.core.model.{
   Check,
   CICheckResult,
+  FeedbackParser,
   FixAction,
   ForgeType,
   GitRemote,
@@ -384,6 +385,36 @@ final class FakeTracker extends TrackerOps:
     checkStatusCalls += prNumber
     if checkStatusQueue.nonEmpty then checkStatusQueue.dequeue()
     else checkStatusDefault.get()
+
+  final case class FeedbackIssueCall(
+      repository: String,
+      title: String,
+      description: String,
+      issueType: FeedbackParser.IssueType
+  )
+  private val feedbackIssueResultRef
+      : AtomicReference[Either[String, CreatedIssue]] =
+    AtomicReference(Right(CreatedIssue("1", "https://example.com/issue/1")))
+  private val feedbackIssueCalls: mutable.ArrayBuffer[FeedbackIssueCall] =
+    mutable.ArrayBuffer.empty
+  def setCreateFeedbackIssueResult(
+      result: Either[String, CreatedIssue]
+  ): Unit = feedbackIssueResultRef.set(result)
+  def feedbackIssueCallList: List[FeedbackIssueCall] =
+    feedbackIssueCalls.toList
+  def createFeedbackIssue(
+      repository: String,
+      title: String,
+      description: String,
+      issueType: FeedbackParser.IssueType
+  ): Either[String, CreatedIssue] =
+    feedbackIssueCalls += FeedbackIssueCall(
+      repository,
+      title,
+      description,
+      issueType
+    )
+    feedbackIssueResultRef.get()
 
   def prCallList: List[PrCall] = prCalls.toList
   def mergeCallList: List[MergeCall] = mergeCalls.toList

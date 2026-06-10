@@ -3,10 +3,11 @@
 
 package iw.core.commands
 
-import iw.core.adapters.{ProcessResult, SessionHookResult}
+import iw.core.adapters.{CreatedIssue, ProcessResult, SessionHookResult}
 import iw.core.model.{
   Check,
   CICheckResult,
+  FeedbackParser,
   FixAction,
   ForgeType,
   GitRemote,
@@ -127,6 +128,13 @@ trait TrackerOps:
       repository: String,
       gitlabHost: Option[String]
   ): Either[String, List[CICheckResult]]
+
+  def createFeedbackIssue(
+      repository: String,
+      title: String,
+      description: String,
+      issueType: FeedbackParser.IssueType
+  ): Either[String, CreatedIssue]
 
 /** Bundle of all capabilities a command needs.
   *

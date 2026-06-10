@@ -4,6 +4,7 @@
 package iw.core.commands
 
 import iw.core.adapters.{
+  CreatedIssue,
   GitAdapter,
   GitHubClient,
   GitLabClient,
@@ -20,6 +21,7 @@ import iw.core.adapters.{
 import iw.core.model.{
   Check,
   CICheckResult,
+  FeedbackParser,
   FixAction,
   ForgeType,
   GitRemote,
@@ -202,6 +204,14 @@ object LiveTrackerOps extends TrackerOps:
           repository,
           execCommand = GitLabClient.execCommandWithHost(gitlabHost)
         )
+
+  def createFeedbackIssue(
+      repository: String,
+      title: String,
+      description: String,
+      issueType: FeedbackParser.IssueType
+  ): Either[String, CreatedIssue] =
+    GitHubClient.createIssue(repository, title, description, issueType)
 
 object LiveClock extends Clock:
   def now: Long = System.currentTimeMillis()
