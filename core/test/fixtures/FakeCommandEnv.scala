@@ -8,6 +8,7 @@ import iw.core.commands.{
   Clock,
   CommandEnv,
   Console,
+  EnvVars,
   FileSystem,
   GitOps,
   HookOps,
@@ -22,12 +23,15 @@ import iw.core.commands.{
   WorktreeOps
 }
 import iw.core.model.{
+  ApiToken,
   Check,
   CICheckResult,
   FeedbackParser,
   FixAction,
   ForgeType,
   GitRemote,
+  Issue,
+  IssueId,
   RecoveryAction,
   ReviewStateUpdater,
   ReviewStateValidator,
@@ -416,6 +420,138 @@ final class FakeTracker extends TrackerOps:
     )
     feedbackIssueResultRef.get()
 
+  final case class FetchIssueCall(
+      kind: String,
+      issueId: String,
+      extras: Map[String, String]
+  )
+  final case class CreateIssueCall(
+      kind: String,
+      title: String,
+      description: String,
+      extras: Map[String, String]
+  )
+  private val fetchIssueCalls: mutable.ArrayBuffer[FetchIssueCall] =
+    mutable.ArrayBuffer.empty
+  private val createIssueCalls: mutable.ArrayBuffer[CreateIssueCall] =
+    mutable.ArrayBuffer.empty
+  private val fetchIssueResultRef: AtomicReference[Either[String, Issue]] =
+    AtomicReference(
+      Right(Issue("FAKE-1", "Fake issue", "Open", None, Some("Description")))
+    )
+  private val createIssueResultRef
+      : AtomicReference[Either[String, CreatedIssue]] =
+    AtomicReference(Right(CreatedIssue("99", "https://example.com/issue/99")))
+
+  def setFetchIssueResult(result: Either[String, Issue]): Unit =
+    fetchIssueResultRef.set(result)
+  def setCreateIssueResult(result: Either[String, CreatedIssue]): Unit =
+    createIssueResultRef.set(result)
+  def fetchIssueCallList: List[FetchIssueCall] = fetchIssueCalls.toList
+  def createIssueCallList: List[CreateIssueCall] = createIssueCalls.toList
+
+  def fetchLinearIssue(
+      issueId: IssueId,
+      token: ApiToken
+  ): Either[String, Issue] =
+    fetchIssueCalls += FetchIssueCall(
+      "linear",
+      issueId.value,
+      Map("token" -> token.value)
+    )
+    fetchIssueResultRef.get()
+
+  def fetchYouTrackIssue(
+      issueId: IssueId,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, Issue] =
+    fetchIssueCalls += FetchIssueCall(
+      "youtrack",
+      issueId.value,
+      Map("baseUrl" -> baseUrl, "token" -> token.value)
+    )
+    fetchIssueResultRef.get()
+
+  def fetchGitHubIssue(
+      issueId: String,
+      repository: String
+  ): Either[String, Issue] =
+    fetchIssueCalls += FetchIssueCall(
+      "github",
+      issueId,
+      Map("repository" -> repository)
+    )
+    fetchIssueResultRef.get()
+
+  def fetchGitLabIssue(
+      issueId: String,
+      repository: String,
+      gitlabHost: Option[String]
+  ): Either[String, Issue] =
+    fetchIssueCalls += FetchIssueCall(
+      "gitlab",
+      issueId,
+      Map("repository" -> repository, "gitlabHost" -> gitlabHost.getOrElse(""))
+    )
+    fetchIssueResultRef.get()
+
+  def createLinearIssue(
+      title: String,
+      description: String,
+      teamId: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue] =
+    createIssueCalls += CreateIssueCall(
+      "linear",
+      title,
+      description,
+      Map("teamId" -> teamId, "token" -> token.value)
+    )
+    createIssueResultRef.get()
+
+  def createYouTrackIssue(
+      project: String,
+      title: String,
+      description: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue] =
+    createIssueCalls += CreateIssueCall(
+      "youtrack",
+      title,
+      description,
+      Map("project" -> project, "baseUrl" -> baseUrl, "token" -> token.value)
+    )
+    createIssueResultRef.get()
+
+  def createGitHubIssue(
+      repository: String,
+      title: String,
+      description: String
+  ): Either[String, CreatedIssue] =
+    createIssueCalls += CreateIssueCall(
+      "github",
+      title,
+      description,
+      Map("repository" -> repository)
+    )
+    createIssueResultRef.get()
+
+  def createGitLabIssue(
+      repository: String,
+      title: String,
+      description: String,
+      gitlabHost: Option[String]
+  ): Either[String, CreatedIssue] =
+    createIssueCalls += CreateIssueCall(
+      "gitlab",
+      title,
+      description,
+      Map("repository" -> repository, "gitlabHost" -> gitlabHost.getOrElse(""))
+    )
+    createIssueResultRef.get()
+
   def prCallList: List[PrCall] = prCalls.toList
   def mergeCallList: List[MergeCall] = mergeCalls.toList
   def mergeWithDeleteCallList: List[MergeCall] = mergeWithDeleteCalls.toList
@@ -515,6 +651,17 @@ final class FakeHookOps extends HookOps:
     sessionHookResultRef.get()
   def discoverChecks: List[Check] = checksRef.get()
   def discoverFixActions: List[FixAction] = fixActionsRef.get()
+
+/** Environment-variable lookup fake. Tests `setEnv("LINEAR_API_TOKEN" -> "x")`
+  * to script tokens.
+  */
+final class FakeEnvVars extends EnvVars:
+  private val entries: mutable.Map[String, String] = mutable.Map.empty
+  def setEnv(name: String, value: String): Unit = entries(name) = value
+  def setEnvs(values: (String, String)*): Unit =
+    values.foreach((k, v) => entries(k) = v)
+  def clear(): Unit = entries.clear()
+  def get(name: String): Option[String] = entries.get(name)
 
 /** On-disk state-file fake. Tests inject a ServerState via `setState`. */
 final class FakeStateReader extends StateReader:
@@ -800,7 +947,8 @@ final class FakeCommandEnv(
     val state: FakeStateReader,
     val tmux: FakeTmuxOps,
     val prompt: FakePrompt,
-    val worktree: FakeWorktreeOps
+    val worktree: FakeWorktreeOps,
+    val envVars: FakeEnvVars
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -823,6 +971,7 @@ object FakeCommandEnv:
     val tmux = FakeTmuxOps()
     val prompt = FakePrompt()
     val worktree = FakeWorktreeOps()
+    val envVars = FakeEnvVars()
     new FakeCommandEnv(
       cwd,
       console,
@@ -838,5 +987,6 @@ object FakeCommandEnv:
       state,
       tmux,
       prompt,
-      worktree
+      worktree,
+      envVars
     )

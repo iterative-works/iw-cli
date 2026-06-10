@@ -5,12 +5,15 @@ package iw.core.commands
 
 import iw.core.adapters.{CreatedIssue, ProcessResult, SessionHookResult}
 import iw.core.model.{
+  ApiToken,
   Check,
   CICheckResult,
   FeedbackParser,
   FixAction,
   ForgeType,
   GitRemote,
+  Issue,
+  IssueId,
   RecoveryAction,
   ReviewStateUpdater,
   ServerState,
@@ -136,6 +139,56 @@ trait TrackerOps:
       issueType: FeedbackParser.IssueType
   ): Either[String, CreatedIssue]
 
+  def fetchLinearIssue(
+      issueId: IssueId,
+      token: ApiToken
+  ): Either[String, Issue]
+
+  def fetchYouTrackIssue(
+      issueId: IssueId,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, Issue]
+
+  def fetchGitHubIssue(
+      issueId: String,
+      repository: String
+  ): Either[String, Issue]
+
+  def fetchGitLabIssue(
+      issueId: String,
+      repository: String,
+      gitlabHost: Option[String]
+  ): Either[String, Issue]
+
+  def createLinearIssue(
+      title: String,
+      description: String,
+      teamId: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue]
+
+  def createYouTrackIssue(
+      project: String,
+      title: String,
+      description: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue]
+
+  def createGitHubIssue(
+      repository: String,
+      title: String,
+      description: String
+  ): Either[String, CreatedIssue]
+
+  def createGitLabIssue(
+      repository: String,
+      title: String,
+      description: String,
+      gitlabHost: Option[String]
+  ): Either[String, CreatedIssue]
+
 /** Bundle of all capabilities a command needs.
   *
   * Commands take a `CommandEnv` and return `CommandResult`. Production code
@@ -229,6 +282,12 @@ trait WorktreeOps:
 trait StateReader:
   def read(): Either[String, ServerState]
 
+/** Environment-variable lookup boundary. Live impl reads `sys.env`; fakes hold
+  * a scriptable map.
+  */
+trait EnvVars:
+  def get(name: String): Option[String]
+
 trait CommandEnv:
   def cwd: os.Path
   def console: Console
@@ -245,3 +304,4 @@ trait CommandEnv:
   def tmux: TmuxOps
   def prompt: Prompt
   def worktree: WorktreeOps
+  def envVars: EnvVars

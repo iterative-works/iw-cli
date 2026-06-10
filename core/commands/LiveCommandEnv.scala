@@ -9,6 +9,7 @@ import iw.core.adapters.{
   GitHubClient,
   GitLabClient,
   HookDiscovery,
+  LinearClient,
   ProcessAdapter,
   ProcessResult,
   ReviewStateAdapter,
@@ -16,15 +17,19 @@ import iw.core.adapters.{
   SessionHookResult,
   SessionHooks,
   StateReader as StateReaderAdapter,
-  TmuxAdapter
+  TmuxAdapter,
+  YouTrackClient
 }
 import iw.core.model.{
+  ApiToken,
   Check,
   CICheckResult,
   FeedbackParser,
   FixAction,
   ForgeType,
   GitRemote,
+  Issue,
+  IssueId,
   RecoveryAction,
   ReviewStateUpdater,
   ServerState,
@@ -213,6 +218,73 @@ object LiveTrackerOps extends TrackerOps:
   ): Either[String, CreatedIssue] =
     GitHubClient.createIssue(repository, title, description, issueType)
 
+  def fetchLinearIssue(
+      issueId: IssueId,
+      token: ApiToken
+  ): Either[String, Issue] =
+    LinearClient.fetchIssue(issueId, token)
+
+  def fetchYouTrackIssue(
+      issueId: IssueId,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, Issue] =
+    YouTrackClient.fetchIssue(issueId, baseUrl, token)
+
+  def fetchGitHubIssue(
+      issueId: String,
+      repository: String
+  ): Either[String, Issue] =
+    GitHubClient.fetchIssue(issueId, repository)
+
+  def fetchGitLabIssue(
+      issueId: String,
+      repository: String,
+      gitlabHost: Option[String]
+  ): Either[String, Issue] =
+    GitLabClient.fetchIssue(
+      issueId,
+      repository,
+      execCommand = GitLabClient.execCommandWithHost(gitlabHost)
+    )
+
+  def createLinearIssue(
+      title: String,
+      description: String,
+      teamId: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue] =
+    LinearClient.createIssue(title, description, teamId, token)
+
+  def createYouTrackIssue(
+      project: String,
+      title: String,
+      description: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue] =
+    YouTrackClient.createIssue(project, title, description, baseUrl, token)
+
+  def createGitHubIssue(
+      repository: String,
+      title: String,
+      description: String
+  ): Either[String, CreatedIssue] =
+    GitHubClient.createIssue(repository, title, description)
+
+  def createGitLabIssue(
+      repository: String,
+      title: String,
+      description: String,
+      gitlabHost: Option[String]
+  ): Either[String, CreatedIssue] =
+    GitLabClient.createIssue(
+      repository,
+      title,
+      description,
+      execCommand = GitLabClient.execCommandWithHost(gitlabHost)
+    )
+
 object LiveClock extends Clock:
   def now: Long = System.currentTimeMillis()
   def sleep(ms: Long): Unit = Thread.sleep(ms)
@@ -270,6 +342,9 @@ object LiveServerOps extends ServerOps:
 
 object LiveStateReader extends StateReader:
   def read(): Either[String, ServerState] = StateReaderAdapter.read()
+
+object LiveEnvVars extends EnvVars:
+  def get(name: String): Option[String] = sys.env.get(name)
 
 object LiveTmuxOps extends TmuxOps:
   def isInsideTmux: Boolean = TmuxAdapter.isInsideTmux
@@ -337,6 +412,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val tmux: TmuxOps = LiveTmuxOps
   val prompt: Prompt = LivePrompt
   val worktree: WorktreeOps = LiveWorktreeOps
+  val envVars: EnvVars = LiveEnvVars
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)
