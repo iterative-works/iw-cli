@@ -9,6 +9,7 @@ import iw.core.commands.{
   CommandEnv,
   ConfigOps,
   Console,
+  DashboardLifecycle,
   EnvVars,
   FileSystem,
   GitOps,
@@ -16,6 +17,7 @@ import iw.core.commands.{
   Process,
   Prompt,
   ReviewStateOps,
+  ServerConfigOps,
   ServerOps,
   StateReader,
   Stdin,
@@ -37,6 +39,7 @@ import iw.core.model.{
   RecoveryAction,
   ReviewStateUpdater,
   ReviewStateValidator,
+  ServerConfig,
   ServerState,
   SessionContext,
   StagingCheck,
@@ -80,6 +83,12 @@ final class FakeFileSystem extends FileSystem:
 
   def write(path: os.Path, content: String): Either[String, Unit] =
     files(path) = content
+    Right(())
+
+  private val createdDirs: mutable.Set[os.Path] = mutable.Set.empty
+  def directoryList: List[os.Path] = createdDirs.toList
+  def makeDirAll(path: os.Path): Either[String, Unit] =
+    createdDirs += path
     Right(())
 
 /** Scriptable git fake. Default behavior covers the happy path; tests can
@@ -665,6 +674,94 @@ final class FakeEnvVars extends EnvVars:
   def clear(): Unit = entries.clear()
   def get(name: String): Option[String] = entries.get(name)
 
+/** Dashboard server-config fake. Tests `put(path, config)` to seed, or write
+  * via the trait surface.
+  */
+final class FakeServerConfigOps extends ServerConfigOps:
+  private val entries: mutable.Map[String, ServerConfig] = mutable.Map.empty
+  private val writeCalls: mutable.ArrayBuffer[(String, ServerConfig)] =
+    mutable.ArrayBuffer.empty
+  private val writeResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val getOrCreateOverrideRef
+      : AtomicReference[Option[Either[String, ServerConfig]]] =
+    AtomicReference(None)
+  def put(path: String, config: ServerConfig): Unit = entries(path) = config
+  def get(path: String): Option[ServerConfig] = entries.get(path)
+  def setWriteResult(result: Either[String, Unit]): Unit =
+    writeResultRef.set(result)
+  def setGetOrCreateResult(result: Either[String, ServerConfig]): Unit =
+    getOrCreateOverrideRef.set(Some(result))
+  def writeCallList: List[(String, ServerConfig)] = writeCalls.toList
+  def getOrCreateDefault(path: String): Either[String, ServerConfig] =
+    getOrCreateOverrideRef.get() match
+      case Some(scripted) => scripted
+      case None           =>
+        entries.get(path) match
+          case Some(c) => Right(c)
+          case None    =>
+            val defaultConfig =
+              ServerConfig(port = 7384, hosts = List("localhost"))
+            entries(path) = defaultConfig
+            Right(defaultConfig)
+  def write(config: ServerConfig, path: String): Either[String, Unit] =
+    writeCalls += ((path, config))
+    val result = writeResultRef.get()
+    if result.isRight then entries(path) = config
+    result
+
+/** Dashboard lifecycle fake. */
+final class FakeDashboardLifecycle extends DashboardLifecycle:
+  final case class StartCall(
+      cmd: Seq[String],
+      healthUrl: String,
+      timeoutMs: Long
+  )
+  private val runningRef: AtomicReference[Boolean] = AtomicReference(false)
+  private val startResultRef: AtomicReference[Either[String, Int]] =
+    AtomicReference(Right(0))
+  private val portRef: AtomicReference[Int] = AtomicReference(12345)
+  private val syncResultRef: AtomicReference[Int] = AtomicReference(0)
+  private val runningCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  private val startCalls: mutable.ArrayBuffer[StartCall] =
+    mutable.ArrayBuffer.empty
+  private val syncCalls: mutable.ArrayBuffer[Seq[String]] =
+    mutable.ArrayBuffer.empty
+  private val browserCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+
+  def setServerRunning(value: Boolean): Unit = runningRef.set(value)
+  def setStartResult(result: Either[String, Int]): Unit =
+    startResultRef.set(result)
+  def setAvailablePort(port: Int): Unit = portRef.set(port)
+  def setSyncResult(code: Int): Unit = syncResultRef.set(code)
+  def isServerRunningCallList: List[String] = runningCalls.toList
+  def startCallList: List[StartCall] = startCalls.toList
+  def syncCallList: List[Seq[String]] = syncCalls.toList
+  def browserCallList: List[String] = browserCalls.toList
+
+  def isServerRunning(healthUrl: String): Boolean =
+    runningCalls += healthUrl
+    runningRef.get()
+  def runSync(cmd: Seq[String]): Int =
+    syncCalls += cmd
+    syncResultRef.get()
+  def startServerAndBlock(
+      cmd: Seq[String],
+      healthUrl: String,
+      timeoutMs: Long,
+      onReady: () => Unit
+  ): Either[String, Int] =
+    startCalls += StartCall(cmd, healthUrl, timeoutMs)
+    val result = startResultRef.get()
+    if result.isRight then onReady()
+    result
+  def openBrowser(url: String): Unit =
+    browserCalls += url
+    ()
+  def findAvailablePort(): Int = portRef.get()
+
 /** Project-config fake. Stores written configs keyed by path; read fails unless
   * a prior write happened or `put` seeded the entry.
   */
@@ -988,7 +1085,9 @@ final class FakeCommandEnv(
     val prompt: FakePrompt,
     val worktree: FakeWorktreeOps,
     val envVars: FakeEnvVars,
-    val config: FakeConfigOps
+    val config: FakeConfigOps,
+    val serverConfig: FakeServerConfigOps,
+    val dashboard: FakeDashboardLifecycle
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -1013,6 +1112,8 @@ object FakeCommandEnv:
     val worktree = FakeWorktreeOps()
     val envVars = FakeEnvVars()
     val config = FakeConfigOps()
+    val serverConfig = FakeServerConfigOps()
+    val dashboard = FakeDashboardLifecycle()
     new FakeCommandEnv(
       cwd,
       console,
@@ -1030,5 +1131,7 @@ object FakeCommandEnv:
       prompt,
       worktree,
       envVars,
-      config
+      config,
+      serverConfig,
+      dashboard
     )

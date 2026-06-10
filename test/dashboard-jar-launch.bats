@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
-# PURPOSE: Verify that iw dashboard launches via java -jar with the expected CLI surface
-# PURPOSE: Checks that expected flags are present and help exits 0
+# PURPOSE: E2E smoke for iw dashboard (full round-trip through scala-cli + live adapters)
+# PURPOSE: Launcher decision logic covered by core/test/DashboardHarnessTest.scala;
+# PURPOSE: dashboard server HTTP behavior covered by dashboard-dev-mode.bats and dashboard-dev-gate.bats
 
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 
@@ -11,6 +12,7 @@ setup() {
 }
 
 teardown() {
+    cd /
     rm -rf "$TEST_DIR"
 }
 

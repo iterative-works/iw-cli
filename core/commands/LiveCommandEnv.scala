@@ -15,6 +15,7 @@ import iw.core.adapters.{
   ProcessResult,
   ReviewStateAdapter,
   ServerClient,
+  ServerConfigRepository,
   SessionHookResult,
   SessionHooks,
   StateReader as StateReaderAdapter,
@@ -34,11 +35,14 @@ import iw.core.model.{
   ProjectConfiguration,
   RecoveryAction,
   ReviewStateUpdater,
+  ServerConfig,
   ServerState,
   SessionContext,
   StagingCheck,
   WorktreeStatus
 }
+import scala.util.Try
+import sttp.client4.quick.*
 
 object LiveConsole extends Console:
   def out(line: String): Unit = System.out.println(line)
@@ -56,6 +60,11 @@ object LiveFileSystem extends FileSystem:
       os.write.over(path, content)
       Right(())
     catch case e: Exception => Left(s"Failed to write $path: ${e.getMessage}")
+  def makeDirAll(path: os.Path): Either[String, Unit] =
+    try
+      os.makeDir.all(path)
+      Right(())
+    catch case e: Exception => Left(s"Failed to create $path: ${e.getMessage}")
 
 object LiveGitOps extends GitOps:
   def getCurrentBranch(dir: os.Path): Either[String, String] =
@@ -369,6 +378,69 @@ object LivePrompt extends Prompt:
   def ask(question: String): String =
     iw.core.adapters.Prompt.ask(question)
 
+object LiveServerConfigOps extends ServerConfigOps:
+  def getOrCreateDefault(path: String): Either[String, ServerConfig] =
+    ServerConfigRepository.getOrCreateDefault(path)
+  def write(config: ServerConfig, path: String): Either[String, Unit] =
+    ServerConfigRepository.write(config, path)
+
+object LiveDashboardLifecycle extends DashboardLifecycle:
+  def isServerRunning(healthUrl: String): Boolean =
+    Try {
+      val response =
+        quickRequest.get(sttp.model.Uri.unsafeParse(healthUrl)).send()
+      response.code.code == 200
+    }.getOrElse(false)
+
+  def runSync(cmd: Seq[String]): Int =
+    val pb = new ProcessBuilder(cmd*)
+    pb.inheritIO()
+    val process = pb.start()
+    process.waitFor()
+
+  def startServerAndBlock(
+      cmd: Seq[String],
+      healthUrl: String,
+      timeoutMs: Long,
+      onReady: () => Unit
+  ): Either[String, Int] =
+    val pb = new ProcessBuilder(cmd*)
+    pb.inheritIO()
+    val process = pb.start()
+    val start = System.currentTimeMillis()
+    @annotation.tailrec
+    def poll(): Boolean =
+      if System.currentTimeMillis() - start >= timeoutMs then false
+      else if isServerRunning(healthUrl) then true
+      else
+        Thread.sleep(200)
+        poll()
+    if poll() then
+      onReady()
+      Right(process.waitFor())
+    else
+      process.destroy()
+      Left("Server failed to start within timeout")
+
+  def openBrowser(url: String): Unit =
+    val osName = System.getProperty("os.name").toLowerCase
+    val command =
+      if osName.contains("mac") then Some(Seq("open", url))
+      else if osName.contains("nix") || osName.contains("nux") || osName
+          .contains("aix")
+      then Some(Seq("xdg-open", url))
+      else if osName.contains("win") then Some(Seq("cmd", "/c", "start", url))
+      else None
+    command.foreach { cmd =>
+      Try(new ProcessBuilder(cmd*).start())
+    }
+
+  def findAvailablePort(): Int =
+    val socket = new java.net.ServerSocket(0)
+    val port = socket.getLocalPort
+    socket.close()
+    port
+
 object LiveConfigOps extends ConfigOps:
   def read(path: os.Path): Either[String, ProjectConfiguration] =
     ConfigFileRepository.read(path) match
@@ -433,6 +505,8 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val worktree: WorktreeOps = LiveWorktreeOps
   val envVars: EnvVars = LiveEnvVars
   val config: ConfigOps = LiveConfigOps
+  val serverConfig: ServerConfigOps = LiveServerConfigOps
+  val dashboard: DashboardLifecycle = LiveDashboardLifecycle
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

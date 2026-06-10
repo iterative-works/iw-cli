@@ -17,6 +17,7 @@ import iw.core.model.{
   ProjectConfiguration,
   RecoveryAction,
   ReviewStateUpdater,
+  ServerConfig,
   ServerState,
   SessionContext,
   StagingCheck,
@@ -46,6 +47,7 @@ trait FileSystem:
   def exists(path: os.Path): Boolean
   def read(path: os.Path): Either[String, String]
   def write(path: os.Path, content: String): Either[String, Unit]
+  def makeDirAll(path: os.Path): Either[String, Unit]
 
 /** Git operations used by phase commands. Mirrors a subset of `GitAdapter`. */
 trait GitOps:
@@ -265,6 +267,34 @@ trait ConfigOps:
   def read(path: os.Path): Either[String, ProjectConfiguration]
   def write(path: os.Path, config: ProjectConfiguration): Either[String, Unit]
 
+/** Dashboard server-config (`~/.local/share/iw/server/config.json`) boundary.
+  * Live impl wraps `ServerConfigRepository`; fakes keep an in-memory map.
+  */
+trait ServerConfigOps:
+  def getOrCreateDefault(path: String): Either[String, ServerConfig]
+  def write(config: ServerConfig, path: String): Either[String, Unit]
+
+/** Dashboard server lifecycle boundary. Live impl spawns the server jar, probes
+  * /health, opens the browser; fake records calls and scripts results.
+  */
+trait DashboardLifecycle:
+  def isServerRunning(healthUrl: String): Boolean
+  def runSync(cmd: Seq[String]): Int
+
+  /** Spawn the server in the foreground, probe `healthUrl` until ready (or
+    * `timeoutMs`). On readiness, invoke `onReady` and then block until the
+    * server exits. Returns `Right(exitCode)` if the server started, or
+    * `Left(error)` on timeout / startup failure.
+    */
+  def startServerAndBlock(
+      cmd: Seq[String],
+      healthUrl: String,
+      timeoutMs: Long,
+      onReady: () => Unit
+  ): Either[String, Int]
+  def openBrowser(url: String): Unit
+  def findAvailablePort(): Int
+
 /** Git worktree boundary. Live impl shells out to `git worktree`; fakes track
   * worktrees in memory.
   */
@@ -315,3 +345,5 @@ trait CommandEnv:
   def worktree: WorktreeOps
   def envVars: EnvVars
   def config: ConfigOps
+  def serverConfig: ServerConfigOps
+  def dashboard: DashboardLifecycle
