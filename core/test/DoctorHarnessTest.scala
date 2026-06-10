@@ -12,6 +12,8 @@ import iw.core.model.{
 }
 import iw.core.test.fixtures.FakeCommandEnv
 
+import java.util.concurrent.atomic.AtomicReference
+
 class DoctorHarnessTest extends munit.FunSuite:
 
   private val linearConfig =
@@ -146,10 +148,11 @@ class DoctorHarnessTest extends munit.FunSuite:
       _ => CheckResult.Error("Broken", "Fix me"),
       category = "Quality"
     )
-    var fixCalledWith: Option[DoctorFixContext] = None
+    val fixCalledWith =
+      new AtomicReference[Option[DoctorFixContext]](None)
     val fixAction = new FixAction:
       def fix(ctx: DoctorFixContext): Int =
-        fixCalledWith = Some(ctx)
+        fixCalledWith.set(Some(ctx))
         0
     env.hooks.setDiscoveredChecks(List(failingCheck))
     env.hooks.setDiscoveredFixActions(List(fixAction))
@@ -158,7 +161,7 @@ class DoctorHarnessTest extends munit.FunSuite:
 
     assertEquals(result.exitCode, 0)
     assertEquals(
-      fixCalledWith.map(_.failedChecks),
+      fixCalledWith.get.map(_.failedChecks),
       Some(List("Failing quality check"))
     )
   }

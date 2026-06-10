@@ -97,6 +97,10 @@ object Open:
         env.console.out(s"Warning: Failed to update dashboard: $error")
       case Right(_) => ()
 
+    val alreadyInTargetSession =
+      promptOpt.isEmpty && env.tmux.isInsideTmux &&
+        env.tmux.currentSessionName.contains(sessionName)
+
     if !env.fs.exists(targetPath) then
       env.console.err(
         s"Error: Worktree not found: ${worktreePath.directoryName}"
@@ -105,14 +109,10 @@ object Open:
         s"Use './iw start ${issueId.value}' to create a new worktree"
       )
       CommandResult.error
+    else if alreadyInTargetSession then
+      env.console.out(s"Already in session '$sessionName'")
+      CommandResult.ok
     else
-      if promptOpt.isEmpty && env.tmux.isInsideTmux then
-        env.tmux.currentSessionName match
-          case Some(current) if current == sessionName =>
-            env.console.out(s"Already in session '$sessionName'")
-            return CommandResult.ok
-          case _ => ()
-
       val sessionReady =
         if env.tmux.sessionExists(sessionName) then Right(())
         else
