@@ -7,6 +7,7 @@ import iw.core.adapters.{CreatedIssue, ProcessResult, SessionHookResult}
 import iw.core.commands.{
   Clock,
   CommandEnv,
+  ConfigOps,
   Console,
   EnvVars,
   FileSystem,
@@ -32,6 +33,7 @@ import iw.core.model.{
   GitRemote,
   Issue,
   IssueId,
+  ProjectConfiguration,
   RecoveryAction,
   ReviewStateUpdater,
   ReviewStateValidator,
@@ -663,6 +665,36 @@ final class FakeEnvVars extends EnvVars:
   def clear(): Unit = entries.clear()
   def get(name: String): Option[String] = entries.get(name)
 
+/** Project-config fake. Stores written configs keyed by path; read fails unless
+  * a prior write happened or `put` seeded the entry.
+  */
+final class FakeConfigOps extends ConfigOps:
+  private val entries: mutable.Map[os.Path, ProjectConfiguration] =
+    mutable.Map.empty
+  private val writeResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val writeCalls: mutable.ArrayBuffer[(os.Path, ProjectConfiguration)] =
+    mutable.ArrayBuffer.empty
+  def put(path: os.Path, config: ProjectConfiguration): Unit =
+    entries(path) = config
+  def get(path: os.Path): Option[ProjectConfiguration] = entries.get(path)
+  def setWriteResult(result: Either[String, Unit]): Unit =
+    writeResultRef.set(result)
+  def writeCallList: List[(os.Path, ProjectConfiguration)] =
+    writeCalls.toList
+  def read(path: os.Path): Either[String, ProjectConfiguration] =
+    entries.get(path) match
+      case Some(c) => Right(c)
+      case None    => Left(s"Cannot read configuration at $path")
+  def write(
+      path: os.Path,
+      config: ProjectConfiguration
+  ): Either[String, Unit] =
+    writeCalls += ((path, config))
+    val result = writeResultRef.get()
+    if result.isRight then entries(path) = config
+    result
+
 /** On-disk state-file fake. Tests inject a ServerState via `setState`. */
 final class FakeStateReader extends StateReader:
   private val stateRef: AtomicReference[Either[String, ServerState]] =
@@ -849,13 +881,20 @@ final class FakeTmuxOps extends TmuxOps:
   */
 final class FakePrompt extends Prompt:
   private val answers: mutable.Queue[Boolean] = mutable.Queue.empty
+  private val askAnswers: mutable.Queue[String] = mutable.Queue.empty
   private val calls: mutable.ArrayBuffer[(String, Boolean)] =
     mutable.ArrayBuffer.empty
+  private val askCalls: mutable.ArrayBuffer[String] = mutable.ArrayBuffer.empty
   def queueAnswers(vals: Boolean*): Unit = answers ++= vals
+  def queueAskAnswers(vals: String*): Unit = askAnswers ++= vals
   def callList: List[(String, Boolean)] = calls.toList
+  def askCallList: List[String] = askCalls.toList
   def confirm(question: String, default: Boolean): Boolean =
     calls += ((question, default))
     if answers.nonEmpty then answers.dequeue() else default
+  def ask(question: String): String =
+    askCalls += question
+    if askAnswers.nonEmpty then askAnswers.dequeue() else ""
 
 /** Worktree filesystem fake. Tracks which paths the test "registered" as
   * worktrees and records remove calls.
@@ -948,7 +987,8 @@ final class FakeCommandEnv(
     val tmux: FakeTmuxOps,
     val prompt: FakePrompt,
     val worktree: FakeWorktreeOps,
-    val envVars: FakeEnvVars
+    val envVars: FakeEnvVars,
+    val config: FakeConfigOps
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -972,6 +1012,7 @@ object FakeCommandEnv:
     val prompt = FakePrompt()
     val worktree = FakeWorktreeOps()
     val envVars = FakeEnvVars()
+    val config = FakeConfigOps()
     new FakeCommandEnv(
       cwd,
       console,
@@ -988,5 +1029,6 @@ object FakeCommandEnv:
       tmux,
       prompt,
       worktree,
-      envVars
+      envVars,
+      config
     )

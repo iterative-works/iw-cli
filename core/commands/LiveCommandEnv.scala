@@ -4,6 +4,7 @@
 package iw.core.commands
 
 import iw.core.adapters.{
+  ConfigFileRepository,
   CreatedIssue,
   GitAdapter,
   GitHubClient,
@@ -30,6 +31,7 @@ import iw.core.model.{
   GitRemote,
   Issue,
   IssueId,
+  ProjectConfiguration,
   RecoveryAction,
   ReviewStateUpdater,
   ServerState,
@@ -364,6 +366,23 @@ object LiveTmuxOps extends TmuxOps:
 object LivePrompt extends Prompt:
   def confirm(question: String, default: Boolean): Boolean =
     iw.core.adapters.Prompt.confirm(question, default)
+  def ask(question: String): String =
+    iw.core.adapters.Prompt.ask(question)
+
+object LiveConfigOps extends ConfigOps:
+  def read(path: os.Path): Either[String, ProjectConfiguration] =
+    ConfigFileRepository.read(path) match
+      case Some(c) => Right(c)
+      case None    =>
+        Left(s"Cannot read configuration at $path")
+  def write(
+      path: os.Path,
+      config: ProjectConfiguration
+  ): Either[String, Unit] =
+    try
+      ConfigFileRepository.write(path, config)
+      Right(())
+    catch case e: Exception => Left(s"Failed to write config: ${e.getMessage}")
 
 object LiveWorktreeOps extends WorktreeOps:
   def exists(path: os.Path, workDir: os.Path): Boolean =
@@ -413,6 +432,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val prompt: Prompt = LivePrompt
   val worktree: WorktreeOps = LiveWorktreeOps
   val envVars: EnvVars = LiveEnvVars
+  val config: ConfigOps = LiveConfigOps
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)

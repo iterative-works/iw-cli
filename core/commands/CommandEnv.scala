@@ -14,6 +14,7 @@ import iw.core.model.{
   GitRemote,
   Issue,
   IssueId,
+  ProjectConfiguration,
   RecoveryAction,
   ReviewStateUpdater,
   ServerState,
@@ -255,6 +256,14 @@ trait TmuxOps:
   */
 trait Prompt:
   def confirm(question: String, default: Boolean): Boolean
+  def ask(question: String): String
+
+/** Project-configuration file boundary. Live impl wraps `ConfigFileRepository`;
+  * fakes keep an in-memory map keyed by path.
+  */
+trait ConfigOps:
+  def read(path: os.Path): Either[String, ProjectConfiguration]
+  def write(path: os.Path, config: ProjectConfiguration): Either[String, Unit]
 
 /** Git worktree boundary. Live impl shells out to `git worktree`; fakes track
   * worktrees in memory.
@@ -305,3 +314,4 @@ trait CommandEnv:
   def prompt: Prompt
   def worktree: WorktreeOps
   def envVars: EnvVars
+  def config: ConfigOps
