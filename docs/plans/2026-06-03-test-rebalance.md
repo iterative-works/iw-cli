@@ -4,7 +4,7 @@
 # Test Rebalance + Scoverage Plan
 
 **Started:** 2026-06-03
-**Status:** Phase 0–3 complete; Phase 4 pilot (4.1–4.3) complete; ready for 4.4 (bulk command migration)
+**Status:** All phases complete (0–5). 22/22 commands on the `CommandEnv` harness, tool contract suite live, scoverage wired, BATS reduced to round-trip smoke per command.
 
 ## Why this plan exists
 
@@ -147,7 +147,7 @@ Each is a small PR shipping one cluster. Apply only after Phase 1 decision gate.
 - [x] 4.1 Design `CommandEnv` trait + `Fake*` adapters. New `core/commands/` package houses the trait, `CommandResult`, capability sub-traits (`Console`, `FileSystem`, `GitOps`, `ReviewStateOps`), and `LiveCommandEnv` (delegates to existing adapters). Fakes live at `core/test/fixtures/FakeCommandEnv.scala` (`FakeConsole`, `FakeFileSystem`, `FakeGit`, `FakeReviewStateOps`). Scope was trimmed to capabilities phase-start actually needs — FakeProcess/FakeTracker/FakeTmux/FakeClock/FakeEnv will land when their first command migrates.
 - [x] 4.2 Pilot command: `commands/phase-start.scala` is now a 7-line shim delegating to `iw.core.commands.PhaseStart.run(args, LiveCommandEnv.default).exitCode`. Logic lives in `core/commands/PhaseStart.scala` as `run(args, env): CommandResult`, threaded as a `for`-comprehension over the env capabilities. `commands/phase-start.scala` keeps PURPOSE/USAGE headers; iw-run discovery still works.
 - [x] 4.3 `core/test/PhaseStartHarnessTest.scala` covers 11 scenarios (happy path JSON, branch switching, push-before-create ordering, missing args, invalid number, already-on-phase-branch, branch-conflict, --issue-id override, review-state present, review-state absent, push failure). Inline expected-output assertions for readability (deferred true golden files until the second migration shows what scales). Wall time: ~0.1s for 11 tests vs ~45s for the 10 equivalent BATS tests (~450× per test). All 10 BATS scenarios still pass against the shim.
-- [ ] 4.4 Apply pattern to remaining commands incrementally — see sub-plan below
+- [x] 4.4 Apply pattern to remaining commands incrementally — see sub-plan below (22/22 done)
 - [x] 4.5 The 3 `phase-merge.bats` failures resolved during 4.4.4: the scenarios are now harness tests with deterministic recovery-hook control via `FakeHookOps`; the slimmed BATS smoke covers the happy round-trip only
 
 ### 4.4 sub-plan — command migration order
@@ -201,13 +201,13 @@ Batch C — session/worktree family (4.4.11–4.4.15):
 - [x] 4.4.15 `start` — exercises `WorktreeOps` (already added in 4.4.13) + `TmuxOps` + `ServerOps` + `HookOps`
 
 Batch D — tracker-heavy + interactive (4.4.16–4.4.22):
-- [ ] 4.4.16 `doctor` — adds `HookOps` integration (much already in `DoctorOutput`); extends `GitOps`
-- [ ] 4.4.17 `feedback` — `TrackerOps`
-- [ ] 4.4.18 `issue` — `TrackerOps` across 3 backends (Linear / GitHub / GitLab / YouTrack)
-- [ ] 4.4.19 `init` — adds `ConfigOps`; biggest interactive; 38 BATS tests today
-- [ ] 4.4.20 `config` — `ConfigOps`
-- [ ] 4.4.21 `dashboard` — `ServerConfigRepository` wrapping
-- [ ] 4.4.22 `server` — server lifecycle commands
+- [x] 4.4.16 `doctor` — adds `GitOps.isRepository`, `HookOps.discoverChecks/discoverFixActions`; harness = 10 tests
+- [x] 4.4.17 `feedback` — `TrackerOps.createFeedbackIssue`; harness = 7 tests
+- [x] 4.4.18 `issue` — 8 per-tracker `TrackerOps` methods (fetch/create × Linear/YouTrack/GitHub/GitLab) + new `EnvVars` capability; harness = 16 tests
+- [x] 4.4.19 `init` — adds `ConfigOps` + `Prompt.ask`; harness = 15 tests
+- [x] 4.4.20 `config` — reuses `ConfigOps`; harness = 13 tests
+- [x] 4.4.21 `dashboard` — adds `ServerConfigOps`, `DashboardLifecycle`, `FileSystem.makeDirAll`; harness = 13 tests
+- [x] 4.4.22 `server` — adds `ProcessLifecycle`; harness = 15 tests. **Batch D complete; Phase 4.4 complete (22/22 commands migrated)**
 
 **Per-command checklist** (lift this into each commit's description):
 
@@ -228,10 +228,10 @@ harness pattern fits.
 
 ## Phase 5 — Cleanup
 
-- [ ] 5.1 Update `CLAUDE.md` testing section
-- [ ] 5.2 Write/expand `TESTING.md` documenting the three tiers + coverage workflow
-- [ ] 5.3 Close (or comment with supersedes) issues: #357 (shared bloop — superseded by Phase 3), #304 (tmux PTY — moved to contract)
-- [ ] 5.4 Remove obsolete `IW_SERVER_DISABLED=1` from BATS files that no longer touch the dashboard
+- [x] 5.1 Update `CLAUDE.md` testing section — three tiers + harness pointer + `IW_SERVER_DISABLED` rationale
+- [x] 5.2 Rewrite `docs/testing.md` as end-state — tiers, harness pattern, contract gating, coverage workflow
+- [x] 5.3 Close issues #357 (superseded by Phase 3) and #304 (superseded by Phase 2.7 + smoke refactor); strip dead `is_docker()` helpers from `{open,start}-prompt.bats`
+- [x] 5.4 No-op. `IW_SERVER_DISABLED=1` is load-bearing in `core/adapters/ServerClient.scala` (4 call sites short-circuit on it), so all BATS files retain the export as the documented safety guard. The audit confirmed this; project memory rule reaffirmed.
 
 ---
 
@@ -275,3 +275,4 @@ only after Phase 1 decision gate. Phase 5 last.
 - 2026-06-04: Phase 2 (tool contract suite) complete. New `test/contract/` with shared `contract_helper.bash`; 6 contract files / 35 tests / ~8s default (~9s with all gates on): git (7), gh (8, 2 live-auth), glab (6, 1 fixture-gated), scala-cli (4), mill (5), tmux (5, all gated by `IW_CONTRACT_TMUX=1`). New `runContractTests` in `.iw/commands/test.scala` (`./iw ./test contract`). CI: workflow gains nightly cron + new `contract` job that runs only on schedule or PRs labeled `contract`. The `infra-plugin` / `infra-project-cmds` scala-cli-launching scenarios that took 924s in aggregate are now covered by the 4-test scala-cli contract in <2s — unlocks Phase 3.5/3.6.
 - 2026-06-07: Phase 4 pilot (4.1–4.3) complete. New `core/commands/` package introduced as the imperative-shell bucket (sits alongside `model/`, `adapters/`, `output/`). `LiveCommandEnv.default` is constructed by command shims; `FakeCommandEnv` is wired by harness tests. The Fake* surface only covers what phase-start uses (FakeConsole, FakeFileSystem, FakeGit, FakeReviewStateOps); the remaining FakeProcess/FakeTracker/FakeTmux/FakeClock/FakeEnv land on-demand as commands migrate in 4.4. `FakeReviewStateOps` is interesting: it composes the real `ReviewStateUpdater.merge` + `ReviewStateValidator.validate` over a FakeFileSystem, so the merge/validate logic isn't duplicated. Coverage on the new `core/commands/` package is high because the pilot tests exercise it end-to-end. Test count: 11 unit + 10 BATS (preserved, will be slimmed in 4.4); BATS scenarios still pass against the new shim.
 - 2026-06-06: Phase 3 complete (six commits, 3.1–3.6). Two patterns emerged that the plan didn't anticipate: (a) several files were paying ~50s per file in dead setup work (recursive `cp -r core/`, `mill show core.jar`, `helpers/bloop-cleanup` walking `/proc`) that never touched scala-cli — a free win; (b) launcher logic in `iw-run` (semver, plugin parsing, project-command dispatch) can't move to Scala (chicken-and-egg with the launcher), so the "to munit" target only fits where the logic was already Scala (`doctor` output, JSON schema). Net effect across Phase 3: ~1010s of BATS replaced by 36s of BATS + 30 new munit tests on previously-untested doctor rendering + 6 new munit tests on schema validity. New supporting BATS files: `dispatcher-mill-gate.bats` (renamed from `dashboard-rebuild-gate.bats`), `plugin-commands-validate.bats`, `project-commands-validate.bats`. New core modules: `DoctorCliFlags`, `DoctorOutput`, `ReviewStateSchemaTest`. Unblocks Phase 4 (command harness).
+- 2026-06-10: Phase 4 + Phase 5 complete. 22/22 commands migrated to `CommandEnv` (per-command commits 4.4.1–4.4.22 on `chore/bump-version-0.6.0`). Total new capability surface introduced on-demand: `Console`, `FileSystem`, `GitOps`, `ReviewStateOps`, `Process`, `Clock`, `HookOps`, `TrackerOps` (9 methods inc. forge-polymorphic create/fetch), `Stdin`, `ServerOps`, `StateReader`, `Prompt`, `TmuxOps`, `WorktreeOps`, `EnvVars`, `ConfigOps`, `ServerConfigOps`, `DashboardLifecycle`, `ProcessLifecycle`. Harness test files: 22 `*HarnessTest.scala`; ~185 munit tests across them. BATS reduced to 1–2 round-trip smokes per command. Phase 5: `CLAUDE.md` testing section + `docs/testing.md` rewritten to describe the end state; #357 + #304 closed as superseded; dead `is_docker` helpers stripped from `{open,start}-prompt.bats`; `IW_SERVER_DISABLED=1` confirmed load-bearing (`ServerClient.scala` checks it on 4 RPC paths) and retained in all BATS files. Total core test count: 186 passing.

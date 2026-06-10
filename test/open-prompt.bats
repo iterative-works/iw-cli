@@ -8,9 +8,6 @@ PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 # Use a unique tmux socket for test isolation
 TMUX_SOCKET="iw-test-$$"
 
-# Detect Docker: tmux capture-pane returns empty content without a real terminal
-is_docker() { [ -f /.dockerenv ] || grep -q docker /proc/1/cgroup 2>/dev/null; }
-
 setup() {
     # Disable dashboard server communication during tests
     export IW_SERVER_DISABLED=1
