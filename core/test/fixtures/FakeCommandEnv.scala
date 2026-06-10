@@ -22,7 +22,9 @@ import iw.core.commands.{
   WorktreeOps
 }
 import iw.core.model.{
+  Check,
   CICheckResult,
+  FixAction,
   ForgeType,
   GitRemote,
   RecoveryAction,
@@ -227,6 +229,10 @@ final class FakeGit(
     uncommittedRef.set(result)
   def hasUncommittedChanges(path: os.Path): Either[String, Boolean] =
     uncommittedRef.get()
+
+  private val isRepositoryRef: AtomicReference[Boolean] = AtomicReference(true)
+  def setIsRepository(value: Boolean): Unit = isRepositoryRef.set(value)
+  def isRepository(path: os.Path): Boolean = isRepositoryRef.get()
 
 /** Scriptable subprocess fake. By default `commandExists` returns true and
   * `run` returns an exit-0 empty result. Tests can scriptResponses by command
@@ -461,15 +467,23 @@ final class FakeHookOps extends HookOps:
     AtomicReference(SessionHookResult.NoHooks)
   private val sessionHookCalls: mutable.ArrayBuffer[SessionContext] =
     mutable.ArrayBuffer.empty
+  private val checksRef: AtomicReference[List[Check]] = AtomicReference(Nil)
+  private val fixActionsRef: AtomicReference[List[FixAction]] =
+    AtomicReference(Nil)
   def setRecoveryActions(list: List[RecoveryAction]): Unit =
     actionsRef.set(list)
   def setSessionHookResult(result: SessionHookResult): Unit =
     sessionHookResultRef.set(result)
+  def setDiscoveredChecks(list: List[Check]): Unit = checksRef.set(list)
+  def setDiscoveredFixActions(list: List[FixAction]): Unit =
+    fixActionsRef.set(list)
   def sessionHookCallList: List[SessionContext] = sessionHookCalls.toList
   def recoveryActions: List[RecoveryAction] = actionsRef.get()
   def runSessionHooks(ctx: SessionContext): SessionHookResult =
     sessionHookCalls += ctx
     sessionHookResultRef.get()
+  def discoverChecks: List[Check] = checksRef.get()
+  def discoverFixActions: List[FixAction] = fixActionsRef.get()
 
 /** On-disk state-file fake. Tests inject a ServerState via `setState`. */
 final class FakeStateReader extends StateReader:

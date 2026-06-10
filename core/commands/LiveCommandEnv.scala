@@ -18,7 +18,9 @@ import iw.core.adapters.{
   TmuxAdapter
 }
 import iw.core.model.{
+  Check,
   CICheckResult,
+  FixAction,
   ForgeType,
   GitRemote,
   RecoveryAction,
@@ -89,6 +91,8 @@ object LiveGitOps extends GitOps:
     GitAdapter.getHeadSha(dir)
   def hasUncommittedChanges(path: os.Path): Either[String, Boolean] =
     GitAdapter.hasUncommittedChanges(path)
+  def isRepository(path: os.Path): Boolean =
+    GitAdapter.isGitRepository(path)
 
 object LiveReviewStateOps extends ReviewStateOps:
   def update(
@@ -209,6 +213,12 @@ object LiveHookOps extends HookOps:
 
   def runSessionHooks(ctx: SessionContext): SessionHookResult =
     SessionHooks.run(ctx)
+
+  def discoverChecks: List[Check] =
+    HookDiscovery.collectValues[Check]
+
+  def discoverFixActions: List[FixAction] =
+    HookDiscovery.collectValues[FixAction]
 
 object LiveServerOps extends ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =

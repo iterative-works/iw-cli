@@ -5,7 +5,9 @@ package iw.core.commands
 
 import iw.core.adapters.{ProcessResult, SessionHookResult}
 import iw.core.model.{
+  Check,
   CICheckResult,
+  FixAction,
   ForgeType,
   GitRemote,
   RecoveryAction,
@@ -70,6 +72,7 @@ trait GitOps:
   def getRemoteUrl(dir: os.Path): Option[GitRemote]
   def getHeadSha(dir: os.Path): Either[String, String]
   def hasUncommittedChanges(path: os.Path): Either[String, Boolean]
+  def isRepository(path: os.Path): Boolean
 
 /** Review-state read/merge/validate/write boundary. Mirrors
   * `ReviewStateAdapter`.
@@ -144,6 +147,8 @@ trait Clock:
 trait HookOps:
   def recoveryActions: List[RecoveryAction]
   def runSessionHooks(ctx: SessionContext): SessionHookResult
+  def discoverChecks: List[Check]
+  def discoverFixActions: List[FixAction]
 
 /** Dashboard server query boundary. Live impl hits the local server over HTTP;
   * fakes script responses.
