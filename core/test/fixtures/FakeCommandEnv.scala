@@ -11,6 +11,7 @@ import iw.core.commands.{
   Console,
   DashboardLifecycle,
   EnvVars,
+  ProcessLifecycle,
   FileSystem,
   GitOps,
   HookOps,
@@ -710,6 +711,107 @@ final class FakeServerConfigOps extends ServerConfigOps:
     if result.isRight then entries(path) = config
     result
 
+/** Process lifecycle fake. Tests script PIDs, alive-checks, spawn/stop/health
+  * outcomes; calls are recorded for assertions.
+  */
+final class FakeProcessLifecycle extends ProcessLifecycle:
+  final case class SpawnCall(statePath: String, port: Int, hosts: Seq[String])
+  private val pidFiles: mutable.Map[String, Long] = mutable.Map.empty
+  private val aliveSet: mutable.Set[Long] = mutable.Set.empty
+  private val nextSpawnedPid: AtomicReference[Long] = AtomicReference(4242L)
+  private val spawnResultRef: AtomicReference[Either[String, Long]] =
+    AtomicReference(Right(4242L))
+  private val stopResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val readResultOverride
+      : AtomicReference[Option[Either[String, Option[Long]]]] =
+    AtomicReference(None)
+  private val writeResultRef: AtomicReference[Either[String, Unit]] =
+    AtomicReference(Right(()))
+  private val healthyRef: AtomicReference[Boolean] = AtomicReference(true)
+  private val fetchJsonResultRef: AtomicReference[Either[String, String]] =
+    AtomicReference(Right("{}"))
+  private val spawnCalls: mutable.ArrayBuffer[SpawnCall] =
+    mutable.ArrayBuffer.empty
+  private val stopCalls: mutable.ArrayBuffer[(Long, Int)] =
+    mutable.ArrayBuffer.empty
+  private val healthCalls: mutable.ArrayBuffer[(String, Int, Long)] =
+    mutable.ArrayBuffer.empty
+  private val fetchJsonCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  private val removePidCalls: mutable.ArrayBuffer[String] =
+    mutable.ArrayBuffer.empty
+  private val writePidCalls: mutable.ArrayBuffer[(Long, String)] =
+    mutable.ArrayBuffer.empty
+
+  def seedPidFile(path: String, pid: Long): Unit =
+    pidFiles(path) = pid
+  def markAlive(pid: Long): Unit = aliveSet += pid
+  def markDead(pid: Long): Unit = aliveSet -= pid
+  def setNextSpawnedPid(pid: Long): Unit =
+    nextSpawnedPid.set(pid)
+    spawnResultRef.set(Right(pid))
+  def setSpawnResult(result: Either[String, Long]): Unit =
+    spawnResultRef.set(result)
+  def setStopResult(result: Either[String, Unit]): Unit =
+    stopResultRef.set(result)
+  def setReadPidResult(result: Either[String, Option[Long]]): Unit =
+    readResultOverride.set(Some(result))
+  def setWritePidResult(result: Either[String, Unit]): Unit =
+    writeResultRef.set(result)
+  def setHealthy(value: Boolean): Unit = healthyRef.set(value)
+  def setFetchJsonResult(result: Either[String, String]): Unit =
+    fetchJsonResultRef.set(result)
+
+  def spawnCallList: List[SpawnCall] = spawnCalls.toList
+  def stopCallList: List[(Long, Int)] = stopCalls.toList
+  def healthCallList: List[(String, Int, Long)] = healthCalls.toList
+  def fetchJsonCallList: List[String] = fetchJsonCalls.toList
+  def removePidCallList: List[String] = removePidCalls.toList
+  def writePidCallList: List[(Long, String)] = writePidCalls.toList
+
+  def readPidFile(path: String): Either[String, Option[Long]] =
+    readResultOverride.get() match
+      case Some(scripted) => scripted
+      case None           => Right(pidFiles.get(path))
+  def writePidFile(pid: Long, path: String): Either[String, Unit] =
+    writePidCalls += ((pid, path))
+    val result = writeResultRef.get()
+    if result.isRight then pidFiles(path) = pid
+    result
+  def removePidFile(path: String): Either[String, Unit] =
+    removePidCalls += path
+    pidFiles.remove(path)
+    Right(())
+  def isProcessAlive(pid: Long): Boolean = aliveSet.contains(pid)
+  def spawnServerProcess(
+      statePath: String,
+      port: Int,
+      hosts: Seq[String]
+  ): Either[String, Long] =
+    spawnCalls += SpawnCall(statePath, port, hosts)
+    val result = spawnResultRef.get()
+    result.foreach { pid =>
+      aliveSet += pid
+    }
+    result
+  def stopProcess(pid: Long, timeoutSeconds: Int): Either[String, Unit] =
+    stopCalls += ((pid, timeoutSeconds))
+    val result = stopResultRef.get()
+    if result.isRight then aliveSet -= pid
+    result
+  def serverLogPath(statePath: String): String = s"$statePath.log"
+  def waitForHealth(
+      healthUrl: String,
+      attempts: Int,
+      intervalMs: Long
+  ): Boolean =
+    healthCalls += ((healthUrl, attempts, intervalMs))
+    healthyRef.get()
+  def fetchJson(url: String): Either[String, String] =
+    fetchJsonCalls += url
+    fetchJsonResultRef.get()
+
 /** Dashboard lifecycle fake. */
 final class FakeDashboardLifecycle extends DashboardLifecycle:
   final case class StartCall(
@@ -1087,7 +1189,8 @@ final class FakeCommandEnv(
     val envVars: FakeEnvVars,
     val config: FakeConfigOps,
     val serverConfig: FakeServerConfigOps,
-    val dashboard: FakeDashboardLifecycle
+    val dashboard: FakeDashboardLifecycle,
+    val processLifecycle: FakeProcessLifecycle
 ) extends CommandEnv
 
 object FakeCommandEnv:
@@ -1114,6 +1217,7 @@ object FakeCommandEnv:
     val config = FakeConfigOps()
     val serverConfig = FakeServerConfigOps()
     val dashboard = FakeDashboardLifecycle()
+    val processLifecycle = FakeProcessLifecycle()
     new FakeCommandEnv(
       cwd,
       console,
@@ -1133,5 +1237,6 @@ object FakeCommandEnv:
       envVars,
       config,
       serverConfig,
-      dashboard
+      dashboard,
+      processLifecycle
     )

@@ -274,6 +274,28 @@ trait ServerConfigOps:
   def getOrCreateDefault(path: String): Either[String, ServerConfig]
   def write(config: ServerConfig, path: String): Either[String, Unit]
 
+/** Server-process lifecycle boundary (PID files, spawn detached, stop, health
+  * probe with retry, HTTP status fetch). Used by `iw server start/stop/status`.
+  */
+trait ProcessLifecycle:
+  def readPidFile(path: String): Either[String, Option[Long]]
+  def writePidFile(pid: Long, path: String): Either[String, Unit]
+  def removePidFile(path: String): Either[String, Unit]
+  def isProcessAlive(pid: Long): Boolean
+  def spawnServerProcess(
+      statePath: String,
+      port: Int,
+      hosts: Seq[String]
+  ): Either[String, Long]
+  def stopProcess(pid: Long, timeoutSeconds: Int): Either[String, Unit]
+  def serverLogPath(statePath: String): String
+  def waitForHealth(
+      healthUrl: String,
+      attempts: Int,
+      intervalMs: Long
+  ): Boolean
+  def fetchJson(url: String): Either[String, String]
+
 /** Dashboard server lifecycle boundary. Live impl spawns the server jar, probes
   * /health, opens the browser; fake records calls and scripts results.
   */
@@ -347,3 +369,4 @@ trait CommandEnv:
   def config: ConfigOps
   def serverConfig: ServerConfigOps
   def dashboard: DashboardLifecycle
+  def processLifecycle: ProcessLifecycle

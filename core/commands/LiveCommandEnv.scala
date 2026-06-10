@@ -12,6 +12,7 @@ import iw.core.adapters.{
   HookDiscovery,
   LinearClient,
   ProcessAdapter,
+  ProcessManager,
   ProcessResult,
   ReviewStateAdapter,
   ServerClient,
@@ -384,6 +385,49 @@ object LiveServerConfigOps extends ServerConfigOps:
   def write(config: ServerConfig, path: String): Either[String, Unit] =
     ServerConfigRepository.write(config, path)
 
+object LiveProcessLifecycle extends ProcessLifecycle:
+  def readPidFile(path: String): Either[String, Option[Long]] =
+    ProcessManager.readPidFile(path)
+  def writePidFile(pid: Long, path: String): Either[String, Unit] =
+    ProcessManager.writePidFile(pid, path)
+  def removePidFile(path: String): Either[String, Unit] =
+    ProcessManager.removePidFile(path)
+  def isProcessAlive(pid: Long): Boolean =
+    ProcessManager.isProcessAlive(pid)
+  def spawnServerProcess(
+      statePath: String,
+      port: Int,
+      hosts: Seq[String]
+  ): Either[String, Long] =
+    ProcessManager.spawnServerProcess(statePath, port, hosts)
+  def stopProcess(pid: Long, timeoutSeconds: Int): Either[String, Unit] =
+    ProcessManager.stopProcess(pid, timeoutSeconds)
+  def serverLogPath(statePath: String): String =
+    ProcessManager.serverLogPath(statePath)
+  def waitForHealth(
+      healthUrl: String,
+      attempts: Int,
+      intervalMs: Long
+  ): Boolean =
+    @annotation.tailrec
+    def loop(remaining: Int): Boolean =
+      if remaining <= 0 then false
+      else
+        Thread.sleep(intervalMs)
+        val ok = Try {
+          val response =
+            quickRequest.get(sttp.model.Uri.unsafeParse(healthUrl)).send()
+          response.code.code == 200
+        }.getOrElse(false)
+        if ok then true else loop(remaining - 1)
+    loop(attempts)
+  def fetchJson(url: String): Either[String, String] =
+    Try {
+      val response = quickRequest.get(sttp.model.Uri.unsafeParse(url)).send()
+      if response.code.code == 200 then Right(response.body)
+      else Left(s"HTTP ${response.code.code}")
+    }.fold(e => Left(s"Network error: ${e.getMessage}"), identity)
+
 object LiveDashboardLifecycle extends DashboardLifecycle:
   def isServerRunning(healthUrl: String): Boolean =
     Try {
@@ -507,6 +551,7 @@ final case class LiveCommandEnv(cwd: os.Path) extends CommandEnv:
   val config: ConfigOps = LiveConfigOps
   val serverConfig: ServerConfigOps = LiveServerConfigOps
   val dashboard: DashboardLifecycle = LiveDashboardLifecycle
+  val processLifecycle: ProcessLifecycle = LiveProcessLifecycle
 
 object LiveCommandEnv:
   def default: LiveCommandEnv = LiveCommandEnv(os.pwd)
