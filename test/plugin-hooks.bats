@@ -2,7 +2,6 @@
 # PURPOSE: Tests for plugin hook discovery and class extraction in iw-run
 # PURPOSE: Verifies hooks from plugin directories and project commands are discovered
 
-load helpers/bloop-cleanup
 
 setup() {
     export IW_SERVER_DISABLED=1
@@ -66,7 +65,6 @@ EOF
 }
 
 teardown() {
-    stop_test_bloop
     cd /
     rm -rf "$TEST_DIR"
 }

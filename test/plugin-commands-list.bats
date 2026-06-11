@@ -2,7 +2,6 @@
 # PURPOSE: E2E tests for plugin command listing in iw --list output
 # PURPOSE: Verifies plugin commands are displayed with correct format and filtering
 
-load helpers/bloop-cleanup
 
 setup() {
     # Disable dashboard server communication during tests
@@ -21,28 +20,14 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../iw-run" "$TEST_DIR/iw-run"
     chmod +x "$TEST_DIR/iw-run"
 
-    # Copy shared commands and core (including subdirectories, excluding test/)
+    # --list never invokes scala-cli, so it does not need the core/ tree or
+    # a resolved IW_CORE_JAR — only the shared commands so iw-run can resolve
+    # the canonical install layout.
     mkdir -p .iw-install/commands
-    cp -r "$BATS_TEST_DIRNAME/../commands"/*.scala .iw-install/commands/
-    cp -r "$BATS_TEST_DIRNAME/../core" .iw-install/
-    rm -rf .iw-install/core/test
+    cp "$BATS_TEST_DIRNAME/../commands"/*.scala .iw-install/commands/
 
-    # Set environment variables to point to our test installation
     export IW_COMMANDS_DIR="$TEST_DIR/.iw-install/commands"
-    export IW_CORE_DIR="$TEST_DIR/.iw-install/core"
     export IW_PROJECT_DIR="$TEST_DIR"
-
-    # Resolve the Mill-built core jar from the repo and pre-export it so the
-    # copied iw-run honours the preset path instead of trying to invoke Mill
-    # in this temp dir (which has no build.mill).
-    local repo_root
-    repo_root="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-    local core_jar
-    core_jar="$(cd "$repo_root" && ./mill --ticker false show core.jar 2>/dev/null \
-        | jq -r '.' | sed -E 's#^ref:v[0-9]+:[a-f0-9]+:##')"
-    if [ -n "$core_jar" ] && [ -f "$core_jar" ]; then
-        export IW_CORE_JAR="$core_jar"
-    fi
 
     # Create minimal config
     mkdir -p .iw
@@ -71,7 +56,6 @@ EOF
 }
 
 teardown() {
-    stop_test_bloop
     cd /
     rm -rf "$TEST_DIR"
 }

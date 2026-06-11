@@ -1,14 +1,16 @@
 // PURPOSE: Run project tests (unit tests, integration tests, command compilation, and E2E tests)
-// USAGE: iw test [unit|itest|compile|e2e]
+// USAGE: iw test [unit|itest|compile|e2e|contract]
 // ARGS:
 //   [type]: Optional test type - 'unit' for Scala tests, 'itest' for dashboard integration tests,
-//           'compile' for command compilation, 'e2e' for BATS tests
-//           If not provided, runs all tests
+//           'compile' for command compilation, 'e2e' for BATS tests in test/,
+//           'contract' for tool-contract BATS tests in test/contract/
+//           If not provided, runs all tests except 'contract' (which is nightly + label-gated in CI).
 // EXAMPLE: iw test
 // EXAMPLE: iw test unit
 // EXAMPLE: iw test itest
 // EXAMPLE: iw test compile
 // EXAMPLE: iw test e2e
+// EXAMPLE: iw test contract
 
 import iw.core.model.*
 import iw.core.adapters.*
@@ -33,6 +35,9 @@ import iw.core.output.*
     case "e2e" =>
       val result = runE2ETests()
       sys.exit(if result then 0 else 1)
+    case "contract" =>
+      val result = runContractTests()
+      sys.exit(if result then 0 else 1)
     case "all" =>
       val unitResult = runUnitTests()
       val itestResult = runIntegrationTests()
@@ -47,14 +52,15 @@ import iw.core.output.*
       sys.exit(1)
 
 def showUsage(): Unit =
-  System.out.println("Usage: iw test [unit|itest|compile|e2e]")
+  System.out.println("Usage: iw test [unit|itest|compile|e2e|contract]")
   System.out.println()
   System.out.println("Arguments:")
-  System.out.println("  unit     Run Scala unit tests only")
-  System.out.println("  itest    Run dashboard integration tests only")
-  System.out.println("  compile  Check that all commands compile")
-  System.out.println("  e2e      Run BATS E2E tests only")
-  System.out.println("  (none)   Run all tests including command compilation")
+  System.out.println("  unit      Run Scala unit tests only")
+  System.out.println("  itest     Run dashboard integration tests only")
+  System.out.println("  compile   Check that all commands compile")
+  System.out.println("  e2e       Run BATS E2E tests in test/")
+  System.out.println("  contract  Run tool-contract BATS tests in test/contract/")
+  System.out.println("  (none)    Run all tests except 'contract' (nightly + label-gated)")
   System.out.println()
   System.out.println("Examples:")
   System.out.println("  iw test           # Run all tests")
@@ -62,33 +68,19 @@ def showUsage(): Unit =
   System.out.println("  iw test itest     # Run only integration tests")
   System.out.println("  iw test compile   # Check command compilation only")
   System.out.println("  iw test e2e       # Run only E2E tests")
+  System.out.println("  iw test contract  # Run tool-contract suite")
 
 def runUnitTests(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
-  val testDir = installDir / "core" / "test"
-  val coreDir = installDir / "core"
+  val millPath = (installDir / "mill").toString
 
-  if !os.exists(testDir) then
-    Output.info("No unit tests found (missing core/test/)")
-    true
-  else
-    val testFiles = os.list(testDir).filter(_.ext == "scala")
-    if testFiles.isEmpty then
-      Output.info("No unit test files found")
-      true
-    else
-      Output.section("Running Unit Tests")
+  Output.section("Running Core Unit Tests")
+  val coreExitCode = ProcessAdapter.runStreaming(Seq(millPath, "core.test"))
 
-      // Pass entire core directory to scala-cli to include subdirectories like presentation/views
-      // Use streaming to show output in real-time
-      val command = Seq("scala-cli", "test", coreDir.toString)
-      val coreExitCode = ProcessAdapter.runStreaming(command)
+  Output.section("Running Dashboard Unit Tests")
+  val dashboardExitCode = ProcessAdapter.runStreaming(Seq(millPath, "dashboard.test"))
 
-      Output.section("Running Dashboard Unit Tests")
-      val millCommand = Seq((installDir / "mill").toString, "dashboard.test")
-      val dashboardExitCode = ProcessAdapter.runStreaming(millCommand)
-
-      coreExitCode == 0 && dashboardExitCode == 0
+  coreExitCode == 0 && dashboardExitCode == 0
 
 def runIntegrationTests(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
@@ -143,6 +135,29 @@ def runCommandCompileCheck(): Boolean =
         )
 
       allSuccess
+
+def runContractTests(): Boolean =
+  val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))
+  val contractDir = installDir / "test" / "contract"
+
+  if !os.exists(contractDir) then
+    Output.info("No contract tests found (missing test/contract/)")
+    true
+  else
+    val testFiles = os.list(contractDir).filter(_.ext == "bats")
+    if testFiles.isEmpty then
+      Output.info("No contract BATS files found")
+      true
+    else
+      Output.section("Running Tool Contract Tests")
+      val sortedFiles = testFiles.sortBy(_.last)
+      val results = sortedFiles.map { testFile =>
+        ProcessAdapter.runStreaming(
+          Seq("bats", testFile.toString),
+          timeoutMs = 10 * 60 * 1000
+        ) == 0
+      }
+      results.forall(identity)
 
 def runE2ETests(): Boolean =
   val installDir = os.Path(System.getenv("IW_INSTALL_DIR"))

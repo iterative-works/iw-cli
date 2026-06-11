@@ -7,7 +7,7 @@ iw-cli is a project-local CLI tool for managing git worktrees and issue tracker 
 ## Tech Stack
 
 - **Language**: Scala 3
-- **Build**: scala-cli (core, commands) + Mill 1.1.5 (dashboard)
+- **Build**: Mill 1.1.5 (core + dashboard); scala-cli for command scripts
 - **Frontend toolchain**: Node 20, Yarn 4 via Corepack, Vite 8, Tailwind v4
 - **Bootstrap**: Shell script that downloads/runs the tool
 
@@ -101,17 +101,45 @@ See [docs/server-config.md](docs/server-config.md) for full documentation on:
 
 ## Testing
 
+iw-cli uses a three-tier test pyramid. See [docs/testing.md](docs/testing.md) for the
+full reference (tier responsibilities, harness pattern, contract gating, coverage workflow).
+
+- **Unit** — `core/test/*.scala`, `dashboard/jvm/test/src/`. Pure logic + command harness
+  tests (`*HarnessTest.scala`) using `CommandEnv` capability traits with `FakeCommandEnv`.
+- **Tool contract** — `test/contract/*.bats`. Pin assumptions about git, gh, glab,
+  scala-cli, mill, tmux. Nightly cron + `contract`-labeled PRs.
+- **E2E smoke** — `test/*.bats`. ~1 round-trip per command through iw-run → scala-cli → core.
+
+When adding a command: prefer adding/extending a capability trait on `CommandEnv` and
+writing a `*HarnessTest.scala` over expanding the BATS file. BATS keeps the wiring smoke
+test only.
+
 Run all tests (unit + E2E):
 ```bash
 ./iw ./test
 ```
 
-Run only unit tests (Scala/munit):
+Run only unit tests (Mill / munit):
 ```bash
-./iw ./test unit
+./iw ./test unit       # core.test + dashboard.test via Mill
 ```
 
 Run only E2E tests (BATS):
 ```bash
 ./iw ./test e2e
 ```
+
+Run the tool contract suite (rarely needed locally; nightly in CI):
+```bash
+./iw ./test contract
+```
+
+Coverage (scoverage):
+```bash
+./mill __.scoverage.xmlReport      # per-module XML
+./mill scoverage.htmlReportAll     # aggregated HTML report
+```
+
+All BATS tests export `IW_SERVER_DISABLED=1` in `setup()` so they never contact a
+real dashboard. `ServerClient` checks this env var on every server call and
+short-circuits when set.

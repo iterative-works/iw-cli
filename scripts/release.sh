@@ -59,9 +59,15 @@ if [ ! -f "$TARBALL" ]; then
     exit 1
 fi
 
+BOOTSTRAP="$PROJECT_ROOT/iw-bootstrap"
+if [ ! -f "$BOOTSTRAP" ]; then
+    echo "Error: iw-bootstrap not found: $BOOTSTRAP" >&2
+    exit 1
+fi
+
 echo ""
 echo "Step 3: Creating GitHub release v$VERSION..."
-gh release create "v$VERSION" "$TARBALL" \
+gh release create "v$VERSION" "$TARBALL" "$BOOTSTRAP" \
     --title "iw-cli v$VERSION" \
     --notes "Release v$VERSION
 
@@ -77,10 +83,10 @@ cp "$TARBALL" "$LATEST_TARBALL"
 
 # Check if vlatest exists, create or update
 if gh release view vlatest &> /dev/null; then
-    gh release upload vlatest "$LATEST_TARBALL" --clobber
+    gh release upload vlatest "$LATEST_TARBALL" "$BOOTSTRAP" --clobber
     gh release edit vlatest --notes "Latest stable release. Currently points to v$VERSION."
 else
-    gh release create vlatest "$LATEST_TARBALL" \
+    gh release create vlatest "$LATEST_TARBALL" "$BOOTSTRAP" \
         --title "iw-cli latest" \
         --notes "Latest stable release. Currently points to v$VERSION."
 fi
