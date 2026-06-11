@@ -80,6 +80,7 @@ jobs:
       # isolates the XML shape so a Scoverage vs JaCoCo swap costs one function.
       - name: Coverage summary
         if: always()
+        shell: bash
         run: |
           set -euo pipefail
 
