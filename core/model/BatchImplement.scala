@@ -34,7 +34,12 @@ object BatchImplement:
       case "implementing"         => PhaseOutcome.Recover
       case "refactoring_complete" => PhaseOutcome.Recover
       case "review_failed"        => PhaseOutcome.Recover
-      case other => PhaseOutcome.Fail(s"Unknown status: '$other'")
+      // phase-merge-internal statuses: it is waiting on or fixing CI. Recover by
+      // re-invoking implementation so the orchestrator self-heals, rather than
+      // failing the batch on a transient.
+      case "ci_pending" => PhaseOutcome.Recover
+      case "ci_fixing"  => PhaseOutcome.Recover
+      case other        => PhaseOutcome.Fail(s"Unknown status: '$other'")
 
   /** Return true if the status means the batch loop should stop.
     *

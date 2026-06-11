@@ -42,6 +42,16 @@ class BatchImplementTest extends FunSuite:
       case Fail(reason) => assert(reason.nonEmpty, "Expected non-empty reason")
       case other        => fail(s"Expected Fail but got $other")
 
+  // phase-merge writes ci_pending/ci_fixing while it waits on or fixes CI. If the
+  // batch loop ever observes one directly, re-invoking implementation lets the
+  // orchestrator self-heal — better than failing the whole batch on a transient.
+
+  test("decideOutcome ci_pending returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("ci_pending"), Recover)
+
+  test("decideOutcome ci_fixing returns Recover"):
+    assertEquals(BatchImplement.decideOutcome("ci_fixing"), Recover)
+
   // isTerminal tests
 
   test("isTerminal all_complete returns true"):
