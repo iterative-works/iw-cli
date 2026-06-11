@@ -7,28 +7,44 @@ import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 
 case class GitRemote(url: String):
   def host: Either[String, String] =
-    // Extract host from either SSH (git@host:path) or HTTPS (https://host/path) format
+    // Extract host from SCP-style (git@host:path), URL-style (proto://host/path),
+    // or ssh:// with optional user and port (ssh://[user@]host[:port]/path).
     def validateHost(extracted: String): Either[String, String] =
       if extracted.isEmpty then Left(s"Unsupported git URL format: $url")
       else Right(extracted)
 
-    if url.startsWith("git@") then
-      // SSH format: git@github.com:user/repo.git
-      val afterAt = url.drop(4) // remove "git@"
-      if !afterAt.contains(':') then Left(s"Unsupported git URL format: $url")
-      else validateHost(afterAt.takeWhile(_ != ':'))
-    else if url.startsWith("https://") || url.startsWith("http://") then
-      // HTTPS format: https://github.com/user/repo.git or https://username@github.com/user/repo.git
+    if url.startsWith("ssh://") || url.startsWith("https://") || url
+        .startsWith("http://")
+    then
+      // URL form: proto://[user@]host[:port]/path
       val withoutProtocol =
         url.dropWhile(_ != '/').drop(2) // remove protocol and //
-      // Handle username prefix (username@host)
-      val hostPart = withoutProtocol.takeWhile(_ != '/')
-      val host =
-        if hostPart.contains('@') then
-          hostPart.dropWhile(_ != '@').drop(1) // remove username@
-        else hostPart
+      val authority = withoutProtocol.takeWhile(_ != '/')
+      // Strip optional user@ prefix
+      val hostAndPort =
+        if authority.contains('@') then authority.dropWhile(_ != '@').drop(1)
+        else authority
+      // Strip optional :port
+      val host = hostAndPort.takeWhile(_ != ':')
       validateHost(host)
+    else if url.startsWith("git@") then
+      // SCP-style: git@host:path
+      val afterAt = url.drop(4)
+      if !afterAt.contains(':') then Left(s"Unsupported git URL format: $url")
+      else validateHost(afterAt.takeWhile(_ != ':'))
     else Left(s"Unsupported git URL format: $url")
+
+  /** Extract the path component (after host[:port]) for URL-style remotes
+    * (https://, http://, ssh://). Strips protocol, optional user@ prefix, host,
+    * and optional :port, returning the path with the leading slash removed.
+    */
+  private def pathFromUrlForm: String =
+    val withoutProtocol = url.dropWhile(_ != '/').drop(2)
+    val afterUser =
+      if withoutProtocol.takeWhile(_ != '/').contains('@') then
+        withoutProtocol.dropWhile(_ != '@').drop(1)
+      else withoutProtocol
+    afterUser.dropWhile(_ != '/').drop(1)
 
   def repositoryOwnerAndName: Either[String, String] =
     // First verify this is a GitHub URL
@@ -36,22 +52,13 @@ case class GitRemote(url: String):
       case Left(err)                     => Left(err)
       case Right(h) if h != "github.com" => Left("Not a GitHub URL")
       case Right(_)                      =>
-        // Extract path component (after host)
-        val rawPath = if url.startsWith("git@") then
-          // SSH format: git@github.com:owner/repo.git
-          val afterColon = url.dropWhile(_ != ':').drop(1)
-          afterColon
-        else
-          // HTTPS format: https://github.com/owner/repo.git or https://username@github.com/owner/repo.git
-          val afterProtocol =
-            url.dropWhile(_ != '/').drop(2) // remove protocol and //
-          // Skip username@ if present
-          val afterUsername =
-            if afterProtocol.contains('@') then
-              afterProtocol.dropWhile(_ != '@').drop(1)
-            else afterProtocol
-          // Extract path after host
-          afterUsername.dropWhile(_ != '/').drop(1)
+        val rawPath =
+          if url.startsWith("git@") then
+            // SCP-style: git@github.com:owner/repo.git
+            url.dropWhile(_ != ':').drop(1)
+          else
+            // URL form: https://, http://, or ssh:// (with optional :port)
+            pathFromUrlForm
 
         // Clean up path: remove trailing slash and .git suffix
         val path = rawPath.stripSuffix("/").stripSuffix(".git").stripSuffix("/")
@@ -71,22 +78,13 @@ case class GitRemote(url: String):
       case Right(h) if h != "gitlab.com" && !h.contains("gitlab") =>
         Left("Not a GitLab URL")
       case Right(_) =>
-        // Extract path component (after host)
-        val rawPath = if url.startsWith("git@") then
-          // SSH format: git@gitlab.com:owner/repo.git or git@gitlab.com:group/subgroup/project.git
-          val afterColon = url.dropWhile(_ != ':').drop(1)
-          afterColon
-        else
-          // HTTPS format: https://gitlab.com/owner/repo.git or https://gitlab.com/group/subgroup/project.git
-          val afterProtocol =
-            url.dropWhile(_ != '/').drop(2) // remove protocol and //
-          // Skip username@ if present
-          val afterUsername =
-            if afterProtocol.contains('@') then
-              afterProtocol.dropWhile(_ != '@').drop(1)
-            else afterProtocol
-          // Extract path after host
-          afterUsername.dropWhile(_ != '/').drop(1)
+        val rawPath =
+          if url.startsWith("git@") then
+            // SCP-style: git@host:owner/repo.git or git@host:group/subgroup/project.git
+            url.dropWhile(_ != ':').drop(1)
+          else
+            // URL form: https://, http://, or ssh:// (with optional :port)
+            pathFromUrlForm
 
         // Clean up path: remove trailing slash and .git suffix
         val path = rawPath.stripSuffix("/").stripSuffix(".git").stripSuffix("/")

@@ -3,7 +3,7 @@
 
 package iw.tests
 
-import iw.core.*
+import iw.core.model.*
 
 class IssueCreateParserTest extends munit.FunSuite:
 

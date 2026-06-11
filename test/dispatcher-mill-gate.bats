@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# PURPOSE: Verify that Mill rebuilds the dashboard jar on source change and skips rebuild when unchanged
-# PURPOSE: Confirms the rebuild gate is scoped to dashboard commands only
+# PURPOSE: Verify the iw-run dispatcher only queries Mill for dashboard/server commands
+# PURPOSE: Catches latency regressions from accidentally running ensure_dashboard_jar on every command
 
 PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 

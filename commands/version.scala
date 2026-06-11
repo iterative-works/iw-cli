@@ -1,11 +1,7 @@
 // PURPOSE: Display version information
 // USAGE: iw version [--verbose]
-// ARGS:
-//   --verbose: Show detailed version info including dependencies
-// EXAMPLE: iw version
-// EXAMPLE: iw version --verbose
 
-import iw.core.output.Output
+import iw.core.commands.{LiveCommandEnv, Version}
 
 val iwVersion: String =
   val versionFile =
@@ -14,12 +10,10 @@ val iwVersion: String =
   else "0.0.0"
 
 @main def version(args: String*): Unit =
-  val verbose = args.contains("--verbose")
-
-  if verbose then
-    Output.section("iw-cli Version Information")
-    Output.keyValue("Version", iwVersion)
-    Output.keyValue("OS", System.getProperty("os.name"))
-    Output.keyValue("Architecture", System.getProperty("os.arch"))
-    Output.keyValue("Java", System.getProperty("java.version"))
-  else Output.info(s"iw-cli version $iwVersion")
+  val info = Version.Info(
+    version = iwVersion,
+    osName = System.getProperty("os.name"),
+    osArch = System.getProperty("os.arch"),
+    javaVersion = System.getProperty("java.version")
+  )
+  sys.exit(Version.run(args, LiveCommandEnv.default, info).exitCode)

@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
     branches: [main, 'IW-*']
+  schedule:
+    # 03:17 UTC nightly. Avoids the top-of-hour pile-up that hits GitHub Actions
+    # cron schedulers; minute-17 is the well-known "off the dogpile" slot.
+    - cron: '17 3 * * *'
 
 permissions:
   contents: read
@@ -65,6 +69,72 @@ jobs:
         run: ./iw ./test
         timeout-minutes: 30
 
+      # Generates per-module Scoverage XML reports for the summary table below
+      # and the aggregated HTML report for the coverage-report artifact. Implicit
+      # `if: success()` keeps coverage off red runs where the numbers would mislead.
+      - name: Run coverage
+        run: ./mill __.scoverage.xmlReport && ./mill scoverage.htmlReportAll
+
+      # Parses the per-module Scoverage XML reports and writes a Markdown
+      # summary table to the job summary page. The extract_coverage function
+      # isolates the XML shape so a Scoverage vs JaCoCo swap costs one function.
+      - name: Coverage summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          extract_coverage() {
+            local xml="$1"
+            if [[ ! -f "$xml" ]]; then
+              echo "0 0 0.00"
+              return
+            fi
+            local invoked total rate
+            invoked=$(grep -m1 'statements-invoked=' "$xml" \
+              | grep -oP 'statements-invoked="\K[0-9]+' || echo "0")
+            total=$(grep -m1 'statement-count=' "$xml" \
+              | grep -oP 'statement-count="\K[0-9]+' || echo "0")
+            rate=$(grep -m1 'statement-rate=' "$xml" \
+              | grep -oP 'statement-rate="\K[0-9.]+' || echo "0.00")
+            echo "${invoked} ${total} ${rate}"
+          }
+
+          {
+            echo "## Coverage summary"
+            echo ""
+            echo "| Module | Statements covered | Statements total | Coverage % |"
+            echo "|--------|-------------------|-----------------|------------|"
+
+            modules=(
+              "core:out/core/scoverage/xmlReport.dest/scoverage.xml"
+              "dashboard:out/dashboard/scoverage/xmlReport.dest/scoverage.xml"
+            )
+
+            for entry in "${modules[@]}"; do
+              module="${entry%%:*}"
+              xml="${entry##*:}"
+              read -r invoked total rate <<< "$(extract_coverage "$xml")"
+              echo "| \`${module}\` | ${invoked} | ${total} | ${rate}% |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Per-module XML + aggregated HTML retained for 14 days. if-no-files-found: warn
+      # because the upstream "Run coverage" step has no if: always() (intentional —
+      # coverage on a red build is misleading), so test failures produce no XML and
+      # an `error` guard would double-red the run.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            out/core/scoverage/xmlReport.dest/scoverage.xml
+            out/dashboard/scoverage/xmlReport.dest/scoverage.xml
+            out/scoverage/htmlReportAll.dest/**
+          if-no-files-found: warn
+          retention-days: 14
+
   dashboard-build:
     needs: compile
     runs-on: self-hosted
@@ -82,4 +152,31 @@ jobs:
         timeout-minutes: 15
       - name: Run dashboard integration tests
         run: ./mill dashboard.itest.testForked
+        timeout-minutes: 15
+
+  # Tool contract suite: pins our assumptions about external tools (gh, glab,
+  # scala-cli, mill, tmux, git). Probes the real CLIs, so it's:
+  #   - off by default on PRs (would flake on auth-less forks; not worth gating PRs on)
+  #   - on for PRs explicitly labeled 'contract' (use when changing an adapter)
+  #   - on every night via the workflow-level schedule (drift detector)
+  contract:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' &&
+        contains(github.event.pull_request.labels.*.name, 'contract'))
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/iterative-works/iw-cli-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      WEBAWESOME_NPM_TOKEN: ${{ secrets.WEBAWESOME_NPM_TOKEN }}
+      # Provide gh auth via the workflow-level GITHUB_TOKEN so the JSON-shape
+      # tests don't skip on the nightly run.
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tool contract suite
+        run: ./iw ./test contract
         timeout-minutes: 15
