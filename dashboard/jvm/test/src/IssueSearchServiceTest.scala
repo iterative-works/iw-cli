@@ -128,7 +128,7 @@ class IssueSearchServiceTest extends FunSuite:
       trackerType = IssueTrackerType.YouTrack,
       team = "PROJ",
       projectName = "project",
-      youtrackBaseUrl = Some("https://youtrack.example.com"),
+      trackerBaseUrl = Some("https://youtrack.example.com"),
       teamPrefix = Some("PROJ")
     )
 
@@ -260,7 +260,7 @@ class IssueSearchServiceTest extends FunSuite:
       team = "PROJ",
       projectName = "project",
       repository = Some("team/app"),
-      youtrackBaseUrl = Some("https://gitlab.company.com"),
+      trackerBaseUrl = Some("https://gitlab.company.com"),
       teamPrefix = Some("PROJ")
     )
 

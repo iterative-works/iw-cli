@@ -50,7 +50,7 @@ class TrackerUrlBuilderTest extends FunSuite:
       trackerType = IssueTrackerType.YouTrack,
       team = "MYTEAM",
       projectName = "my-project",
-      youtrackBaseUrl = Some("https://mycompany.youtrack.cloud")
+      trackerBaseUrl = Some("https://mycompany.youtrack.cloud")
     )
     val result = TrackerUrlBuilder.buildTrackerUrl(config)
     assertEquals(result, Some("https://mycompany.youtrack.cloud/issues/MYTEAM"))
@@ -60,7 +60,7 @@ class TrackerUrlBuilderTest extends FunSuite:
       trackerType = IssueTrackerType.YouTrack,
       team = "MYTEAM",
       projectName = "my-project",
-      youtrackBaseUrl = Some("https://mycompany.youtrack.cloud/")
+      trackerBaseUrl = Some("https://mycompany.youtrack.cloud/")
     )
     val result = TrackerUrlBuilder.buildTrackerUrl(config)
     assertEquals(result, Some("https://mycompany.youtrack.cloud/issues/MYTEAM"))

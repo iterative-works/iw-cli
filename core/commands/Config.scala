@@ -35,7 +35,6 @@ object Config:
           "team" -> List("tracker", "team"),
           "repository" -> List("tracker", "repository"),
           "teamPrefix" -> List("tracker", "teamPrefix"),
-          "youtrackBaseUrl" -> List("tracker", "baseUrl"),
           "projectName" -> List("project", "name")
         )
         val optionalFields = Set(
@@ -122,8 +121,8 @@ object Config:
       "  project.name         Project name",
       "  version              Tool version",
       "",
-      "Aliases for backward compatibility:",
-      "  trackerType, team, repository, teamPrefix, youtrackBaseUrl, projectName"
+      "Short-form field aliases:",
+      "  trackerType, team, repository, teamPrefix, projectName"
     )
     lines.foreach(env.console.out)
     result

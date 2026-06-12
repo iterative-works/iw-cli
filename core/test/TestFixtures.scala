@@ -160,7 +160,7 @@ object SampleData:
     trackerType = IssueTrackerType.YouTrack,
     team = "TEST",
     projectName = "myproject",
-    youtrackBaseUrl = Some("https://youtrack.example.com")
+    trackerBaseUrl = Some("https://youtrack.example.com")
   )
 
   /** Sample issue ID (parsed and valid). */
