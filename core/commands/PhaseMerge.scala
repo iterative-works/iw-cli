@@ -365,6 +365,7 @@ object PhaseMerge:
                     s"Error: Warning: Failed to commit review-state update: $err"
                   )
                 )
+            PhaseIndexSync.markPhaseComplete(env, r.issueId, r.phaseNumber)
             env.console.out(
               PhaseOutput
                 .MergeOutput(

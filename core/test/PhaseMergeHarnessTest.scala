@@ -90,6 +90,36 @@ class PhaseMergeHarnessTest extends munit.FunSuite:
     assert(updatedState.contains("phase_merged"))
   }
 
+  test("tasks.md index present: merge marks phase complete and commits it") {
+    val env = envOnPhaseBranch()
+    env.tracker.setCheckStatuses(Right(List(passingCheck)))
+    val tasksPath =
+      cwd / "project-management" / "issues" / "TEST-100" / "tasks.md"
+    env.fs.put(
+      tasksPath,
+      """# Tasks
+        |
+        |## Phase Index
+        |
+        |- [ ] Phase 1: Foundations
+        |- [ ] Phase 2: Feature
+        |""".stripMargin
+    )
+
+    val result = PhaseMerge.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    val updatedTasks = env.fs.get(tasksPath).getOrElse("")
+    assert(
+      updatedTasks.contains("- [x] Phase 1: Foundations"),
+      s"expected Phase 1 checked, got: $updatedTasks"
+    )
+    assert(
+      updatedTasks.contains("- [ ] Phase 2: Feature"),
+      "Phase 2 must remain unchecked"
+    )
+  }
+
   test("not on phase branch: exit 1") {
     val env = envOnPhaseBranch()
     env.git.setCurrentBranch("TEST-100")
