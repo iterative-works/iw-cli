@@ -209,6 +209,55 @@ class PhaseAdvanceHarnessTest extends munit.FunSuite:
     )
   }
 
+  test("tasks.md index present: marks merged phase complete and commits it") {
+    val env = envOnPhaseBranch()
+    env.process.scriptResponse(
+      Seq("gh", "pr", "list"),
+      ProcessResult(0, """[{"url":"https://example.com/pr"}]""", "")
+    )
+    val reviewStatePath =
+      cwd / "project-management" / "issues" / "TEST-100" / "review-state.json"
+    env.fs.put(
+      reviewStatePath,
+      """{
+        |  "version": 2,
+        |  "issue_id": "TEST-100",
+        |  "status": "awaiting_review",
+        |  "artifacts": [],
+        |  "last_updated": "2026-01-01T12:00:00Z"
+        |}""".stripMargin
+    )
+    val tasksPath =
+      cwd / "project-management" / "issues" / "TEST-100" / "tasks.md"
+    env.fs.put(
+      tasksPath,
+      """# Tasks
+        |
+        |## Phase Index
+        |
+        |- [ ] Phase 1: Foundations
+        |- [ ] Phase 2: Feature
+        |""".stripMargin
+    )
+
+    val result = PhaseAdvance.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    val updatedTasks = env.fs.get(tasksPath).getOrElse("")
+    assert(
+      updatedTasks.contains("- [x] Phase 1: Foundations"),
+      s"expected Phase 1 checked, got: $updatedTasks"
+    )
+    assert(
+      updatedTasks.contains("- [ ] Phase 2: Feature"),
+      "Phase 2 must remain unchecked"
+    )
+    assert(
+      env.git.committedMessages.exists(_.contains("tasks.md")),
+      s"expected a tasks.md commit, got: ${env.git.committedMessages}"
+    )
+  }
+
   test("review-state.json absent: no commit, just print JSON") {
     val env = envOnPhaseBranch()
     env.process.scriptResponse(

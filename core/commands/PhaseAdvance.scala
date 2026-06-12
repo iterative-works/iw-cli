@@ -186,6 +186,7 @@ object PhaseAdvance:
         CommandResult.error
       case Right(headSha) =>
         maybeUpdateReviewState(r, env)
+        PhaseIndexSync.markPhaseComplete(env, r.issueId, r.phaseNumber)
         env.console.out(
           PhaseOutput
             .AdvanceOutput(
