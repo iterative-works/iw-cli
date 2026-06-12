@@ -8,7 +8,6 @@ import iw.core.model.{
   IssueData,
   WorkflowProgress,
   GitStatus,
-  PullRequestData,
   ReviewState,
   PRState
 }
@@ -86,7 +85,7 @@ object WorktreeCardRenderer:
     * @param gitStatus
     *   Optional git status
     * @param prData
-    *   Optional PR data
+    *   Optional PR display data (PR + staleness flag)
     * @param reviewStateResult
     *   Optional review state (Left = error, Right = valid state)
     * @param now
@@ -95,6 +94,8 @@ object WorktreeCardRenderer:
     *   SSH hostname for Zed editor links
     * @param htmxConfig
     *   HTMX attribute configuration
+    * @param repoUrl
+    *   Optional git repository root URL; renders a "Repo" button when defined
     * @return
     *   Scalatags Frag
     */
@@ -105,11 +106,12 @@ object WorktreeCardRenderer:
       isStale: Boolean,
       progress: Option[WorkflowProgress],
       gitStatus: Option[GitStatus],
-      prData: Option[PullRequestData],
+      prData: Option[PrDisplayData],
       reviewStateResult: Option[Either[String, ReviewState]],
       now: Instant,
       sshHost: String,
-      htmxConfig: HtmxCardConfig
+      htmxConfig: HtmxCardConfig,
+      repoUrl: Option[String] = None
   ): Frag =
     div(
       cls := "worktree-card",
@@ -131,6 +133,19 @@ object WorktreeCardRenderer:
           worktree.issueId
         )
       ),
+      // Repo link section (if repository is configured)
+      repoUrl.map { url =>
+        p(
+          cls := "repo-link",
+          a(
+            cls := "repo-button",
+            href := url,
+            target := "_blank",
+            rel := "noopener noreferrer",
+            "Repo"
+          )
+        )
+      },
       // Git status section (if available)
       gitStatus.map { status =>
         div(
@@ -143,19 +158,25 @@ object WorktreeCardRenderer:
         )
       },
       // PR link section (if available)
-      prData.map { pr =>
+      prData.map { prDisplay =>
         div(
           cls := "pr-link",
           a(
             cls := "pr-button",
-            href := pr.url,
+            href := prDisplay.pr.url,
             target := "_blank",
-            s"PR #${pr.number}"
+            s"PR #${prDisplay.pr.number}"
           ),
           span(
-            cls := s"pr-badge ${pr.stateBadgeClass}",
-            pr.stateBadgeText
-          )
+            cls := s"pr-badge ${prDisplay.pr.stateBadgeClass}",
+            prDisplay.pr.stateBadgeText
+          ),
+          if prDisplay.isStale then
+            span(
+              cls := "stale-indicator",
+              s" · stale"
+            )
+          else ()
         )
       },
       // Zed editor button

@@ -154,7 +154,7 @@ class ProjectDetailsViewTest extends FunSuite:
     )
 
     val worktreesWithData = List(
-      (worktree, Some((issueData, false, false)), None, None, None, None)
+      (worktree, Some((issueData, false, false)), None, None, None, None, None)
     )
 
     val html = ProjectDetailsView
@@ -222,7 +222,7 @@ class ProjectDetailsViewTest extends FunSuite:
     )
 
     val worktreesWithData = List(
-      (worktree, Some((issueData, false, false)), None, None, None, None)
+      (worktree, Some((issueData, false, false)), None, None, None, None, None)
     )
 
     val html = ProjectDetailsView
@@ -272,7 +272,7 @@ class ProjectDetailsViewTest extends FunSuite:
     )
 
     val worktreesWithData = List(
-      (worktree, Some((issueData, false, false)), None, None, None, None)
+      (worktree, Some((issueData, false, false)), None, None, None, None, None)
     )
 
     val html = ProjectDetailsView
@@ -318,7 +318,7 @@ class ProjectDetailsViewTest extends FunSuite:
     )
 
     val worktreesWithData = List(
-      (worktree, Some((issueData, false, false)), None, None, None, None)
+      (worktree, Some((issueData, false, false)), None, None, None, None, None)
     )
 
     val html = ProjectDetailsView
@@ -364,7 +364,7 @@ class ProjectDetailsViewTest extends FunSuite:
     )
 
     val worktreesWithData = List(
-      (worktree, Some((issueData, false, false)), None, None, None, None)
+      (worktree, Some((issueData, false, false)), None, None, None, None, None)
     )
 
     val html = ProjectDetailsView
@@ -410,7 +410,7 @@ class ProjectDetailsViewTest extends FunSuite:
     )
 
     val worktreesWithData = List(
-      (worktree, Some((issueData, false, false)), None, None, None, None)
+      (worktree, Some((issueData, false, false)), None, None, None, None, None)
     )
 
     val html = ProjectDetailsView

@@ -126,7 +126,7 @@ object Issue:
       case IssueTrackerType.YouTrack =>
         for
           token <- youtrackToken(env)
-          baseUrl <- config.youtrackBaseUrl.toRight(
+          baseUrl <- config.trackerBaseUrl.toRight(
             s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}"
           )
           issue <- env.tracker.fetchYouTrackIssue(issueId, baseUrl, token)
@@ -212,7 +212,7 @@ object Issue:
         case IssueTrackerType.YouTrack =>
           for
             token <- youtrackToken(env)
-            baseUrl <- config.youtrackBaseUrl.toRight(
+            baseUrl <- config.trackerBaseUrl.toRight(
               s"YouTrack base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}"
             )
             created <- env.tracker.createYouTrackIssue(

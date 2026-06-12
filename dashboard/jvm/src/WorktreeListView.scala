@@ -8,10 +8,13 @@ import iw.core.model.{
   IssueData,
   WorkflowProgress,
   GitStatus,
-  PullRequestData,
   ReviewState
 }
-import iw.dashboard.presentation.views.{WorktreeCardRenderer, HtmxCardConfig}
+import iw.dashboard.presentation.views.{
+  WorktreeCardRenderer,
+  HtmxCardConfig,
+  PrDisplayData
+}
 import scalatags.Text.all.*
 import java.time.Instant
 import java.time.Duration
@@ -43,7 +46,7 @@ object WorktreeListView:
             Option[(IssueData, Boolean, Boolean)],
             Option[WorkflowProgress],
             Option[GitStatus],
-            Option[PullRequestData],
+            Option[PrDisplayData],
             Option[Either[String, ReviewState]]
         )
       ],
@@ -90,7 +93,7 @@ object WorktreeListView:
       issueData: Option[(IssueData, Boolean, Boolean)],
       progress: Option[WorkflowProgress],
       gitStatus: Option[GitStatus],
-      prData: Option[PullRequestData],
+      prData: Option[PrDisplayData],
       reviewStateResult: Option[Either[String, ReviewState]],
       now: Instant,
       sshHost: String,

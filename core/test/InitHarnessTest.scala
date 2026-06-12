@@ -157,7 +157,7 @@ class InitHarnessTest extends munit.FunSuite:
 
     assertEquals(result.exitCode, 0)
     val cfg = env.config.writeCallList.head._2
-    assertEquals(cfg.youtrackBaseUrl, Some("https://gitlab.company.com"))
+    assertEquals(cfg.trackerBaseUrl, Some("https://gitlab.company.com"))
   }
 
   test("gitlab.com: no base URL prompt") {
@@ -177,7 +177,7 @@ class InitHarnessTest extends munit.FunSuite:
 
     assertEquals(result.exitCode, 0)
     val cfg = env.config.writeCallList.head._2
-    assertEquals(cfg.youtrackBaseUrl, None)
+    assertEquals(cfg.trackerBaseUrl, None)
     assert(env.prompt.askCallList.isEmpty)
   }
 
@@ -197,7 +197,7 @@ class InitHarnessTest extends munit.FunSuite:
     val cfg = env.config.writeCallList.head._2
     assertEquals(cfg.trackerType, IssueTrackerType.YouTrack)
     assertEquals(cfg.team, "MEDH")
-    assertEquals(cfg.youtrackBaseUrl, Some("https://youtrack.example.com"))
+    assertEquals(cfg.trackerBaseUrl, Some("https://youtrack.example.com"))
   }
 
   test("auto-detect from github remote and accept suggestion") {

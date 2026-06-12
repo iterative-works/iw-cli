@@ -50,14 +50,14 @@ object Init:
               case Left(err) =>
                 env.console.err(s"Error: $err")
                 CommandResult.error
-              case Right((team, repository, teamPrefix, youtrackBaseUrl)) =>
+              case Right((team, repository, teamPrefix, trackerBaseUrl)) =>
                 writeConfig(
                   configPath,
                   trackerType,
                   team,
                   repository,
                   teamPrefix,
-                  youtrackBaseUrl,
+                  trackerBaseUrl,
                   env
                 )
 
@@ -244,7 +244,7 @@ object Init:
       team: String,
       repository: Option[String],
       teamPrefix: Option[String],
-      youtrackBaseUrl: Option[String],
+      trackerBaseUrl: Option[String],
       env: CommandEnv
   ): CommandResult =
     val projectName = env.cwd.last
@@ -254,7 +254,7 @@ object Init:
       projectName = projectName,
       repository = repository,
       teamPrefix = teamPrefix,
-      youtrackBaseUrl = youtrackBaseUrl
+      trackerBaseUrl = trackerBaseUrl
     )
     env.config.write(configPath, config) match
       case Left(err) =>
