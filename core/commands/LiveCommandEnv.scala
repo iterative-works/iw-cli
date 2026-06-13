@@ -27,6 +27,7 @@ import iw.core.model.{
   ApiToken,
   Check,
   CICheckResult,
+  CleanupAction,
   FeedbackParser,
   FixAction,
   ForgeType,
@@ -313,6 +314,9 @@ object LiveHookOps extends HookOps:
 
   def discoverFixActions: List[FixAction] =
     HookDiscovery.collectValues[FixAction]
+
+  def cleanupActions: List[CleanupAction] =
+    HookDiscovery.collectValues[CleanupAction]
 
 object LiveServerOps extends ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =

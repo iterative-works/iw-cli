@@ -8,6 +8,7 @@ import iw.core.model.{
   ApiToken,
   Check,
   CICheckResult,
+  CleanupAction,
   FeedbackParser,
   FixAction,
   ForgeType,
@@ -213,6 +214,7 @@ trait HookOps:
   def runSessionHooks(ctx: SessionContext): SessionHookResult
   def discoverChecks: List[Check]
   def discoverFixActions: List[FixAction]
+  def cleanupActions: List[CleanupAction]
 
 /** Dashboard server query boundary. Live impl hits the local server over HTTP;
   * fakes script responses.
