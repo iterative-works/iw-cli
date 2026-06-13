@@ -114,10 +114,21 @@ case class ProjectConfig(
     name: String
 )
 
+/** Cleanup behaviour for `iw rm`.
+  *
+  * @param builtin
+  *   when true, the built-in BuildToolCleanup teardown (Phase 2) runs during
+  *   `rm`. Parsed now; consumed by BuildToolCleanup.
+  */
+case class CleanupConfig(
+    builtin: Boolean = true
+)
+
 case class ProjectConfiguration(
     tracker: TrackerConfig,
     project: ProjectConfig,
-    version: Option[String] = Some("latest")
+    version: Option[String] = Some("latest"),
+    cleanup: CleanupConfig = CleanupConfig()
 ):
   // Backward compatibility accessors
   def trackerType: IssueTrackerType = tracker.trackerType
@@ -207,6 +218,10 @@ object ConfigSerializer:
     ).flatten
     val trackerDetails = trackerFields.mkString("\n  ")
 
+    val cleanupBlock =
+      if config.cleanup.builtin then ""
+      else "\n\ncleanup {\n  builtin = false\n}"
+
     s"""tracker {
        |  type = $trackerTypeStr
        |  $trackerDetails
@@ -214,7 +229,7 @@ object ConfigSerializer:
        |
        |project {
        |  name = ${config.projectName}
-       |}$versionLine
+       |}$versionLine$cleanupBlock
        |""".stripMargin
 
   def fromHocon(hocon: String): Either[String, ProjectConfiguration] =
@@ -278,6 +293,11 @@ object ConfigSerializer:
             else Left("trackerBaseUrl must start with http:// or https://")
           else Right(None)
 
+        val cleanupBuiltin =
+          if config.hasPath(Constants.ConfigKeys.CleanupBuiltin) then
+            config.getBoolean(Constants.ConfigKeys.CleanupBuiltin)
+          else true
+
         for
           repository <- repositoryEither
           teamPrefix <- teamPrefixEither
@@ -291,7 +311,8 @@ object ConfigSerializer:
             trackerBaseUrl
           ),
           project = ProjectConfig(projectName),
-          version = version
+          version = version,
+          cleanup = CleanupConfig(builtin = cleanupBuiltin)
         )
       }
     catch case e: Exception => Left(s"Failed to parse config: ${e.getMessage}")
@@ -306,4 +327,5 @@ object ProjectConfigurationJson:
 
   given ReadWriter[TrackerConfig] = macroRW
   given ReadWriter[ProjectConfig] = macroRW
+  given ReadWriter[CleanupConfig] = macroRW
   given ReadWriter[ProjectConfiguration] = macroRW

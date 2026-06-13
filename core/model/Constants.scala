@@ -24,6 +24,7 @@ object Constants:
     val TrackerTeamPrefix = "tracker.teamPrefix"
     val ProjectName = "project.name"
     val Version = "version"
+    val CleanupBuiltin = "cleanup.builtin"
 
   /** File paths and directory names */
   object Paths:

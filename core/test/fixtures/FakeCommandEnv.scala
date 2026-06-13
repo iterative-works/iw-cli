@@ -30,6 +30,7 @@ import iw.core.model.{
   ApiToken,
   Check,
   CICheckResult,
+  CleanupAction,
   FeedbackParser,
   FixAction,
   ForgeType,
@@ -656,6 +657,11 @@ final class FakeHookOps extends HookOps:
   def setDiscoveredChecks(list: List[Check]): Unit = checksRef.set(list)
   def setDiscoveredFixActions(list: List[FixAction]): Unit =
     fixActionsRef.set(list)
+  private val cleanupActionsRef: AtomicReference[List[CleanupAction]] =
+    AtomicReference(Nil)
+  def setCleanupActions(list: List[CleanupAction]): Unit =
+    cleanupActionsRef.set(list)
+  def cleanupActions: List[CleanupAction] = cleanupActionsRef.get()
   def sessionHookCallList: List[SessionContext] = sessionHookCalls.toList
   def recoveryActions: List[RecoveryAction] = actionsRef.get()
   def runSessionHooks(ctx: SessionContext): SessionHookResult =
