@@ -137,89 +137,45 @@ The built-in-as-direct-invocation split is the honest consequence of the FCIS bo
 
 ## Technical Risks & Uncertainties
 
-### CLARIFY: How does `BuildToolCleanup` access env capabilities?
+### Decision: BuildToolCleanup is a free function in the shell
 
-The built-in needs `env.process` + `env.fs` and therefore cannot be a reflectively-discovered no-arg `CleanupAction`. The discovery path only loads project hook objects from `IW_HOOK_CLASSES` and hands them a pure `CleanupContext`.
+**Status:** RESOLVED
 
-**Questions to answer:**
-1. Is the built-in a free function `BuildToolCleanup.run(ctx: CleanupContext, env): List[String]` invoked directly by `Rm`?
-2. Or should `CleanupContext` carry process/fs capabilities so the built-in *can* be a `CleanupAction` (at the cost of polluting the pure model contract project authors see)?
-3. If it's a direct call, where does it live — `core/commands/` (shell, has env access) or `core/model/` with the pure `detect` separate from an effectful runner elsewhere?
-
-**Options:**
-- **Option A (recommended): Free function in the shell.** `detect` is pure in model; `BuildToolCleanup.run(ctx, env)` is an effectful function in `core/commands/` that `Rm` calls directly. Project hooks keep the clean pure `CleanupContext`. Cons: built-in and project hooks travel two code paths.
-- **Option B: Capability in `CleanupContext`.** Built-in becomes a normal `CleanupAction`, one code path. Cons: every project hook author now sees process/fs capabilities in the context they may misuse; breaks the "pure context" symmetry with `SessionContext`/`RecoveryContext`.
-- **Option C: A capability-aware sibling trait** (`EnvCleanupAction`) the built-in implements. Cons: two traits to discover/maintain for marginal benefit.
-
-**Impact:** Determines the model contract surface, the testability boundary, and how many code paths `Rm` orchestrates.
+The built-in is **Option A**. The pure decision (`detect`) lives in the model; an effectful `BuildToolCleanup.run(ctx: CleanupContext, env): List[String]` lives in `core/commands/` (the shell, which has `env` access) and is invoked **directly by `Rm`**, separate from the reflective `cleanupActions` discovery path. Project `CleanupAction` hooks keep the clean, pure `CleanupContext` with no capabilities — preserving the "pure context" symmetry with `SessionContext` / `RecoveryContext`. The cost — built-in and project hooks travel two code paths — is accepted; it keeps the model contract minimal and the built-in harness-testable through the fakes.
 
 ---
 
-### CLARIFY: Ordering and docker-compose dedup — what does "handled" mean?
+### Decision: Project hooks run first, then the built-in; teardown is idempotent
 
-The issue says the built-in docker-compose teardown runs "only when a project hook hasn't already handled it." There is no obvious signal for "handled."
+**Status:** RESOLVED
 
-**Questions to answer:**
-1. Do built-in and project hooks both always run, and in what order?
-2. How is "the project hook already handled docker-compose" detected — by a returned marker, by the presence of *any* project `CleanupAction`, or not at all (always run both, accept double `docker compose down` as idempotent)?
-3. Should the built-in run *before* or *after* project hooks?
-
-**Options:**
-- **Option A: Built-in runs only if no project `CleanupAction` was discovered.** Simple, coarse — a project hook that handles only Mill loses the built-in docker-compose. Likely too blunt.
-- **Option B: Built-in always runs after project hooks; docker-compose `down` is idempotent** so double-invocation is harmless. Simplest robust option; drop the "handled" signaling entirely.
-- **Option C: `CleanupAction` returns a structured result listing what it handled**, and the built-in skips those. Most precise, but changes the return type from `List[String]` (the issue's stated contract) — larger blast radius.
-
-**Impact:** Affects the `CleanupAction` return-type contract, `Rm` orchestration order, and whether double-teardown is possible.
+**Option B.** Project `CleanupAction` hooks run first (in declared order), then the built-in `BuildToolCleanup` runs unconditionally (when `cleanup.builtin` is on). The "handled" signaling from the issue is dropped entirely: `docker compose down` (and Mill/Bloop teardown scoped to the worktree) are idempotent, so a project hook that already shut a stack down makes the built-in's repeat a harmless no-op. This keeps the `CleanupAction` return type as `List[String]` (no structured result) and keeps `Rm`'s orchestration order simple and fixed: discovered hooks, then built-in.
 
 ---
 
-### CLARIFY: Bloop state file location and format portability
+### Decision: Marker-gated unconditional `bloop exit` (no state-file parsing)
 
-The issue points at `~/.local/share/scalacli/bloop/state.json` "or equivalent" to find a Bloop server's CWD. This path/format is not pinned and differs between scala-cli's bundled Bloop and a standalone Bloop install.
+**Status:** RESOLVED
 
-**Questions to answer:**
-1. What is the actual state file path under scala-cli on the target platforms, and what field encodes the server's working directory / project roots?
-2. Do we support standalone `bloop` as well, or only the scala-cli-managed daemon?
-3. If the state file is absent/unparseable, do we skip Bloop teardown silently (warning) or attempt an unconditional `bloop exit`?
-
-**Options:**
-- **Option A: Parse scala-cli's state file; skip with a warning if absent/unreadable.** Targeted, but couples to scala-cli internals that may change.
-- **Option B: Unconditional `bloop exit` when `bloop`/scala-cli exists and a worktree-local marker (e.g. `.bloop/` or `.scala-build/`) is present.** Avoids parsing fragile JSON; may shut down a server shared across worktrees (too aggressive).
-- **Option C: Defer Bloop teardown** from this issue; ship Mill + docker-compose first, follow up on Bloop once the state format is verified.
-
-**Impact:** Built-in complexity, fragility, and the application-layer estimate. Bloop is the riskiest of the three targets.
+**Option B.** No fragile state-file parsing. The built-in triggers Bloop teardown only when a **worktree-local marker** is present (e.g. `.bloop/` or `.scala-build/` under the worktree) and `bloop` (or scala-cli's bundled Bloop) is available, then issues an unconditional `bloop exit`. Accepted trade-off (per Michal): this may exit a Bloop server that another worktree was also using, but Bloop restarts on demand, so the cost is a one-time cold start — acceptable given the marker gate keeps it scoped to worktrees that actually used Bloop. This keeps the built-in simple and avoids coupling to scala-cli internals, and keeps Bloop **in scope** for this issue rather than deferred.
 
 ---
 
-### CLARIFY: Does `--force` change built-in teardown behavior in this issue?
+### Decision: `--force` is passed through to hooks only; built-in ignores it
 
-`--force` is threaded into `CleanupContext.force` so projects "can escalate (e.g. SIGKILL vs SIGTERM)." It is unclear whether the *built-in* should also escalate now.
+**Status:** RESOLVED
 
-**Questions to answer:**
-1. Should `BuildToolCleanup` send SIGKILL (vs graceful shutdown/SIGTERM) when `force` is set, or is `force` only a signal passed to *project* hooks for now?
-2. If escalation is in scope, which targets honor it (Mill PID kill? docker `down` has no graceful/forced distinction)?
-
-**Options:**
-- **Option A: Pass `force` through to hooks only; built-in ignores it this issue.** Smallest scope; defer escalation.
-- **Option B: Built-in escalates Mill teardown to SIGKILL on `--force`.** More complete, but adds PID-handling branches and tests now.
-
-**Impact:** Built-in scope and test matrix size.
+**Option A.** `--force` is threaded into `CleanupContext.force` so *project* hooks can decide whether to escalate (e.g. SIGKILL vs SIGTERM), but the built-in `BuildToolCleanup` ignores `force` in this issue — it always does graceful teardown (`mill --no-server shutdown`, `bloop exit`, `docker compose down`). No PID-kill / SIGKILL branches in the built-in for now; escalation can be added later if a concrete need appears. Keeps the built-in scope and test matrix minimal.
 
 ---
 
-### CLARIFY: Config shape — `CleanupConfig` sub-object vs flat field, and toHocon round-trip
+### Decision: `CleanupConfig` sub-config; emit in toHocon only when non-default
 
-`cleanup.builtin` must be parsed in `ConfigSerializer.fromHocon` with default `true`.
+**Status:** RESOLVED
 
-**Questions to answer:**
-1. Add a `CleanupConfig(builtin: Boolean = true)` sub-config on `ProjectConfiguration`, or a flat `cleanupBuiltin: Boolean = true` with an accessor?
-2. Must `toHocon` round-trip the field (write it back), or is read-only parsing with a default sufficient (matching how existing optional fields behave)?
+**Option A.** Add a `CleanupConfig(builtin: Boolean = true)` sub-config on `ProjectConfiguration`, parsed under the `cleanup { }` block in `ConfigSerializer.fromHocon` (default `true` when absent). This is the extensible shape for when cleanup grows more knobs (e.g. per-tool toggles).
 
-**Options:**
-- **Option A: Sub-config `CleanupConfig`.** Extensible if cleanup grows more knobs; slightly more boilerplate now.
-- **Option B: Flat field + accessor.** Minimal change for a single boolean (YAGNI-aligned); promote to sub-config later if needed.
-
-**Impact:** Model-layer surface and serializer test coverage. Low blast radius either way.
+Round-trip (sub-question): `toHocon` emits a `cleanup { builtin = false }` block **only when the value is non-default** (`false`), matching how existing optional fields (`repository`, `teamPrefix`, `baseUrl`) are conditionally emitted — so default configs stay clean and unchanged. Read side always parses with the `true` default. (Flag for Michal if you'd prefer always writing the block.)
 
 ---
 
