@@ -21,14 +21,14 @@
       "path": "project-management/issues/IW-382/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-06-13T13:18:32.144492961Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-06-13T13:19:35.677071974Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 1: Tasks Ready",
-    "type": "success",
+    "text": "Phase 01: Implementing",
+    "type": "progress",
     "subtext": "CleanupAction model + config + Rm wiring (project-hook path)"
   },
-  "message": "Phase 1 tasks ready",
+  "message": "Phase 01 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -59,5 +59,11 @@
     "1": {
       "context_sha": "context_sha=35e5944de89ae0e265f0d6682ea41aceb3559d9b"
     }
-  }
+  },
+  "badges": [
+    {
+      "label": "In Progress",
+      "type": "info"
+    }
+  ]
 }
