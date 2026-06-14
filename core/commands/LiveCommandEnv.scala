@@ -128,6 +128,8 @@ object LiveProcess extends Process:
     ProcessAdapter.commandExists(command)
   def run(command: Seq[String]): ProcessResult =
     ProcessAdapter.run(command)
+  def runIn(cwd: os.Path, command: Seq[String], timeoutMs: Int): ProcessResult =
+    ProcessAdapter.run(command, cwd = cwd, timeoutMs = timeoutMs)
   def runInteractive(command: Seq[String]): Int =
     ProcessAdapter.runInteractive(command)
 

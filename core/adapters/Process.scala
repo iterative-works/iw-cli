@@ -40,11 +40,13 @@ object ProcessAdapter:
       command: Seq[String],
       maxOutputBytes: Int = 1024 * 1024,
       timeoutMs: Int = DefaultTimeoutMs,
-      env: Map[String, String] = Map.empty
+      env: Map[String, String] = Map.empty,
+      cwd: os.Path = os.pwd
   ): ProcessResult =
     val result = os
       .proc(command)
       .call(
+        cwd = cwd,
         check = false,
         stdout = os.Pipe,
         stderr = os.Pipe,

@@ -98,7 +98,14 @@ object Rm:
           runCleanupHooks(ctx, env) match
             case Left(result) =>
               result // worktree preserved: a hook signalled abort
-            case Right(warnings) =>
+            case Right(hookWarnings) =>
+              // Project hooks run first (above), then the built-in teardown, so
+              // a hook can observe live daemon state before the built-in stops it.
+              val builtinWarnings =
+                if config.cleanup.builtin then
+                  BuildToolCleanupRunner.run(ctx, env)
+                else Nil
+              val warnings = hookWarnings ++ builtinWarnings
               warnings.foreach(w => env.console.out(s"Warning: $w"))
               killSessionIfPresent(sessionName, env)
               env.console.out(
