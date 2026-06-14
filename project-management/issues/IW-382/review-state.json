@@ -21,11 +21,11 @@
       "path": "project-management/issues/IW-382/phase-01-tasks.md"
     }
   ],
-  "last_updated": "2026-06-13T13:52:42.284806805Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-06-14T17:05:08.759861158Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 01: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 01: Merged",
+    "type": "success",
     "subtext": "CleanupAction model + config + Rm wiring (project-hook path)"
   },
   "message": "Phase 01 implementation started",
@@ -73,6 +73,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/383"
