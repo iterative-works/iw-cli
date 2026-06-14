@@ -19,17 +19,21 @@
     {
       "label": "Phase 1 Tasks",
       "path": "project-management/issues/IW-382/phase-01-tasks.md"
+    },
+    {
+      "label": "Phase 2 Context",
+      "path": "project-management/issues/IW-382/phase-02-context.md"
     }
   ],
-  "last_updated": "2026-06-14T17:05:08.759861158Z",
-  "status": "phase_merged",
+  "last_updated": "2026-06-14T17:15:03.889186781Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 01: Merged",
-    "type": "success",
-    "subtext": "CleanupAction model + config + Rm wiring (project-hook path)"
+    "text": "Phase 2: Context Ready",
+    "type": "info",
+    "subtext": "BuildToolCleanup built-in (Mill / Bloop / docker-compose)"
   },
-  "message": "Phase 01 implementation started",
-  "activity": "waiting",
+  "message": "Phase 2 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -61,8 +65,8 @@
   "git_sha": "3dfdbf7",
   "needs_attention": true,
   "phase_checkpoints": {
-    "1": {
-      "context_sha": "context_sha=35e5944de89ae0e265f0d6682ea41aceb3559d9b"
+    "2": {
+      "context_sha": "context_sha=ad059c21b538f50f7434830e7039af065b654b1b"
     }
   },
   "badges": [
