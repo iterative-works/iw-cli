@@ -96,6 +96,14 @@ trait ReviewStateOps:
 trait Process:
   def commandExists(command: String): Boolean
   def run(command: Seq[String]): ProcessResult
+
+  /** Run `command` with `cwd` as the working directory, bounded by `timeoutMs`.
+    *
+    * Unlike `run` (which inherits iw's own working directory), this targets a
+    * specific directory — required for workspace-scoped subprocesses such as
+    * build-daemon teardown that must act on the worktree being removed.
+    */
+  def runIn(cwd: os.Path, command: Seq[String], timeoutMs: Int): ProcessResult
   def runInteractive(command: Seq[String]): Int
 
 /** Stdin boundary so commands that take piped input remain testable. */

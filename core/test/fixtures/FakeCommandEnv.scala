@@ -282,8 +282,7 @@ final class FakeProcess extends Process:
   def commandExists(command: String): Boolean =
     existingCommands.contains(command)
 
-  def run(command: Seq[String]): ProcessResult =
-    invocations += command
+  private def lookup(command: Seq[String]): ProcessResult =
     val match_ = responseScript
       .filter((prefix, _) => command.startsWith(prefix))
       .toSeq
@@ -291,6 +290,19 @@ final class FakeProcess extends Process:
       .headOption
       .map(_._2)
     match_.getOrElse(defaultResultRef.get())
+
+  def run(command: Seq[String]): ProcessResult =
+    invocations += command
+    lookup(command)
+
+  private val runInInvocations: mutable.ArrayBuffer[(os.Path, Seq[String])] =
+    mutable.ArrayBuffer.empty
+
+  def runIn(cwd: os.Path, command: Seq[String], timeoutMs: Int): ProcessResult =
+    runInInvocations += ((cwd, command))
+    lookup(command)
+
+  def runInList: List[(os.Path, Seq[String])] = runInInvocations.toList
 
   private val interactiveCalls: mutable.ArrayBuffer[Seq[String]] =
     mutable.ArrayBuffer.empty
