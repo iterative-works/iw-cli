@@ -90,6 +90,27 @@ class PhaseMergeHarnessTest extends munit.FunSuite:
     assert(updatedState.contains("phase_merged"))
   }
 
+  test(
+    "ci_pending write is committed before merge so 'gh pr merge --delete-branch' checkout cannot collide"
+  ) {
+    // `gh pr merge --delete-branch` internally runs `git checkout` off the
+    // deleted phase branch; that checkout aborts if review-state.json is
+    // dirty. The fix is to commit the ci_pending write before merging.
+    val env = envOnPhaseBranch()
+    env.tracker.setCheckStatuses(Right(List(passingCheck)))
+
+    val result = PhaseMerge.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    val messages = env.git.committedMessages
+    assert(
+      messages.exists(m =>
+        m.contains("TEST-100") && m.toLowerCase.contains("ci pending")
+      ),
+      s"expected a commit for the ci_pending write before merge, got: $messages"
+    )
+  }
+
   test("tasks.md index present: merge marks phase complete and commits it") {
     val env = envOnPhaseBranch()
     env.tracker.setCheckStatuses(Right(List(passingCheck)))

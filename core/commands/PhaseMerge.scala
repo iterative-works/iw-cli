@@ -172,6 +172,22 @@ object PhaseMerge:
         displayType = Some("progress")
       )
     )
+    // Commit the ci_pending write before polling/merging. `gh pr merge
+    // --delete-branch` runs a `git checkout` off the deleted phase branch;
+    // that checkout aborts if review-state.json is dirty.
+    if env.fs.exists(reviewPath) then
+      env.git
+        .commitFileWithRetry(
+          reviewPath,
+          s"chore(${r.issueId.value}): mark phase ${r.phaseNumber.value} CI pending",
+          env.cwd
+        )
+        .left
+        .foreach(err =>
+          env.console.err(
+            s"Error: Warning: Failed to commit review-state ci_pending update: $err"
+          )
+        )
     val startTime = env.clock.now
     retryLoop(r, env, startTime, attempt = 0) match
       case CommandResult(0) => doMergeAndAdvance(r, env)
