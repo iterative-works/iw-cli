@@ -10,45 +10,65 @@ Each release consists of:
 
 ## Creating a Release
 
-### 1. Update Version
-
-Decide on the version number (e.g., `0.1.0`) following semantic versioning.
-
-### 2. Package the Release
-
-Prerequisites for running `package-release.sh` locally:
+Prerequisites for any release work locally:
 - Mill (the `./mill` wrapper in the repo root)
 - Node 20+ with Corepack enabled (`corepack enable`)
 - Yarn 4 (managed via Corepack)
 - `WEBAWESOME_NPM_TOKEN` exported in your environment (Web Awesome Pro npm registry credential)
+- GitHub CLI (`gh`) authenticated against `iterative-works/iw-cli`
 
-Run the packaging script:
+The release flow is split into two scripts so the version-bump goes
+through `main`'s required PR review and the resulting tag points at the
+merged bump commit, not at whatever `main` happened to be earlier.
+
+### 1. Open the version-bump PR
+
+From a clean `main`, run:
 
 ```bash
-WEBAWESOME_NPM_TOKEN=<your-token> scripts/package-release.sh 0.1.0
+scripts/release-prepare.sh 0.6.3
 ```
 
-This creates:
-- `release/iw-cli-0.1.0.tar.gz` - Contains iw-run, iw-bootstrap, commands, build/iw-core.jar, build/iw-dashboard.jar, and core/project.scala (deps manifest)
+This creates `chore/bump-version-0.6.3`, writes the new `VERSION`,
+commits, pushes, and opens a PR against `main`. Review and merge the PR
+the same way as any other change.
 
-The tarball's `build/` directory holds two pre-built jars produced by Mill:
-- `build/iw-core.jar` — compiled core library (model, adapters, output)
-- `build/iw-dashboard.jar` — dashboard server assembly (includes frontend assets)
+### 2. Publish the release
 
-### 3. Test the Release
-
-Before publishing, test the release package:
+After the PR is merged, sync `main` and run:
 
 ```bash
-# Extract to test directory
+git checkout main && git pull
+scripts/release-publish.sh 0.6.3
+```
+
+This packages the tarball + `iw-bootstrap`, creates the `v0.6.3`
+GitHub release pinned to the current `main` HEAD, and updates the
+rolling `vlatest` release.
+
+### 3. Package only (no publish)
+
+For local testing you can run the packaging step on its own — it does
+not touch git or the GitHub API:
+
+```bash
+WEBAWESOME_NPM_TOKEN=<your-token> scripts/package-release.sh 0.6.3
+```
+
+This produces `release/iw-cli-0.6.3.tar.gz` containing `iw-run`,
+`iw-bootstrap`, `commands/`, `build/iw-core.jar`,
+`build/iw-dashboard.jar`, and `core/project.scala` (deps manifest).
+
+### 4. Test the release tarball
+
+Before publishing (or to validate a published tarball) extract and
+exercise it:
+
+```bash
 mkdir -p /tmp/iw-test
-tar -xzf release/iw-cli-0.1.0.tar.gz -C /tmp/iw-test
-
-# Test bootstrap
-cd /tmp/iw-test/iw-cli-0.1.0
+tar -xzf release/iw-cli-0.6.3.tar.gz -C /tmp/iw-test
+cd /tmp/iw-test/iw-cli-0.6.3
 ./iw-run --bootstrap
-
-# Test commands
 ./iw-run --list
 ```
 
@@ -57,22 +77,6 @@ Or run the automated tests:
 ```bash
 bats test/bootstrap.bats
 ```
-
-### 4. Create GitHub Release
-
-1. Create a new tag:
-   ```bash
-   git tag -a v0.1.0 -m "Release 0.1.0"
-   git push origin v0.1.0
-   ```
-
-2. Create a GitHub release:
-   - Go to https://github.com/iterative-works/iw-cli/releases/new
-   - Select the tag (v0.1.0)
-   - Add release notes
-   - Upload artifacts:
-     - `release/iw-cli-0.1.0.tar.gz`
-     - `iw-bootstrap`
 
 ### 5. Verify Download
 
@@ -94,11 +98,10 @@ echo 'version = "0.1.0"' > .iw/config.conf
 ## Release Checklist
 
 - [ ] All tests pass (unit and integration)
-- [ ] Version number updated in release script
-- [ ] Release tarball created and tested
-- [ ] Bootstrap script works with new release
-- [ ] Git tag created and pushed
-- [ ] GitHub release created with artifacts
+- [ ] `scripts/release-prepare.sh <version>` PR opened, reviewed, merged
+- [ ] `scripts/release-publish.sh <version>` succeeded on `main`
+- [ ] Versioned GitHub release contains tarball + `iw-bootstrap`
+- [ ] `vlatest` release updated
 - [ ] Download from GitHub works correctly
 - [ ] Offline operation verified after bootstrap
 
