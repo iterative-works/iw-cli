@@ -29,11 +29,11 @@
       "path": "project-management/issues/IW-382/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-06-14T17:42:57.119629730Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-06-17T15:33:50.156638631Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 02: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 02: Merged",
+    "type": "success",
     "subtext": "BuildToolCleanup built-in (Mill / Bloop / docker-compose)"
   },
   "message": "Phase 02 implementation started",
@@ -103,6 +103,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/384"
