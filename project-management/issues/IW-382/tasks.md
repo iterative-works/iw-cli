@@ -7,7 +7,7 @@
 ## Phase Index
 
 - [x] Phase 1: CleanupAction model + config + Rm wiring (project-hook path) (Est: 3-4.5h) → `phase-01-context.md`
-- [ ] Phase 2: BuildToolCleanup built-in (Mill / Bloop / docker-compose) (Est: 2.5-4h) → `phase-02-context.md`
+- [x] Phase 2: BuildToolCleanup built-in (Mill / Bloop / docker-compose) (Est: 2.5-4h) → `phase-02-context.md`
 
 ## Progress Tracker
 
