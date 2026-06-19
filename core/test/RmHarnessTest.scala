@@ -2,8 +2,13 @@
 
 package iw.core.test
 
+import iw.core.adapters.ProcessResult
 import iw.core.commands.Rm
+import iw.core.model.{CleanupAction, CleanupContext}
 import iw.core.test.fixtures.FakeCommandEnv
+
+import java.util.concurrent.atomic.AtomicBoolean
+import scala.collection.mutable
 
 class RmHarnessTest extends munit.FunSuite:
 
@@ -192,4 +197,400 @@ class RmHarnessTest extends munit.FunSuite:
     assertEquals(result.exitCode, 0)
     assert(env.console.stdout.contains("Failed to kill session"))
     assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  // ========== Cleanup hook scenarios ==========
+
+  test("no cleanup hooks: removal proceeds normally") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1001")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+
+    val result = Rm.run(Seq("IWLE-1001"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test(
+    "single hook returning Nil: proceeds, hook ran before removal, context correct"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1002")
+    env.worktree.addWorktree(wt)
+
+    val receivedCtx = mutable.ArrayBuffer.empty[CleanupContext]
+    val events = mutable.ArrayBuffer.empty[String]
+    val hook = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        receivedCtx += ctx
+        events += "hook"
+        List("ran")
+
+    env.hooks.setCleanupActions(List(hook))
+
+    val result = Rm.run(Seq("IWLE-1002"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(events.toList, List("hook"), "Hook must have been invoked")
+    assertEquals(env.worktree.removeCallList.size, 1)
+
+    // Verify context fields reach the hook correctly
+    assertEquals(receivedCtx.headOption.map(_.issueId), Some("IWLE-1002"))
+    assertEquals(receivedCtx.headOption.map(_.worktreePath), Some(wt))
+    assertEquals(receivedCtx.headOption.map(_.force), Some(false))
+
+    // Verify ordering: Warning: ran must appear before "Removing worktree"
+    val lines = env.console.stdoutLines
+    val warningIdx = lines.indexWhere(_.contains("ran"))
+    val removingIdx = lines.indexWhere(_.contains("Removing worktree"))
+    assert(warningIdx >= 0, "Warning line must appear in stdout")
+    assert(removingIdx >= 0, "'Removing worktree' line must appear in stdout")
+    assert(
+      warningIdx < removingIdx,
+      s"Hook warning (line $warningIdx) must appear before 'Removing worktree' (line $removingIdx)"
+    )
+  }
+
+  test(
+    "single hook returning warnings: warnings printed before removal, proceeds"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1003")
+    env.worktree.addWorktree(wt)
+
+    val hook = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        List("daemon X still running")
+
+    env.hooks.setCleanupActions(List(hook))
+
+    val result = Rm.run(Seq("IWLE-1003"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.worktree.removeCallList.size, 1)
+    assert(
+      env.console.stdout.contains("daemon X still running"),
+      s"Expected warning in stdout: ${env.console.stdout}"
+    )
+    val lines = env.console.stdoutLines
+    val warningIdx = lines.indexWhere(_.contains("daemon X still running"))
+    val removingIdx = lines.indexWhere(_.contains("Removing worktree"))
+    assert(warningIdx >= 0, "Warning line must appear in stdout")
+    assert(removingIdx >= 0, "'Removing worktree' line must appear in stdout")
+    assert(
+      warningIdx < removingIdx,
+      s"Warning (line $warningIdx) must appear before 'Removing worktree' (line $removingIdx)"
+    )
+  }
+
+  test(
+    "single hook throwing: error printed, worktree.remove NOT called, exit 1"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1004")
+    env.worktree.addWorktree(wt)
+
+    val hook = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        sys.error("boom")
+
+    env.hooks.setCleanupActions(List(hook))
+
+    val result = Rm.run(Seq("IWLE-1004"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(
+      env.console.stderr.contains("boom"),
+      s"Expected error in stderr: ${env.console.stderr}"
+    )
+    assertEquals(
+      env.worktree.removeCallList,
+      Nil,
+      "Worktree must NOT be removed when a hook aborts"
+    )
+  }
+
+  test("multiple hooks: declared order, warnings aggregate, removal proceeds") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1005")
+    env.worktree.addWorktree(wt)
+
+    val order = mutable.ArrayBuffer.empty[String]
+    val hookA = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        order += "A"
+        List("warnA")
+    val hookB = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        order += "B"
+        List("warnB")
+
+    env.hooks.setCleanupActions(List(hookA, hookB))
+
+    val result = Rm.run(Seq("IWLE-1005"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.worktree.removeCallList.size, 1)
+    assertEquals(order.toList, List("A", "B"))
+    val out = env.console.stdout
+    assert(out.contains("warnA"), s"Expected warnA in stdout: $out")
+    assert(out.contains("warnB"), s"Expected warnB in stdout: $out")
+    val lines = env.console.stdoutLines
+    val idxA = lines.indexWhere(_.contains("warnA"))
+    val idxB = lines.indexWhere(_.contains("warnB"))
+    val idxRemoving = lines.indexWhere(_.contains("Removing worktree"))
+    assert(
+      idxA < idxB,
+      s"warnA (line $idxA) must appear before warnB (line $idxB)"
+    )
+    assert(
+      idxA < idxRemoving,
+      s"warnA (line $idxA) must appear before 'Removing worktree' (line $idxRemoving)"
+    )
+    assert(
+      idxB < idxRemoving,
+      s"warnB (line $idxB) must appear before 'Removing worktree' (line $idxRemoving)"
+    )
+  }
+
+  // ========== Built-in cleanup scenarios ==========
+
+  private val linearConfigBuiltinDisabled =
+    """project {
+      |  name = testproject
+      |}
+      |
+      |tracker {
+      |  type = linear
+      |  team = TEST
+      |}
+      |
+      |cleanup {
+      |  builtin = false
+      |}
+      |""".stripMargin
+
+  private def seedConfigBuiltinDisabled(env: FakeCommandEnv): Unit =
+    env.fs.put(env.cwd / ".iw" / "config.conf", linearConfigBuiltinDisabled)
+
+  test(
+    "built-in only: markers + tools present → teardown runs in worktree cwd, removal proceeds"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2001")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / "out" / "mill-daemon", "")
+    env.fs.put(wt / "docker-compose.yml", "")
+    env.process.setExistingCommands(Set("git", "tmux", "mill", "docker"))
+
+    val result = Rm.run(Seq("IWLE-2001"), env)
+
+    assertEquals(result.exitCode, 0)
+    // Teardowns run in the worktree cwd, in detect order (mill before docker).
+    assertEquals(
+      env.process.runInList,
+      List(
+        (wt, Seq("mill", "--no-server", "shutdown")),
+        (wt, Seq("docker", "compose", "down"))
+      )
+    )
+    // ...and NOT through `run` (which would use the wrong, ambient cwd).
+    assertEquals(
+      env.process.invocationList,
+      Nil,
+      "Teardown must go through runIn (worktree cwd), never run"
+    )
+    val lines = env.console.stdoutLines
+    val millActionIdx =
+      lines.indexWhere(_.contains("Shutting down Mill daemon"))
+    val removingIdx = lines.indexWhere(_.contains("Removing worktree"))
+    assert(
+      millActionIdx >= 0,
+      "Action line 'Shutting down Mill daemon...' must appear in stdout"
+    )
+    assert(removingIdx >= 0, "'Removing worktree' must appear in stdout")
+    assert(
+      millActionIdx < removingIdx,
+      s"Action line (line $millActionIdx) must appear before 'Removing worktree' (line $removingIdx)"
+    )
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test("built-in: marker present but tool absent → silent skip (D2)") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2002")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / "out" / "mill-daemon", "")
+    env.fs.put(wt / "docker-compose.yml", "")
+    // mill and docker are NOT in existing commands (defaults: git, gh, glab, scala-cli, tmux)
+
+    val result = Rm.run(Seq("IWLE-2002"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(
+      env.process.runInList,
+      Nil,
+      "No runIn calls when tools are absent"
+    )
+    assert(
+      !env.console.stdoutLines.exists(_.contains("Shutting down Mill daemon")),
+      "No action line when tool is absent"
+    )
+    assert(
+      !env.console.stdoutLines.exists(_.contains("Warning:")),
+      "No warning when tool is absent (silent skip)"
+    )
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test("built-in: tool present, non-zero exit → warning, removal proceeds") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2003")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / "out" / "mill-daemon", "")
+    env.process.setExistingCommands(Set("git", "tmux", "mill"))
+    env.process.scriptResponse(
+      Seq("mill", "--no-server", "shutdown"),
+      ProcessResult(1, "", "boom")
+    )
+
+    val result = Rm.run(Seq("IWLE-2003"), env)
+
+    assertEquals(result.exitCode, 0)
+    assert(
+      env.console.stdoutLines.exists(line =>
+        line.contains("Warning:") && line.contains(
+          "Shutting down Mill daemon failed"
+        )
+      ),
+      s"Expected warning about mill failure in stdout: ${env.console.stdoutLines}"
+    )
+    assertEquals(
+      env.worktree.removeCallList.size,
+      1,
+      "Removal must proceed despite builtin warning"
+    )
+  }
+
+  test("built-in disabled: never runs even with markers and tools present") {
+    val env = FakeCommandEnv()
+    seedConfigBuiltinDisabled(env)
+    val wt = worktreePath(env, "testproject-IWLE-2004")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / "out" / "mill-daemon", "")
+    env.fs.put(wt / "docker-compose.yml", "")
+    env.process.setExistingCommands(Set("git", "tmux", "mill", "docker"))
+
+    val result = Rm.run(Seq("IWLE-2004"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(
+      env.process.runInList,
+      Nil,
+      "No runIn calls when builtin is disabled"
+    )
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test("built-in: .bloop marker + bloop present → bloop exit in worktree cwd") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2005")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / ".bloop", "")
+    env.process.setExistingCommands(Set("git", "tmux", "bloop"))
+
+    val result = Rm.run(Seq("IWLE-2005"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.process.runInList, List((wt, Seq("bloop", "exit"))))
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test(
+    "built-in: .scala-build marker alone triggers the bloop teardown (OR branch)"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2006")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / ".scala-build", "")
+    env.process.setExistingCommands(Set("git", "tmux", "bloop"))
+
+    val result = Rm.run(Seq("IWLE-2006"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.process.runInList, List((wt, Seq("bloop", "exit"))))
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test("built-in: timed-out teardown (exit 0) → warning, removal proceeds") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2007")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / "out" / "mill-daemon", "")
+    env.process.setExistingCommands(Set("git", "tmux", "mill"))
+    env.process.scriptResponse(
+      Seq("mill", "--no-server", "shutdown"),
+      ProcessResult(0, "", "", timedOut = true)
+    )
+
+    val result = Rm.run(Seq("IWLE-2007"), env)
+
+    assertEquals(result.exitCode, 0)
+    assert(
+      env.console.stdoutLines.exists(line =>
+        line.contains("Warning:") && line.contains(
+          "Shutting down Mill daemon failed"
+        )
+      ),
+      s"Expected timeout warning in stdout: ${env.console.stdoutLines}"
+    )
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test("first hook throws: second hook never runs, removal skipped, exit 1") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1006")
+    env.worktree.addWorktree(wt)
+
+    val secondRan = AtomicBoolean(false)
+    val hookA = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        sys.error("hook A failed")
+    val hookB = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        secondRan.set(true)
+        Nil
+
+    env.hooks.setCleanupActions(List(hookA, hookB))
+
+    val result = Rm.run(Seq("IWLE-1006"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(!secondRan.get(), "Second hook must NOT run when first hook throws")
+    assertEquals(
+      env.worktree.removeCallList,
+      Nil,
+      "Worktree must NOT be removed"
+    )
   }

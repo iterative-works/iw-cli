@@ -3,6 +3,7 @@
 package iw.tests
 
 import iw.core.model.{
+  CleanupConfig,
   ConfigSerializer,
   GitRemote,
   IssueTrackerType,
@@ -1016,3 +1017,82 @@ class ConfigTest extends munit.FunSuite:
     assertEquals(roundTripped.team, original.team)
     assertEquals(roundTripped.repository, original.repository)
     assertEquals(roundTripped.trackerBaseUrl, original.trackerBaseUrl)
+
+  // ========== CleanupConfig Tests ==========
+
+  test("fromHocon with no cleanup block yields builtin = true by default"):
+    val hocon = """
+      tracker {
+        type = linear
+        team = TEST
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.cleanup.builtin, true)
+
+  test("fromHocon with cleanup { builtin = false } yields builtin = false"):
+    val hocon = """
+      tracker {
+        type = linear
+        team = TEST
+      }
+      project {
+        name = test-project
+      }
+      cleanup {
+        builtin = false
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.cleanup.builtin, false)
+
+  test("toHocon of default config (builtin = true) contains no cleanup block"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Linear,
+      team = "TEST",
+      projectName = "test-project"
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(
+      !hocon.contains("cleanup"),
+      s"Expected no 'cleanup' block, got:\n$hocon"
+    )
+
+  test("toHocon with builtin = false emits cleanup block and round-trips"):
+    val original = ProjectConfiguration
+      .create(
+        trackerType = IssueTrackerType.Linear,
+        team = "TEST",
+        projectName = "test-project"
+      )
+      .copy(cleanup = CleanupConfig(builtin = false))
+    val hocon = ConfigSerializer.toHocon(original)
+    assert(hocon.contains("cleanup {"), s"Expected 'cleanup {' in:\n$hocon")
+    assert(
+      hocon.contains("builtin = false"),
+      s"Expected 'builtin = false' in:\n$hocon"
+    )
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight)
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.cleanup.builtin, false)
+
+  test("toHocon of default config is idempotent across a fromHocon round-trip"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Linear,
+      team = "TEST",
+      projectName = "test-project"
+    )
+    val hocon1 = ConfigSerializer.toHocon(config)
+    val hocon2 = ConfigSerializer
+      .fromHocon(hocon1)
+      .map(ConfigSerializer.toHocon)
+      .getOrElse(fail("round-trip parse failed"))
+    assertEquals(hocon1, hocon2)

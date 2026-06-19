@@ -4,6 +4,7 @@
 package iw.core.commands
 
 import iw.core.model.{
+  CleanupContext,
   ConfigSerializer,
   Constants,
   IssueId,
@@ -11,6 +12,7 @@ import iw.core.model.{
   ProjectConfiguration,
   WorktreePath
 }
+import scala.util.control.NonFatal
 
 object Rm:
   def run(args: Seq[String], env: CommandEnv): CommandResult =
@@ -87,21 +89,62 @@ object Rm:
       decideForce(targetPath, force, env) match
         case Left(result)       => result
         case Right(forceRemove) =>
-          killSessionIfPresent(sessionName, env)
-          env.console.out(
-            s"Removing worktree '${worktreePath.directoryName}'..."
+          val ctx = CleanupContext(
+            worktreePath = targetPath,
+            issueId = issueId.value,
+            config = config,
+            force = forceRemove
           )
-          env.worktree.remove(targetPath, env.cwd, force = forceRemove) match
-            case Left(err) =>
-              env.console.err(s"Error: Failed to remove worktree: $err")
-              CommandResult.error
-            case Right(_) =>
-              env.console.out("Worktree removed")
-              unregisterBestEffort(issueId.value, env)
+          runCleanupHooks(ctx, env) match
+            case Left(result) =>
+              result // worktree preserved: a hook signalled abort
+            case Right(hookWarnings) =>
+              // Project hooks run first (above), then the built-in teardown, so
+              // a hook can observe live daemon state before the built-in stops it.
+              val builtinWarnings =
+                if config.cleanup.builtin then
+                  BuildToolCleanupRunner.run(ctx, env)
+                else Nil
+              val warnings = hookWarnings ++ builtinWarnings
+              warnings.foreach(w => env.console.out(s"Warning: $w"))
+              killSessionIfPresent(sessionName, env)
               env.console.out(
-                s"Branch '${issueId.value}' was not deleted (delete manually if needed)"
+                s"Removing worktree '${worktreePath.directoryName}'..."
               )
-              CommandResult.ok
+              env.worktree.remove(
+                targetPath,
+                env.cwd,
+                force = forceRemove
+              ) match
+                case Left(err) =>
+                  env.console.err(s"Error: Failed to remove worktree: $err")
+                  CommandResult.error
+                case Right(_) =>
+                  env.console.out("Worktree removed")
+                  unregisterBestEffort(issueId.value, env)
+                  env.console.out(
+                    s"Branch '${issueId.value}' was not deleted (delete manually if needed)"
+                  )
+                  CommandResult.ok
+
+  private def runCleanupHooks(
+      ctx: CleanupContext,
+      env: CommandEnv
+  ): Either[CommandResult, List[String]] =
+    // CleanupAction contract: throwing = abort (preserve worktree, exit non-zero);
+    // a returned list = warnings. See CleanupAction scaladoc.
+    env.hooks.cleanupActions
+      .foldLeft[Either[CommandResult, List[String]]](Right(Nil)) {
+        case (Left(result), _) =>
+          Left(result) // already aborted; skip remaining hooks
+        case (Right(acc), action) =>
+          try Right(acc ++ action.cleanup(ctx))
+          catch
+            case NonFatal(e) =>
+              val msg = Option(e.getMessage).getOrElse(e.getClass.getSimpleName)
+              env.console.err(s"Error: Cleanup hook failed: $msg")
+              Left(CommandResult.error)
+      }
 
   private def decideForce(
       targetPath: os.Path,

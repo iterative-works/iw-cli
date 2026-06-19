@@ -27,6 +27,7 @@ import iw.core.model.{
   ApiToken,
   Check,
   CICheckResult,
+  CleanupAction,
   FeedbackParser,
   FixAction,
   ForgeType,
@@ -127,6 +128,8 @@ object LiveProcess extends Process:
     ProcessAdapter.commandExists(command)
   def run(command: Seq[String]): ProcessResult =
     ProcessAdapter.run(command)
+  def runIn(cwd: os.Path, command: Seq[String], timeoutMs: Int): ProcessResult =
+    ProcessAdapter.run(command, cwd = cwd, timeoutMs = timeoutMs)
   def runInteractive(command: Seq[String]): Int =
     ProcessAdapter.runInteractive(command)
 
@@ -313,6 +316,9 @@ object LiveHookOps extends HookOps:
 
   def discoverFixActions: List[FixAction] =
     HookDiscovery.collectValues[FixAction]
+
+  def cleanupActions: List[CleanupAction] =
+    HookDiscovery.collectValues[CleanupAction]
 
 object LiveServerOps extends ServerOps:
   def getWorktreeStatus(issueId: String): Either[String, WorktreeStatus] =
