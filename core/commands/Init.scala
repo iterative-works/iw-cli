@@ -103,6 +103,7 @@ object Init:
     case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
     case IssueTrackerType.GitHub   => Constants.TrackerTypeValues.GitHub
     case IssueTrackerType.GitLab   => Constants.TrackerTypeValues.GitLab
+    case IssueTrackerType.Forgejo  => Constants.TrackerTypeValues.Forgejo
 
   private def askForTracker(env: CommandEnv): IssueTrackerType =
     env.console.out("Available trackers:")
@@ -157,6 +158,9 @@ object Init:
           env.prompt.ask("Enter team/project identifier (e.g., IWLE, TEST)")
         )
         Right((team, None, None, None))
+
+      case IssueTrackerType.Forgejo =>
+        Left("Forgejo tracker is not supported by the init command")
 
   private def resolveGitHubRepo(
       repositoryArg: Option[String],
@@ -299,3 +303,4 @@ object Init:
         env.console.out(
           "For other platforms, see: https://gitlab.com/gitlab-org/cli"
         )
+      case IssueTrackerType.Forgejo => ()

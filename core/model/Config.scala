@@ -100,7 +100,7 @@ case class GitRemote(url: String):
     repositoryOwnerAndName.orElse(extractGitLabRepository)
 
 enum IssueTrackerType:
-  case Linear, YouTrack, GitHub, GitLab
+  case Linear, YouTrack, GitHub, GitLab, Forgejo
 
 case class TrackerConfig(
     trackerType: IssueTrackerType,
@@ -143,7 +143,8 @@ case class ProjectConfiguration(
     * the team key directly.
     */
   def teamIdentifier: String = trackerType match
-    case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+    case IssueTrackerType.GitHub | IssueTrackerType.GitLab |
+        IssueTrackerType.Forgejo =>
       repository.getOrElse(team)
     case _ =>
       team
@@ -207,6 +208,7 @@ object ConfigSerializer:
       case IssueTrackerType.YouTrack => Constants.TrackerTypeValues.YouTrack
       case IssueTrackerType.GitHub   => Constants.TrackerTypeValues.GitHub
       case IssueTrackerType.GitLab   => Constants.TrackerTypeValues.GitLab
+      case IssueTrackerType.Forgejo  => Constants.TrackerTypeValues.Forgejo
 
     val versionLine = config.version.map(v => s"\nversion = $v").getOrElse("")
 
@@ -246,6 +248,8 @@ object ConfigSerializer:
           Right(IssueTrackerType.GitHub)
         case Constants.TrackerTypeValues.GitLab =>
           Right(IssueTrackerType.GitLab)
+        case Constants.TrackerTypeValues.Forgejo =>
+          Right(IssueTrackerType.Forgejo)
         case other => Left(s"Unknown tracker type: $other")
 
       trackerTypeEither.flatMap { trackerType =>
