@@ -31,6 +31,7 @@ import iw.core.model.{
   CleanupAction,
   FeedbackParser,
   FixAction,
+  ForgeConfig,
   ForgeType,
   GitRemote,
   Issue,
@@ -145,7 +146,8 @@ object LiveTrackerOps extends TrackerOps:
       baseBranch: String,
       title: String,
       body: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, String] =
     forge match
       case ForgeType.GitHub =>
@@ -165,56 +167,91 @@ object LiveTrackerOps extends TrackerOps:
           body,
           execCommand = GitLabClient.execCommandWithHost(gitlabHost)
         )
+      case ForgeType.Forgejo =>
+        for
+          baseUrl <- forgeConfig.baseUrl.toRight(
+            ForgeConfig.missingBaseUrlError
+          )
+          token <- forgeConfig.token.toRight(ForgeConfig.missingTokenError)
+          pr <- ForgejoClient.createPullRequest(
+            repository,
+            headBranch,
+            baseBranch,
+            title,
+            body,
+            baseUrl,
+            token
+          )
+        yield pr.htmlUrl
 
   def mergeSquashAndDelete(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, Unit] =
-    val (cmd, args, env) = forge match
+    forge match
       case ForgeType.GitHub =>
-        (
-          "gh",
-          Seq("pr", "merge", "--squash", "--delete-branch", prUrl),
-          Map.empty[String, String]
+        val result = ProcessAdapter.run(
+          Seq("gh", "pr", "merge", "--squash", "--delete-branch", prUrl)
         )
+        if result.exitCode == 0 then Right(())
+        else Left(s"Failed to merge PR: ${result.stderr}")
       case ForgeType.GitLab =>
-        (
-          "glab",
-          Seq("mr", "merge", "--squash", prUrl),
+        val env =
           gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty)
+        val result = ProcessAdapter.run(
+          Seq("glab", "mr", "merge", "--squash", prUrl),
+          env = env
         )
-    val result = ProcessAdapter.run(cmd +: args, env = env)
-    if result.exitCode == 0 then Right(())
-    else Left(s"Failed to merge PR: ${result.stderr}")
+        if result.exitCode == 0 then Right(())
+        else Left(s"Failed to merge PR: ${result.stderr}")
+      case ForgeType.Forgejo =>
+        mergeForgejoSquash(prUrl, forgeConfig)
 
   def mergeWithDelete(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, Unit] =
-    val (cmd, args, env) = forge match
+    forge match
       case ForgeType.GitHub =>
-        (
-          "gh",
-          GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq,
-          Map.empty[String, String]
+        val result = ProcessAdapter.run(
+          "gh" +: GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq
         )
+        if result.exitCode == 0 then Right(())
+        else Left(s"Failed to merge PR: ${result.stderr}")
       case ForgeType.GitLab =>
-        (
-          "glab",
-          GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq,
+        val env =
           gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty)
+        val result = ProcessAdapter.run(
+          "glab" +: GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq,
+          env = env
         )
-    val result = ProcessAdapter.run(cmd +: args, env = env)
-    if result.exitCode == 0 then Right(())
-    else Left(s"Failed to merge PR: ${result.stderr}")
+        if result.exitCode == 0 then Right(())
+        else Left(s"Failed to merge PR: ${result.stderr}")
+      case ForgeType.Forgejo =>
+        mergeForgejoSquash(prUrl, forgeConfig)
+
+  private def mergeForgejoSquash(
+      prUrl: String,
+      forgeConfig: ForgeConfig
+  ): Either[String, Unit] =
+    for
+      baseUrl <- forgeConfig.baseUrl.toRight(ForgeConfig.missingBaseUrlError)
+      token <- forgeConfig.token.toRight(ForgeConfig.missingTokenError)
+      repository <- ForgejoClient.extractRepositoryFromPrUrl(prUrl)
+      index <- ForgejoClient.extractPullRequestIndex(prUrl)
+      _ <- ForgejoClient.mergePullRequest(repository, index, baseUrl, token)
+    yield ()
 
   def fetchCheckStatuses(
       forge: ForgeType,
       prNumber: Int,
       repository: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, List[CICheckResult]] =
     forge match
       case ForgeType.GitHub =>
@@ -225,6 +262,25 @@ object LiveTrackerOps extends TrackerOps:
           repository,
           execCommand = GitLabClient.execCommandWithHost(gitlabHost)
         )
+      case ForgeType.Forgejo =>
+        for
+          baseUrl <- forgeConfig.baseUrl.toRight(
+            ForgeConfig.missingBaseUrlError
+          )
+          token <- forgeConfig.token.toRight(ForgeConfig.missingTokenError)
+          sha <- ForgejoClient.fetchPrHeadSha(
+            repository,
+            prNumber,
+            baseUrl,
+            token
+          )
+          checks <- ForgejoClient.fetchCheckStatuses(
+            repository,
+            sha,
+            baseUrl,
+            token
+          )
+        yield checks
 
   def createFeedbackIssue(
       repository: String,
