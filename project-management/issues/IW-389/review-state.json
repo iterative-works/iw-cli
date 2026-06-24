@@ -43,17 +43,21 @@
     {
       "label": "Phase 4 Tasks",
       "path": "project-management/issues/IW-389/phase-04-tasks.md"
+    },
+    {
+      "label": "Phase 5 Context",
+      "path": "project-management/issues/IW-389/phase-05-context.md"
     }
   ],
-  "last_updated": "2026-06-24T12:45:19.007272170Z",
-  "status": "phase_merged",
+  "last_updated": "2026-06-24T12:51:19.616326778Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 04: Merged",
-    "type": "success",
-    "subtext": "Init + doctor integration + smoke/harness coverage"
+    "text": "Phase 5: Context Ready",
+    "type": "info",
+    "subtext": "PR creation + CI-check polling (forge parity)"
   },
-  "message": "Phase 04 implementation started",
-  "activity": "waiting",
+  "message": "Phase 5 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -115,8 +119,8 @@
   "git_sha": "3c8d4e4",
   "needs_attention": true,
   "phase_checkpoints": {
-    "4": {
-      "context_sha": "context_sha=577547615fa1c43e022d64407be4b62ab3f7c3d0"
+    "5": {
+      "context_sha": "context_sha=17297744600ae626b8fbf054ccf2bf1bd7bca8c2"
     }
   },
   "badges": [
