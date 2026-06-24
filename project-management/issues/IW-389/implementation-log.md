@@ -202,3 +202,82 @@ M	core/test/fixtures/FakeCommandEnv.scala
 ```
 
 ---
+
+## Phase 4: Init + doctor integration + smoke/harness coverage (2026-06-24)
+
+**Layer:** Presentation / imperative shell (Init + Doctor commands) + cross-cutting test coverage — Layers 5 + 6
+
+**What was built:**
+- `core/commands/Init.scala` — four Forgejo arms filled in: `resolveTrackerType` accepts
+  `--tracker=forgejo` (and the invalid-arg message now lists it); `askForTracker` gains a
+  `5. Forgejo` menu option (`"5" | "forgejo"`); `collectTrackerDetails` replaces the Phase-1
+  stub `Left(...)` with a real arm collecting `repository` + required `baseUrl` + optional
+  `teamPrefix` (mirrors GitLab repo/prefix + YouTrack required-baseUrl, `team = ""`);
+  `printNextSteps` prints the `export FORGEJO_API_TOKEN=...` prompt. PURPOSE comment updated.
+- `core/model/Config.scala` — `TrackerDetector.suggestTracker` auto-detects `codeberg.org`
+  remotes → `Forgejo` (RESOLVED clarify: codeberg-only; self-hosted instances selected
+  explicitly via flag/menu).
+- `core/commands/Doctor.scala` — `ciPlatform` gains a `Forgejo => "Forgejo Actions"` arm; the
+  match was made exhaustive (`Linear | YouTrack` explicit, no wildcard) for compile-time safety.
+- `core/model/CIChecks.scala` — Forgejo split out of the `Linear | YouTrack | Forgejo`
+  placeholder into a dedicated Forgejo Actions arm checking `.forgejo/workflows/ci.yml`
+  (primary) → `.github/workflows/ci.yml` (compat) → `Error("Missing", …)` (parity with
+  GitHub/GitLab, not a Warning).
+- `test/forgejo-issue.bats` (new) — BATS E2E smoke proving config-parse → dispatch → token
+  resolution for Forgejo (hermetic no-token error-wiring variant; `IW_SERVER_DISABLED=1`).
+
+**Decisions:**
+- **`validateToken` NOT consumed** in init/doctor — no sibling tracker validates tokens at
+  init/doctor time (Linear/YouTrack init only print the env-var prompt; Doctor's baseChecks are
+  config/git-presence). Wiring it for Forgejo alone would diverge and pull network I/O into those
+  commands. The method stays available on `ForgejoClient` for a future cross-tracker feature.
+- **CIChecks missing workflow = Error** (forge parity with GitHub/GitLab), not Warning.
+- **BATS smoke = hermetic no-token variant** — the adapter's HTTP/JSON behavior is already
+  covered by Phase 2's 33 unit tests; the smoke proves wiring, not coverage.
+- **Forgejo repository auto-detection and self-hosted host heuristics deferred** — RESOLVED
+  clarify scopes auto-detect to *tracker-type* on `codeberg.org` only; repository extraction and
+  self-hosted host matching are non-goals this phase.
+
+**Dependencies on other layers:**
+- Phase 1: `IssueTrackerType.Forgejo`, `TrackerTypeValues.Forgejo`, config serializer round-trip.
+- Phase 2: `ForgejoClient` (consumed via dispatch by the BATS smoke; `validateToken` left unused).
+- Phase 3: `EnvVars.ForgejoApiToken`, `TrackerOps`/`Issue.scala` Forgejo dispatch (exercised
+  end-to-end by the smoke test; untouched here).
+
+**Testing:**
+- Unit/harness tests: 11 added — 5 Init (`InitHarnessTest`: all-args no-prompt, base-url prompt,
+  next-steps token, codeberg auto-detect, menu option 5), 2 Doctor (`DoctorHarnessTest`:
+  forgejoConfig valid-config, `--fix` "Forgejo Actions" CI label), 4 CIChecks (`CIChecksTest`:
+  `.forgejo`, `.github` compat, neither→Error, both→prefers `.forgejo`). Full `core.test` green
+  (186/186); `-Werror` compile clean, no warnings.
+- E2E: 1 BATS smoke (`test/forgejo-issue.bats`), green.
+
+**Code review:**
+- Iterations: 1 (6 reviewers: scala3, composition, architecture, testing, security, style).
+- Critical findings: 2 raised, 0 genuine blockers. (1) `os.pwd` in `CIChecks` model layer —
+  pre-existing/family-wide (all arms), out of scope; deferred. (2) BATS commit-before-branching —
+  test passes; applied the initial-commit hardening anyway for convention parity.
+- Applied in-scope: PURPOSE comment, exhaustive Doctor match, `InitHarnessTest` stale-answer fix
+  + field assertions on auto-detect/menu tests, `CIChecksTest` both-present case, BATS init-commit.
+- Deferred (deliberate/family-wide, per analysis RESOLVED clarifications): Forgejo repo
+  auto-detection, self-hosted host heuristic, baseUrl/repository pre-write validation.
+- Review file: review-phase-04-20260624-143605.md
+
+**For next phases:**
+- Phase 5: extend the adapter + `ForgeType`/PR-creation paths for PR creation + CI-check polling
+  so `phase-pr`/`phase-merge` work against Forgejo. The `ForgeType` discriminator does not yet
+  have a Forgejo arm — that is the core of Phase 5.
+
+**Files changed:**
+```
+M	core/commands/Doctor.scala
+M	core/commands/Init.scala
+M	core/model/CIChecks.scala
+M	core/model/Config.scala
+M	core/test/CIChecksTest.scala
+M	core/test/DoctorHarnessTest.scala
+M	core/test/InitHarnessTest.scala
+A	test/forgejo-issue.bats
+```
+
+---
