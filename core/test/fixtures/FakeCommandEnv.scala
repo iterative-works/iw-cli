@@ -577,6 +577,42 @@ final class FakeTracker extends TrackerOps:
     )
     createIssueResultRef.get()
 
+  def fetchForgejoIssue(
+      issueId: IssueId,
+      repository: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, Issue] =
+    fetchIssueCalls += FetchIssueCall(
+      "forgejo",
+      issueId.value,
+      Map(
+        "repository" -> repository,
+        "baseUrl" -> baseUrl,
+        "token" -> token.value
+      )
+    )
+    fetchIssueResultRef.get()
+
+  def createForgejoIssue(
+      repository: String,
+      title: String,
+      description: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue] =
+    createIssueCalls += CreateIssueCall(
+      "forgejo",
+      title,
+      description,
+      Map(
+        "repository" -> repository,
+        "baseUrl" -> baseUrl,
+        "token" -> token.value
+      )
+    )
+    createIssueResultRef.get()
+
   def prCallList: List[PrCall] = prCalls.toList
   def mergeCallList: List[MergeCall] = mergeCalls.toList
   def mergeWithDeleteCallList: List[MergeCall] = mergeWithDeleteCalls.toList

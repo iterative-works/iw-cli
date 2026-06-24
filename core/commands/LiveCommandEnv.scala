@@ -6,6 +6,7 @@ package iw.core.commands
 import iw.core.adapters.{
   ConfigFileRepository,
   CreatedIssue,
+  ForgejoClient,
   GitAdapter,
   GitHubClient,
   GitLabClient,
@@ -299,6 +300,23 @@ object LiveTrackerOps extends TrackerOps:
       description,
       execCommand = GitLabClient.execCommandWithHost(gitlabHost)
     )
+
+  def fetchForgejoIssue(
+      issueId: IssueId,
+      repository: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, Issue] =
+    ForgejoClient.fetchIssue(issueId, repository, baseUrl, token)
+
+  def createForgejoIssue(
+      repository: String,
+      title: String,
+      description: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue] =
+    ForgejoClient.createIssue(repository, title, description, baseUrl, token)
 
 object LiveClock extends Clock:
   def now: Long = System.currentTimeMillis()
