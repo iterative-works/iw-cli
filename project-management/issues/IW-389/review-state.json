@@ -27,17 +27,21 @@
     {
       "label": "Phase 2 Tasks",
       "path": "project-management/issues/IW-389/phase-02-tasks.md"
+    },
+    {
+      "label": "Phase 3 Context",
+      "path": "project-management/issues/IW-389/phase-03-context.md"
     }
   ],
-  "last_updated": "2026-06-24T11:44:24.914931987Z",
-  "status": "phase_merged",
+  "last_updated": "2026-06-24T11:51:07.795145788Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 02: Merged",
-    "type": "success",
-    "subtext": "Forgejo HTTP adapter — issue read + create"
+    "text": "Phase 3: Context Ready",
+    "type": "info",
+    "subtext": "Capability wiring + command dispatch/auth"
   },
-  "message": "Phase 02 implementation started",
-  "activity": "waiting",
+  "message": "Phase 3 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -79,8 +83,8 @@
   "git_sha": "3c8d4e4",
   "needs_attention": true,
   "phase_checkpoints": {
-    "2": {
-      "context_sha": "context_sha=b0ec28c19446c5aa370939befc46c58429dbac43"
+    "3": {
+      "context_sha": "context_sha=aa0ad77dd04b131cb251627364a135387fc5a06e"
     }
   },
   "badges": [
