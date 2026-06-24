@@ -45,14 +45,14 @@
       "path": "project-management/issues/IW-389/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T12:12:38.387013283Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-06-24T12:13:34.769617114Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 4: Tasks Ready",
-    "type": "success",
+    "text": "Phase 04: Implementing",
+    "type": "progress",
     "subtext": "Init + doctor integration + smoke/harness coverage"
   },
-  "message": "Phase 4 tasks ready",
+  "message": "Phase 04 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -150,6 +150,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/392"
