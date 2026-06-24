@@ -7,7 +7,7 @@
 ## Phase Index
 
 - [x] Phase 1: Domain, config & serialization (Est: 2-4h) → `phase-01-context.md`
-- [ ] Phase 2: Forgejo HTTP adapter — issue read + create (Est: 5-8h) → `phase-02-context.md`
+- [x] Phase 2: Forgejo HTTP adapter — issue read + create (Est: 5-8h) → `phase-02-context.md`
 - [ ] Phase 3: Capability wiring + command dispatch/auth (Est: 3-6h) → `phase-03-context.md`
 - [ ] Phase 4: Init + doctor integration + smoke/harness coverage (Est: 3-5h) → `phase-04-context.md`
 - [ ] Phase 5: PR creation + CI-check polling (forge parity) (Est: 4-8h) → `phase-05-context.md`
