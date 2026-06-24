@@ -1,9 +1,17 @@
-// PURPOSE: Forgejo REST API client for issue read and create operations
-// PURPOSE: Fetches, creates, and validates issues and tokens against a Forgejo instance
+// PURPOSE: Forgejo REST API client for issue, pull request, merge, and CI status operations
+// PURPOSE: All operations return Either[String, A]; HTTP backend is injectable for unit testing
 
 package iw.core.adapters
 
-import iw.core.model.{Issue, IssueId, ApiToken}
+import iw.core.model.{
+  CICheckResult,
+  CICheckStatus,
+  ForgejoUrl,
+  ForgePullRequest,
+  Issue,
+  IssueId,
+  ApiToken
+}
 
 import sttp.client4.{SyncBackend, DefaultSyncBackend, basicRequest, UriContext}
 import sttp.model.StatusCode
@@ -207,6 +215,365 @@ object ForgejoClient:
             case Right(body) => parseCreateIssueResponse(body)
             case Left(_)     => Left("Empty response body")
         case StatusCode.Unauthorized => Left("API token is invalid or expired")
+        case _ => Left(s"Forgejo API error: ${response.code}")
+    catch case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  /** Build the REST API URL for creating a pull request.
+    *
+    * @param baseUrl
+    *   Base URL of the Forgejo instance (trailing slash stripped)
+    * @param repository
+    *   Repository in owner/repo format
+    * @return
+    *   Full API endpoint URL
+    */
+  def buildCreatePullRequestUrl(baseUrl: String, repository: String): String =
+    s"${baseUrl.stripSuffix("/")}/api/v1/repos/$repository/pulls"
+
+  /** Build the REST API URL for merging a pull request.
+    *
+    * @param baseUrl
+    *   Base URL of the Forgejo instance (trailing slash stripped)
+    * @param repository
+    *   Repository in owner/repo format
+    * @param index
+    *   PR index (number) within the repository
+    * @return
+    *   Full API endpoint URL
+    */
+  def buildMergePullRequestUrl(
+      baseUrl: String,
+      repository: String,
+      index: Int
+  ): String =
+    s"${baseUrl.stripSuffix("/")}/api/v1/repos/$repository/pulls/$index/merge"
+
+  /** Build the REST API URL for fetching combined commit status.
+    *
+    * @param baseUrl
+    *   Base URL of the Forgejo instance (trailing slash stripped)
+    * @param repository
+    *   Repository in owner/repo format
+    * @param sha
+    *   Commit SHA to fetch status for
+    * @return
+    *   Full API endpoint URL
+    */
+  def buildCommitStatusUrl(
+      baseUrl: String,
+      repository: String,
+      sha: String
+  ): String =
+    s"${baseUrl.stripSuffix("/")}/api/v1/repos/$repository/commits/$sha/status"
+
+  /** Build the JSON request body for pull request creation.
+    *
+    * @param headBranch
+    *   Branch to merge from
+    * @param baseBranch
+    *   Branch to merge into
+    * @param title
+    *   Pull request title
+    * @param body
+    *   Pull request description body
+    * @return
+    *   JSON string with head, base, title, body fields
+    */
+  def buildCreatePullRequestBody(
+      headBranch: String,
+      baseBranch: String,
+      title: String,
+      body: String
+  ): String =
+    ujson.write(
+      ujson.Obj(
+        "head" -> headBranch,
+        "base" -> baseBranch,
+        "title" -> title,
+        "body" -> body
+      )
+    )
+
+  /** JSON request body for squash-merging a pull request with branch deletion.
+    *
+    * Constant: Do=squash and delete_branch_after_merge=true.
+    */
+  val mergePullRequestBody: String =
+    ujson.write(
+      ujson.Obj(
+        "Do" -> "squash",
+        "delete_branch_after_merge" -> true
+      )
+    )
+
+  /** Extract the numeric pull request index from a Forgejo PR HTML URL.
+    *
+    * Delegates to [[iw.core.model.ForgejoUrl.extractPullRequestIndex]].
+    *
+    * @param prUrl
+    *   Full PR HTML URL (e.g., "https://codeberg.org/owner/repo/pulls/42")
+    * @return
+    *   Right(index) on success, Left(error message) if not parseable
+    */
+  def extractPullRequestIndex(prUrl: String): Either[String, Int] =
+    ForgejoUrl.extractPullRequestIndex(prUrl)
+
+  /** Extract the repository (owner/repo) from a Forgejo PR HTML URL.
+    *
+    * Delegates to [[iw.core.model.ForgejoUrl.extractRepositoryFromPrUrl]].
+    *
+    * @param prUrl
+    *   Full PR HTML URL (e.g., "https://codeberg.org/owner/repo/pulls/42")
+    * @return
+    *   Right("owner/repo") on success, Left(error message) if not parseable
+    */
+  def extractRepositoryFromPrUrl(prUrl: String): Either[String, String] =
+    ForgejoUrl.extractRepositoryFromPrUrl(prUrl)
+
+  /** Parse the JSON response from the Forgejo PR creation endpoint.
+    *
+    * @param json
+    *   Raw JSON string from Forgejo create-pull-request endpoint
+    * @return
+    *   Right(ForgePullRequest) on success, Left(error message) on parse failure
+    */
+  def parseCreatePullRequestResponse(
+      json: String
+  ): Either[String, ForgePullRequest] =
+    try
+      val parsed = ujson.read(json)
+      val number = parsed("number").num.toInt
+      val htmlUrl = parsed("html_url").str
+      val headSha = parsed("head")("sha").str
+      Right(ForgePullRequest(number, htmlUrl, headSha))
+    catch
+      case e: Exception =>
+        Left(s"Failed to parse Forgejo PR response: ${e.getMessage}")
+
+  /** Parse the JSON response from the Forgejo combined commit status endpoint.
+    *
+    * Maps each status in the `statuses` array: success → Passed, failure/error
+    * → Failed, pending → Pending, other → Unknown. Empty statuses array returns
+    * Right(Nil).
+    *
+    * @param json
+    *   Raw JSON string from Forgejo commits/{sha}/status endpoint
+    * @return
+    *   Right(List[CICheckResult]) on success, Left(error message) on failure
+    */
+  def parseCommitStatusResponse(
+      json: String
+  ): Either[String, List[CICheckResult]] =
+    try
+      val parsed = ujson.read(json)
+      val statuses = parsed("statuses").arr.toList
+      val results = statuses.map { s =>
+        val name = s("context").str
+        val state = s("state").str
+        val urlOpt =
+          if s.obj.contains("target_url") && !s("target_url").isNull then
+            val v = s("target_url").str
+            if v.isEmpty then None else Some(v)
+          else None
+        val status = state match
+          case "success"           => CICheckStatus.Passed
+          case "failure" | "error" => CICheckStatus.Failed
+          case "pending"           => CICheckStatus.Pending
+          case _                   => CICheckStatus.Unknown
+        CICheckResult(name, status, urlOpt)
+      }
+      Right(results)
+    catch
+      case e: Exception =>
+        Left(s"Failed to parse Forgejo commit status response: ${e.getMessage}")
+
+  /** Create a pull request in a Forgejo repository.
+    *
+    * @param repository
+    *   Repository in owner/repo format
+    * @param headBranch
+    *   Branch to merge from
+    * @param baseBranch
+    *   Branch to merge into
+    * @param title
+    *   Pull request title
+    * @param body
+    *   Pull request description body
+    * @param baseUrl
+    *   Base URL of the Forgejo instance
+    * @param token
+    *   API token for authentication
+    * @param backend
+    *   HTTP backend (defaults to real HTTP, can be stubbed for testing)
+    * @return
+    *   Right(ForgePullRequest) on success, Left(error message) on failure
+    */
+  def createPullRequest(
+      repository: String,
+      headBranch: String,
+      baseBranch: String,
+      title: String,
+      body: String,
+      baseUrl: String,
+      token: ApiToken,
+      backend: SyncBackend = defaultBackend
+  ): Either[String, ForgePullRequest] =
+    try
+      val requestBody = buildCreatePullRequestBody(
+        headBranch,
+        baseBranch,
+        title,
+        body
+      )
+      val response = basicRequest
+        .post(uri"${buildCreatePullRequestUrl(baseUrl, repository)}")
+        .header("Authorization", s"token ${token.value}")
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .body(requestBody)
+        .send(backend)
+
+      response.code match
+        case StatusCode.Created | StatusCode.Ok =>
+          response.body match
+            case Right(body) => parseCreatePullRequestResponse(body)
+            case Left(_)     => Left("Empty response body")
+        case StatusCode.Unauthorized => Left("API token is invalid or expired")
+        case StatusCode.NotFound     =>
+          Left(s"Repository $repository not found")
+        case _ => Left(s"Forgejo API error: ${response.code}")
+    catch case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  /** Squash-merge a pull request and delete its branch.
+    *
+    * @param repository
+    *   Repository in owner/repo format
+    * @param index
+    *   PR index (number) within the repository
+    * @param baseUrl
+    *   Base URL of the Forgejo instance
+    * @param token
+    *   API token for authentication
+    * @param backend
+    *   HTTP backend (defaults to real HTTP, can be stubbed for testing)
+    * @return
+    *   Right(()) on success, Left(error message) on failure
+    */
+  def mergePullRequest(
+      repository: String,
+      index: Int,
+      baseUrl: String,
+      token: ApiToken,
+      backend: SyncBackend = defaultBackend
+  ): Either[String, Unit] =
+    try
+      val response = basicRequest
+        .post(uri"${buildMergePullRequestUrl(baseUrl, repository, index)}")
+        .header("Authorization", s"token ${token.value}")
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json")
+        .body(mergePullRequestBody)
+        .send(backend)
+
+      response.code match
+        case StatusCode.Ok | StatusCode.NoContent => Right(())
+        case StatusCode.Unauthorized => Left("API token is invalid or expired")
+        case StatusCode.NotFound     =>
+          Left(s"Pull request $index not found in $repository")
+        case _ => Left(s"Forgejo API error: ${response.code}")
+    catch case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  /** Fetch combined CI commit status for a given SHA.
+    *
+    * Maps each status entry to a CICheckResult. An empty statuses array returns
+    * Right(Nil), which the PhaseMerge model treats as NoChecksFound.
+    *
+    * @param repository
+    *   Repository in owner/repo format
+    * @param sha
+    *   Commit SHA to fetch status for
+    * @param baseUrl
+    *   Base URL of the Forgejo instance
+    * @param token
+    *   API token for authentication
+    * @param backend
+    *   HTTP backend (defaults to real HTTP, can be stubbed for testing)
+    * @return
+    *   Right(List[CICheckResult]) on success, Left(error message) on failure
+    */
+  def fetchCheckStatuses(
+      repository: String,
+      sha: String,
+      baseUrl: String,
+      token: ApiToken,
+      backend: SyncBackend = defaultBackend
+  ): Either[String, List[CICheckResult]] =
+    try
+      val response = basicRequest
+        .get(uri"${buildCommitStatusUrl(baseUrl, repository, sha)}")
+        .header("Authorization", s"token ${token.value}")
+        .header("Accept", "application/json")
+        .send(backend)
+
+      response.code match
+        case StatusCode.Ok =>
+          response.body match
+            case Right(body) => parseCommitStatusResponse(body)
+            case Left(_)     => Left("Empty response body")
+        case StatusCode.Unauthorized => Left("API token is invalid or expired")
+        case StatusCode.NotFound     =>
+          Left(s"Commit SHA or repository not found")
+        case _ => Left(s"Forgejo API error: ${response.code}")
+    catch case e: Exception => Left(s"Network error: ${e.getMessage}")
+
+  /** Fetch the head commit SHA for a pull request by its index.
+    *
+    * Used to obtain the SHA for CI status polling; avoids threading the SHA
+    * through the shared TrackerOps signature by doing a dedicated lookup.
+    *
+    * @param repository
+    *   Repository in owner/repo format
+    * @param prNumber
+    *   PR index within the repository
+    * @param baseUrl
+    *   Base URL of the Forgejo instance
+    * @param token
+    *   API token for authentication
+    * @param backend
+    *   HTTP backend (defaults to real HTTP, can be stubbed for testing)
+    * @return
+    *   Right(sha) on success, Left(error message) on failure
+    */
+  def fetchPrHeadSha(
+      repository: String,
+      prNumber: Int,
+      baseUrl: String,
+      token: ApiToken,
+      backend: SyncBackend = defaultBackend
+  ): Either[String, String] =
+    try
+      val url =
+        s"${baseUrl.stripSuffix("/")}/api/v1/repos/$repository/pulls/$prNumber"
+      val response = basicRequest
+        .get(uri"$url")
+        .header("Authorization", s"token ${token.value}")
+        .header("Accept", "application/json")
+        .send(backend)
+
+      response.code match
+        case StatusCode.Ok =>
+          response.body match
+            case Right(body) =>
+              try
+                val parsed = ujson.read(body)
+                Right(parsed("head")("sha").str)
+              catch
+                case e: Exception =>
+                  Left(s"Failed to parse PR head SHA: ${e.getMessage}")
+            case Left(_) => Left("Empty response body")
+        case StatusCode.Unauthorized => Left("API token is invalid or expired")
+        case StatusCode.NotFound     =>
+          Left(s"Pull request $prNumber not found in $repository")
         case _ => Left(s"Forgejo API error: ${response.code}")
     catch case e: Exception => Left(s"Network error: ${e.getMessage}")
 

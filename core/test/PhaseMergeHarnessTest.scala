@@ -8,12 +8,13 @@ import iw.core.commands.PhaseMerge
 import iw.core.model.{
   CICheckResult,
   CICheckStatus,
+  ForgeConfig,
   ForgeType,
   GitRemote,
   RecoveryAction,
   RecoveryContext
 }
-import iw.core.test.fixtures.FakeCommandEnv
+import iw.core.test.fixtures.{FakeCommandEnv, FakeTracker}
 
 class PhaseMergeHarnessTest extends munit.FunSuite:
 
@@ -340,4 +341,148 @@ class PhaseMergeHarnessTest extends munit.FunSuite:
     val mergeCall = env.tracker.mergeWithDeleteCallList.head
     assertEquals(mergeCall.forge, ForgeType.GitLab)
     assertEquals(mergeCall.gitlabHost, Some("gitlab.example.com"))
+  }
+
+  // =========================================================================
+  // Forgejo forge tests
+  // =========================================================================
+
+  private val forgejoConfig =
+    """project { name = testproject }
+      |tracker {
+      |  type = forgejo
+      |  repository = "test-org/test-repo"
+      |  teamPrefix = "TEST"
+      |  baseUrl = "https://codeberg.org"
+      |}
+      |""".stripMargin
+
+  private val forgejoprUrl =
+    "https://codeberg.org/test-org/test-repo/pulls/42"
+
+  private def forgejoEnv(
+      withToken: Boolean = true
+  ): FakeCommandEnv =
+    val env = FakeCommandEnv(cwd = cwd, initialBranch = "TEST-100-phase-01")
+    env.fs.put(configPath, forgejoConfig)
+    env.fs.put(
+      reviewStatePath,
+      s"""{
+         |  "version": 2,
+         |  "issue_id": "TEST-100",
+         |  "status": "awaiting_review",
+         |  "pr_url": "$forgejoprUrl",
+         |  "artifacts": [],
+         |  "last_updated": "2026-01-01T12:00:00Z"
+         |}""".stripMargin
+    )
+    env.git.setRemoteUrl(None)
+    env.git.addExistingBranch("TEST-100")
+    if withToken then
+      env.envVars.setEnv("FORGEJO_API_TOKEN", "test-forgejo-token")
+    env
+
+  test(
+    "forgejo forge: fetchCheckStatuses invoked with ForgeType.Forgejo and resolved forgeConfig"
+  ) {
+    val env = forgejoEnv()
+    env.tracker.setCheckStatuses(Right(List(passingCheck)))
+
+    val result = PhaseMerge.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    val checkCalls = env.tracker.checkStatusCallList
+    assertEquals(
+      checkCalls.size,
+      1,
+      "expected exactly one fetchCheckStatuses call"
+    )
+    val checkCall = checkCalls.head
+    assertEquals(checkCall.forge, ForgeType.Forgejo)
+    assertEquals(
+      checkCall.forgeConfig.baseUrl,
+      Some("https://codeberg.org"),
+      "expected resolved baseUrl in check-status call"
+    )
+    assert(
+      checkCall.forgeConfig.token.isDefined,
+      "Expected token to be resolved from env"
+    )
+  }
+
+  test(
+    "forgejo forge: mergeWithDelete invoked with ForgeType.Forgejo on passing checks"
+  ) {
+    val env = forgejoEnv()
+    env.tracker.setCheckStatuses(Right(List(passingCheck)))
+
+    val result = PhaseMerge.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.tracker.mergeWithDeleteCallList.size, 1)
+    val mergeCall = env.tracker.mergeWithDeleteCallList.head
+    assertEquals(mergeCall.forge, ForgeType.Forgejo)
+    assertEquals(mergeCall.prUrl, forgejoprUrl)
+  }
+
+  test(
+    "forgejo forge: missing FORGEJO_API_TOKEN exits with error before any forge call"
+  ) {
+    val env = forgejoEnv(withToken = false)
+
+    val result = PhaseMerge.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 1)
+    assert(
+      env.console.stderr.contains("FORGEJO_API_TOKEN"),
+      s"Expected FORGEJO_API_TOKEN in stderr, got: ${env.console.stderr}"
+    )
+    assertEquals(
+      env.tracker.checkStatusCallCount,
+      0,
+      "No forge call should be made when token is missing"
+    )
+  }
+
+  test(
+    "forgejo forge: missing baseUrl exits with error before any forge call"
+  ) {
+    val env = FakeCommandEnv(cwd = cwd, initialBranch = "TEST-100-phase-01")
+    val configWithoutBaseUrl =
+      """project { name = testproject }
+        |tracker {
+        |  type = forgejo
+        |  repository = "test-org/test-repo"
+        |  teamPrefix = "TEST"
+        |}
+        |""".stripMargin
+    env.fs.put(configPath, configWithoutBaseUrl)
+    env.fs.put(
+      reviewStatePath,
+      s"""{
+         |  "version": 2,
+         |  "issue_id": "TEST-100",
+         |  "status": "awaiting_review",
+         |  "pr_url": "$forgejoprUrl",
+         |  "artifacts": [],
+         |  "last_updated": "2026-01-01T12:00:00Z"
+         |}""".stripMargin
+    )
+    env.git.setRemoteUrl(None)
+    env.git.addExistingBranch("TEST-100")
+    env.envVars.setEnv("FORGEJO_API_TOKEN", "test-token")
+
+    val result = PhaseMerge.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 1)
+    assert(
+      env.console.stderr.contains("baseUrl") ||
+        env.console.stderr.contains("base URL"),
+      s"Expected baseUrl error in stderr, got: ${env.console.stderr}"
+    )
+    assertEquals(
+      env.tracker.checkStatusCallCount,
+      0,
+      "No forge call should be made when baseUrl is missing"
+    )
   }

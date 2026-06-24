@@ -17,7 +17,8 @@ object PhasePr:
       forgeType: ForgeType,
       remoteOpt: Option[GitRemote],
       gitlabHost: Option[String],
-      repository: String
+      repository: String,
+      forgeConfig: ForgeConfig
   )
 
   def run(args: Seq[String], env: CommandEnv): CommandResult =
@@ -61,6 +62,7 @@ object PhasePr:
       remoteOpt = env.git.getRemoteUrl(env.cwd)
       gitlabHost = remoteOpt.flatMap(_.host.toOption)
       repository <- resolveRepository(config, remoteOpt)
+      forgeConfig <- ForgeConfigResolver.resolve(forgeType, config, env)
     yield Resolved(
       title = title,
       bodyArg = bodyArg,
@@ -72,7 +74,8 @@ object PhasePr:
       forgeType = forgeType,
       remoteOpt = remoteOpt,
       gitlabHost = gitlabHost,
-      repository = repository
+      repository = repository,
+      forgeConfig = forgeConfig
     )
 
     outcome match
@@ -127,7 +130,8 @@ object PhasePr:
           r.featureBranch,
           r.title,
           body,
-          r.gitlabHost
+          r.gitlabHost,
+          r.forgeConfig
         ) match
           case Left(err) =>
             val verb =
@@ -159,7 +163,12 @@ object PhasePr:
       prUrl: String,
       env: CommandEnv
   ): CommandResult =
-    env.tracker.mergeSquashAndDelete(r.forgeType, prUrl, r.gitlabHost) match
+    env.tracker.mergeSquashAndDelete(
+      r.forgeType,
+      prUrl,
+      r.gitlabHost,
+      r.forgeConfig
+    ) match
       case Left(err) =>
         env.console.err(s"Error: $err")
         env.console.err(

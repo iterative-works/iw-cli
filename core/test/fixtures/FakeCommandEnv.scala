@@ -33,6 +33,7 @@ import iw.core.model.{
   CleanupAction,
   FeedbackParser,
   FixAction,
+  ForgeConfig,
   ForgeType,
   GitRemote,
   Issue,
@@ -327,12 +328,14 @@ final class FakeTracker extends TrackerOps:
       baseBranch: String,
       title: String,
       body: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   )
   final case class MergeCall(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   )
 
   private val prCalls: mutable.ArrayBuffer[PrCall] = mutable.ArrayBuffer.empty
@@ -355,7 +358,8 @@ final class FakeTracker extends TrackerOps:
       baseBranch: String,
       title: String,
       body: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, String] =
     prCalls += PrCall(
       forge,
@@ -364,17 +368,26 @@ final class FakeTracker extends TrackerOps:
       baseBranch,
       title,
       body,
-      gitlabHost
+      gitlabHost,
+      forgeConfig
     )
     createPrResultRef.get()
 
   def mergeSquashAndDelete(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, Unit] =
-    mergeCalls += MergeCall(forge, prUrl, gitlabHost)
+    mergeCalls += MergeCall(forge, prUrl, gitlabHost, forgeConfig)
     mergeResultRef.get()
+
+  final case class CheckStatusCall(
+      forge: ForgeType,
+      prNumber: Int,
+      repository: String,
+      forgeConfig: ForgeConfig = ForgeConfig.empty
+  )
 
   private val mergeWithDeleteResultRef: AtomicReference[Either[String, Unit]] =
     AtomicReference(Right(()))
@@ -386,7 +399,7 @@ final class FakeTracker extends TrackerOps:
   private val checkStatusDefault
       : AtomicReference[Either[String, List[CICheckResult]]] =
     AtomicReference(Right(Nil))
-  private val checkStatusCalls: mutable.ArrayBuffer[Int] =
+  private val checkStatusCalls: mutable.ArrayBuffer[CheckStatusCall] =
     mutable.ArrayBuffer.empty
 
   def setMergeWithDeleteResult(result: Either[String, Unit]): Unit =
@@ -396,22 +409,30 @@ final class FakeTracker extends TrackerOps:
   def queueCheckStatuses(results: Either[String, List[CICheckResult]]*): Unit =
     checkStatusQueue ++= results
   def checkStatusCallCount: Int = checkStatusCalls.size
+  def checkStatusCallList: List[CheckStatusCall] = checkStatusCalls.toList
 
   def mergeWithDelete(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, Unit] =
-    mergeWithDeleteCalls += MergeCall(forge, prUrl, gitlabHost)
+    mergeWithDeleteCalls += MergeCall(forge, prUrl, gitlabHost, forgeConfig)
     mergeWithDeleteResultRef.get()
 
   def fetchCheckStatuses(
       forge: ForgeType,
       prNumber: Int,
       repository: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, List[CICheckResult]] =
-    checkStatusCalls += prNumber
+    checkStatusCalls += CheckStatusCall(
+      forge,
+      prNumber,
+      repository,
+      forgeConfig
+    )
     if checkStatusQueue.nonEmpty then checkStatusQueue.dequeue()
     else checkStatusDefault.get()
 

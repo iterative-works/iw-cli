@@ -4,7 +4,14 @@
 package iw.tests
 
 import iw.core.adapters.{ForgejoClient, CreatedIssue}
-import iw.core.model.{ApiToken, Issue, IssueId}
+import iw.core.model.{
+  ApiToken,
+  CICheckResult,
+  CICheckStatus,
+  ForgePullRequest,
+  Issue,
+  IssueId
+}
 import munit.FunSuite
 import sttp.client4.testing.SyncBackendStub
 import sttp.model.StatusCode
@@ -402,4 +409,620 @@ class ForgejoClientTest extends FunSuite:
     assert(
       error.contains("API error") || error.contains("422"),
       s"Expected API error, got: $error"
+    )
+
+  // =========================================================================
+  // Pull Request URL/body builders
+  // =========================================================================
+
+  test("buildCreatePullRequestUrl constructs correct endpoint"):
+    val url = ForgejoClient.buildCreatePullRequestUrl(baseUrl, repository)
+    assertEquals(
+      url,
+      "https://forgejo.example.com/api/v1/repos/owner/repo/pulls"
+    )
+
+  test("buildCreatePullRequestUrl strips trailing slash from baseUrl"):
+    val url =
+      ForgejoClient.buildCreatePullRequestUrl(baseUrl + "/", repository)
+    assertEquals(
+      url,
+      "https://forgejo.example.com/api/v1/repos/owner/repo/pulls"
+    )
+
+  test("buildMergePullRequestUrl constructs correct endpoint with index"):
+    val url = ForgejoClient.buildMergePullRequestUrl(baseUrl, repository, 42)
+    assertEquals(
+      url,
+      "https://forgejo.example.com/api/v1/repos/owner/repo/pulls/42/merge"
+    )
+
+  test("buildMergePullRequestUrl strips trailing slash from baseUrl"):
+    val url =
+      ForgejoClient.buildMergePullRequestUrl(baseUrl + "/", repository, 7)
+    assertEquals(
+      url,
+      "https://forgejo.example.com/api/v1/repos/owner/repo/pulls/7/merge"
+    )
+
+  test("buildCommitStatusUrl constructs correct endpoint"):
+    val url =
+      ForgejoClient.buildCommitStatusUrl(baseUrl, repository, "abc123def")
+    assertEquals(
+      url,
+      "https://forgejo.example.com/api/v1/repos/owner/repo/commits/abc123def/status"
+    )
+
+  test("buildCommitStatusUrl strips trailing slash from baseUrl"):
+    val url =
+      ForgejoClient.buildCommitStatusUrl(baseUrl + "/", repository, "abc123")
+    assertEquals(
+      url,
+      "https://forgejo.example.com/api/v1/repos/owner/repo/commits/abc123/status"
+    )
+
+  // =========================================================================
+  // Pull Request body builders
+  // =========================================================================
+
+  test(
+    "buildCreatePullRequestBody produces JSON with exact keys: head, base, title, body"
+  ):
+    val json = ForgejoClient.buildCreatePullRequestBody(
+      "feature-branch",
+      "main",
+      "My PR Title",
+      "PR body text"
+    )
+    val parsed = ujson.read(json)
+    assertEquals(parsed("head").str, "feature-branch")
+    assertEquals(parsed("base").str, "main")
+    assertEquals(parsed("title").str, "My PR Title")
+    assertEquals(parsed("body").str, "PR body text")
+    assertEquals(parsed.obj.keySet, Set("head", "base", "title", "body"))
+
+  test(
+    "mergePullRequestBody produces JSON with Do=squash and delete_branch_after_merge=true"
+  ):
+    val json = ForgejoClient.mergePullRequestBody
+    val parsed = ujson.read(json)
+    assertEquals(parsed("Do").str, "squash")
+    assertEquals(parsed("delete_branch_after_merge").bool, true)
+    assertEquals(parsed.obj.keySet, Set("Do", "delete_branch_after_merge"))
+
+  // =========================================================================
+  // extractPullRequestIndex
+  // =========================================================================
+
+  test("extractPullRequestIndex parses trailing index from pulls URL"):
+    val result = ForgejoClient.extractPullRequestIndex(
+      "https://codeberg.org/owner/repo/pulls/42"
+    )
+    assertEquals(result, Right(42))
+
+  test("extractPullRequestIndex handles multi-digit index"):
+    val result = ForgejoClient.extractPullRequestIndex(
+      "https://git.example.com/org/project/pulls/1234"
+    )
+    assertEquals(result, Right(1234))
+
+  test("extractPullRequestIndex returns Left for URL with no /pulls/ segment"):
+    val result = ForgejoClient.extractPullRequestIndex(
+      "https://github.com/org/repo/pull/42"
+    )
+    assert(result.isLeft, s"Expected Left for github PR URL, got $result")
+
+  test("extractPullRequestIndex returns Left for malformed URL"):
+    val result = ForgejoClient.extractPullRequestIndex("not-a-url")
+    assert(result.isLeft, s"Expected Left for malformed URL, got $result")
+
+  test(
+    "extractPullRequestIndex returns Left for /pulls/ with no trailing index"
+  ):
+    val result = ForgejoClient.extractPullRequestIndex(
+      "https://codeberg.org/owner/repo/pulls/"
+    )
+    assert(result.isLeft, s"Expected Left for URL without index, got $result")
+
+  // =========================================================================
+  // extractRepositoryFromPrUrl
+  // =========================================================================
+
+  test("extractRepositoryFromPrUrl returns owner/repo for simple path"):
+    val result = ForgejoClient.extractRepositoryFromPrUrl(
+      "https://codeberg.org/owner/repo/pulls/42"
+    )
+    assertEquals(result, Right("owner/repo"))
+
+  test(
+    "extractRepositoryFromPrUrl returns multi-segment path for org/sub/repo"
+  ):
+    val result = ForgejoClient.extractRepositoryFromPrUrl(
+      "https://git.example.com/org/sub/repo/pulls/7"
+    )
+    assertEquals(result, Right("org/sub/repo"))
+
+  test("extractRepositoryFromPrUrl returns Left for GitHub /pull/ URL"):
+    val result = ForgejoClient.extractRepositoryFromPrUrl(
+      "https://github.com/owner/repo/pull/42"
+    )
+    assert(
+      result.isLeft,
+      s"Expected Left for non-Forgejo /pull/ URL, got $result"
+    )
+
+  test(
+    "extractRepositoryFromPrUrl returns Left for URL with trailing slash after index"
+  ):
+    val result = ForgejoClient.extractRepositoryFromPrUrl(
+      "https://codeberg.org/owner/repo/pulls/42/"
+    )
+    assert(
+      result.isLeft,
+      s"Expected Left for URL with trailing slash, got $result"
+    )
+
+  // =========================================================================
+  // parseCreatePullRequestResponse
+  // =========================================================================
+
+  test(
+    "parseCreatePullRequestResponse returns Right(PullRequest) from happy-path JSON"
+  ):
+    val json = """{
+      "number": 99,
+      "html_url": "https://codeberg.org/owner/repo/pulls/99",
+      "head": { "sha": "abc123def456" }
+    }"""
+    val result = ForgejoClient.parseCreatePullRequestResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val pr = result.getOrElse(fail("Expected PullRequest"))
+    assertEquals(pr.number, 99)
+    assertEquals(pr.htmlUrl, "https://codeberg.org/owner/repo/pulls/99")
+    assertEquals(pr.headSha, "abc123def456")
+
+  test("parseCreatePullRequestResponse returns Left for malformed JSON"):
+    val result =
+      ForgejoClient.parseCreatePullRequestResponse("{ not valid json }")
+    assert(result.isLeft, "Expected Left for malformed JSON")
+
+  test(
+    "parseCreatePullRequestResponse returns Left when head.sha is missing"
+  ):
+    val json = """{
+      "number": 10,
+      "html_url": "https://codeberg.org/owner/repo/pulls/10"
+    }"""
+    val result = ForgejoClient.parseCreatePullRequestResponse(json)
+    assert(
+      result.isLeft,
+      s"Expected Left when head.sha missing, got $result"
+    )
+
+  // =========================================================================
+  // createPullRequest (wired via SyncBackendStub)
+  // =========================================================================
+
+  test("createPullRequest happy path 201 returns Right(PullRequest)"):
+    val json = """{
+      "number": 42,
+      "html_url": "https://codeberg.org/owner/repo/pulls/42",
+      "head": { "sha": "deadbeef" }
+    }"""
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenRespondAdjust(json, StatusCode.Created)
+    val result = ForgejoClient.createPullRequest(
+      repository,
+      "feature-branch",
+      "main",
+      "Test PR",
+      "body",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isRight, s"Expected Right but got $result")
+    val pr = result.getOrElse(fail("Expected PullRequest"))
+    assertEquals(pr.number, 42)
+    assertEquals(pr.htmlUrl, "https://codeberg.org/owner/repo/pulls/42")
+    assertEquals(pr.headSha, "deadbeef")
+
+  test("createPullRequest happy path 200 OK also returns Right(PullRequest)"):
+    val json = """{
+      "number": 7,
+      "html_url": "https://codeberg.org/owner/repo/pulls/7",
+      "head": { "sha": "cafebabe" }
+    }"""
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenRespondAdjust(json, StatusCode.Ok)
+    val result = ForgejoClient.createPullRequest(
+      repository,
+      "feature-branch",
+      "main",
+      "Test PR",
+      "body",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isRight, s"Expected Right for 200 OK but got $result")
+    assertEquals(
+      result.getOrElse(fail("Expected PullRequest")).headSha,
+      "cafebabe"
+    )
+
+  test("createPullRequest returns Left on 401"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondUnauthorized()
+    val result = ForgejoClient.createPullRequest(
+      repository,
+      "feature",
+      "main",
+      "T",
+      "b",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 401")
+    assert(
+      result.left.getOrElse("").contains("token") || result.left
+        .getOrElse("")
+        .contains("expired"),
+      s"Expected token error, got: ${result.left.getOrElse("")}"
+    )
+
+  test("createPullRequest returns Left on 404"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondNotFound()
+    val result = ForgejoClient.createPullRequest(
+      repository,
+      "feature",
+      "main",
+      "T",
+      "b",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 404")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("not found") || error.contains("404"),
+      s"Expected not-found error, got: $error"
+    )
+
+  test("createPullRequest returns Left on 422"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondAdjust(
+      "Unprocessable Entity",
+      StatusCode.UnprocessableEntity
+    )
+    val result = ForgejoClient.createPullRequest(
+      repository,
+      "feature",
+      "main",
+      "T",
+      "b",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 422")
+    assert(
+      result.left.getOrElse("").contains("422"),
+      s"Expected 422 error, got: ${result.left.getOrElse("")}"
+    )
+
+  test("createPullRequest returns Left on network exception"):
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenThrow(
+        new RuntimeException("connection refused")
+      )
+    val result = ForgejoClient.createPullRequest(
+      repository,
+      "feature",
+      "main",
+      "T",
+      "b",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left on network error")
+    assert(
+      result.left.getOrElse("").contains("Network error"),
+      s"Expected Network error, got: ${result.left.getOrElse("")}"
+    )
+
+  // =========================================================================
+  // mergePullRequest (wired via SyncBackendStub)
+  // =========================================================================
+
+  test("mergePullRequest happy path 200 returns Right(())"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondAdjust("{}")
+    val result =
+      ForgejoClient.mergePullRequest(repository, 42, baseUrl, token, backend)
+    assertEquals(result, Right(()))
+
+  test("mergePullRequest happy path 204 NoContent also returns Right(())"):
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenRespondAdjust("", StatusCode.NoContent)
+    val result =
+      ForgejoClient.mergePullRequest(repository, 42, baseUrl, token, backend)
+    assertEquals(result, Right(()))
+
+  test("mergePullRequest returns Left on network exception"):
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenThrow(
+        new RuntimeException("connection reset")
+      )
+    val result =
+      ForgejoClient.mergePullRequest(repository, 1, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left on network error")
+    assert(
+      result.left.getOrElse("").contains("Network error"),
+      s"Expected Network error, got: ${result.left.getOrElse("")}"
+    )
+
+  test("mergePullRequest returns Left on 401"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondUnauthorized()
+    val result =
+      ForgejoClient.mergePullRequest(repository, 1, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left for 401")
+    assert(
+      result.left.getOrElse("").contains("token") || result.left
+        .getOrElse("")
+        .contains("expired"),
+      s"Expected token error, got: ${result.left.getOrElse("")}"
+    )
+
+  test("mergePullRequest returns Left on 404"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondNotFound()
+    val result =
+      ForgejoClient.mergePullRequest(repository, 1, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left for 404")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("not found") || error.contains("404"),
+      s"Expected not-found error, got: $error"
+    )
+
+  test("mergePullRequest returns Left on 500"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondServerError()
+    val result =
+      ForgejoClient.mergePullRequest(repository, 1, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left for 500")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("API error") || error.contains("500"),
+      s"Expected API error, got: $error"
+    )
+
+  // =========================================================================
+  // parseCommitStatusResponse / fetchCheckStatuses
+  // =========================================================================
+
+  test(
+    "parseCommitStatusResponse maps success state to Passed"
+  ):
+    val json = """{
+      "state": "success",
+      "statuses": [
+        { "context": "build", "state": "success", "target_url": "https://ci.example.com/1" }
+      ]
+    }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.size, 1)
+    assertEquals(checks.head.name, "build")
+    assertEquals(checks.head.status, CICheckStatus.Passed)
+    assertEquals(checks.head.url, Some("https://ci.example.com/1"))
+
+  test(
+    "parseCommitStatusResponse maps failure state to Failed"
+  ):
+    val json = """{
+      "state": "failure",
+      "statuses": [
+        { "context": "lint", "state": "failure", "target_url": "https://ci.example.com/2" }
+      ]
+    }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.head.status, CICheckStatus.Failed)
+
+  test(
+    "parseCommitStatusResponse maps error state to Failed"
+  ):
+    val json = """{
+      "state": "error",
+      "statuses": [
+        { "context": "test", "state": "error", "target_url": null }
+      ]
+    }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.head.status, CICheckStatus.Failed)
+    assertEquals(checks.head.url, None)
+
+  test(
+    "parseCommitStatusResponse maps pending state to Pending"
+  ):
+    val json = """{
+      "state": "pending",
+      "statuses": [
+        { "context": "deploy", "state": "pending", "target_url": "" }
+      ]
+    }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.head.status, CICheckStatus.Pending)
+    assertEquals(checks.head.url, None)
+
+  test(
+    "parseCommitStatusResponse maps unknown state to Unknown"
+  ):
+    val json = """{
+      "state": "warning",
+      "statuses": [
+        { "context": "scan", "state": "warning", "target_url": null }
+      ]
+    }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.head.status, CICheckStatus.Unknown)
+
+  test(
+    "parseCommitStatusResponse returns Right(Nil) for empty statuses array"
+  ):
+    val json = """{ "state": "success", "statuses": [] }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assertEquals(result, Right(Nil))
+
+  test(
+    "parseCommitStatusResponse handles multiple statuses"
+  ):
+    val json = """{
+      "state": "failure",
+      "statuses": [
+        { "context": "build", "state": "success", "target_url": "https://ci.example/1" },
+        { "context": "test", "state": "failure", "target_url": "https://ci.example/2" },
+        { "context": "lint", "state": "pending", "target_url": null }
+      ]
+    }"""
+    val result = ForgejoClient.parseCommitStatusResponse(json)
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.size, 3)
+    assertEquals(checks(0).status, CICheckStatus.Passed)
+    assertEquals(checks(1).status, CICheckStatus.Failed)
+    assertEquals(checks(2).status, CICheckStatus.Pending)
+
+  test("parseCommitStatusResponse returns Left for malformed JSON"):
+    val result = ForgejoClient.parseCommitStatusResponse("{ bad json }")
+    assert(result.isLeft, "Expected Left for malformed JSON")
+
+  test("fetchCheckStatuses happy path returns Right(List[CICheckResult])"):
+    val json = """{
+      "state": "success",
+      "statuses": [
+        { "context": "ci/build", "state": "success", "target_url": "https://ci.example/1" }
+      ]
+    }"""
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondAdjust(json)
+    val result = ForgejoClient.fetchCheckStatuses(
+      repository,
+      "abc123",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isRight, s"Expected Right but got $result")
+    val checks = result.getOrElse(fail("Expected checks"))
+    assertEquals(checks.size, 1)
+    assertEquals(checks.head.name, "ci/build")
+    assertEquals(checks.head.status, CICheckStatus.Passed)
+
+  test("fetchCheckStatuses returns Left on 401"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondUnauthorized()
+    val result = ForgejoClient.fetchCheckStatuses(
+      repository,
+      "abc123",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 401")
+    assert(
+      result.left.getOrElse("").contains("token") || result.left
+        .getOrElse("")
+        .contains("expired"),
+      s"Expected token error, got: ${result.left.getOrElse("")}"
+    )
+
+  test("fetchCheckStatuses returns Left on 404"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondNotFound()
+    val result = ForgejoClient.fetchCheckStatuses(
+      repository,
+      "abc123",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 404")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("not found") || error.contains("404"),
+      s"Expected not-found error, got: $error"
+    )
+
+  test("fetchCheckStatuses returns Left on network exception"):
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenThrow(
+        new RuntimeException("connection refused")
+      )
+    val result = ForgejoClient.fetchCheckStatuses(
+      repository,
+      "abc123",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left on network error")
+    assert(
+      result.left.getOrElse("").contains("Network error"),
+      s"Expected Network error, got: ${result.left.getOrElse("")}"
+    )
+
+  // =========================================================================
+  // fetchPrHeadSha (wired via SyncBackendStub)
+  // =========================================================================
+
+  test("fetchPrHeadSha happy path 200 returns Right(sha)"):
+    val json = """{
+      "number": 42,
+      "head": { "sha": "abc123def456" }
+    }"""
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondAdjust(json)
+    val result =
+      ForgejoClient.fetchPrHeadSha(repository, 42, baseUrl, token, backend)
+    assertEquals(result, Right("abc123def456"))
+
+  test("fetchPrHeadSha returns Left on 401"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondUnauthorized()
+    val result =
+      ForgejoClient.fetchPrHeadSha(repository, 1, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left for 401")
+    assert(
+      result.left.getOrElse("").contains("token") || result.left
+        .getOrElse("")
+        .contains("expired"),
+      s"Expected token error, got: ${result.left.getOrElse("")}"
+    )
+
+  test("fetchPrHeadSha returns Left on 404"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondNotFound()
+    val result =
+      ForgejoClient.fetchPrHeadSha(repository, 99, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left for 404")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("not found") || error.contains("404"),
+      s"Expected not-found error, got: $error"
+    )
+
+  test("fetchPrHeadSha returns Left on network exception"):
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenThrow(
+        new RuntimeException("connection refused")
+      )
+    val result =
+      ForgejoClient.fetchPrHeadSha(repository, 1, baseUrl, token, backend)
+    assert(result.isLeft, "Expected Left on network error")
+    assert(
+      result.left.getOrElse("").contains("Network error"),
+      s"Expected Network error, got: ${result.left.getOrElse("")}"
     )

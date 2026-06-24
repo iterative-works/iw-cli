@@ -4,7 +4,7 @@
 package iw.core.test
 
 import iw.core.commands.PhasePr
-import iw.core.model.{ForgeType, GitRemote}
+import iw.core.model.{ForgeConfig, ForgeType, GitRemote}
 import iw.core.test.fixtures.FakeCommandEnv
 
 class PhasePrHarnessTest extends munit.FunSuite:
@@ -222,4 +222,113 @@ class PhasePrHarnessTest extends munit.FunSuite:
     val call = env.tracker.prCallList.head
     assertEquals(call.forge, ForgeType.GitLab)
     assertEquals(call.gitlabHost, Some("gitlab.example.com"))
+  }
+
+  // =========================================================================
+  // Forgejo forge tests
+  // =========================================================================
+
+  private val forgejoConfig =
+    """project {
+      |  name = testproject
+      |}
+      |tracker {
+      |  type = forgejo
+      |  repository = "test-org/test-repo"
+      |  teamPrefix = "TEST"
+      |  baseUrl = "https://codeberg.org"
+      |}
+      |""".stripMargin
+
+  private def forgejoEnv(
+      withToken: Boolean = true
+  ): FakeCommandEnv =
+    val env = FakeCommandEnv(cwd = cwd, initialBranch = "TEST-100-phase-01")
+    env.fs.put(configPath, forgejoConfig)
+    env.git.setRemoteUrl(None)
+    env.git.addExistingBranch("TEST-100")
+    if withToken then
+      env.envVars.setEnv("FORGEJO_API_TOKEN", "test-forgejo-token")
+    env
+
+  test(
+    "forgejo forge: routes through Forgejo path with resolved baseUrl and token"
+  ) {
+    val env = forgejoEnv()
+    env.tracker.setCreatePrResult(
+      Right("https://codeberg.org/test-org/test-repo/pulls/5")
+    )
+
+    val result = PhasePr.run(Seq("--title", "Forgejo PR"), env)
+
+    assertEquals(result.exitCode, 0)
+    val calls = env.tracker.prCallList
+    assertEquals(calls.size, 1)
+    val call = calls.head
+    assertEquals(call.forge, ForgeType.Forgejo)
+    assertEquals(call.repository, "test-org/test-repo")
+    assertEquals(
+      call.forgeConfig.baseUrl,
+      Some("https://codeberg.org")
+    )
+    assert(
+      call.forgeConfig.token.isDefined,
+      "Expected token to be resolved from env"
+    )
+    val json = ujson.read(env.console.stdout)
+    assertEquals(
+      json("prUrl").str,
+      "https://codeberg.org/test-org/test-repo/pulls/5"
+    )
+  }
+
+  test(
+    "forgejo forge: missing FORGEJO_API_TOKEN exits with error before any forge call"
+  ) {
+    val env = forgejoEnv(withToken = false)
+
+    val result = PhasePr.run(Seq("--title", "Forgejo PR"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(
+      env.console.stderr.contains("FORGEJO_API_TOKEN"),
+      s"Expected FORGEJO_API_TOKEN in stderr, got: ${env.console.stderr}"
+    )
+    assertEquals(
+      env.tracker.prCallList.size,
+      0,
+      "No forge call should be made when token is missing"
+    )
+  }
+
+  test(
+    "forgejo forge: missing baseUrl exits with error before any forge call"
+  ) {
+    val env = FakeCommandEnv(cwd = cwd, initialBranch = "TEST-100-phase-01")
+    val configWithoutBaseUrl =
+      """project { name = testproject }
+        |tracker {
+        |  type = forgejo
+        |  repository = "test-org/test-repo"
+        |  teamPrefix = "TEST"
+        |}
+        |""".stripMargin
+    env.fs.put(configPath, configWithoutBaseUrl)
+    env.git.setRemoteUrl(None)
+    env.git.addExistingBranch("TEST-100")
+    env.envVars.setEnv("FORGEJO_API_TOKEN", "test-token")
+
+    val result = PhasePr.run(Seq("--title", "Forgejo PR"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(
+      env.console.stderr.contains("baseUrl") ||
+        env.console.stderr.contains("base URL"),
+      s"Expected baseUrl error in stderr, got: ${env.console.stderr}"
+    )
+    assertEquals(
+      env.tracker.prCallList.size,
+      0,
+      "No forge call should be made when baseUrl is missing"
+    )
   }

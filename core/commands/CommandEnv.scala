@@ -11,6 +11,7 @@ import iw.core.model.{
   CleanupAction,
   FeedbackParser,
   FixAction,
+  ForgeConfig,
   ForgeType,
   GitRemote,
   Issue,
@@ -111,8 +112,11 @@ trait Stdin:
   def read(): String
 
 /** Forge-agnostic PR/MR operations. Live impl delegates to `GitHubClient` /
-  * `GitLabClient`; fakes script responses so command logic can be tested
-  * without hitting `gh` / `glab`.
+  * `GitLabClient` / `ForgejoClient`; fakes script responses so command logic
+  * can be tested without hitting `gh` / `glab` / HTTP.
+  *
+  * The `forgeConfig` parameter carries the optional baseUrl and API token
+  * needed by HTTP-based forges (Forgejo). GitHub and GitLab ignore it.
   */
 trait TrackerOps:
   def createPullRequest(
@@ -122,26 +126,30 @@ trait TrackerOps:
       baseBranch: String,
       title: String,
       body: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, String]
 
   def mergeSquashAndDelete(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, Unit]
 
   def mergeWithDelete(
       forge: ForgeType,
       prUrl: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, Unit]
 
   def fetchCheckStatuses(
       forge: ForgeType,
       prNumber: Int,
       repository: String,
-      gitlabHost: Option[String]
+      gitlabHost: Option[String],
+      forgeConfig: ForgeConfig = ForgeConfig.empty
   ): Either[String, List[CICheckResult]]
 
   def createFeedbackIssue(

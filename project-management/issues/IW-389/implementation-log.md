@@ -281,3 +281,65 @@ A	test/forgejo-issue.bats
 ```
 
 ---
+
+## Phase 5: PR creation + CI-check polling (forge parity) (2026-06-24)
+
+**Layer:** Infrastructure / Application (forge paths)
+
+**What was built:**
+- `core/model/ForgeType.scala` - added `Forgejo` case; `cliTool`/`installUrl` became `Option[String]` (`None` for the CLI-less Forgejo forge); `fromHost("codeberg.org")` → `Forgejo`; `resolve` gives tracker-type precedence so a Forgejo tracker always resolves to the Forgejo forge regardless of remote host.
+- `core/model/ForgeConfig.scala` (new) - pure carrier of optional `baseUrl`/`token` for forge ops, plus shared missing-config error-message constants.
+- `core/model/ForgePullRequest.scala` (new) - pure `ForgePullRequest(number, htmlUrl, headSha)`.
+- `core/model/ForgejoUrl.scala` (new) - pure URL parsers `extractPullRequestIndex` / `extractRepositoryFromPrUrl` (moved out of the adapter to honour FCIS).
+- `core/model/PhaseMerge.scala` - `forgejoPrPattern` + Forgejo arm in `extractPrNumber`.
+- `core/model/ProjectContext.scala` - Forgejo arms in exhaustive matches.
+- `core/adapters/ForgejoClient.scala` - new HTTP methods `createPullRequest`, `mergePullRequest` (squash + delete branch), `fetchCheckStatuses`, plus `fetchPrHeadSha` (PR head-SHA lookup for CI polling), with pure URL/body builders and ujson parsers over the injectable `SyncBackend` seam.
+- `core/commands/CommandEnv.scala` - additive `ForgeConfig` parameter on the four `TrackerOps` forge methods (Option B; `gitlabHost` retained).
+- `core/commands/LiveCommandEnv.scala` - Forgejo arms for all four forge methods; shared `mergeForgejoSquash` helper.
+- `core/commands/ForgeConfigResolver.scala` (new) - single shared resolver returning `Either[String, ForgeConfig]`; resolves `baseUrl` from config and token from `FORGEJO_API_TOKEN`, validating Forgejo prerequisites in the command layer (imperative shell).
+- `core/commands/PhasePr.scala` / `PhaseMerge.scala` - resolve `ForgeConfig` inside the `Resolved` for-comprehension (fails fast, no non-local `return` guards).
+- `core/commands/PhaseAdvance.scala` - CLI prerequisite guard handles `Option[String]` cliTool (skips for CLI-less Forgejo) + Forgejo arm in `checkMerged`.
+
+**Key design decisions:**
+- `ForgeType.resolve` precedence inversion: tracker type wins for Forgejo (self-hosted hosts are indistinguishable from self-hosted GitLab by hostname).
+- CLI-less forge modelled honestly as `cliTool: Option[String] = None` rather than a fake CLI name.
+- baseUrl/token contract gap resolved via Option B (additive `ForgeConfig` parameter resolved in the command layer); secret resolution stays at the edge.
+- CI-status SHA: the Forgejo `fetchCheckStatuses` path does a `GET /pulls/{index}` lookup (`fetchPrHeadSha`) to read `head.sha`, keeping the shared signature minimal.
+
+**Dependencies on other layers:**
+- Phase 1 (`IssueTrackerType.Forgejo`, `trackerBaseUrl` config), Phase 2 (`ForgejoClient` issue methods + `SyncBackend` seam), Phase 3 (`FORGEJO_API_TOKEN`, `TrackerOps` seam + `FakeTracker`).
+
+**Testing:**
+- Unit: extended `ForgejoClientTest` (PR create incl. 200/201, merge incl. 204, check-status state mapping + empty, `fetchPrHeadSha`, URL/body builders, `extract*` parsers, 401/404/network-error mapping) and `ForgeTypeTest` (Forgejo resolution precedence + codeberg host + GitHub/GitLab regression).
+- Harness: `PhasePrHarnessTest` / `PhaseMergeHarnessTest` Forgejo dispatch + token/baseUrl error-wiring; `FakeTracker` records a structured `CheckStatusCall` (forge/prNumber/repository/forgeConfig).
+- E2E smoke: `test/forgejo-phase-pr.bats` hermetic no-token guard (`IW_SERVER_DISABLED=1`).
+- Full `core.test` suite green; `scala-cli compile --scalac-option -Werror core/` clean (no warnings).
+
+**Code review:**
+- Iterations: 1 review pass (6 skills) + 1 fix pass. 0 critical correctness issues; fixed test-coverage gaps, a mislabeled harness test, cross-reviewer DRY duplication, an FCIS layer placement, and style cleanups. Deferred (noted): http:// cleartext-token warning, sttp redirect header policy, sealed `ForgeConfig`.
+- Review file: review-phase-05-20260624-151810.md
+
+**Files changed:**
+```
+M	core/adapters/ForgejoClient.scala
+M	core/commands/CommandEnv.scala
+A	core/commands/ForgeConfigResolver.scala
+M	core/commands/LiveCommandEnv.scala
+M	core/commands/PhaseAdvance.scala
+M	core/commands/PhaseMerge.scala
+M	core/commands/PhasePr.scala
+A	core/model/ForgeConfig.scala
+A	core/model/ForgePullRequest.scala
+M	core/model/ForgeType.scala
+A	core/model/ForgejoUrl.scala
+M	core/model/PhaseMerge.scala
+M	core/model/ProjectContext.scala
+M	core/test/ForgeTypeTest.scala
+M	core/test/ForgejoClientTest.scala
+M	core/test/PhaseMergeHarnessTest.scala
+M	core/test/PhasePrHarnessTest.scala
+M	core/test/fixtures/FakeCommandEnv.scala
+A	test/forgejo-phase-pr.bats
+```
+
+---
