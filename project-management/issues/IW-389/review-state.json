@@ -37,14 +37,14 @@
       "path": "project-management/issues/IW-389/phase-03-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T11:52:47.033538474Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-06-24T11:53:47.281869818Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 3: Tasks Ready",
-    "type": "success",
+    "text": "Phase 03: Implementing",
+    "type": "progress",
     "subtext": "Capability wiring + command dispatch/auth"
   },
-  "message": "Phase 3 tasks ready",
+  "message": "Phase 03 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -120,6 +120,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/391"
