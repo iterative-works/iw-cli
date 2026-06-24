@@ -35,3 +35,4 @@ variant through `IssueTrackerType`, the `forgejo` config string, and
 - [x] [impl] Compile core with `-Werror`: `scala-cli compile --scalac-option -Werror core/`. Fix any non-exhaustive-match warnings that surface *within Layer 1* (`model/`) only; leave adapter/command/init/doctor match errors for their later phases (they are the intended Phase 3–5 work-list).
 - [x] [test] Run `./iw ./test unit` and confirm the full `core.test` suite is green, including all new Forgejo tests in `ConfigTest.scala` and the assertion in `ConstantsTest.scala`.
 - [x] [test] Verify acceptance criteria from `phase-01-context.md`: enum case exists; `Constants.TrackerTypeValues.Forgejo == "forgejo"`; `toHocon` emits `type = forgejo`; `fromHocon` parses it to `IssueTrackerType.Forgejo`; round-trip is lossless; shared `repository`/`baseUrl` predicates apply; required-vs-optional behaviour is decided explicitly and covered by a test.
+**Phase Status:** Complete

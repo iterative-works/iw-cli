@@ -161,7 +161,7 @@ object Issue:
               case result => result
 
       case IssueTrackerType.Forgejo =>
-        Left("Forgejo issue fetch is not yet implemented")
+        Left("Forgejo issue fetch is not supported")
 
   private def updateLastSeen(
       issueId: IssueId,
@@ -228,7 +228,7 @@ object Issue:
           yield created
 
         case IssueTrackerType.Forgejo =>
-          Left("Forgejo issue creation is not yet implemented")
+          Left("Forgejo issue creation is not supported")
 
     result match
       case Left(error) =>

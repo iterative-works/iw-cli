@@ -160,7 +160,7 @@ object Init:
         Right((team, None, None, None))
 
       case IssueTrackerType.Forgejo =>
-        Left("Forgejo tracker support is not yet implemented in init")
+        Left("Forgejo tracker is not supported by the init command")
 
   private def resolveGitHubRepo(
       repositoryArg: Option[String],

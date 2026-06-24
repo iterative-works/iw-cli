@@ -25,20 +25,24 @@ object RepoUrlBuilder:
     *   Optional repo URL (None if repository is not set or scheme is unsafe)
     */
   def buildRepoUrl(config: ProjectConfiguration): Option[String] =
-    config.repository
-      .map { repo =>
-        config.trackerType match
-          case IssueTrackerType.GitLab =>
+    config.trackerType match
+      case IssueTrackerType.Forgejo =>
+        for
+          repo <- config.repository
+          baseUrl <- config.trackerBaseUrl
+        yield s"${baseUrl.stripSuffix("/")}/$repo"
+      case IssueTrackerType.GitLab =>
+        config.repository
+          .map { repo =>
             val baseUrl = config.trackerBaseUrl.getOrElse("https://gitlab.com")
             s"${baseUrl.stripSuffix("/")}/$repo"
-          case IssueTrackerType.Forgejo =>
-            val baseUrl = config.trackerBaseUrl.getOrElse("")
-            s"${baseUrl.stripSuffix("/")}/$repo"
-          case IssueTrackerType.GitHub | IssueTrackerType.Linear |
-              IssueTrackerType.YouTrack =>
-            s"https://github.com/$repo"
-      }
-      .filter(hasAllowedScheme)
+          }
+          .filter(hasAllowedScheme)
+      case IssueTrackerType.GitHub | IssueTrackerType.Linear |
+          IssueTrackerType.YouTrack =>
+        config.repository
+          .map(repo => s"https://github.com/$repo")
+          .filter(hasAllowedScheme)
 
   private def hasAllowedScheme(url: String): Boolean =
     val schemeEnd = url.indexOf(':')

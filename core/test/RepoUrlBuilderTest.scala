@@ -142,3 +142,33 @@ class RepoUrlBuilderTest extends FunSuite:
       trackerBaseUrl = Some("javascript:alert(1)//")
     )
     assertEquals(RepoUrlBuilder.buildRepoUrl(config), None)
+
+  test(
+    "buildRepoUrl returns Forgejo repo URL using self-hosted trackerBaseUrl"
+  ):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Forgejo,
+      projectName = "my-project",
+      repository = Some("owner/repo"),
+      trackerBaseUrl = Some("https://forgejo.example.com")
+    )
+    assertEquals(
+      RepoUrlBuilder.buildRepoUrl(config),
+      Some("https://forgejo.example.com/owner/repo")
+    )
+
+  test("buildRepoUrl returns None for Forgejo when trackerBaseUrl is absent"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Forgejo,
+      projectName = "my-project",
+      repository = Some("owner/repo")
+    )
+    assertEquals(RepoUrlBuilder.buildRepoUrl(config), None)
+
+  test("buildRepoUrl returns None for Forgejo when repository is not set"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Forgejo,
+      projectName = "my-project",
+      trackerBaseUrl = Some("https://forgejo.example.com")
+    )
+    assertEquals(RepoUrlBuilder.buildRepoUrl(config), None)
