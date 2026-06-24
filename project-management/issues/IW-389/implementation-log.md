@@ -134,3 +134,71 @@ A	core/test/ForgejoClientTest.scala
 ```
 
 ---
+
+## Phase 3: Capability wiring + command dispatch/auth (2026-06-24)
+
+**Layer:** Application (capability port + command dispatch) — Layers 3 + 4
+
+**What was built:**
+- `core/model/Constants.scala` — `EnvVars.ForgejoApiToken = "FORGEJO_API_TOKEN"`, mirroring
+  `LinearApiToken` / `YouTrackApiToken`.
+- `core/commands/CommandEnv.scala` — added `fetchForgejoIssue(issueId, repository, baseUrl,
+  token)` and `createForgejoIssue(repository, title, description, baseUrl, token)` to the
+  `TrackerOps` port, mirroring the YouTrack signatures with `repository` added (GitLab shape).
+- `core/commands/LiveCommandEnv.scala` — `LiveTrackerOps` implementations delegating to
+  `ForgejoClient.fetchIssue` / `createIssue` (adapter `backend` defaulted).
+- `core/commands/Issue.scala` — `forgejoToken(env)` helper reading `FORGEJO_API_TOKEN`;
+  replaced the Phase-2 `Left("…not supported")` stubs with real `IssueTrackerType.Forgejo`
+  dispatch arms (fetch + create) that resolve token + `repository` + required `baseUrl` from
+  config; added Forgejo to the `resolveIssueId` teamPrefix arm so `iw issue 42` composes
+  `PREFIX-42` (deliberate, review-confirmed parity with GitHub/GitLab — see Decisions).
+- `core/test/fixtures/FakeCommandEnv.scala` — `FakeTracker` recorders for `fetchForgejoIssue`
+  / `createForgejoIssue` (`kind = "forgejo"`, repository/baseUrl/token extras).
+
+**Dependencies on other layers:**
+- Phase 1: `IssueTrackerType.Forgejo`, `TrackerConfig` (`repository`, `trackerBaseUrl`).
+- Phase 2: `ForgejoClient.{fetchIssue,createIssue}`, `CreatedIssue`.
+- Domain: `Issue`, `IssueId`, `ApiToken`.
+
+**Decisions:**
+- `resolveIssueId` Forgejo teamPrefix arm added so a bare numeric arg composes `PREFIX-N`,
+  matching GitHub/GitLab. Flagged in the phase context as a review-confirm behavior addition.
+- Commands depend only on `TrackerOps`, never on `ForgejoClient` directly — preserves the test seam.
+- `validateToken` left unconsumed here (needed by Phase 4 doctor/init).
+
+**Testing:**
+- Unit/harness tests: 10 Forgejo cases in `IssueHarnessTest.scala` driving `Issue` through
+  `FakeCommandEnv`/`FakeTracker` — fetch (missing token/baseUrl/repository, happy path,
+  numeric-prefix composition, adapter Left), create (happy path, missing token, and — added
+  during review — missing baseUrl, missing repository). Full `core.test` green (186 suite,
+  all pass); compile clean with `-Werror`, no warnings.
+
+**Code review:**
+- Iterations: 1 (6 reviewers: scala3, composition, architecture, testing, security, style).
+- Findings: 0 critical. Applied in-scope: PURPOSE line in `Issue.scala` updated to include
+  Forgejo; symmetric create-path tests (missing baseUrl + repository) added.
+- Deferred (pre-existing / family-wide, own ticket): `TrackerOps` per-tracker method-pair
+  growth → collapse behind a single `fetch/createIssue` pair with an `IssueTrackerConfig` ADT
+  (matching the existing `ForgeType` discriminator on PR/CI methods); `ApiToken` opaque-type
+  migration; `baseUrl` scheme/SSRF validation + `repository` path sanitization (Phase-2
+  adapter); token-resolution helper duplication. Each matches the sibling tracker pattern this
+  phase mirrors.
+- Review file: review-phase-03-20260624-135813.md
+
+**For next phases:**
+- Phase 4: init (`--tracker=forgejo`, repository + baseUrl + optional teamPrefix, codeberg.org
+  auto-detect) and doctor (Forgejo CI arm) integration; uses `validateToken`. + BATS smoke.
+- Phase 5: extend the adapter + `ForgeType`/PR-creation paths for PR creation + CI-check
+  polling so `phase-pr`/`phase-merge` work against Forgejo.
+
+**Files changed:**
+```
+M	core/commands/CommandEnv.scala
+M	core/commands/Issue.scala
+M	core/commands/LiveCommandEnv.scala
+M	core/model/Constants.scala
+M	core/test/IssueHarnessTest.scala
+M	core/test/fixtures/FakeCommandEnv.scala
+```
+
+---

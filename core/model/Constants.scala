@@ -9,6 +9,7 @@ object Constants:
   object EnvVars:
     val LinearApiToken = "LINEAR_API_TOKEN"
     val YouTrackApiToken = "YOUTRACK_API_TOKEN"
+    val ForgejoApiToken = "FORGEJO_API_TOKEN"
     val IwHookClasses = "IW_HOOK_CLASSES"
     val IwCommandsDir = "IW_COMMANDS_DIR"
     val IwPluginDirs = "IW_PLUGIN_DIRS"

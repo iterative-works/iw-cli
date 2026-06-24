@@ -201,6 +201,21 @@ trait TrackerOps:
       gitlabHost: Option[String]
   ): Either[String, CreatedIssue]
 
+  def fetchForgejoIssue(
+      issueId: IssueId,
+      repository: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, Issue]
+
+  def createForgejoIssue(
+      repository: String,
+      title: String,
+      description: String,
+      baseUrl: String,
+      token: ApiToken
+  ): Either[String, CreatedIssue]
+
 /** Bundle of all capabilities a command needs.
   *
   * Commands take a `CommandEnv` and return `CommandResult`. Production code
