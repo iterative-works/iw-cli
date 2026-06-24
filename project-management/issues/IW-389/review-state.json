@@ -45,11 +45,11 @@
       "path": "project-management/issues/IW-389/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T12:44:19.474081460Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-06-24T12:45:19.007272170Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 04: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 04: Merged",
+    "type": "success",
     "subtext": "Init + doctor integration + smoke/harness coverage"
   },
   "message": "Phase 04 implementation started",
@@ -163,6 +163,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/393"
