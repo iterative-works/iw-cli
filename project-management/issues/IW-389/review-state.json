@@ -53,11 +53,11 @@
       "path": "project-management/issues/IW-389/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T12:54:56.490101482Z",
-  "status": "implementing",
+  "last_updated": "2026-06-24T13:41:38.784189479Z",
+  "status": "awaiting_review",
   "display": {
-    "text": "Phase 05: Implementing",
-    "type": "progress",
+    "text": "Phase 05: Awaiting Review",
+    "type": "warning",
     "subtext": "PR creation + CI-check polling (forge parity)"
   },
   "message": "Phase 05 implementation started",
@@ -123,6 +123,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     }
   ],
   "git_sha": "3c8d4e4",
@@ -184,7 +189,11 @@
     {
       "label": "In Progress",
       "type": "info"
+    },
+    {
+      "label": "Review Needed",
+      "type": "warning"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/393"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/394"
 }
