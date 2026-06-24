@@ -29,14 +29,14 @@
       "path": "project-management/issues/IW-389/phase-02-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T11:25:02.367131455Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-06-24T11:26:06.516689539Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 2: Tasks Ready",
-    "type": "success",
+    "text": "Phase 02: Implementing",
+    "type": "progress",
     "subtext": "Forgejo HTTP adapter — issue read + create"
   },
-  "message": "Phase 2 tasks ready",
+  "message": "Phase 02 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -90,6 +90,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/390"
