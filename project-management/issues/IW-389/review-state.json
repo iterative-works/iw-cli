@@ -53,11 +53,11 @@
       "path": "project-management/issues/IW-389/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T13:42:30.368842318Z",
-  "status": "ci_pending",
+  "last_updated": "2026-06-24T13:47:56.730779178Z",
+  "status": "phase_merged",
   "display": {
-    "text": "Phase 05: Waiting for CI",
-    "type": "progress",
+    "text": "Phase 05: Merged",
+    "type": "success",
     "subtext": "PR creation + CI-check polling (forge parity)"
   },
   "message": "Phase 05 implementation started",
@@ -193,6 +193,10 @@
     {
       "label": "Review Needed",
       "type": "warning"
+    },
+    {
+      "label": "Complete",
+      "type": "success"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/394"
