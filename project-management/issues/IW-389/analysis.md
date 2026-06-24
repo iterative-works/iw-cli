@@ -176,40 +176,40 @@ smoke + harness wiring.
 
 ## CLARIFY Markers
 
-### CLARIFY: Scope — issue-read-only vs. full forge parity
+### RESOLVED: Scope — full forge parity
 
-The title says "issue tracker," but GitHub/GitLab adapters also create issues, create
-PRs/MRs, and poll CI checks (used by `phase-pr`, `phase-merge`). **Question:** Is the
-deliverable (a) read-only `fetchIssue` for `./iw issue` and `./iw start`, (b) issue
-read + create, or (c) full forge parity including pull-request creation and CI-check
-polling? Option (c) additionally requires extending the `ForgeType`/PR-creation paths
-and significantly enlarges Layers 2–4. **Recommendation:** start with (a)+(b) (issue
-read + create) and treat PR/CI integration as a follow-up issue unless Forgejo-hosted
-PR workflows are needed now.
+**Decision (option c):** Forgejo gets **full forge parity** with GitHub/GitLab —
+issue read + create, **pull-request creation**, and **CI-check polling**. This means
+the adapter and wiring must also serve `phase-pr` and `phase-merge`, and the
+`ForgeType`/PR-creation paths must be extended to cover Forgejo.
 
-### CLARIFY: Adapter transport
+Impact: Layers 2–4 grow to cover PR creation and CI-check endpoints
+(`POST /api/v1/repos/{owner}/{repo}/pulls`, and the commit-status /
+`/api/v1/repos/{owner}/{repo}/commits/{sha}/status` endpoints for check polling). A
+dedicated **Phase 5 (PR creation + CI-check polling)** is now in scope — see the
+Recommended Phase Plan. Total estimate moves toward the upper band (~+4–8h).
 
-Confirm the **direct-HTTP-via-sttp** approach (TD-1) rather than shelling out to the
-third-party `tea` CLI. HTTP keeps Forgejo dependency-free for users and matches the
-Linear/YouTrack test seam. Any reason to prefer `tea`?
+### RESOLVED: Adapter transport
 
-### CLARIFY: Auth env var name
+**Decision:** Direct HTTP via `sttp` (TD-1) — no `tea` CLI dependency. The adapter
+mirrors `YouTrackClient`/`LinearClient` and uses the injectable `SyncBackend` seam for
+unit tests.
 
-Confirm `FORGEJO_API_TOKEN` as the token env var (consistent with
-`LINEAR_API_TOKEN` / `YOUTRACK_API_TOKEN`).
+### RESOLVED: Auth env var name
 
-### CLARIFY: Init host auto-detection
+**Decision:** `FORGEJO_API_TOKEN` (consistent with `LINEAR_API_TOKEN` /
+`YOUTRACK_API_TOKEN`).
 
-`init` auto-detects GitHub/GitLab from the git remote host. Forgejo is self-hosted with
-arbitrary hostnames, so reliable auto-detection isn't possible in general. Should we
-auto-detect the flagship `codeberg.org` → Forgejo, and otherwise rely on the explicit
-`--tracker=forgejo` flag / menu selection? **Recommendation:** auto-detect
-`codeberg.org` only; everything else is explicit.
+### RESOLVED: Init host auto-detection
 
-### CLARIFY: `tracker.team` semantics
+**Decision:** Auto-detect `codeberg.org` → Forgejo only. All other (self-hosted)
+Forgejo instances are selected explicitly via the `--tracker=forgejo` flag or the
+`init` menu.
 
-Forgejo addresses issues by `repository` (`owner/repo`), so `tracker.team` is unused —
-matching GitHub/GitLab. Confirm we do **not** introduce a Forgejo-specific use of
+### RESOLVED: `tracker.team` semantics
+
+**Decision:** `tracker.team` stays unused for Forgejo (issues addressed by
+`repository` = `owner/repo`), matching GitHub/GitLab. No Forgejo-specific use of
 `team`.
 
 ---
@@ -244,25 +244,26 @@ Strict dependency order — each phase compiles and tests green before the next:
    for Forgejo.
 4. **Layer 5** (init + doctor) — makes Forgejo configurable and diagnosable.
 5. **Layer 6** smoke/harness coverage folded in as each layer lands.
+6. **Phase 5** (forge paths) — extend the adapter + `ForgeType`/PR-creation paths for
+   PR creation and CI-check polling so `phase-pr` / `phase-merge` work against Forgejo.
 
 ---
 
 ## Recommended Phase Plan
 
-Total estimate **~13–22h** → multi-phase. Each phase clears the 3h low-end floor and
-respects dependency order.
+Scope is **full forge parity** (resolved option c), so PR creation and CI-check polling
+are in scope as Phase 5. Total estimate **~17–30h** → multi-phase. Each phase clears the
+3h low-end floor and respects dependency order.
 
 | Phase | Scope | Layers | Estimate |
 |-------|-------|--------|----------|
 | **Phase 1** | Domain, config & serialization for Forgejo | Layer 1 | 2–4h |
-| **Phase 2** | Forgejo HTTP adapter + unit tests | Layer 2 | 5–8h |
+| **Phase 2** | Forgejo HTTP adapter (issue read + create) + unit tests | Layer 2 | 5–8h |
 | **Phase 3** | Capability wiring + command dispatch/auth (`./iw issue` works) | Layers 3 + 4 | 3–6h |
 | **Phase 4** | Init + doctor integration + smoke/harness coverage | Layers 5 + 6 | 3–5h |
+| **Phase 5** | PR creation + CI-check polling (`phase-pr`, `phase-merge`); extend `ForgeType` | Layers 2–4 (forge paths) | 4–8h |
 
 > Phase 1's low end (2h) is below the 3h floor on its own; if it lands quickly it can be
 > merged forward into Phase 2 during implementation. Kept separate here because the
 > config round-trip tests realistically push it toward the floor and it's a clean,
 > independently-reviewable unit.
-
-Scope decisions in the CLARIFY markers (especially **Scope** and **transport**) can move
-the total: full forge parity (PR/CI) would add a Phase 5 of roughly 4–8h.
