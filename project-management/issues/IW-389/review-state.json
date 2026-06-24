@@ -35,17 +35,21 @@
     {
       "label": "Phase 3 Tasks",
       "path": "project-management/issues/IW-389/phase-03-tasks.md"
+    },
+    {
+      "label": "Phase 4 Context",
+      "path": "project-management/issues/IW-389/phase-04-context.md"
     }
   ],
-  "last_updated": "2026-06-24T12:05:15.597456154Z",
-  "status": "phase_merged",
+  "last_updated": "2026-06-24T12:10:56.029217923Z",
+  "status": "context_ready",
   "display": {
-    "text": "Phase 03: Merged",
-    "type": "success",
-    "subtext": "Capability wiring + command dispatch/auth"
+    "text": "Phase 4: Context Ready",
+    "type": "info",
+    "subtext": "Init + doctor integration + smoke/harness coverage"
   },
-  "message": "Phase 03 implementation started",
-  "activity": "waiting",
+  "message": "Phase 4 context ready for review",
+  "activity": "working",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -97,8 +101,8 @@
   "git_sha": "3c8d4e4",
   "needs_attention": true,
   "phase_checkpoints": {
-    "3": {
-      "context_sha": "context_sha=aa0ad77dd04b131cb251627364a135387fc5a06e"
+    "4": {
+      "context_sha": "context_sha=577547615fa1c43e022d64407be4b62ab3f7c3d0"
     }
   },
   "badges": [
