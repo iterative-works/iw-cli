@@ -31,6 +31,9 @@ object RepoUrlBuilder:
           case IssueTrackerType.GitLab =>
             val baseUrl = config.trackerBaseUrl.getOrElse("https://gitlab.com")
             s"${baseUrl.stripSuffix("/")}/$repo"
+          case IssueTrackerType.Forgejo =>
+            val baseUrl = config.trackerBaseUrl.getOrElse("")
+            s"${baseUrl.stripSuffix("/")}/$repo"
           case IssueTrackerType.GitHub | IssueTrackerType.Linear |
               IssueTrackerType.YouTrack =>
             s"https://github.com/$repo"

@@ -1096,3 +1096,146 @@ class ConfigTest extends munit.FunSuite:
       .map(ConfigSerializer.toHocon)
       .getOrElse(fail("round-trip parse failed"))
     assertEquals(hocon1, hocon2)
+
+  // ========== Forgejo Config Serialization Tests ==========
+
+  test("ConfigSerializer serializes Forgejo config to HOCON"):
+    val config = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Forgejo,
+      repository = Some("owner/repo"),
+      projectName = "test-project",
+      trackerBaseUrl = Some("https://forgejo.example.com")
+    )
+    val hocon = ConfigSerializer.toHocon(config)
+    assert(
+      hocon.contains("type = forgejo"),
+      s"Expected 'type = forgejo' in:\n$hocon"
+    )
+    assert(
+      hocon.contains("repository = \"owner/repo\""),
+      s"Expected repository in:\n$hocon"
+    )
+    assert(
+      hocon.contains("baseUrl = \"https://forgejo.example.com\""),
+      s"Expected baseUrl in:\n$hocon"
+    )
+
+  test("ConfigSerializer deserializes HOCON with Forgejo tracker"):
+    val hocon = """
+      tracker {
+        type = forgejo
+        repository = "owner/repo"
+        baseUrl = "https://forgejo.example.com"
+        teamPrefix = "PROJ"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight, s"Expected Right, got: $result")
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.Forgejo)
+    assertEquals(config.repository, Some("owner/repo"))
+    assertEquals(config.trackerBaseUrl, Some("https://forgejo.example.com"))
+    assertEquals(config.teamPrefix, Some("PROJ"))
+
+  test("ConfigSerializer round-trip for Forgejo config"):
+    val original = ProjectConfiguration.create(
+      trackerType = IssueTrackerType.Forgejo,
+      repository = Some("owner/repo"),
+      projectName = "test-project",
+      trackerBaseUrl = Some("https://forgejo.example.com"),
+      teamPrefix = Some("PROJ")
+    )
+    val hocon = ConfigSerializer.toHocon(original)
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isRight, s"Expected Right, got: $result")
+    val roundTripped = result.getOrElse(fail("Expected Right"))
+    assertEquals(roundTripped.trackerType, original.trackerType)
+    assertEquals(roundTripped.repository, original.repository)
+    assertEquals(roundTripped.trackerBaseUrl, original.trackerBaseUrl)
+    assertEquals(roundTripped.teamPrefix, original.teamPrefix)
+    assertEquals(roundTripped.projectName, original.projectName)
+
+  test("ConfigSerializer rejects malformed Forgejo repository"):
+    val hocon = """
+      tracker {
+        type = forgejo
+        repository = "invalid"
+        baseUrl = "https://forgejo.example.com"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft, s"Expected Left, got: $result")
+    assert(
+      result.left
+        .getOrElse("")
+        .contains("repository must be in owner/repo format"),
+      s"Expected 'repository must be in owner/repo format', got: ${result.left.getOrElse("")}"
+    )
+
+  test("ConfigSerializer rejects Forgejo baseUrl with non-http(s) scheme"):
+    val hocon = """
+      tracker {
+        type = forgejo
+        repository = "owner/repo"
+        baseUrl = "javascript:alert(1)//"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(result.isLeft, s"Expected Left, got: $result")
+    assert(
+      result.left
+        .getOrElse("")
+        .contains("trackerBaseUrl must start with http:// or https://"),
+      s"Expected scheme validation error, got: ${result.left.getOrElse("")}"
+    )
+
+  test(
+    "ConfigSerializer succeeds when Forgejo config missing repository (option A)"
+  ):
+    val hocon = """
+      tracker {
+        type = forgejo
+        baseUrl = "https://forgejo.example.com"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(
+      result.isRight,
+      s"Expected Right (option A: parse succeeds), got: $result"
+    )
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.Forgejo)
+    assertEquals(config.repository, None)
+
+  test(
+    "ConfigSerializer succeeds when Forgejo config missing baseUrl (option A)"
+  ):
+    val hocon = """
+      tracker {
+        type = forgejo
+        repository = "owner/repo"
+      }
+      project {
+        name = test-project
+      }
+    """
+    val result = ConfigSerializer.fromHocon(hocon)
+    assert(
+      result.isRight,
+      s"Expected Right (option A: parse succeeds), got: $result"
+    )
+    val config = result.getOrElse(fail("Expected Right"))
+    assertEquals(config.trackerType, IssueTrackerType.Forgejo)
+    assertEquals(config.trackerBaseUrl, None)

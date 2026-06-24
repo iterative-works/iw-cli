@@ -160,6 +160,9 @@ object Issue:
                 Left(GitLabClient.formatNetworkError(error))
               case result => result
 
+      case IssueTrackerType.Forgejo =>
+        Left("Forgejo issue fetch is not yet implemented")
+
   private def updateLastSeen(
       issueId: IssueId,
       config: ProjectConfiguration,
@@ -223,6 +226,9 @@ object Issue:
               token
             )
           yield created
+
+        case IssueTrackerType.Forgejo =>
+          Left("Forgejo issue creation is not yet implemented")
 
     result match
       case Left(error) =>

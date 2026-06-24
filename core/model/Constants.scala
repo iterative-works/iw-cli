@@ -51,6 +51,7 @@ object Constants:
     val YouTrack = "youtrack"
     val GitHub = "github"
     val GitLab = "gitlab"
+    val Forgejo = "forgejo"
 
   /** Character encoding names */
   object Encoding:
