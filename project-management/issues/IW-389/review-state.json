@@ -39,17 +39,21 @@
     {
       "label": "Phase 4 Context",
       "path": "project-management/issues/IW-389/phase-04-context.md"
+    },
+    {
+      "label": "Phase 4 Tasks",
+      "path": "project-management/issues/IW-389/phase-04-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T12:10:56.029217923Z",
-  "status": "context_ready",
+  "last_updated": "2026-06-24T12:12:38.387013283Z",
+  "status": "tasks_ready",
   "display": {
-    "text": "Phase 4: Context Ready",
-    "type": "info",
+    "text": "Phase 4: Tasks Ready",
+    "type": "success",
     "subtext": "Init + doctor integration + smoke/harness coverage"
   },
-  "message": "Phase 4 context ready for review",
-  "activity": "working",
+  "message": "Phase 4 tasks ready",
+  "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
     {
@@ -96,6 +100,11 @@
       "id": "view-pr",
       "label": "View Pull Request",
       "skill": "external-link"
+    },
+    {
+      "id": "implement",
+      "label": "Continue",
+      "skill": "wf-implement"
     }
   ],
   "git_sha": "3c8d4e4",
