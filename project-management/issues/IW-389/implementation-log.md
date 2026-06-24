@@ -66,3 +66,71 @@ M	core/test/RepoUrlBuilderTest.scala
 ```
 
 ---
+
+## Phase 2: Forgejo HTTP adapter — issue read + create (2026-06-24)
+
+**Layer:** Infrastructure / I/O adapter (imperative shell over the pure domain)
+
+**What was built:**
+- `core/adapters/ForgejoClient.scala` — new HTTP adapter for the Forgejo (Gitea-compatible)
+  REST API, mirroring `LinearClient`'s injectable-`SyncBackend` seam so every path is
+  unit-testable with no network. Public surface: `fetchIssue`, `createIssue`,
+  `validateToken`, plus pure helpers (`buildIssueUrl`, `buildCreateIssueUrl`,
+  `buildValidateTokenUrl`, `buildCreateIssueBody`, `parseFetchIssueResponse`,
+  `parseCreateIssueResponse`). Returns `Either[String, Issue]` / `Either[String,
+  CreatedIssue]`; `validateToken` returns `Boolean` (matching `LinearClient`).
+- `core/test/ForgejoClientTest.scala` — 33 munit tests using `SyncBackendStub` (network-free):
+  URL builders + trailing-slash handling, ID normalization (`PROJ-123` → `…/issues/123`),
+  fetch happy path, null/absent assignee, empty/null/absent body, missing required fields
+  (`title`/`state` → `Left`), 401/404/500/malformed-JSON, create happy path + 401/404/422,
+  `validateToken` 200/401/500, `buildCreateIssueBody` exact-key assertion.
+
+**Decisions:**
+- **`Authorization: token <token>`** header; auth via the env-resolved token in Phase 3.
+- **ID normalization** via `split("-").last` for the URL index, preserving the full ID in
+  `Issue.id` (mirrors GitHub/GitLab).
+- **`state` kept verbatim** (`open`/`closed`) — Forgejo emits these directly, unlike
+  GitLab's `opened`; no remap needed.
+- **`createIssue` success** matches `201 Created` (accepts `200 Ok` defensively).
+- **JSON** parsed with `ujson` value-tree navigation (same as all sibling adapters); no
+  derived codecs / new library.
+- **`CreatedIssue` reused** from the adapters package (defined in `LinearClient.scala`),
+  not redefined.
+
+**Deferred (pre-existing family-wide conventions, flagged by review — own ticket, not a
+single-adapter divergence):** relocate `CreatedIssue` out of `LinearClient.scala`;
+`validateToken` → `Either[String, Boolean]`; narrow the broad `catch Exception`; typed
+error ADT; generic network-error text / repository path sanitization. Each matches the
+existing `LinearClient`/`YouTrackClient` shape this adapter was built to mirror.
+
+**Dependencies on other layers:**
+- Domain: `Issue`, `IssueId`, `ApiToken` (`core/model`), `CreatedIssue` (`core/adapters`).
+- Phase 1: `IssueTrackerType.Forgejo` exists (the adapter is keyed off it by the Phase 3
+  caller, not referenced here).
+- Not yet wired into any command — `CommandEnv`/`Issue.scala` dispatch is Phase 3.
+
+**Testing:**
+- Unit tests: 33 added in `ForgejoClientTest.scala`. Full `core.test` suite green; compile
+  clean with `-Werror`, no warnings. All adapter tests network-free (`SyncBackendStub`).
+
+**Code review:**
+- Iterations: 1 (6 reviewers: scala3, testing, security, architecture, error-handling, style).
+- Findings: 0 critical. Applied in-scope (confined to the two new files): defensive
+  missing-field checks aligning with Linear/YouTrack; Scaladoc on all public methods;
+  5 extra tests (create 404/422, validateToken 500, absent-body, body exact-keys); PURPOSE
+  line reworded. Family-wide warnings deferred (see Decisions above).
+- Review file: review-phase-02-20260624-133225.md
+
+**For next phases:**
+- Phase 3: add `fetchForgejoIssue`/`createForgejoIssue` to `TrackerOps`, implement in
+  `LiveTrackerOps` delegating to `ForgejoClient`, extend `FakeTracker`; add the
+  `IssueTrackerType.Forgejo` dispatch arm + `FORGEJO_API_TOKEN` resolution in `Issue.scala`.
+- Phase 5: extend the adapter with PR creation + commit-status polling for forge parity.
+
+**Files changed:**
+```
+A	core/adapters/ForgejoClient.scala
+A	core/test/ForgejoClientTest.scala
+```
+
+---

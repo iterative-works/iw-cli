@@ -72,6 +72,7 @@ class ForgejoClientTest extends FunSuite:
     val parsed = ujson.read(body)
     assertEquals(parsed("title").str, "My Title")
     assertEquals(parsed("body").str, "My Description")
+    assertEquals(parsed.obj.keySet, Set("title", "body"))
 
   test("buildCreateIssueBody handles empty description"):
     val body = ForgejoClient.buildCreateIssueBody("Title", "")
@@ -144,6 +145,42 @@ class ForgejoClientTest extends FunSuite:
       "body": null,
       "state": "open",
       "assignee": null
+    }"""
+    val result = ForgejoClient.parseFetchIssueResponse(json, "PROJ-123")
+    assert(result.isRight, s"Expected Right but got $result")
+    assertEquals(result.getOrElse(fail("")).description, None)
+
+  test("parseFetchIssueResponse returns Left when title field is missing"):
+    val json = """{
+      "number": 123,
+      "state": "open"
+    }"""
+    val result = ForgejoClient.parseFetchIssueResponse(json, "PROJ-123")
+    assert(result.isLeft, "Expected Left for missing title")
+    assertEquals(
+      result.left.getOrElse(""),
+      "Malformed response: missing 'title' field"
+    )
+
+  test("parseFetchIssueResponse returns Left when state field is missing"):
+    val json = """{
+      "number": 123,
+      "title": "Fix login bug"
+    }"""
+    val result = ForgejoClient.parseFetchIssueResponse(json, "PROJ-123")
+    assert(result.isLeft, "Expected Left for missing state")
+    assertEquals(
+      result.left.getOrElse(""),
+      "Malformed response: missing 'state' field"
+    )
+
+  test(
+    "parseFetchIssueResponse yields None description when body key is absent"
+  ):
+    val json = """{
+      "number": 123,
+      "title": "Fix login bug",
+      "state": "open"
     }"""
     val result = ForgejoClient.parseFetchIssueResponse(json, "PROJ-123")
     assert(result.isRight, s"Expected Right but got $result")
@@ -323,3 +360,46 @@ class ForgejoClientTest extends FunSuite:
     val backend = SyncBackendStub.whenAnyRequest.thenRespondUnauthorized()
     val result = ForgejoClient.validateToken(baseUrl, token, backend)
     assertEquals(result, false)
+
+  test("validateToken returns false for 500 Server Error"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondServerError()
+    val result = ForgejoClient.validateToken(baseUrl, token, backend)
+    assertEquals(result, false)
+
+  test("createIssue returns Left on 404 repository not found"):
+    val backend = SyncBackendStub.whenAnyRequest.thenRespondNotFound()
+    val result = ForgejoClient.createIssue(
+      repository,
+      "New Issue",
+      "Details",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 404")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("API error") || error.contains("404"),
+      s"Expected API error, got: $error"
+    )
+
+  test("createIssue returns Left on 422 Unprocessable Entity"):
+    val backend =
+      SyncBackendStub.whenAnyRequest.thenRespondAdjust(
+        "Unprocessable Entity",
+        StatusCode.UnprocessableEntity
+      )
+    val result = ForgejoClient.createIssue(
+      repository,
+      "New Issue",
+      "Details",
+      baseUrl,
+      token,
+      backend
+    )
+    assert(result.isLeft, "Expected Left for 422")
+    val error = result.left.getOrElse("")
+    assert(
+      error.contains("API error") || error.contains("422"),
+      s"Expected API error, got: $error"
+    )
