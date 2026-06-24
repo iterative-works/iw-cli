@@ -51,16 +51,28 @@
     {
       "label": "Phase 5 Tasks",
       "path": "project-management/issues/IW-389/phase-05-tasks.md"
+    },
+    {
+      "label": "Review Packet",
+      "path": "project-management/issues/IW-389/review-packet.md"
+    },
+    {
+      "label": "Implementation Log",
+      "path": "project-management/issues/IW-389/implementation-log.md"
+    },
+    {
+      "label": "Release Notes",
+      "path": "project-management/issues/IW-389/release-notes.md"
     }
   ],
-  "last_updated": "2026-06-24T13:47:56.730779178Z",
-  "status": "phase_merged",
+  "last_updated": "2026-06-24T13:54:38.996091749Z",
+  "status": "all_complete",
   "display": {
-    "text": "Phase 05: Merged",
+    "text": "Ready for Final Review",
     "type": "success",
     "subtext": "PR creation + CI-check polling (forge parity)"
   },
-  "message": "Phase 05 implementation started",
+  "message": "All phases complete - final PR created",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -123,6 +135,11 @@
       "id": "implement",
       "label": "Continue",
       "skill": "wf-implement"
+    },
+    {
+      "id": "view-pr",
+      "label": "View Pull Request",
+      "skill": "external-link"
     },
     {
       "id": "view-pr",
@@ -199,5 +216,5 @@
       "type": "success"
     }
   ],
-  "pr_url": "https://github.com/iterative-works/iw-cli/pull/394"
+  "pr_url": "https://github.com/iterative-works/iw-cli/pull/395"
 }
