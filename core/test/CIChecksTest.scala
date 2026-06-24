@@ -110,3 +110,51 @@ class CIChecksTest extends FunSuite:
     val fileExists = (_: os.Path) => false
     val result = CIChecks.checkWorkflowExistsWith(config, fileExists)
     assertEquals(result, CheckResult.Warning("No CI workflow found"))
+
+  // Test: Forgejo tracker + .forgejo/workflows/ci.yml exists → Success
+  test(
+    "checkWorkflowExistsWith succeeds for Forgejo when .forgejo/workflows/ci.yml exists"
+  ):
+    val config = testConfig(IssueTrackerType.Forgejo)
+    val fileExists =
+      (path: os.Path) => path.toString.endsWith(".forgejo/workflows/ci.yml")
+    val result = CIChecks.checkWorkflowExistsWith(config, fileExists)
+    assertEquals(
+      result,
+      CheckResult.Success("Found (.forgejo/workflows/ci.yml)")
+    )
+
+  // Test: Forgejo tracker + only .github/workflows/ci.yml exists → Success (compat)
+  test(
+    "checkWorkflowExistsWith succeeds for Forgejo when only .github/workflows/ci.yml exists"
+  ):
+    val config = testConfig(IssueTrackerType.Forgejo)
+    val fileExists =
+      (path: os.Path) => path.toString.endsWith(".github/workflows/ci.yml")
+    val result = CIChecks.checkWorkflowExistsWith(config, fileExists)
+    assertEquals(
+      result,
+      CheckResult.Success("Found (.github/workflows/ci.yml)")
+    )
+
+  // Test: Forgejo tracker + neither present → Error
+  test("checkWorkflowExistsWith errors for Forgejo when no CI workflow found"):
+    val config = testConfig(IssueTrackerType.Forgejo)
+    val fileExists = (_: os.Path) => false
+    val result = CIChecks.checkWorkflowExistsWith(config, fileExists)
+    assertEquals(
+      result,
+      CheckResult.Error("Missing", "Create .forgejo/workflows/ci.yml")
+    )
+
+  // Test: Forgejo tracker + both .forgejo and .github workflows present → .forgejo wins
+  test(
+    "checkWorkflowExistsWith prefers .forgejo over .github when both present"
+  ):
+    val config = testConfig(IssueTrackerType.Forgejo)
+    val fileExists = (_: os.Path) => true
+    val result = CIChecks.checkWorkflowExistsWith(config, fileExists)
+    assertEquals(
+      result,
+      CheckResult.Success("Found (.forgejo/workflows/ci.yml)")
+    )

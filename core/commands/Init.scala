@@ -1,5 +1,5 @@
 // PURPOSE: Init command logic: discover/prompt tracker config, write .iw/config.conf
-// PURPOSE: Per-tracker collection (Linear, YouTrack, GitHub, GitLab); auto-detects from git remote
+// PURPOSE: Per-tracker collection (Linear, YouTrack, GitHub, GitLab, Forgejo); auto-detects from git remote
 
 package iw.core.commands
 
@@ -77,9 +77,11 @@ object Init:
         Right(IssueTrackerType.GitHub)
       case Some(Constants.TrackerTypeValues.GitLab) =>
         Right(IssueTrackerType.GitLab)
+      case Some(Constants.TrackerTypeValues.Forgejo) =>
+        Right(IssueTrackerType.Forgejo)
       case Some(invalid) =>
         Left(
-          s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}', '${Constants.TrackerTypeValues.YouTrack}', '${Constants.TrackerTypeValues.GitHub}', or '${Constants.TrackerTypeValues.GitLab}'."
+          s"Invalid tracker type: $invalid. Use '${Constants.TrackerTypeValues.Linear}', '${Constants.TrackerTypeValues.YouTrack}', '${Constants.TrackerTypeValues.GitHub}', '${Constants.TrackerTypeValues.GitLab}', or '${Constants.TrackerTypeValues.Forgejo}'."
         )
       case None =>
         Right(detectOrAskTracker(env))
@@ -111,13 +113,17 @@ object Init:
     env.console.out("  2. YouTrack")
     env.console.out("  3. GitHub")
     env.console.out("  4. GitLab")
-    env.prompt.ask("Select tracker (1, 2, 3, or 4)") match
+    env.console.out("  5. Forgejo")
+    env.prompt.ask("Select tracker (1, 2, 3, 4, or 5)") match
       case "1" | "linear"   => IssueTrackerType.Linear
       case "2" | "youtrack" => IssueTrackerType.YouTrack
       case "3" | "github"   => IssueTrackerType.GitHub
       case "4" | "gitlab"   => IssueTrackerType.GitLab
+      case "5" | "forgejo"  => IssueTrackerType.Forgejo
       case _                =>
-        env.console.err("Error: Invalid choice. Please select 1, 2, 3, or 4.")
+        env.console.err(
+          "Error: Invalid choice. Please select 1, 2, 3, 4, or 5."
+        )
         askForTracker(env)
 
   private def collectTrackerDetails(
@@ -160,7 +166,17 @@ object Init:
         Right((team, None, None, None))
 
       case IssueTrackerType.Forgejo =>
-        Left("Forgejo tracker is not supported by the init command")
+        val ownerRepo = repositoryArg.getOrElse(
+          env.prompt.ask("Enter Forgejo repository (owner/repo format)")
+        )
+        val baseUrl = baseUrlArg.getOrElse(
+          env.prompt.ask(
+            "Enter Forgejo base URL (e.g., https://codeberg.org)"
+          )
+        )
+        resolveTeamPrefix(teamPrefixArg, ownerRepo, env).map { prefix =>
+          ("", Some(ownerRepo), Some(prefix), Some(baseUrl))
+        }
 
   private def resolveGitHubRepo(
       repositoryArg: Option[String],
@@ -303,4 +319,8 @@ object Init:
         env.console.out(
           "For other platforms, see: https://gitlab.com/gitlab-org/cli"
         )
-      case IssueTrackerType.Forgejo => ()
+      case IssueTrackerType.Forgejo =>
+        env.console.out("Set your API token:")
+        env.console.out(
+          s"  export ${Constants.EnvVars.ForgejoApiToken}=..."
+        )
