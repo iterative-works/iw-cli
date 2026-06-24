@@ -30,6 +30,19 @@ object CIChecks:
           CheckResult.Success("Found (.gitlab-ci.yml)")
         else CheckResult.Error("Missing", "Create .gitlab-ci.yml")
 
+      case IssueTrackerType.Forgejo =>
+        val forgejoWorkflow = os.pwd / ".forgejo" / "workflows" / "ci.yml"
+        val githubWorkflow = os.pwd / ".github" / "workflows" / "ci.yml"
+        if fileExists(forgejoWorkflow) then
+          CheckResult.Success("Found (.forgejo/workflows/ci.yml)")
+        else if fileExists(githubWorkflow) then
+          CheckResult.Success("Found (.github/workflows/ci.yml)")
+        else
+          CheckResult.Error(
+            "Missing",
+            "Create .forgejo/workflows/ci.yml"
+          )
+
       case IssueTrackerType.Linear | IssueTrackerType.YouTrack =>
         val githubWorkflow = os.pwd / ".github" / "workflows" / "ci.yml"
         val gitlabCI = os.pwd / ".gitlab-ci.yml"

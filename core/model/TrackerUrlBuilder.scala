@@ -26,3 +26,8 @@ object TrackerUrlBuilder:
           val baseUrl = config.trackerBaseUrl.getOrElse("https://gitlab.com")
           s"${baseUrl.stripSuffix("/")}/$repo/-/issues"
         )
+      case IssueTrackerType.Forgejo =>
+        for
+          repo <- config.repository
+          baseUrl <- config.trackerBaseUrl
+        yield s"${baseUrl.stripSuffix("/")}/$repo/issues"

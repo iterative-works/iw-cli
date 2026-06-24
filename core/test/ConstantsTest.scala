@@ -53,6 +53,9 @@ class ConstantsTest extends FunSuite:
   test("Constants.TrackerTypeValues contains youtrack"):
     assertEquals(Constants.TrackerTypeValues.YouTrack, "youtrack")
 
+  test("Constants.TrackerTypeValues contains forgejo"):
+    assertEquals(Constants.TrackerTypeValues.Forgejo, "forgejo")
+
   test("Constants.Encoding contains UTF-8"):
     assertEquals(Constants.Encoding.Utf8, "UTF-8")
 

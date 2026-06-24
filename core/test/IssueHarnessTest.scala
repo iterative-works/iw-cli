@@ -261,3 +261,186 @@ class IssueHarnessTest extends munit.FunSuite:
     assert(env.console.stderr.contains("Failed to create issue"))
     assert(env.console.stderr.contains("rate limited"))
   }
+
+  private val forgejoConfig =
+    """project { name = sample }
+      |tracker {
+      |  type = forgejo
+      |  repository = "owner/sample"
+      |  teamPrefix = "SAMP"
+      |  baseUrl = "https://forgejo.example.com"
+      |}
+      |""".stripMargin
+
+  test(
+    "forgejo fetch without token: exit 1, stderr mentions FORGEJO_API_TOKEN"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env, forgejoConfig)
+
+    val result = IssueCmd.run(Seq("SAMP-1"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains(Constants.EnvVars.ForgejoApiToken))
+  }
+
+  test("forgejo fetch without baseUrl: exit 1, stderr mentions baseUrl") {
+    val env = FakeCommandEnv()
+    seedConfig(
+      env,
+      """project { name = sample }
+        |tracker {
+        |  type = forgejo
+        |  repository = "owner/sample"
+        |  teamPrefix = "SAMP"
+        |}
+        |""".stripMargin
+    )
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+
+    val result = IssueCmd.run(Seq("SAMP-1"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains("baseUrl"))
+  }
+
+  test(
+    "forgejo fetch without repository: exit 1, stderr mentions Forgejo repository not configured"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(
+      env,
+      """project { name = sample }
+        |tracker {
+        |  type = forgejo
+        |  baseUrl = "https://forgejo.example.com"
+        |}
+        |""".stripMargin
+    )
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+
+    val result = IssueCmd.run(Seq("SAMP-1"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains("Forgejo repository not configured"))
+  }
+
+  test(
+    "forgejo fetch happy path: passes repository, baseUrl, token; updates last-seen"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env, forgejoConfig)
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+    env.tracker.setFetchIssueResult(
+      Right(Issue("SAMP-1", "Forgejo bug", "Open", None, Some("body")))
+    )
+
+    val result = IssueCmd.run(Seq("SAMP-1"), env)
+
+    assertEquals(result.exitCode, 0)
+    val call = env.tracker.fetchIssueCallList.head
+    assertEquals(call.kind, "forgejo")
+    assertEquals(call.extras("repository"), "owner/sample")
+    assertEquals(call.extras("baseUrl"), "https://forgejo.example.com")
+    assertEquals(call.extras("token"), "fg-token")
+    assertEquals(env.server.updateLastSeenCallList.size, 1)
+  }
+
+  test("forgejo fetch: numeric arg composes team prefix from config") {
+    val env = FakeCommandEnv()
+    seedConfig(env, forgejoConfig)
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+
+    val result = IssueCmd.run(Seq("42"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(env.tracker.fetchIssueCallList.head.issueId, "SAMP-42")
+  }
+
+  test("forgejo fetch: adapter Left surfaces as exit 1 with error text") {
+    val env = FakeCommandEnv()
+    seedConfig(env, forgejoConfig)
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+    env.tracker.setFetchIssueResult(Left("boom"))
+
+    val result = IssueCmd.run(Seq("SAMP-1"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains("boom"))
+  }
+
+  test("forgejo create happy path: routes to createForgejoIssue with extras") {
+    val env = FakeCommandEnv()
+    seedConfig(env, forgejoConfig)
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+    env.tracker.setCreateIssueResult(
+      Right(
+        CreatedIssue("7", "https://forgejo.example.com/owner/sample/issues/7")
+      )
+    )
+
+    val result = IssueCmd.run(
+      Seq("create", "--title", "Forgejo task", "--description", "Details"),
+      env
+    )
+
+    assertEquals(result.exitCode, 0)
+    val call = env.tracker.createIssueCallList.head
+    assertEquals(call.kind, "forgejo")
+    assertEquals(call.title, "Forgejo task")
+    assertEquals(call.description, "Details")
+    assertEquals(call.extras("repository"), "owner/sample")
+    assertEquals(call.extras("baseUrl"), "https://forgejo.example.com")
+    assertEquals(call.extras("token"), "fg-token")
+    assert(env.console.stdout.contains("Issue created"))
+  }
+
+  test("forgejo create without token: exit 1") {
+    val env = FakeCommandEnv()
+    seedConfig(env, forgejoConfig)
+
+    val result = IssueCmd.run(Seq("create", "--title", "Needs token"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains(Constants.EnvVars.ForgejoApiToken))
+  }
+
+  test("forgejo create without baseUrl: exit 1, stderr mentions baseUrl") {
+    val env = FakeCommandEnv()
+    seedConfig(
+      env,
+      """project { name = sample }
+        |tracker {
+        |  type = forgejo
+        |  repository = "owner/sample"
+        |}
+        |""".stripMargin
+    )
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+
+    val result = IssueCmd.run(Seq("create", "--title", "No URL"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains("baseUrl"))
+  }
+
+  test(
+    "forgejo create without repository: exit 1, stderr mentions Forgejo repository not configured"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(
+      env,
+      """project { name = sample }
+        |tracker {
+        |  type = forgejo
+        |  baseUrl = "https://forgejo.example.com"
+        |}
+        |""".stripMargin
+    )
+    env.envVars.setEnv(Constants.EnvVars.ForgejoApiToken, "fg-token")
+
+    val result = IssueCmd.run(Seq("create", "--title", "No repo"), env)
+
+    assertEquals(result.exitCode, 1)
+    assert(env.console.stderr.contains("Forgejo repository not configured"))
+  }

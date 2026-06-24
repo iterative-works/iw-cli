@@ -154,12 +154,13 @@ object PhaseMerge:
 
   private val githubPrPattern = """https://github\.com/.+/pull/(\d+)""".r
   private val gitlabMrPattern = """https://.+/-/merge_requests/(\d+)""".r
+  private val forgejoPrPattern = """https://.+/pulls/(\d+)""".r
 
-  /** Extract the PR or MR number from a GitHub or GitLab URL.
+  /** Extract the PR or MR number from a GitHub, GitLab, or Forgejo URL.
     *
     * @param url
-    *   A GitHub PR URL or GitLab MR URL (leading/trailing whitespace is
-    *   stripped)
+    *   A GitHub PR URL, GitLab MR URL, or Forgejo PR URL (leading/trailing
+    *   whitespace is stripped)
     * @return
     *   Right(number) on success, Left(errorMessage) for empty, blank, or
     *   unrecognised input
@@ -169,6 +170,7 @@ object PhaseMerge:
     if trimmed.isEmpty then Left("URL must not be blank")
     else
       trimmed match
-        case githubPrPattern(n) => Right(n.toInt)
-        case gitlabMrPattern(n) => Right(n.toInt)
-        case _                  => Left(s"Unrecognised PR/MR URL: $trimmed")
+        case githubPrPattern(n)  => Right(n.toInt)
+        case gitlabMrPattern(n)  => Right(n.toInt)
+        case forgejoPrPattern(n) => Right(n.toInt)
+        case _                   => Left(s"Unrecognised PR/MR URL: $trimmed")

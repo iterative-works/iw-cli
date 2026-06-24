@@ -105,9 +105,10 @@ object Doctor:
         }
         val buildSystem = BuildSystem.detectWith(env.fs.exists)
         val ciPlatform = config.tracker.trackerType match
-          case IssueTrackerType.GitHub => "GitHub Actions"
-          case IssueTrackerType.GitLab => "GitLab CI"
-          case _                       => "Unknown"
+          case IssueTrackerType.GitHub  => "GitHub Actions"
+          case IssueTrackerType.GitLab  => "GitLab CI"
+          case IssueTrackerType.Forgejo => "Forgejo Actions"
+          case IssueTrackerType.Linear | IssueTrackerType.YouTrack => "Unknown"
 
         val ctx =
           DoctorFixContext(failedChecks, buildSystem, ciPlatform, config)

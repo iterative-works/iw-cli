@@ -8,6 +8,7 @@ import iw.core.model.{
   CheckResult,
   DoctorFixContext,
   FixAction,
+  IssueTrackerType,
   ProjectConfiguration
 }
 import iw.core.test.fixtures.FakeCommandEnv
@@ -27,8 +28,23 @@ class DoctorHarnessTest extends munit.FunSuite:
       |}
       |""".stripMargin
 
+  private val forgejoConfig =
+    """project {
+      |  name = testproject
+      |}
+      |
+      |tracker {
+      |  type = forgejo
+      |  repository = "owner/sample"
+      |  baseUrl = "https://codeberg.org"
+      |}
+      |""".stripMargin
+
   private def seedConfig(env: FakeCommandEnv): Unit =
     env.fs.put(env.cwd / ".iw" / "config.conf", linearConfig)
+
+  private def seedForgejoConfig(env: FakeCommandEnv): Unit =
+    env.fs.put(env.cwd / ".iw" / "config.conf", forgejoConfig)
 
   test("missing config: exit 1 with 'Missing or invalid'") {
     val env = FakeCommandEnv()
@@ -182,4 +198,42 @@ class DoctorHarnessTest extends munit.FunSuite:
     val result = Doctor.run(Seq("--fix"), env)
 
     assertEquals(result.exitCode, 42)
+  }
+
+  test("forgejo valid config + git repo: exit 0, all checks pass") {
+    val env = FakeCommandEnv()
+    seedForgejoConfig(env)
+
+    val result = Doctor.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    assert(env.console.stdout.contains("All checks passed"))
+    assert(env.console.stdout.contains("Git repository"))
+    assert(env.console.stdout.contains("Configuration"))
+  }
+
+  test("forgejo --fix CI platform label is 'Forgejo Actions'") {
+    val env = FakeCommandEnv()
+    seedForgejoConfig(env)
+    val failingCheck = Check(
+      "Failing quality check",
+      _ => CheckResult.Error("Broken", "Fix me"),
+      category = "Quality"
+    )
+    val fixCalledWith =
+      new AtomicReference[Option[DoctorFixContext]](None)
+    val fixAction = new FixAction:
+      def fix(ctx: DoctorFixContext): Int =
+        fixCalledWith.set(Some(ctx))
+        0
+    env.hooks.setDiscoveredChecks(List(failingCheck))
+    env.hooks.setDiscoveredFixActions(List(fixAction))
+
+    val result = Doctor.run(Seq("--fix"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(
+      fixCalledWith.get.map(_.ciPlatform),
+      Some("Forgejo Actions")
+    )
   }

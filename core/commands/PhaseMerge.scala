@@ -18,7 +18,8 @@ object PhaseMerge:
       gitlabHost: Option[String],
       repository: String,
       prUrl: String,
-      prNumber: Int
+      prNumber: Int,
+      forgeConfig: ForgeConfig
   )
 
   def run(args: Seq[String], env: CommandEnv): CommandResult =
@@ -81,6 +82,7 @@ object PhaseMerge:
       prUrl <- env.reviewState.readPrUrl(reviewPath)
       _ <- validatePrUrl(forgeType, repository, prUrl)
       prNumber <- PhaseMergeModel.extractPrNumber(prUrl)
+      forgeConfig <- ForgeConfigResolver.resolve(forgeType, config, env)
     yield Resolved(
       timeoutMs = d.timeoutMs,
       pollIntervalMs = d.pollIntervalMs,
@@ -93,7 +95,8 @@ object PhaseMerge:
       gitlabHost = gitlabHost,
       repository = repository,
       prUrl = prUrl,
-      prNumber = prNumber
+      prNumber = prNumber,
+      forgeConfig = forgeConfig
     )
     outcome match
       case Left(err) =>
@@ -143,6 +146,9 @@ object PhaseMerge:
       case ForgeType.GitLab =>
         if prUrl.contains(s"/$repository/-/merge_requests/") then Right(())
         else Left(s"MR URL does not match repository '$repository'.")
+      case ForgeType.Forgejo =>
+        if prUrl.contains(s"/$repository/pulls/") then Right(())
+        else Left(s"PR URL does not match repository '$repository'.")
 
   private def tryUpdateState(
       env: CommandEnv,
@@ -285,7 +291,8 @@ object PhaseMerge:
           r.forgeType,
           r.prNumber,
           r.repository,
-          r.gitlabHost
+          r.gitlabHost,
+          r.forgeConfig
         ) match
         case Left(err) =>
           env.console.err(s"Error: Failed to fetch CI check statuses: $err")
@@ -342,7 +349,12 @@ object PhaseMerge:
 
   private def doMergeAndAdvance(r: Resolved, env: CommandEnv): CommandResult =
     env.console.out(s"Merging PR: ${r.prUrl}")
-    env.tracker.mergeWithDelete(r.forgeType, r.prUrl, r.gitlabHost) match
+    env.tracker.mergeWithDelete(
+      r.forgeType,
+      r.prUrl,
+      r.gitlabHost,
+      r.forgeConfig
+    ) match
       case Left(err) =>
         env.console.err(s"Error: $err")
         CommandResult.error

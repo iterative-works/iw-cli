@@ -22,8 +22,9 @@ object ProjectContext:
   ): Input =
     val forgeType = ForgeType.resolve(remote, config.trackerType)
     val gitlabHost = forgeType match
-      case ForgeType.GitLab => remote.flatMap(_.host.toOption)
-      case ForgeType.GitHub => None
+      case ForgeType.GitLab  => remote.flatMap(_.host.toOption)
+      case ForgeType.GitHub  => None
+      case ForgeType.Forgejo => None
 
     Input(
       projectName = config.projectName,
@@ -51,8 +52,9 @@ object ProjectContext:
 
   private def renderForgeSection(input: Input): String =
     input.forgeType match
-      case ForgeType.GitHub => renderGitHubSection()
-      case ForgeType.GitLab => renderGitLabSection(input.gitlabHost)
+      case ForgeType.GitHub  => renderGitHubSection()
+      case ForgeType.GitLab  => renderGitLabSection(input.gitlabHost)
+      case ForgeType.Forgejo => renderForgejoSection()
 
   private def renderGitHubSection(): String =
     s"""### Forge: GitHub
@@ -62,6 +64,14 @@ object ProjectContext:
        |- PR listing: `gh pr list --head <branch> --json number,state,url`
        |- PR merge: `gh pr merge <url> --squash --delete-branch`
        |- The `iw phase-pr` and `iw phase-merge` commands handle this automatically.
+       |""".stripMargin
+
+  private def renderForgejoSection(): String =
+    s"""### Forge: Forgejo
+       |
+       |- Forgejo PR operations use direct HTTP (no CLI binary required).
+       |- PR creation and merge are handled automatically by `iw phase-pr` and `iw phase-merge`.
+       |- Requires `FORGEJO_API_TOKEN` environment variable and `tracker.baseUrl` in config.
        |""".stripMargin
 
   private def renderGitLabSection(host: Option[String]): String =
