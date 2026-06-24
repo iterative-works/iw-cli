@@ -218,7 +218,7 @@ object LiveTrackerOps extends TrackerOps:
     forge match
       case ForgeType.GitHub =>
         val result = ProcessAdapter.run(
-          GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq
+          "gh" +: GitHubClient.buildMergePrWithDeleteCommand(prUrl).toSeq
         )
         if result.exitCode == 0 then Right(())
         else Left(s"Failed to merge PR: ${result.stderr}")
@@ -226,7 +226,7 @@ object LiveTrackerOps extends TrackerOps:
         val env =
           gitlabHost.map(h => Map("GITLAB_HOST" -> h)).getOrElse(Map.empty)
         val result = ProcessAdapter.run(
-          GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq,
+          "glab" +: GitLabClient.buildMergeMrWithDeleteCommand(prUrl).toSeq,
           env = env
         )
         if result.exitCode == 0 then Right(())

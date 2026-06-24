@@ -53,11 +53,11 @@
       "path": "project-management/issues/IW-389/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T13:41:38.784189479Z",
-  "status": "awaiting_review",
+  "last_updated": "2026-06-24T13:42:30.368842318Z",
+  "status": "ci_pending",
   "display": {
-    "text": "Phase 05: Awaiting Review",
-    "type": "warning",
+    "text": "Phase 05: Waiting for CI",
+    "type": "progress",
     "subtext": "PR creation + CI-check polling (forge parity)"
   },
   "message": "Phase 05 implementation started",
