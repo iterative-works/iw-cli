@@ -53,14 +53,14 @@
       "path": "project-management/issues/IW-389/phase-05-tasks.md"
     }
   ],
-  "last_updated": "2026-06-24T12:54:00.636206568Z",
-  "status": "tasks_ready",
+  "last_updated": "2026-06-24T12:54:56.490101482Z",
+  "status": "implementing",
   "display": {
-    "text": "Phase 5: Tasks Ready",
-    "type": "success",
+    "text": "Phase 05: Implementing",
+    "type": "progress",
     "subtext": "PR creation + CI-check polling (forge parity)"
   },
-  "message": "Phase 5 tasks ready",
+  "message": "Phase 05 implementation started",
   "activity": "waiting",
   "workflow_type": "waterfall",
   "available_actions": [
@@ -180,6 +180,10 @@
     {
       "label": "Complete",
       "type": "success"
+    },
+    {
+      "label": "In Progress",
+      "type": "info"
     }
   ],
   "pr_url": "https://github.com/iterative-works/iw-cli/pull/393"
