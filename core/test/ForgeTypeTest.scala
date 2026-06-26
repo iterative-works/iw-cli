@@ -45,23 +45,23 @@ class ForgeTypeTest extends FunSuite:
     val remote = GitRemote("not-a-valid-url")
     assert(ForgeType.fromRemote(remote).isLeft)
 
-  // cliTool tests
+  // cliTool tests (Option[String] - None for Forgejo, Some for GitHub/GitLab)
 
-  test("ForgeType.GitHub.cliTool is 'gh'"):
-    assertEquals(ForgeType.GitHub.cliTool, "gh")
+  test("ForgeType.GitHub.cliTool is Some('gh')"):
+    assertEquals(ForgeType.GitHub.cliTool, Some("gh"))
 
-  test("ForgeType.GitLab.cliTool is 'glab'"):
-    assertEquals(ForgeType.GitLab.cliTool, "glab")
+  test("ForgeType.GitLab.cliTool is Some('glab')"):
+    assertEquals(ForgeType.GitLab.cliTool, Some("glab"))
 
-  // installUrl tests
+  // installUrl tests (Option[String] - None for Forgejo, Some for GitHub/GitLab)
 
   test("ForgeType.GitHub.installUrl points to GitHub CLI"):
-    assertEquals(ForgeType.GitHub.installUrl, "https://cli.github.com/")
+    assertEquals(ForgeType.GitHub.installUrl, Some("https://cli.github.com/"))
 
   test("ForgeType.GitLab.installUrl points to GitLab CLI"):
     assertEquals(
       ForgeType.GitLab.installUrl,
-      "https://gitlab.com/gitlab-org/cli"
+      Some("https://gitlab.com/gitlab-org/cli")
     )
 
   // resolve tests
@@ -104,3 +104,63 @@ class ForgeTypeTest extends FunSuite:
       ForgeType.resolve(remote, IssueTrackerType.Linear),
       ForgeType.GitLab
     )
+
+  // Forgejo resolution tests
+
+  test(
+    "ForgeType.resolve with Forgejo tracker type and no remote returns Forgejo"
+  ):
+    assertEquals(
+      ForgeType.resolve(None, IssueTrackerType.Forgejo),
+      ForgeType.Forgejo
+    )
+
+  test(
+    "ForgeType.resolve with Forgejo tracker type and self-hosted remote returns Forgejo (tracker wins over host)"
+  ):
+    val selfHostedRemote = Some(GitRemote("git@git.example.com:owner/repo.git"))
+    assertEquals(
+      ForgeType.resolve(selfHostedRemote, IssueTrackerType.Forgejo),
+      ForgeType.Forgejo
+    )
+
+  test("ForgeType.fromHost('codeberg.org') returns Forgejo"):
+    assertEquals(ForgeType.fromHost("codeberg.org"), ForgeType.Forgejo)
+
+  // Regression: GitHub/GitLab resolution unchanged
+
+  test(
+    "ForgeType.resolve with GitHub remote and GitHub tracker returns GitHub"
+  ):
+    val githubRemote = Some(GitRemote("git@github.com:org/repo.git"))
+    assertEquals(
+      ForgeType.resolve(githubRemote, IssueTrackerType.GitHub),
+      ForgeType.GitHub
+    )
+
+  test(
+    "ForgeType.resolve with GitLab remote and GitLab tracker returns GitLab"
+  ):
+    val gitlabRemote = Some(GitRemote("git@gitlab.com:org/repo.git"))
+    assertEquals(
+      ForgeType.resolve(gitlabRemote, IssueTrackerType.GitLab),
+      ForgeType.GitLab
+    )
+
+  test("ForgeType.resolve with no remote and GitHub tracker returns GitHub"):
+    assertEquals(
+      ForgeType.resolve(None, IssueTrackerType.GitHub),
+      ForgeType.GitHub
+    )
+
+  test("ForgeType.resolve with no remote and GitLab tracker returns GitLab"):
+    assertEquals(
+      ForgeType.resolve(None, IssueTrackerType.GitLab),
+      ForgeType.GitLab
+    )
+
+  test("ForgeType.Forgejo.cliTool returns None (no CLI binary)"):
+    assertEquals(ForgeType.Forgejo.cliTool, None)
+
+  test("ForgeType.Forgejo.installUrl returns None (no CLI to install)"):
+    assertEquals(ForgeType.Forgejo.installUrl, None)

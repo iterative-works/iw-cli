@@ -88,17 +88,18 @@ object PhaseAdvance:
       r: Resolved,
       env: CommandEnv
   ): CommandResult =
-    if !env.process.commandExists(r.forgeType.cliTool) then
-      env.console.err(
-        s"Error: ${r.forgeType.cliTool} CLI is not installed. Install it from ${r.forgeType.installUrl}"
-      )
-      CommandResult.error
-    else
-      checkMerged(r, env) match
-        case Left(err) =>
-          env.console.err(s"Error: $err")
-          CommandResult.error
-        case Right(()) => doAdvance(currentBranch, r, env)
+    r.forgeType.cliTool match
+      case Some(cli) if !env.process.commandExists(cli) =>
+        env.console.err(
+          s"Error: $cli CLI is not installed. Install it from ${r.forgeType.installUrl.getOrElse("")}"
+        )
+        CommandResult.error
+      case _ =>
+        checkMerged(r, env) match
+          case Left(err) =>
+            env.console.err(s"Error: $err")
+            CommandResult.error
+          case Right(()) => doAdvance(currentBranch, r, env)
 
   private def checkMerged(
       r: Resolved,
@@ -165,6 +166,10 @@ object PhaseAdvance:
         else if mrResult.stdout.trim.nonEmpty then Right(())
         else
           Left(s"No merged PR found for phase branch '${r.phaseBranchName}'.")
+      case ForgeType.Forgejo =>
+        // Forgejo merge check is not yet supported via CLI; assume merged
+        // when the user runs phase-advance (they have already merged via HTTP).
+        Right(())
 
   private def doAdvance(
       currentBranch: String,

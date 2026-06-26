@@ -239,3 +239,109 @@ class InitHarnessTest extends munit.FunSuite:
     assertEquals(result.exitCode, 1)
     assert(env.console.stderr.contains("disk full"))
   }
+
+  test(
+    "forgejo with repository + base-url + team-prefix args: no prompts"
+  ) {
+    val env = FakeCommandEnv()
+
+    val result = Init.run(
+      Seq(
+        "--tracker=forgejo",
+        "--repository=owner/sample",
+        "--base-url=https://codeberg.org",
+        "--team-prefix=SAMP"
+      ),
+      env
+    )
+
+    assertEquals(result.exitCode, 0)
+    val cfg = env.config.writeCallList.head._2
+    assertEquals(cfg.trackerType, IssueTrackerType.Forgejo)
+    assertEquals(cfg.repository, Some("owner/sample"))
+    assertEquals(cfg.trackerBaseUrl, Some("https://codeberg.org"))
+    assertEquals(cfg.teamPrefix, Some("SAMP"))
+    assertEquals(cfg.team, "")
+    assert(env.prompt.askCallList.isEmpty)
+  }
+
+  test("forgejo without base-url: prompts for base URL") {
+    val env = FakeCommandEnv()
+    env.prompt.queueAskAnswers(
+      "https://codeberg.org"
+    ) // only base URL; team-prefix supplied via arg
+
+    val result = Init.run(
+      Seq(
+        "--tracker=forgejo",
+        "--repository=owner/sample",
+        "--team-prefix=SAMP"
+      ),
+      env
+    )
+
+    assertEquals(result.exitCode, 0)
+    val cfg = env.config.writeCallList.head._2
+    assertEquals(cfg.trackerBaseUrl, Some("https://codeberg.org"))
+    assertEquals(env.prompt.askCallList.size, 1)
+  }
+
+  test("forgejo next steps print FORGEJO_API_TOKEN") {
+    val env = FakeCommandEnv()
+
+    val result = Init.run(
+      Seq(
+        "--tracker=forgejo",
+        "--repository=owner/sample",
+        "--base-url=https://codeberg.org",
+        "--team-prefix=SAMP"
+      ),
+      env
+    )
+
+    assertEquals(result.exitCode, 0)
+    assert(env.console.stdout.contains("FORGEJO_API_TOKEN"))
+  }
+
+  test("init auto-detects forgejo from codeberg.org remote") {
+    val env = FakeCommandEnv()
+    env.git.setRemoteUrl(
+      Some(GitRemote("git@codeberg.org:owner/sample.git"))
+    )
+    env.prompt.queueAnswers(true) // accept suggested forgejo tracker
+    env.prompt.queueAskAnswers(
+      "owner/sample", // repository prompt
+      "https://codeberg.org", // base URL prompt
+      "SAMP" // team prefix suggestion (accept)
+    )
+
+    val result = Init.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    val cfg = env.config.writeCallList.head._2
+    assertEquals(cfg.trackerType, IssueTrackerType.Forgejo)
+    assertEquals(cfg.repository, Some("owner/sample"))
+    assertEquals(cfg.trackerBaseUrl, Some("https://codeberg.org"))
+    assertEquals(cfg.teamPrefix, Some("SAMP"))
+    assert(env.console.stdout.contains("Detected tracker"))
+  }
+
+  test("askForTracker menu selects forgejo") {
+    val env = FakeCommandEnv()
+    // No remote that auto-detects, so goes straight to menu
+    env.prompt.queueAskAnswers(
+      "5", // select Forgejo from menu
+      "owner/sample", // repository prompt
+      "https://codeberg.org", // base URL prompt
+      "SAMP" // team prefix suggestion (accept)
+    )
+
+    val result = Init.run(Seq.empty, env)
+
+    assertEquals(result.exitCode, 0)
+    val cfg = env.config.writeCallList.head._2
+    assertEquals(cfg.trackerType, IssueTrackerType.Forgejo)
+    assertEquals(cfg.repository, Some("owner/sample"))
+    assertEquals(cfg.trackerBaseUrl, Some("https://codeberg.org"))
+    assertEquals(cfg.teamPrefix, Some("SAMP"))
+  }

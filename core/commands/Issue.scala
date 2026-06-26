@@ -1,5 +1,5 @@
 // PURPOSE: Issue command logic: fetch+display, or create subcommand for tracker-specific creation
-// PURPOSE: Dispatches across Linear/YouTrack/GitHub/GitLab via TrackerOps and EnvVars
+// PURPOSE: Dispatches across Linear/YouTrack/GitHub/GitLab/Forgejo via TrackerOps and EnvVars
 
 package iw.core.commands
 
@@ -87,7 +87,8 @@ object Issue:
       yield issueId
     else
       val teamPrefix = config.trackerType match
-        case IssueTrackerType.GitHub | IssueTrackerType.GitLab =>
+        case IssueTrackerType.GitHub | IssueTrackerType.GitLab |
+            IssueTrackerType.Forgejo =>
           config.teamPrefix
         case _ => None
       IssueId.parse(args.head, teamPrefix)
@@ -109,6 +110,14 @@ object Issue:
       .flatMap(ApiToken.apply)
       .toRight(
         s"${Constants.EnvVars.YouTrackApiToken} environment variable is not set"
+      )
+
+  private def forgejoToken(env: CommandEnv): Either[String, ApiToken] =
+    env.envVars
+      .get(Constants.EnvVars.ForgejoApiToken)
+      .flatMap(ApiToken.apply)
+      .toRight(
+        s"${Constants.EnvVars.ForgejoApiToken} environment variable is not set"
       )
 
   private def fetchIssue(
@@ -159,6 +168,23 @@ object Issue:
               case Left(error) if GitLabClient.isNetworkError(error) =>
                 Left(GitLabClient.formatNetworkError(error))
               case result => result
+
+      case IssueTrackerType.Forgejo =>
+        for
+          token <- forgejoToken(env)
+          repository <- config.repository.toRight(
+            "Forgejo repository not configured. Run 'iw init' first."
+          )
+          baseUrl <- config.trackerBaseUrl.toRight(
+            s"Forgejo base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}"
+          )
+          issue <- env.tracker.fetchForgejoIssue(
+            issueId,
+            repository,
+            baseUrl,
+            token
+          )
+        yield issue
 
   private def updateLastSeen(
       issueId: IssueId,
@@ -217,6 +243,24 @@ object Issue:
             )
             created <- env.tracker.createYouTrackIssue(
               config.team,
+              title,
+              description,
+              baseUrl,
+              token
+            )
+          yield created
+
+        case IssueTrackerType.Forgejo =>
+          for
+            token <- forgejoToken(env)
+            repository <- config.repository.toRight(
+              "Forgejo repository not configured. Run 'iw init' first."
+            )
+            baseUrl <- config.trackerBaseUrl.toRight(
+              s"Forgejo base URL not configured. Add 'baseUrl' to tracker section in ${Constants.Paths.ConfigFile}"
+            )
+            created <- env.tracker.createForgejoIssue(
+              repository,
               title,
               description,
               baseUrl,
