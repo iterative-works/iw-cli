@@ -18,6 +18,11 @@ case class CleanupContext(
   * Implementations shut down project-spawned processes (build daemons, dev
   * servers, docker stacks) rooted in the worktree before it is removed.
   *
+  * `iw rm` runs each hook with the target worktree as the working directory, so
+  * `os.pwd`, relative paths, and subprocesses spawned via `os.proc(...).call()`
+  * (which defaults its `cwd` to `os.pwd`) all resolve inside the worktree.
+  * `ctx.worktreePath` is the same directory, for code that needs it explicitly.
+  *
   * Return contract:
   *   - `Nil` => success; `rm` proceeds.
   *   - non-empty list => warnings; each string is surfaced to the user and `rm`

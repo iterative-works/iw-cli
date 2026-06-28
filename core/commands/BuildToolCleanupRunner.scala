@@ -34,6 +34,7 @@ object BuildToolCleanupRunner:
     val wt = ctx.worktreePath
     val probe = BuildToolProbe(
       millDaemon = env.fs.exists(wt / "out" / "mill-daemon"),
+      millWrapper = env.fs.exists(wt / "mill"),
       // Either marker triggers an unconditional `bloop exit` (intentionally
       // broad — Bloop restarts on demand); gated on `bloop` being installed,
       // so scala-cli-only setups without standalone bloop simply skip.
@@ -48,8 +49,8 @@ object BuildToolCleanupRunner:
       worktree: os.Path,
       env: CommandEnv
   ): Option[String] =
-    if !env.process.commandExists(teardown.tool) then
-      None // tool not installed — nothing to tear down
+    if !teardown.tool.forall(env.process.commandExists) then
+      None // PATH tool not installed — nothing to tear down
     else
       try
         env.console.out(s"${teardown.description}...")

@@ -360,6 +360,49 @@ class RmHarnessTest extends munit.FunSuite:
     )
   }
 
+  test("cleanup hook runs with the target worktree as its working directory") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1007")
+    env.worktree.addWorktree(wt)
+
+    val observedPwd = mutable.ArrayBuffer.empty[os.Path]
+    val hook = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        observedPwd += os.pwd
+        Nil
+
+    env.hooks.setCleanupActions(List(hook))
+
+    val result = Rm.run(Seq("IWLE-1007"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(
+      observedPwd.toList,
+      List(wt),
+      "Cleanup hook must execute with the target worktree as os.pwd"
+    )
+  }
+
+  test("worktree cwd is restored after a cleanup hook throws") {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-1008")
+    env.worktree.addWorktree(wt)
+
+    val before = os.pwd
+    val hook = new CleanupAction:
+      def cleanup(ctx: CleanupContext): List[String] =
+        sys.error("boom")
+
+    env.hooks.setCleanupActions(List(hook))
+
+    val result = Rm.run(Seq("IWLE-1008"), env)
+
+    assertEquals(result.exitCode, 1)
+    assertEquals(os.pwd, before, "os.pwd must be restored after a hook aborts")
+  }
+
   // ========== Built-in cleanup scenarios ==========
 
   private val linearConfigBuiltinDisabled =
@@ -421,6 +464,30 @@ class RmHarnessTest extends munit.FunSuite:
     assert(
       millActionIdx < removingIdx,
       s"Action line (line $millActionIdx) must appear before 'Removing worktree' (line $removingIdx)"
+    )
+    assertEquals(env.worktree.removeCallList.size, 1)
+  }
+
+  test(
+    "built-in: worktree ./mill wrapper present → daemon shut down via ./mill"
+  ) {
+    val env = FakeCommandEnv()
+    seedConfig(env)
+    val wt = worktreePath(env, "testproject-IWLE-2005")
+    env.worktree.addWorktree(wt)
+    env.hooks.setCleanupActions(Nil)
+    env.fs.put(wt / "out" / "mill-daemon", "")
+    env.fs.put(wt / "mill", "#!/usr/bin/env sh\n")
+    // System mill is on PATH, but the worktree's own wrapper must be preferred.
+    env.process.setExistingCommands(Set("git", "tmux", "mill"))
+
+    val result = Rm.run(Seq("IWLE-2005"), env)
+
+    assertEquals(result.exitCode, 0)
+    assertEquals(
+      env.process.runInList,
+      List((wt, Seq("./mill", "--no-server", "shutdown"))),
+      "Daemon must be shut down via the worktree's ./mill wrapper"
     )
     assertEquals(env.worktree.removeCallList.size, 1)
   }

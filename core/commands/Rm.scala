@@ -133,12 +133,21 @@ object Rm:
   ): Either[CommandResult, List[String]] =
     // CleanupAction contract: throwing = abort (preserve worktree, exit non-zero);
     // a returned list = warnings. See CleanupAction scaladoc.
+    // Hooks tear down processes rooted in the worktree, so they must run with the
+    // worktree as their working directory: os.dynamicPwd makes os.pwd (and any
+    // os.proc(...).call() defaulting to it) resolve there for the hook's duration,
+    // restoring the prior cwd afterwards even if the hook throws.
     env.hooks.cleanupActions
       .foldLeft[Either[CommandResult, List[String]]](Right(Nil)) {
         case (Left(result), _) =>
           Left(result) // already aborted; skip remaining hooks
         case (Right(acc), action) =>
-          try Right(acc ++ action.cleanup(ctx))
+          try
+            Right(
+              acc ++ os.dynamicPwd.withValue(ctx.worktreePath)(
+                action.cleanup(ctx)
+              )
+            )
           catch
             case NonFatal(e) =>
               val msg = Option(e.getMessage).getOrElse(e.getClass.getSimpleName)
